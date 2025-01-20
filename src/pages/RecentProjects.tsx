@@ -47,30 +47,43 @@ const RecentProjects = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects", session?.user?.id],
+  // Add authentication check
+  if (!session?.user) {
+    navigate("/");
+    return null;
+  }
+
+  const { data: projects, isLoading, error } = useQuery({
+    queryKey: ["projects", session.user.id],
     queryFn: async () => {
-      if (!session?.user?.id) {
-        throw new Error("No authenticated user");
-      }
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
 
-      if (error) {
+        if (!data) {
+          return [];
+        }
+
+        return data as Project[];
+      } catch (err) {
+        console.error("Query error:", err);
         toast({
           variant: "destructive",
           title: "Error fetching projects",
-          description: error.message,
+          description: "Please try again later or contact support if the issue persists.",
         });
-        throw error;
+        throw err;
       }
-
-      return data as Project[];
     },
-    enabled: !!session?.user?.id,
+    enabled: !!session.user.id,
+    retry: 2,
   });
 
   const handleDeleteProject = async (projectId: string) => {
@@ -82,7 +95,6 @@ const RecentProjects = () => {
 
       if (error) throw error;
 
-      // Invalidate and refetch projects
       queryClient.invalidateQueries({ queryKey: ["projects"] });
 
       toast({
@@ -90,6 +102,7 @@ const RecentProjects = () => {
         description: "The project has been successfully deleted.",
       });
     } catch (error) {
+      console.error("Delete error:", error);
       toast({
         variant: "destructive",
         title: "Error deleting project",
@@ -97,6 +110,43 @@ const RecentProjects = () => {
       });
     }
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen w-full bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col gap-8">
+            <header className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-3xl font-bold">Recent Projects</h1>
+              </div>
+            </header>
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center text-muted-foreground">
+                  <p>Failed to load projects. Please try again later.</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ["projects"] })}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">

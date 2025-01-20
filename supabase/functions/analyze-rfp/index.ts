@@ -9,15 +9,27 @@ import { analyzeWithClaude } from './claude-client.ts';
 import { splitIntoChunks } from './text-processing.ts';
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { filePath, projectId } = await req.json() as AnalyzeRequest;
+    // Validate request body
+    let body;
+    try {
+      const text = await req.text();
+      console.log('Received request body:', text);
+      body = JSON.parse(text);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { filePath, projectId } = body as AnalyzeRequest;
     
     if (!filePath || !projectId) {
-      throw new Error('No file path or project ID provided');
+      throw new Error('Missing required fields: filePath and projectId are required');
     }
 
     console.log('Processing file:', filePath);

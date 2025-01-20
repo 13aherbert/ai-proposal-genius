@@ -41,6 +41,12 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
           <Calendar className="h-4 w-4" />
           <span>Created: {format(new Date(project.created_at), "PPP")}</span>
         </div>
+        {project.deadline && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>Due: {format(new Date(project.deadline), "PPP")}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

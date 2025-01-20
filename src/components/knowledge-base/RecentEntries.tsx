@@ -34,18 +34,39 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
 
       if (error) throw error;
 
-      const formattedEntries = data.map(entry => ({
+      // Delete the Oregon Emerging Business Proposal entry
+      const { error: deleteError } = await supabase
+        .from('knowledge_entries')
+        .delete()
+        .eq('id', '73d7cb17-f89e-47d6-b4da-418628d800e8');
+
+      if (deleteError) {
+        console.error('Error deleting entry:', deleteError);
+        throw deleteError;
+      }
+
+      // Fetch the updated entries after deletion
+      const { data: updatedData, error: updatedError } = await query;
+
+      if (updatedError) throw updatedError;
+
+      const formattedEntries = updatedData.map(entry => ({
         title: entry.title,
         category: entry.category,
         updated: new Date(entry.updated_at).toLocaleDateString()
       }));
 
       setEntries(formattedEntries);
+      
+      toast({
+        title: "Success",
+        description: "Entry deleted successfully",
+      });
     } catch (error) {
-      console.error('Error fetching entries:', error);
+      console.error('Error managing entries:', error);
       toast({
         title: "Error",
-        description: "Failed to load entries",
+        description: "Failed to manage entries",
         variant: "destructive",
       });
     } finally {

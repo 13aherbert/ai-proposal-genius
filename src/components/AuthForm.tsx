@@ -30,9 +30,6 @@ export const AuthForm = () => {
       if (event === "SIGNED_OUT") {
         navigate("/");
       }
-      if (event === "USER_DELETED") {
-        setError("Account has been deleted.");
-      }
       if (event === "PASSWORD_RECOVERY") {
         setError(""); // Clear errors during password recovery
       }

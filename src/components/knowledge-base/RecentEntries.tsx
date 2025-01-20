@@ -18,6 +18,10 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const { toast } = useToast();
 
+  const formatCategoryForQuery = (category: string) => {
+    return category.toLowerCase().replace(/\s+/g, '-');
+  };
+
   const fetchEntries = async () => {
     try {
       setIsLoading(true);
@@ -29,7 +33,9 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
         .order('updated_at', { ascending: false });
 
       if (selectedCategory) {
-        query = query.eq('category', selectedCategory);
+        const formattedCategory = formatCategoryForQuery(selectedCategory);
+        console.log('Formatted category for query:', formattedCategory);
+        query = query.eq('category', formattedCategory);
       }
 
       const { data, error } = await query;

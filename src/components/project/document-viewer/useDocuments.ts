@@ -2,25 +2,44 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ProjectDocument } from "./types";
+import { useAuth } from "@/components/AuthProvider";
 
 export function useDocuments(projectId: string) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: documents } = useQuery({
     queryKey: ["project-documents", projectId],
     queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error("No authenticated user");
+      }
+
       const { data, error } = await supabase
         .from("project_documents")
         .select("*")
         .eq("project_id", projectId)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching documents:", error);
+        toast.error("Failed to load documents");
+        throw error;
+      }
+
       return data as ProjectDocument[];
     },
+    enabled: !!session?.user?.id && !!projectId,
+    retry: 2,
   });
 
   const handleDelete = async (document: ProjectDocument) => {
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to delete documents");
+      return;
+    }
+
     try {
       const { error: storageError } = await supabase.storage
         .from("rfp-files")
@@ -31,7 +50,8 @@ export function useDocuments(projectId: string) {
       const { error: dbError } = await supabase
         .from("project_documents")
         .delete()
-        .eq("id", document.id);
+        .eq("id", document.id)
+        .eq("user_id", session.user.id);
 
       if (dbError) throw dbError;
 

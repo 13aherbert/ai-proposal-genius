@@ -10,6 +10,8 @@ export type Project = {
   created_at: string;
   rfp_file_path: string;
   user_id: string;
+  client_name: string | null;
+  business_name: string | null;
 };
 
 export function useProjectDetails(projectId: string | undefined, user: User | null) {

@@ -11,8 +11,12 @@ import { cn } from "@/lib/utils";
 interface ProjectFormProps {
   projectId: string | null;
   projectTitle: string;
+  clientName?: string;
+  businessName?: string;
   deadline?: Date;
   onTitleChange: (title: string) => void;
+  onClientNameChange: (name: string) => void;
+  onBusinessNameChange: (name: string) => void;
   onDeadlineChange: (date?: Date) => void;
   onSubmit: () => void;
 }
@@ -20,8 +24,12 @@ interface ProjectFormProps {
 export const ProjectForm = ({
   projectId,
   projectTitle,
+  clientName = "",
+  businessName = "",
   deadline,
   onTitleChange,
+  onClientNameChange,
+  onBusinessNameChange,
   onDeadlineChange,
   onSubmit,
 }: ProjectFormProps) => {
@@ -40,6 +48,24 @@ export const ProjectForm = ({
                 value={projectTitle}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="Enter project title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clientName">Client Name</Label>
+              <Input
+                id="clientName"
+                value={clientName}
+                onChange={(e) => onClientNameChange(e.target.value)}
+                placeholder="Enter client name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="businessName">Business Name</Label>
+              <Input
+                id="businessName"
+                value={businessName}
+                onChange={(e) => onBusinessNameChange(e.target.value)}
+                placeholder="Enter business name"
               />
             </div>
             <div className="space-y-2">

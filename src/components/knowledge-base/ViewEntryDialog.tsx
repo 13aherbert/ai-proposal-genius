@@ -2,28 +2,15 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Download, Edit, Save, Trash2, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { KnowledgeCategory } from "./types";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { EntryHeader } from "./dialog/EntryHeader";
+import { EntryCategory } from "./dialog/EntryCategory";
+import { EntryContent } from "./dialog/EntryContent";
+import { DeleteEntryAlert } from "./dialog/DeleteEntryAlert";
 
 interface ViewEntryDialogProps {
   open: boolean;
@@ -190,137 +177,45 @@ export const ViewEntryDialog = ({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            {isEditing ? (
-              <div className="flex-1">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            ) : (
-              <DialogTitle>{initialTitle}</DialogTitle>
-            )}
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={handleSave}
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => setShowDeleteAlert(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
+          <DialogHeader>
+            <EntryHeader
+              isEditing={isEditing}
+              initialTitle={initialTitle}
+              editedTitle={editedTitle}
+              onEditedTitleChange={setEditedTitle}
+              onStartEditing={() => setIsEditing(true)}
+              onCancelEditing={() => setIsEditing(false)}
+              onSave={handleSave}
+              onDelete={() => setShowDeleteAlert(true)}
+            />
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={editedCategory}
-                    onValueChange={setEditedCategory}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.name} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div>
-                  <span className="text-sm font-medium">Category:</span>
-                  <span className="ml-2 text-sm text-muted-foreground">{initialCategory}</span>
-                </div>
-              )}
-            </div>
-            {isLoading ? (
-              <p className="text-muted-foreground">Loading content...</p>
-            ) : filePath ? (
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground">This entry contains an uploaded document</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownload}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download File
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {isEditing ? (
-                  <Textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="min-h-[200px]"
-                  />
-                ) : (
-                  <div className="prose prose-sm max-w-none">
-                    {content || "No content available"}
-                  </div>
-                )}
-              </div>
-            )}
+            <EntryCategory
+              isEditing={isEditing}
+              initialCategory={initialCategory}
+              editedCategory={editedCategory}
+              categories={categories}
+              onEditedCategoryChange={setEditedCategory}
+            />
+            <EntryContent
+              isLoading={isLoading}
+              filePath={filePath}
+              content={content}
+              isEditing={isEditing}
+              editedContent={editedContent}
+              onEditedContentChange={setEditedContent}
+              onDownload={handleDownload}
+            />
           </div>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the entry
-              {filePath ? " and its associated file" : ""}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteEntryAlert
+        open={showDeleteAlert}
+        onOpenChange={setShowDeleteAlert}
+        onConfirmDelete={handleDelete}
+        hasFile={!!filePath}
+      />
     </>
   );
 };

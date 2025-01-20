@@ -16,6 +16,12 @@ serve(async (req) => {
   try {
     const { filePath } = await req.json();
     
+    if (!filePath) {
+      throw new Error('No file path provided');
+    }
+
+    console.log('Processing file:', filePath);
+    
     // Initialize Supabase client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,17 +35,24 @@ serve(async (req) => {
       .download(filePath);
 
     if (downloadError) {
+      console.error('Download error:', downloadError);
       throw new Error(`Error downloading file: ${downloadError.message}`);
     }
 
     // Convert file to text
     const text = await fileData.text();
+    console.log('File content length:', text.length);
+
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
     // Call OpenAI API for analysis
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -57,8 +70,20 @@ serve(async (req) => {
       }),
     });
 
-    const analysisData = await response.json();
-    
+    if (!openAIResponse.ok) {
+      const errorData = await openAIResponse.text();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData}`);
+    }
+
+    const analysisData = await openAIResponse.json();
+    console.log('OpenAI response received');
+
+    if (!analysisData.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI response format:', analysisData);
+      throw new Error('Invalid response format from OpenAI');
+    }
+
     return new Response(
       JSON.stringify({ analysis: analysisData.choices[0].message.content }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useState } from "react";
@@ -13,6 +15,8 @@ const UploadRFP = () => {
   const navigate = useNavigate();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectTitle, setProjectTitle] = useState("");
   const { session } = useAuth();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -48,13 +52,15 @@ const UploadRFP = () => {
         }
 
         // Create a new project
-        const { error: projectError } = await supabase
+        const { error: projectError, data: projectData } = await supabase
           .from('projects')
           .insert({
             title: file.name.replace(`.${fileExt}`, ''),
             rfp_file_path: sanitizedFileName,
             user_id: session.user.id
-          });
+          })
+          .select()
+          .single();
 
         if (projectError) {
           // If project creation fails, delete the uploaded file
@@ -64,6 +70,8 @@ const UploadRFP = () => {
           throw projectError;
         }
 
+        setProjectId(projectData.id);
+        setProjectTitle(projectData.title);
         setUploadProgress(100);
         toast.success("Project created successfully!");
         
@@ -88,6 +96,23 @@ const UploadRFP = () => {
       setUploadProgress(0);
     }
   }, [session]);
+
+  const handleUpdateProject = async () => {
+    if (!projectId) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ title: projectTitle })
+        .eq('id', projectId);
+
+      if (error) throw error;
+      toast.success("Project updated successfully!");
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error("Failed to update project. Please try again.");
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -162,10 +187,25 @@ const UploadRFP = () => {
                 <CardTitle>Project Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Upload an RFP document to begin. Once uploaded, you'll be able to
-                  enter project details and start the AI analysis.
-                </p>
+                {projectId ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="projectTitle">Project Title</Label>
+                      <Input
+                        id="projectTitle"
+                        value={projectTitle}
+                        onChange={(e) => setProjectTitle(e.target.value)}
+                        placeholder="Enter project title"
+                      />
+                    </div>
+                    <Button onClick={handleUpdateProject}>Update Project</Button>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Upload an RFP document to begin. Once uploaded, you'll be able to
+                    enter project details and start the AI analysis.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>

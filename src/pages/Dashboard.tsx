@@ -38,11 +38,7 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4" />
                 New Project
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleSignOut}
-                className="gap-2"
-              >
+              <Button variant="outline" onClick={handleSignOut} className="gap-2">
                 <LogOut className="h-4 w-4" />
                 Sign Out
               </Button>
@@ -50,7 +46,7 @@ const Dashboard = () => {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card 
+            <Card
               className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer"
               onClick={() => navigate("/upload-rfp")}
             >
@@ -62,12 +58,16 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Upload a new RFP document to start a new project with AI assistance
+                  Upload a new RFP document to start a new project with AI
+                  assistance
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer">
+            <Card
+              className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer"
+              onClick={() => navigate("/recent-projects")}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FolderOpen className="h-5 w-5" />
@@ -81,7 +81,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card 
+            <Card
               className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer"
               onClick={() => navigate("/knowledge-base")}
             >

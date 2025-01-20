@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadRFP from "./pages/UploadRFP";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import RecentProjects from "./pages/RecentProjects";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <KnowledgeBase />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recent-projects"
+              element={
+                <ProtectedRoute>
+                  <RecentProjects />
                 </ProtectedRoute>
               }
             />

@@ -27,11 +27,24 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { session } = useAuth();
 
+  const resetForm = () => {
+    setTitle("");
+    setCategory("");
+    setContent("");
+    setSelectedFile(null);
+    setUploadMode('text');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!session?.user?.id) {
       toast.error("You must be logged in to add entries");
+      return;
+    }
+
+    if (!title || !category) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -45,7 +58,6 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
       let filePath = null;
 
       if (uploadMode === 'file' && selectedFile) {
-        // Upload file to storage
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
         const { error: uploadError, data } = await supabase.storage
@@ -53,13 +65,14 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           .upload(`${session.user.id}/${fileName}`, selectedFile);
 
         if (uploadError) {
-          throw new Error(uploadError.message);
+          console.error('Upload error:', uploadError);
+          toast.error("Failed to upload file");
+          return;
         }
 
         filePath = data.path;
       }
 
-      // Insert entry into database
       const { error: insertError } = await supabase
         .from('knowledge_entries')
         .insert({
@@ -71,18 +84,14 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
         });
 
       if (insertError) {
-        throw new Error(insertError.message);
+        console.error('Insert error:', insertError);
+        toast.error("Failed to save entry");
+        return;
       }
 
       toast.success("Entry added successfully!");
+      resetForm();
       onOpenChange(false);
-      
-      // Reset form
-      setTitle("");
-      setCategory("");
-      setContent("");
-      setSelectedFile(null);
-      setUploadMode('text');
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error("Failed to save entry. Please try again.");

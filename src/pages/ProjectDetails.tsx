@@ -52,6 +52,41 @@ const ProjectDetails = () => {
     enabled: !!session?.user?.id && !!projectId,
   });
 
+  const handleViewDocument = async () => {
+    if (!project?.rfp_file_path) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No RFP document found",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('rfp-files')
+        .download(project.rfp_file_path);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create a blob URL and open it in a new tab
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+      // Clean up the blob URL after opening
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not access the RFP file",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen w-full bg-background">
@@ -123,22 +158,7 @@ const ProjectDetails = () => {
               <CardContent>
                 <Button 
                   variant="outline"
-                  onClick={async () => {
-                    const { data, error } = await supabase.storage
-                      .from('rfp-files')
-                      .createSignedUrl(project.rfp_file_path, 60);
-                    
-                    if (error) {
-                      toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "Could not access the RFP file",
-                      });
-                      return;
-                    }
-
-                    window.open(data.signedUrl, '_blank');
-                  }}
+                  onClick={handleViewDocument}
                 >
                   View RFP Document
                 </Button>

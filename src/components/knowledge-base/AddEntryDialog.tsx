@@ -9,7 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { KnowledgeCategory } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@supabase/auth-helpers-react";
+import { useAuth } from "@/components/AuthProvider";
 
 interface AddEntryDialogProps {
   categories: KnowledgeCategory[];
@@ -25,12 +25,12 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const auth = useAuth();
+  const { session } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!auth?.user?.id) {
+    if (!session?.user?.id) {
       toast.error("You must be logged in to add entries");
       return;
     }
@@ -67,7 +67,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           category,
           content: uploadMode === 'text' ? content : null,
           file_path: filePath,
-          user_id: auth.user.id
+          user_id: session.user.id
         });
 
       if (insertError) {

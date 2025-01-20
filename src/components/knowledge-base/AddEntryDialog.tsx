@@ -18,6 +18,7 @@ interface AddEntryDialogProps {
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const [uploadMode, setUploadMode] = useState<'text' | 'file'>('text');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +32,33 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) { // 20MB limit
+        toast.error("File size must be less than 20MB");
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
     if (file) {
       if (file.size > 20 * 1024 * 1024) { // 20MB limit
         toast.error("File size must be less than 20MB");
@@ -104,7 +132,14 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           ) : (
             <div className="space-y-2">
               <Label htmlFor="file">Upload Document</Label>
-              <div className="border-2 border-dashed rounded-lg p-4">
+              <div 
+                className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                  isDragging ? 'border-primary bg-primary/10' : 'border-border'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Input
                   id="file"
                   type="file"

@@ -3,9 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Search, FileText, Folder, List, Scale, DollarSign, LineChart } from "lucide-react";
+import { useState } from "react";
 
 const KnowledgeBase = () => {
+  const [open, setOpen] = useState(false);
+
+  const categories = [
+    { icon: <BookOpen className="h-4 w-4" />, name: "Company Boilerplates" },
+    { icon: <Scale className="h-4 w-4" />, name: "Legal Disclaimers" },
+    { icon: <FileText className="h-4 w-4" />, name: "Prior RFP Responses" },
+    { icon: <LineChart className="h-4 w-4" />, name: "Industry Benchmarks" },
+    { icon: <Folder className="h-4 w-4" />, name: "Competitive Insights" },
+    { icon: <DollarSign className="h-4 w-4" />, name: "Pricing Templates" },
+    { icon: <FileText className="h-4 w-4" />, name: "Estimation Tools" },
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Implement form submission
+    setOpen(false);
+  };
+
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)]">
@@ -14,10 +37,55 @@ const KnowledgeBase = () => {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
               Knowledge Base
             </h1>
-            <Button className="gap-2">
-              <FileText className="h-4 w-4" />
-              Add New Entry
-            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Add New Entry
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input id="title" placeholder="Enter the title of your entry" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.name} value={category.name.toLowerCase().replace(/\s+/g, '-')}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Content</Label>
+                    <Textarea
+                      id="content"
+                      placeholder="Enter the content of your knowledge base entry"
+                      className="min-h-[200px]"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Save Entry</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100%-5rem)]">
@@ -32,34 +100,12 @@ const KnowledgeBase = () => {
               <CardContent>
                 <ScrollArea className="h-[calc(100vh-16rem)]">
                   <div className="flex flex-col gap-2">
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Company Boilerplates
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <Scale className="h-4 w-4" />
-                      Legal Disclaimers
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <FileText className="h-4 w-4" />
-                      Prior RFP Responses
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <LineChart className="h-4 w-4" />
-                      Industry Benchmarks
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <Folder className="h-4 w-4" />
-                      Competitive Insights
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Pricing Templates
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <FileText className="h-4 w-4" />
-                      Estimation Tools
-                    </Button>
+                    {categories.map((category) => (
+                      <Button key={category.name} variant="ghost" className="justify-start gap-2">
+                        {category.icon}
+                        {category.name}
+                      </Button>
+                    ))}
                   </div>
                 </ScrollArea>
               </CardContent>

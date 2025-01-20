@@ -12,7 +12,6 @@ export type Project = {
   user_id: string;
   client_name: string | null;
   business_name: string | null;
-  deadline: string | null;
 };
 
 export function useProjectDetails(projectId: string | undefined, user: User | null) {

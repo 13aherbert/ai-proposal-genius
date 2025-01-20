@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { KnowledgeEntry } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ViewEntryDialog } from "./ViewEntryDialog";
 
 interface RecentEntriesProps {
   entries?: KnowledgeEntry[];
@@ -13,6 +14,7 @@ interface RecentEntriesProps {
 export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -64,34 +66,49 @@ export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
   }
 
   return (
-    <Card className="bg-secondary/50 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle>Recent Entries</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {entries.length === 0 ? (
-            <p className="text-muted-foreground">No entries found</p>
-          ) : (
-            entries.map((item, index) => (
-              <div key={index}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {item.category} • Last updated {item.updated}
-                    </p>
+    <>
+      <Card className="bg-secondary/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle>Recent Entries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {entries.length === 0 ? (
+              <p className="text-muted-foreground">No entries found</p>
+            ) : (
+              entries.map((item, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {item.category} • Last updated {item.updated}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedEntry(item)}
+                    >
+                      View
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
+                  {index !== entries.length - 1 && <Separator className="my-4" />}
                 </div>
-                {index !== entries.length - 1 && <Separator className="my-4" />}
-              </div>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedEntry && (
+        <ViewEntryDialog
+          open={!!selectedEntry}
+          onOpenChange={(open) => !open && setSelectedEntry(null)}
+          title={selectedEntry.title}
+          category={selectedEntry.category}
+        />
+      )}
+    </>
   );
 };

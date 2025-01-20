@@ -11,12 +11,34 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function analyzeChunk(chunk: string, openAIApiKey: string, projectInfo: any, retries = 3): Promise<string> {
+async function getKnowledgeBaseEntries(supabaseAdmin: any) {
+  const { data: entries, error } = await supabaseAdmin
+    .from('knowledge_entries')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching knowledge base entries:', error);
+    return [];
+  }
+
+  return entries;
+}
+
+async function analyzeChunk(chunk: string, openAIApiKey: string, projectInfo: any, knowledgeEntries: any[], retries = 3): Promise<string> {
+  // Create a context from knowledge entries
+  const knowledgeContext = knowledgeEntries.map(entry => 
+    `${entry.category}: ${entry.title}`
+  ).join('\n');
+
   const systemPrompt = `Act as an expert proposal writer.
 
 The company ${projectInfo.business_name || '[Business Name Not Specified]'} is submitting a proposal to ${projectInfo.client_name || '[Client Name Not Specified]'} to a solicitation titled ${projectInfo.title}.
 
 The solicitation includes a Statement of Work (SOW) that describes the work to be performed. The SOW and the proposal instructions are in the RFP document.
+
+Here is relevant information from our Knowledge Base that you should reference and incorporate:
+${knowledgeContext}
 
 Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Format your response as a proper outline using:
 1. Roman numerals for main sections (I., II., III., etc.)
@@ -25,7 +47,12 @@ Review the attached Request for Proposal's SOW and the instructions and create a
 4. Bullet points for additional details
 5. Proper indentation for hierarchy
 
-Ensure the outline covers all the items specified in the instructions. Be sure to follow the proposal instructions exactly. For the individual section headings, use the same words used in the proposal instructions.`;
+Ensure the outline:
+- Covers all items specified in the instructions
+- Follows the proposal instructions exactly
+- Uses the same words from the proposal instructions for section headings
+- Incorporates relevant information from our Knowledge Base entries where appropriate
+- Maintains consistent formatting and hierarchy throughout`;
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -147,6 +174,10 @@ serve(async (req) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
+    // Fetch knowledge base entries
+    const knowledgeEntries = await getKnowledgeBaseEntries(supabaseAdmin);
+    console.log('Retrieved knowledge base entries:', knowledgeEntries.length);
+
     const { data: fileData, error: downloadError } = await supabaseAdmin
       .storage
       .from('rfp-files')
@@ -169,13 +200,14 @@ serve(async (req) => {
     console.log(`Split document into ${chunks.length} chunks`);
 
     const chunkAnalyses = await Promise.all(
-      chunks.map(chunk => analyzeChunk(chunk, openAIApiKey, projectData))
+      chunks.map(chunk => analyzeChunk(chunk, openAIApiKey, projectData, knowledgeEntries))
     );
 
     const combinedAnalysis = await analyzeChunk(
       `Combine and summarize these section analyses into a cohesive summary:\n\n${chunkAnalyses.join('\n\n')}`,
       openAIApiKey,
-      projectData
+      projectData,
+      knowledgeEntries
     );
 
     return new Response(

@@ -25,7 +25,7 @@ async function getKnowledgeBaseEntries(supabaseAdmin: any) {
   return entries;
 }
 
-async function analyzeChunk(chunk: string, openAIApiKey: string, projectInfo: any, knowledgeEntries: any[], retries = 3): Promise<string> {
+async function analyzeWithClaude(chunk: string, anthropicApiKey: string, projectInfo: any, knowledgeEntries: any[], retries = 3): Promise<string> {
   const knowledgeContext = knowledgeEntries.map(entry => 
     `${entry.category}: ${entry.title}`
   ).join('\n');
@@ -75,32 +75,28 @@ Format the analysis clearly with appropriate headers and bullet points. Prioriti
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'claude-3-opus-20240229',
+          max_tokens: 4000,
           messages: [
             {
-              role: 'system',
-              content: systemPrompt
-            },
-            {
               role: 'user',
-              content: `Analyze this RFP document content:\n\n${chunk}`
+              content: `${systemPrompt}\n\nAnalyze this RFP document content:\n\n${chunk}`
             }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000
+          ]
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error(`OpenAI API error (attempt ${attempt + 1}):`, errorData);
+        console.error(`Anthropic API error (attempt ${attempt + 1}):`, errorData);
         
         if (response.status === 429 && attempt < retries - 1) {
           const waitTime = 2000 * (attempt + 1);
@@ -108,11 +104,11 @@ Format the analysis clearly with appropriate headers and bullet points. Prioriti
           await sleep(waitTime);
           continue;
         }
-        throw new Error(`OpenAI API error: ${errorData}`);
+        throw new Error(`Anthropic API error: ${errorData}`);
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      return data.content[0].text;
     } catch (error) {
       console.error(`Error on attempt ${attempt + 1}:`, error);
       if (attempt === retries - 1) throw error;
@@ -182,6 +178,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicApiKey) {
+      throw new Error('Anthropic API key not configured');
+    }
+
     // Fetch project details
     const { data: projectData, error: projectError } = await supabaseAdmin
       .from('projects')
@@ -213,24 +214,19 @@ serve(async (req) => {
     const text = await fileData.text();
     console.log('File content length:', text.length);
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     // Split document into manageable chunks
     const chunks = splitIntoChunks(text);
     console.log(`Split document into ${chunks.length} chunks`);
 
-    // Analyze each chunk
+    // Analyze each chunk with Claude
     const chunkAnalyses = await Promise.all(
-      chunks.map(chunk => analyzeChunk(chunk, openAIApiKey, projectData, knowledgeEntries))
+      chunks.map(chunk => analyzeWithClaude(chunk, anthropicApiKey, projectData, knowledgeEntries))
     );
 
     // Combine analyses into a final summary
-    const combinedAnalysis = await analyzeChunk(
+    const combinedAnalysis = await analyzeWithClaude(
       `Combine and summarize these section analyses into a cohesive summary:\n\n${chunkAnalyses.join('\n\n')}`,
-      openAIApiKey,
+      anthropicApiKey,
       projectData,
       knowledgeEntries
     );

@@ -149,30 +149,28 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <FileText className="h-4 w-4" />
+          <span>Title: {project.title}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <FileText className="h-4 w-4" />
           <span>Status: {project.status}</span>
         </div>
-        {project.client_name && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>Client: {project.client_name}</span>
-          </div>
-        )}
-        {project.business_name && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Building className="h-4 w-4" />
-            <span>Business: {project.business_name}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <User className="h-4 w-4" />
+          <span>Client: {project.client_name || "Not specified"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Building className="h-4 w-4" />
+          <span>Business: {project.business_name || "Not specified"}</span>
+        </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>Created: {format(new Date(project.created_at), "PPP")}</span>
         </div>
-        {project.deadline && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>Due: {format(new Date(project.deadline), "PPP")}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Calendar className="h-4 w-4" />
+          <span>Due: {project.deadline ? format(new Date(project.deadline), "PPP") : "Not specified"}</span>
+        </div>
       </CardContent>
     </Card>
   );

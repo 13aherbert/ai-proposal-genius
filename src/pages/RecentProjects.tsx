@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 type Project = {
   id: string;
@@ -60,9 +60,13 @@ const RecentProjects = () => {
     queryFn: async () => {
       try {
         console.log("Fetching projects...");
+        // Add a small delay before the request
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const { data, error } = await supabase
           .from("projects")
           .select("*")
+          .eq("user_id", session.user.id)
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -83,6 +87,7 @@ const RecentProjects = () => {
     enabled: !!session.user.id,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
+    staleTime: 30000, // Cache data for 30 seconds
   });
 
   const handleDeleteProject = async (projectId: string) => {
@@ -130,19 +135,19 @@ const RecentProjects = () => {
             <Card>
               <CardContent className="py-8">
                 <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>
-                    Failed to load projects. Please check your connection and try again.
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>Failed to load projects. Please check your connection and try again.</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => refetch()}
+                      className="ml-4"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
                   </AlertDescription>
                 </Alert>
-                <div className="text-center">
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => refetch()}
-                  >
-                    Try Again
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>

@@ -21,24 +21,24 @@ export function useRFPUpload() {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      // Upload file to storage
       const { error: uploadError, data } = await supabase.storage
         .from("rfp-files")
         .upload(fileName, file, {
-          onUploadProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          },
+          cacheControl: "3600",
+          upsert: false
         });
 
       if (uploadError) throw uploadError;
 
+      // Create project record
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
           user_id: session.user.id,
-          deadline: deadline,
+          deadline: deadline?.toISOString(),
         })
         .select()
         .single();
@@ -70,7 +70,7 @@ export function useRFPUpload() {
         .from("projects")
         .update({
           title,
-          deadline,
+          deadline: deadline?.toISOString(),
           client_name: clientName,
           business_name: businessName,
         })

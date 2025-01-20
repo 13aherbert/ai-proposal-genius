@@ -66,7 +66,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         
         {analysis && (
           <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap">{analysis}</div>
+            <div className="whitespace-pre-wrap font-mono">{analysis}</div>
             <Button 
               variant="outline" 
               className="mt-4"

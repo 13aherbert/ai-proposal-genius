@@ -18,7 +18,14 @@ The company ${projectInfo.business_name || '[Business Name Not Specified]'} is s
 
 The solicitation includes a Statement of Work (SOW) that describes the work to be performed. The SOW and the proposal instructions are in the RFP document.
 
-Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Ensure the outline covers all the items specified in the instructions. Be sure to follow the proposal instructions exactly. For the individual section headings, use the same words used in the proposal instructions.`;
+Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Format your response as a proper outline using:
+1. Roman numerals for main sections (I., II., III., etc.)
+2. Capital letters for subsections (A., B., C., etc.)
+3. Numbers for detailed points (1., 2., 3., etc.)
+4. Bullet points for additional details
+5. Proper indentation for hierarchy
+
+Ensure the outline covers all the items specified in the instructions. Be sure to follow the proposal instructions exactly. For the individual section headings, use the same words used in the proposal instructions.`;
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {

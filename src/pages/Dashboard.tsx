@@ -1,10 +1,29 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileUp, FolderOpen, BookOpen, Plus } from "lucide-react";
+import { FileUp, FolderOpen, BookOpen, Plus, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Signed out successfully",
+      });
+      navigate("/");
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -14,10 +33,20 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
               Welcome to OptiRFP
             </h1>
-            <Button onClick={() => navigate("/upload-rfp")} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Project
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => navigate("/upload-rfp")} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

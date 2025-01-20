@@ -37,13 +37,14 @@ export const ViewEntryDialog = ({
   const [editedCategory, setEditedCategory] = useState(initialCategory);
   const [editedContent, setEditedContent] = useState<string>("");
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [entryId, setEntryId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchEntryContent = async () => {
     try {
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content, file_path')
+        .select('content, file_path, id')
         .eq('title', initialTitle)
         .single();
 
@@ -51,6 +52,7 @@ export const ViewEntryDialog = ({
       setContent(data.content);
       setEditedContent(data.content || "");
       setFilePath(data.file_path);
+      setEntryId(data.id);
     } catch (error) {
       console.error('Error fetching entry content:', error);
       toast({
@@ -64,6 +66,8 @@ export const ViewEntryDialog = ({
   };
 
   const handleSave = async () => {
+    if (!entryId) return;
+    
     try {
       const { error } = await supabase
         .from('knowledge_entries')
@@ -73,7 +77,7 @@ export const ViewEntryDialog = ({
           content: filePath ? null : editedContent,
           updated_at: new Date().toISOString(),
         })
-        .eq('title', initialTitle);
+        .eq('id', entryId);
 
       if (error) throw error;
 
@@ -96,11 +100,13 @@ export const ViewEntryDialog = ({
   };
 
   const handleDelete = async () => {
+    if (!entryId) return;
+
     try {
       const { error } = await supabase
         .from('knowledge_entries')
         .delete()
-        .eq('title', initialTitle);
+        .eq('id', entryId);
 
       if (error) throw error;
 

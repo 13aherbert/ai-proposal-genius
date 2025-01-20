@@ -50,7 +50,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
         const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
         const { error: uploadError, data } = await supabase.storage
           .from('knowledge-files')
-          .upload(`files/${fileName}`, selectedFile);
+          .upload(`${session.user.id}/${fileName}`, selectedFile);
 
         if (uploadError) {
           throw new Error(uploadError.message);
@@ -64,7 +64,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
         .from('knowledge_entries')
         .insert({
           title,
-          category,
+          category: category.toLowerCase().replace(/\s+/g, '-'),
           content: uploadMode === 'text' ? content : null,
           file_path: filePath,
           user_id: session.user.id
@@ -164,7 +164,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.name} value={category.name.toLowerCase().replace(/\s+/g, '-')}>
+                  <SelectItem key={category.name} value={category.name}>
                     {category.name}
                   </SelectItem>
                 ))}

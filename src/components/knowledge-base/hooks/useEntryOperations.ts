@@ -86,6 +86,8 @@ export const useEntryOperations = (
   };
 
   const handleDelete = async () => {
+    console.log('Delete function called - Starting delete process'); // New diagnostic log
+    
     if (!entryId) {
       console.error('Cannot delete: No entry ID available');
       return;
@@ -94,6 +96,16 @@ export const useEntryOperations = (
     const { data: { session } } = await supabase.auth.getSession();
     console.log('Current user:', session?.user);
     console.log('Attempting to delete entry with ID:', entryId);
+
+    if (!session?.user) {
+      console.error('No authenticated user found');
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete entries",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase

@@ -8,8 +8,8 @@ import { BookOpen, Search, FileText, Folder, List, Scale, DollarSign, LineChart 
 const KnowledgeBase = () => {
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-8">
+      <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)]">
+        <div className="flex flex-col gap-8 h-full">
           <header className="flex items-center justify-between">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
               Knowledge Base
@@ -20,9 +20,9 @@ const KnowledgeBase = () => {
             </Button>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100%-5rem)]">
             {/* Sidebar */}
-            <Card className="lg:col-span-1 bg-secondary/50 backdrop-blur-sm">
+            <Card className="lg:col-span-1 bg-secondary/50 backdrop-blur-sm h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <List className="h-5 w-5" />
@@ -30,7 +30,7 @@ const KnowledgeBase = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[calc(100vh-20rem)]">
+                <ScrollArea className="h-[calc(100vh-16rem)]">
                   <div className="flex flex-col gap-2">
                     <Button variant="ghost" className="justify-start gap-2">
                       <BookOpen className="h-4 w-4" />

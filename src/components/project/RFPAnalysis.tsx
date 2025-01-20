@@ -17,17 +17,30 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setError(null);
     
     try {
+      console.log('Starting analysis with file path:', filePath, 'and project ID:', projectId);
+      
       const { data, error } = await supabase.functions.invoke('analyze-rfp', {
         body: { filePath, projectId }
       });
 
       if (error) {
+        console.error('Edge function error:', error);
+        
+        // Handle connection errors with retry logic
+        if (error.message?.includes('Failed to send') && retryCount < MAX_RETRIES) {
+          console.log(`Retrying analysis (attempt ${retryCount + 1} of ${MAX_RETRIES})`);
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => handleAnalyze(), RETRY_DELAY);
+          return;
+        }
+
         // Handle rate limit errors
         if ((error.message?.includes('rate limit') || error.status === 429) && retryCount < MAX_RETRIES) {
           const waitTime = 5000 * Math.pow(2, retryCount);
@@ -38,7 +51,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         }
 
         // Handle credit balance errors
-        if (error.message?.includes('credit balance is too low')) {
+        if (error.message?.includes('credit balance')) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
           throw new Error("Anthropic API credit balance too low");
         }
@@ -50,7 +63,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       setRetryCount(0);
       setError(null);
     } catch (error) {
-      console.error('Error analyzing RFP:', error);
+      console.error('Analysis error:', error);
       
       // Set user-friendly error messages
       if (error instanceof Error) {
@@ -58,11 +71,13 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
         } else if (error.message.includes('rate limit')) {
           setError("The AI service is currently experiencing high demand. Please try again in a few minutes.");
+        } else if (error.message.includes('Failed to send')) {
+          setError("Unable to connect to the analysis service. Please check your connection and try again.");
         } else {
           setError(`Analysis failed: ${error.message}`);
         }
       } else {
-        setError("Failed to analyze RFP document");
+        setError("Failed to analyze RFP document. Please try again.");
       }
       
       toast.error(

@@ -44,11 +44,16 @@ export const ViewEntryDialog = ({
     try {
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content, file_path, id')
+        .select('content, file_path, id, user_id')  // Added user_id to selection
         .eq('title', initialTitle)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching entry:', error);
+        throw error;
+      }
+      
+      console.log('Fetched entry:', data);  // Log the fetched data
       setContent(data.content);
       setEditedContent(data.content || "");
       setFilePath(data.file_path);
@@ -102,13 +107,20 @@ export const ViewEntryDialog = ({
   const handleDelete = async () => {
     if (!entryId) return;
 
+    // Get current session to check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current user:', session?.user);  // Log current user
+
     try {
       const { error } = await supabase
         .from('knowledge_entries')
         .delete()
         .eq('id', entryId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);  // Log delete error
+        throw error;
+      }
 
       if (filePath) {
         const { error: storageError } = await supabase.storage

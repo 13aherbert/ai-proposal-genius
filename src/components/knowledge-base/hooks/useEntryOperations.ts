@@ -86,40 +86,13 @@ export const useEntryOperations = (
   };
 
   const handleDelete = async () => {
-    console.log('Delete function called - Starting delete process'); // New diagnostic log
-    
     if (!entryId) {
       console.error('Cannot delete: No entry ID available');
       return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('Current user:', session?.user);
-    console.log('Attempting to delete entry with ID:', entryId);
-
-    if (!session?.user) {
-      console.error('No authenticated user found');
-      toast({
-        title: "Error",
-        description: "You must be logged in to delete entries",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('knowledge_entries')
-        .delete()
-        .eq('id', entryId);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
-      }
-
-      console.log('Entry deleted successfully from database');
-
+      // If there's a file, delete it first
       if (filePath) {
         console.log('Attempting to delete file:', filePath);
         const { error: storageError } = await supabase.storage
@@ -128,11 +101,24 @@ export const useEntryOperations = (
 
         if (storageError) {
           console.error('Error deleting file:', storageError);
-        } else {
-          console.log('File deleted successfully from storage');
+          throw storageError;
         }
+        console.log('File deleted successfully');
       }
 
+      // Then delete the database entry
+      console.log('Attempting to delete entry with ID:', entryId);
+      const { error: dbError } = await supabase
+        .from('knowledge_entries')
+        .delete()
+        .eq('id', entryId);
+
+      if (dbError) {
+        console.error('Error deleting entry:', dbError);
+        throw dbError;
+      }
+
+      console.log('Entry deleted successfully');
       toast({
         title: "Success",
         description: "Entry deleted successfully",
@@ -141,7 +127,7 @@ export const useEntryOperations = (
       onEntryUpdated();
       onClose();
     } catch (error) {
-      console.error('Error deleting entry:', error);
+      console.error('Error in delete operation:', error);
       toast({
         title: "Error",
         description: "Failed to delete entry",

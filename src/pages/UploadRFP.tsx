@@ -35,7 +35,8 @@ const UploadRFP = () => {
         const arrayBuffer = reader.result as ArrayBuffer;
         const fileData = new Uint8Array(arrayBuffer);
 
-        const { error: uploadError } = await supabase.storage
+        // Upload file to Supabase Storage
+        const { error: uploadError, data: uploadData } = await supabase.storage
           .from('rfp-files')
           .upload(sanitizedFileName, fileData, {
             cacheControl: '3600',
@@ -46,13 +47,31 @@ const UploadRFP = () => {
           throw uploadError;
         }
 
+        // Create a new project
+        const { error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            title: file.name.replace(`.${fileExt}`, ''),
+            rfp_file_path: sanitizedFileName,
+            user_id: session.user.id
+          });
+
+        if (projectError) {
+          // If project creation fails, delete the uploaded file
+          await supabase.storage
+            .from('rfp-files')
+            .remove([sanitizedFileName]);
+          throw projectError;
+        }
+
         setUploadProgress(100);
-        toast.success("RFP uploaded successfully!");
+        toast.success("Project created successfully!");
         
         // Reset the upload state after a short delay to show 100%
         setTimeout(() => {
           setIsUploading(false);
           setUploadProgress(0);
+          navigate('/dashboard');
         }, 500);
       };
 
@@ -65,11 +84,11 @@ const UploadRFP = () => {
 
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error("Failed to upload RFP. Please try again.");
+      toast.error("Failed to create project. Please try again.");
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [session]);
+  }, [session, navigate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

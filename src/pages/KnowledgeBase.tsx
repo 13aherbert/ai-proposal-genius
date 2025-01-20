@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, Search, FileText, Folder, List } from "lucide-react";
+import { BookOpen, Search, FileText, Folder, List, Scale, DollarSign, LineChart } from "lucide-react";
 
 const KnowledgeBase = () => {
   return (
@@ -34,19 +34,31 @@ const KnowledgeBase = () => {
                   <div className="flex flex-col gap-2">
                     <Button variant="ghost" className="justify-start gap-2">
                       <BookOpen className="h-4 w-4" />
-                      Company Information
+                      Company Boilerplates
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-2">
+                      <Scale className="h-4 w-4" />
+                      Legal Disclaimers
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-2">
+                      <FileText className="h-4 w-4" />
+                      Prior RFP Responses
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-2">
+                      <LineChart className="h-4 w-4" />
+                      Industry Benchmarks
                     </Button>
                     <Button variant="ghost" className="justify-start gap-2">
                       <Folder className="h-4 w-4" />
-                      Product Descriptions
+                      Competitive Insights
+                    </Button>
+                    <Button variant="ghost" className="justify-start gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Pricing Templates
                     </Button>
                     <Button variant="ghost" className="justify-start gap-2">
                       <FileText className="h-4 w-4" />
-                      Proposal Templates
-                    </Button>
-                    <Button variant="ghost" className="justify-start gap-2">
-                      <FileText className="h-4 w-4" />
-                      Case Studies
+                      Estimation Tools
                     </Button>
                   </div>
                 </ScrollArea>
@@ -73,22 +85,36 @@ const KnowledgeBase = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[1, 2, 3].map((item) => (
-                      <div key={item}>
+                    {[
+                      {
+                        title: "Standard Legal Disclaimer Template",
+                        category: "Legal Disclaimers",
+                        updated: "1 day ago"
+                      },
+                      {
+                        title: "Q4 2023 Pricing Guidelines",
+                        category: "Pricing Templates",
+                        updated: "2 days ago"
+                      },
+                      {
+                        title: "Government RFP Response Template",
+                        category: "Prior RFP Responses",
+                        updated: "3 days ago"
+                      }
+                    ].map((item, index) => (
+                      <div key={index}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-semibold">
-                              Company Overview Document
-                            </h3>
+                            <h3 className="font-semibold">{item.title}</h3>
                             <p className="text-sm text-muted-foreground">
-                              Last updated 2 days ago
+                              {item.category} • Last updated {item.updated}
                             </p>
                           </div>
                           <Button variant="outline" size="sm">
                             View
                           </Button>
                         </div>
-                        {item !== 3 && <Separator className="my-4" />}
+                        {index !== 2 && <Separator className="my-4" />}
                       </div>
                     ))}
                   </div>

@@ -92,12 +92,20 @@ export const useEntryOperations = (
     }
 
     try {
+      // Log auth state
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current auth session:', session);
+
       // If there's a file, delete it first
       if (filePath) {
-        console.log('Attempting to delete file:', filePath);
-        const { error: storageError } = await supabase.storage
+        console.log('Starting file deletion process');
+        console.log('File path to delete:', filePath);
+        
+        const { data: storageData, error: storageError } = await supabase.storage
           .from('knowledge-files')
           .remove([filePath]);
+
+        console.log('Storage deletion response:', { data: storageData, error: storageError });
 
         if (storageError) {
           console.error('Error deleting file:', storageError);
@@ -107,11 +115,15 @@ export const useEntryOperations = (
       }
 
       // Then delete the database entry
-      console.log('Attempting to delete entry with ID:', entryId);
-      const { error: dbError } = await supabase
+      console.log('Starting database entry deletion');
+      console.log('Entry ID to delete:', entryId);
+      
+      const { data: dbData, error: dbError } = await supabase
         .from('knowledge_entries')
         .delete()
         .eq('id', entryId);
+
+      console.log('Database deletion response:', { data: dbData, error: dbError });
 
       if (dbError) {
         console.error('Error deleting entry:', dbError);

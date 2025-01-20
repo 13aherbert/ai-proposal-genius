@@ -40,14 +40,19 @@ Review the attached Request for Proposal's SOW and the instructions and create a
               content: chunk
             }
           ],
+          temperature: 0.7,
+          max_tokens: 2000
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
+        console.error(`OpenAI API error (attempt ${attempt + 1}):`, errorData);
+        
         if (response.status === 429 && attempt < retries - 1) {
-          console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting before retry...`);
-          await sleep(2000); // Wait 2 seconds before retrying
+          const waitTime = 2000 * (attempt + 1); // Exponential backoff
+          console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
+          await sleep(waitTime);
           continue;
         }
         throw new Error(`OpenAI API error: ${errorData}`);
@@ -56,20 +61,20 @@ Review the attached Request for Proposal's SOW and the instructions and create a
       const data = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
+      console.error(`Error on attempt ${attempt + 1}:`, error);
       if (attempt === retries - 1) throw error;
-      console.log(`Error on attempt ${attempt + 1}, retrying...`, error);
-      await sleep(2000);
+      const waitTime = 2000 * (attempt + 1);
+      console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
+      await sleep(waitTime);
     }
   }
   throw new Error('Failed after all retry attempts');
 }
 
-// Function to split text into chunks of roughly equal size
 function splitIntoChunks(text: string, maxChunkSize: number = 60000): string[] {
   const chunks: string[] = [];
   let currentChunk = '';
   
-  // Split by paragraphs to maintain context
   const paragraphs = text.split(/\n\n+/);
   
   for (const paragraph of paragraphs) {
@@ -78,7 +83,6 @@ function splitIntoChunks(text: string, maxChunkSize: number = 60000): string[] {
         chunks.push(currentChunk.trim());
         currentChunk = '';
       }
-      // If a single paragraph is too long, split it further
       if (paragraph.length > maxChunkSize) {
         const sentences = paragraph.split(/[.!?]+/);
         for (const sentence of sentences) {
@@ -106,7 +110,6 @@ function splitIntoChunks(text: string, maxChunkSize: number = 60000): string[] {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -119,6 +122,7 @@ serve(async (req) => {
     }
 
     console.log('Processing file:', filePath);
+    console.log('Project ID:', projectId);
     
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -132,6 +136,7 @@ serve(async (req) => {
       .single();
 
     if (projectError) {
+      console.error('Error fetching project:', projectError);
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 

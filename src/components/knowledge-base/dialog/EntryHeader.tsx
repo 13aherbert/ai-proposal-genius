@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Save, Trash2, X } from "lucide-react";
 
-interface EntryHeaderProps {
+export interface EntryHeaderProps {
   isEditing: boolean;
   initialTitle: string;
   editedTitle: string;

@@ -2,14 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
-interface EntryContentProps {
+export interface EntryContentProps {
   isLoading: boolean;
   filePath: string | null;
   content: string | null;
   isEditing: boolean;
   editedContent: string;
   onEditedContentChange: (content: string) => void;
-  onDownload: () => void;
+  onSave: () => Promise<void>;
+  onDownload: () => Promise<void>;
 }
 
 export const EntryContent = ({
@@ -19,6 +20,7 @@ export const EntryContent = ({
   isEditing,
   editedContent,
   onEditedContentChange,
+  onSave,
   onDownload,
 }: EntryContentProps) => {
   if (isLoading) {

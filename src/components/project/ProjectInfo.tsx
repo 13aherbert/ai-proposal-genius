@@ -85,7 +85,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Deadline</label>
+            <label className="text-sm font-medium">Due Date</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -96,11 +96,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
                   )}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  {deadline ? (
-                    format(deadline, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
+                  {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -169,7 +165,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>Due: {project.deadline ? format(new Date(project.deadline), "PPP") : "Not specified"}</span>
+          <span>Due Date: {project.deadline ? format(new Date(project.deadline), "PPP") : "Not specified"}</span>
         </div>
       </CardContent>
     </Card>

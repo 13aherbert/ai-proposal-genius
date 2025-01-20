@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { DocumentViewer } from "@/components/project/DocumentViewer";
 import { ProjectInfo } from "@/components/project/ProjectInfo";
-import { AdditionalDocuments } from "@/components/project/AdditionalDocuments";
 import { useProjectDetails } from "@/hooks/use-project-details";
 
 const ProjectDetails = () => {
@@ -60,8 +59,7 @@ const ProjectDetails = () => {
 
           <div className="grid gap-6">
             <ProjectInfo project={project} />
-            <DocumentViewer filePath={project.rfp_file_path} />
-            <AdditionalDocuments project={project} />
+            <DocumentViewer filePath={project.rfp_file_path} project={project} />
           </div>
         </div>
       </div>

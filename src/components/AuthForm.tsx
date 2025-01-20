@@ -19,19 +19,40 @@ export const AuthForm = () => {
       }
     });
 
-    // Listen for auth changes
+    // Listen for auth changes and handle errors
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         navigate("/dashboard");
+        setError(""); // Clear any errors on successful sign in
       }
       if (event === "SIGNED_OUT") {
         navigate("/");
       }
+      if (event === "USER_DELETED") {
+        setError("Account has been deleted.");
+      }
+      if (event === "PASSWORD_RECOVERY") {
+        setError(""); // Clear errors during password recovery
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Listen specifically for auth errors
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" && !session) {
+        const lastError = localStorage.getItem("auth_error");
+        if (lastError) {
+          setError(lastError);
+          localStorage.removeItem("auth_error");
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      authListener.data.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const getErrorMessage = (error: AuthError) => {
@@ -69,7 +90,6 @@ export const AuthForm = () => {
         }}
         providers={[]}
         theme="light"
-        onError={(error) => setError(getErrorMessage(error))}
       />
     </Card>
   );

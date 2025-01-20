@@ -37,7 +37,7 @@ The company ${projectInfo.business_name || '[Business Name Not Specified]'} is r
 Here is relevant information from our Knowledge Base that you should reference:
 ${knowledgeContext}
 
-Analyze the RFP document and provide a structured analysis with the following sections:
+Analyze the following RFP document content and provide a structured analysis with these sections:
 
 1. Key Requirements
 - Extract and list all major requirements
@@ -90,7 +90,7 @@ Format the analysis clearly with appropriate headers and bullet points. Prioriti
             },
             {
               role: 'user',
-              content: chunk
+              content: `Analyze this RFP document content:\n\n${chunk}`
             }
           ],
           temperature: 0.7,
@@ -182,6 +182,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Fetch project details
     const { data: projectData, error: projectError } = await supabaseAdmin
       .from('projects')
       .select('*')
@@ -193,9 +194,11 @@ serve(async (req) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
+    // Fetch knowledge base entries
     const knowledgeEntries = await getKnowledgeBaseEntries(supabaseAdmin);
     console.log('Retrieved knowledge base entries:', knowledgeEntries.length);
 
+    // Download and read the RFP document
     const { data: fileData, error: downloadError } = await supabaseAdmin
       .storage
       .from('rfp-files')
@@ -206,6 +209,7 @@ serve(async (req) => {
       throw new Error(`Error downloading file: ${downloadError.message}`);
     }
 
+    // Convert file data to text
     const text = await fileData.text();
     console.log('File content length:', text.length);
 
@@ -214,13 +218,16 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Split document into manageable chunks
     const chunks = splitIntoChunks(text);
     console.log(`Split document into ${chunks.length} chunks`);
 
+    // Analyze each chunk
     const chunkAnalyses = await Promise.all(
       chunks.map(chunk => analyzeChunk(chunk, openAIApiKey, projectData, knowledgeEntries))
     );
 
+    // Combine analyses into a final summary
     const combinedAnalysis = await analyzeChunk(
       `Combine and summarize these section analyses into a cohesive summary:\n\n${chunkAnalyses.join('\n\n')}`,
       openAIApiKey,

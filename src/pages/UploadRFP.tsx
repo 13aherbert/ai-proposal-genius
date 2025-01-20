@@ -71,7 +71,6 @@ const UploadRFP = () => {
         setTimeout(() => {
           setIsUploading(false);
           setUploadProgress(0);
-          navigate('/dashboard');
         }, 500);
       };
 
@@ -88,7 +87,7 @@ const UploadRFP = () => {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [session, navigate]);
+  }, [session]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

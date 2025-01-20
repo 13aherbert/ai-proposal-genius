@@ -60,7 +60,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
             disabled={isAnalyzing}
           >
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
+            {isAnalyzing ? 'Creating...' : 'Create Outline'}
           </Button>
         )}
         

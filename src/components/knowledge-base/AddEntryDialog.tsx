@@ -4,138 +4,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Upload } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { KnowledgeCategory } from "./types";
-import { supabase } from "@/integrations/supabase/client";
+import { FileText } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-
-interface AddEntryDialogProps {
-  categories: KnowledgeCategory[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { AddEntryDialogProps } from "./entry-dialog/types";
+import { FileUpload } from "./entry-dialog/FileUpload";
+import { useEntryForm } from "./entry-dialog/useEntryForm";
 
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
-  const [uploadMode, setUploadMode] = useState<'text' | 'file'>('text');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { session } = useAuth();
+  const {
+    formData,
+    setTitle,
+    setCategory,
+    setContent,
+    setSelectedFile,
+    uploadMode,
+    setUploadMode,
+    isSubmitting,
+    handleSubmit,
+  } = useEntryForm(() => onOpenChange(false));
 
-  const resetForm = () => {
-    setTitle("");
-    setCategory("");
-    setContent("");
-    setSelectedFile(null);
-    setUploadMode('text');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!session?.user?.id) {
-      toast.error("You must be logged in to add entries");
       return;
     }
-
-    if (!title || !category) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    if (uploadMode === 'file' && !selectedFile) {
-      toast.error("Please select a file to upload");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      let filePath = null;
-
-      if (uploadMode === 'file' && selectedFile) {
-        const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
-        const { error: uploadError, data } = await supabase.storage
-          .from('knowledge-files')
-          .upload(`${session.user.id}/${fileName}`, selectedFile);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          toast.error("Failed to upload file");
-          return;
-        }
-
-        filePath = data.path;
-      }
-
-      const { error: insertError } = await supabase
-        .from('knowledge_entries')
-        .insert({
-          title,
-          category: category.toLowerCase().replace(/\s+/g, '-'),
-          content: uploadMode === 'text' ? content : null,
-          file_path: filePath,
-          user_id: session.user.id
-        });
-
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        toast.error("Failed to save entry");
-        return;
-      }
-
-      toast.success("Entry added successfully!");
-      resetForm();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving entry:', error);
-      toast.error("Failed to save entry. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 20 * 1024 * 1024) { // 20MB limit
-        toast.error("File size must be less than 20MB");
-        return;
-      }
-      setSelectedFile(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      if (file.size > 20 * 1024 * 1024) { // 20MB limit
-        toast.error("File size must be less than 20MB");
-        return;
-      }
-      setSelectedFile(file);
-    }
+    await handleSubmit(session.user.id);
   };
 
   return (
@@ -150,14 +44,14 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
               id="title" 
               placeholder="Enter the title of your entry" 
               required 
-              value={title}
+              value={formData.title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
@@ -165,7 +59,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
             <Label htmlFor="category">Category</Label>
             <Select 
               required
-              value={category}
+              value={formData.category}
               onValueChange={setCategory}
             >
               <SelectTrigger>
@@ -207,43 +101,15 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
                 placeholder="Enter the content of your knowledge base entry"
                 className="min-h-[200px]"
                 required={uploadMode === 'text'}
-                value={content}
+                value={formData.content}
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="file">Upload Document</Label>
-              <div 
-                className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
-                  isDragging ? 'border-primary bg-primary/10' : 'border-border'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <Input
-                  id="file"
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.txt"
-                  required={uploadMode === 'file'}
-                />
-                <label
-                  htmlFor="file"
-                  className="flex flex-col items-center gap-2 cursor-pointer"
-                >
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {selectedFile ? selectedFile.name : "Click to upload or drag and drop"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    PDF, DOC, DOCX, TXT (max 20MB)
-                  </span>
-                </label>
-              </div>
-            </div>
+            <FileUpload
+              onFileSelect={setSelectedFile}
+              selectedFile={formData.file}
+            />
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

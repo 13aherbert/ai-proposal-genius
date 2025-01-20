@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { Project } from "@/hooks/use-project-details";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectInfoProps {
   project: Project;
@@ -29,6 +30,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
   const [deadline, setDeadline] = useState<Date | undefined>(
     project.deadline ? new Date(project.deadline) : undefined
   );
+  const queryClient = useQueryClient();
 
   const handleSave = async () => {
     try {
@@ -44,6 +46,9 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
 
       if (error) throw error;
 
+      // Invalidate and refetch project data
+      await queryClient.invalidateQueries({ queryKey: ["project", project.id] });
+      
       toast.success("Project details updated successfully");
       setIsEditing(false);
     } catch (error) {

@@ -43,6 +43,10 @@ const ProjectDetails = () => {
         throw error;
       }
 
+      if (!data) {
+        throw new Error("Project not found");
+      }
+
       return data;
     },
     enabled: !!session?.user?.id && !!projectId,

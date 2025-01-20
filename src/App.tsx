@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadRFP from "./pages/UploadRFP";
+import KnowledgeBase from "./pages/KnowledgeBase";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/upload-rfp" element={<UploadRFP />} />
+          <Route path="/knowledge-base" element={<KnowledgeBase />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -52,7 +52,10 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer">
+            <Card 
+              className="bg-secondary/50 backdrop-blur-sm hover:bg-secondary/60 transition-colors cursor-pointer"
+              onClick={() => navigate("/knowledge-base")}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />

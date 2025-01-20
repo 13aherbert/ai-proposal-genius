@@ -15,6 +15,7 @@ export const useEntryOperations = (
 
   const fetchEntryContent = async () => {
     try {
+      console.log('Fetching entry content for title:', initialTitle);
       const { data, error } = await supabase
         .from('knowledge_entries')
         .select('content, file_path, id, user_id')
@@ -47,9 +48,13 @@ export const useEntryOperations = (
     editedCategory: string,
     editedContent: string
   ) => {
-    if (!entryId) return;
+    if (!entryId) {
+      console.error('Cannot save: No entry ID available');
+      return;
+    }
     
     try {
+      console.log('Saving entry with ID:', entryId);
       const { error } = await supabase
         .from('knowledge_entries')
         .update({
@@ -62,6 +67,7 @@ export const useEntryOperations = (
 
       if (error) throw error;
 
+      console.log('Entry saved successfully');
       toast({
         title: "Success",
         description: "Entry updated successfully",
@@ -80,10 +86,14 @@ export const useEntryOperations = (
   };
 
   const handleDelete = async () => {
-    if (!entryId) return;
+    if (!entryId) {
+      console.error('Cannot delete: No entry ID available');
+      return;
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
     console.log('Current user:', session?.user);
+    console.log('Attempting to delete entry with ID:', entryId);
 
     try {
       const { error } = await supabase
@@ -96,13 +106,18 @@ export const useEntryOperations = (
         throw error;
       }
 
+      console.log('Entry deleted successfully from database');
+
       if (filePath) {
+        console.log('Attempting to delete file:', filePath);
         const { error: storageError } = await supabase.storage
           .from('knowledge-files')
           .remove([filePath]);
 
         if (storageError) {
           console.error('Error deleting file:', storageError);
+        } else {
+          console.log('File deleted successfully from storage');
         }
       }
 
@@ -124,9 +139,13 @@ export const useEntryOperations = (
   };
 
   const handleDownload = async () => {
-    if (!filePath) return;
+    if (!filePath) {
+      console.error('Cannot download: No file path available');
+      return;
+    }
 
     try {
+      console.log('Attempting to download file:', filePath);
       const { data, error } = await supabase.storage
         .from('knowledge-files')
         .download(filePath);
@@ -142,6 +161,7 @@ export const useEntryOperations = (
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      console.log('File downloaded successfully');
       toast({
         title: "Success",
         description: "File downloaded successfully",

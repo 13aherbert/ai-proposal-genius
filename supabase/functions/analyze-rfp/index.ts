@@ -26,33 +26,52 @@ async function getKnowledgeBaseEntries(supabaseAdmin: any) {
 }
 
 async function analyzeChunk(chunk: string, openAIApiKey: string, projectInfo: any, knowledgeEntries: any[], retries = 3): Promise<string> {
-  // Create a context from knowledge entries
   const knowledgeContext = knowledgeEntries.map(entry => 
     `${entry.category}: ${entry.title}`
   ).join('\n');
 
-  const systemPrompt = `Act as an expert proposal writer.
+  const systemPrompt = `Act as an expert RFP analyst.
 
-The company ${projectInfo.business_name || '[Business Name Not Specified]'} is submitting a proposal to ${projectInfo.client_name || '[Client Name Not Specified]'} to a solicitation titled ${projectInfo.title}.
+The company ${projectInfo.business_name || '[Business Name Not Specified]'} is reviewing an RFP from ${projectInfo.client_name || '[Client Name Not Specified]'} titled ${projectInfo.title}.
 
-The solicitation includes a Statement of Work (SOW) that describes the work to be performed. The SOW and the proposal instructions are in the RFP document.
-
-Here is relevant information from our Knowledge Base that you should reference and incorporate:
+Here is relevant information from our Knowledge Base that you should reference:
 ${knowledgeContext}
 
-Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Format your response as a proper outline using:
-1. Roman numerals for main sections (I., II., III., etc.)
-2. Capital letters for subsections (A., B., C., etc.)
-3. Numbers for detailed points (1., 2., 3., etc.)
-4. Bullet points for additional details
-5. Proper indentation for hierarchy
+Analyze the RFP document and provide a structured analysis with the following sections:
 
-Ensure the outline:
-- Covers all items specified in the instructions
-- Follows the proposal instructions exactly
-- Uses the same words from the proposal instructions for section headings
-- Incorporates relevant information from our Knowledge Base entries where appropriate
-- Maintains consistent formatting and hierarchy throughout`;
+1. Key Requirements
+- Extract and list all major requirements
+- Highlight any technical specifications
+- Note any mandatory certifications or qualifications
+
+2. Timeline Analysis
+- Submission deadline
+- Project milestones
+- Implementation schedule
+- Review periods
+
+3. Evaluation Criteria
+- List all evaluation factors
+- Note their relative weights if provided
+- Highlight key scoring elements
+
+4. Required Response Elements
+- List all sections requiring specific responses
+- Note any page limits or formatting requirements
+- Identify required forms or attachments
+
+5. Risk Assessment
+- Identify potential red flags
+- Note any ambiguous terms or specifications
+- List missing information that needs clarification
+- Highlight any challenging requirements
+
+6. Team Assignment Recommendations
+- Suggest team members or roles needed for each section
+- Note areas where specific expertise is required
+- Reference relevant knowledge base entries for each section
+
+Format the analysis clearly with appropriate headers and bullet points. Prioritize actionable insights that will help the team respond effectively.`;
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -84,7 +103,7 @@ Ensure the outline:
         console.error(`OpenAI API error (attempt ${attempt + 1}):`, errorData);
         
         if (response.status === 429 && attempt < retries - 1) {
-          const waitTime = 2000 * (attempt + 1); // Exponential backoff
+          const waitTime = 2000 * (attempt + 1);
           console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
           await sleep(waitTime);
           continue;
@@ -174,7 +193,6 @@ serve(async (req) => {
       throw new Error(`Error fetching project: ${projectError.message}`);
     }
 
-    // Fetch knowledge base entries
     const knowledgeEntries = await getKnowledgeBaseEntries(supabaseAdmin);
     console.log('Retrieved knowledge base entries:', knowledgeEntries.length);
 

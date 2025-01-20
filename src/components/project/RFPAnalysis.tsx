@@ -24,7 +24,6 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       });
 
       if (error) {
-        // Check if it's a rate limit error
         if (error.message?.includes('rate limit') && retryCount < MAX_RETRIES) {
           setRetryCount(prev => prev + 1);
           toast.error("Rate limit reached. Retrying in 2 seconds...");
@@ -35,7 +34,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       }
 
       setAnalysis(data.analysis);
-      setRetryCount(0); // Reset retry count on success
+      setRetryCount(0);
     } catch (error) {
       console.error('Error analyzing RFP:', error);
       toast.error(
@@ -60,7 +59,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
             disabled={isAnalyzing}
           >
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? 'Creating...' : 'Create Outline'}
+            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
           </Button>
         )}
         
@@ -75,7 +74,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
                 setRetryCount(0);
               }}
             >
-              Start New Analysis
+              New Analysis
             </Button>
           </div>
         )}

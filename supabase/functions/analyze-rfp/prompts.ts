@@ -1,4 +1,4 @@
-import { ProjectInfo, KnowledgeEntry } from './types';
+import { ProjectInfo, KnowledgeEntry } from './types.ts';
 
 export function generateAnalysisPrompt(projectInfo: ProjectInfo, knowledgeEntries: KnowledgeEntry[]): string {
   const knowledgeContext = knowledgeEntries

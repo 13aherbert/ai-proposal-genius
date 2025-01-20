@@ -1,12 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { corsHeaders } from './config';
-import { AnalyzeRequest, ApiResponse, ApiError } from './types';
-import { getKnowledgeBaseEntries, getProjectInfo, downloadRFPFile } from './database';
-import { generateAnalysisPrompt } from './prompts';
-import { analyzeWithClaude } from './claude-client';
-import { splitIntoChunks } from './text-processing';
+import { corsHeaders } from './config.ts';
+import { AnalyzeRequest, ApiResponse, ApiError } from './types.ts';
+import { getKnowledgeBaseEntries, getProjectInfo, downloadRFPFile } from './database.ts';
+import { generateAnalysisPrompt } from './prompts.ts';
+import { analyzeWithClaude } from './claude-client.ts';
+import { splitIntoChunks } from './text-processing.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

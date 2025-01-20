@@ -1,4 +1,4 @@
-import { ANTHROPIC_API_VERSION, CLAUDE_MODEL, MAX_TOKENS, MAX_RETRIES } from './config';
+import { ANTHROPIC_API_VERSION, CLAUDE_MODEL, MAX_TOKENS, MAX_RETRIES } from './config.ts';
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));

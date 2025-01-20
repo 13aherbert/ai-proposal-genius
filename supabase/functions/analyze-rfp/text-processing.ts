@@ -1,4 +1,4 @@
-import { CHUNK_SIZE } from './config';
+import { CHUNK_SIZE } from './config.ts';
 
 export function splitIntoChunks(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
   const chunks: string[] = [];

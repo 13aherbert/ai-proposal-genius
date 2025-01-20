@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { KnowledgeEntry, ProjectInfo } from './types';
+import { KnowledgeEntry, ProjectInfo } from './types.ts';
 
 export async function getKnowledgeBaseEntries(supabaseAdmin: any): Promise<KnowledgeEntry[]> {
   const { data: entries, error } = await supabaseAdmin

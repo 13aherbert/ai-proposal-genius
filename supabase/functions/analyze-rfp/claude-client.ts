@@ -35,6 +35,11 @@ export async function analyzeWithClaude(
         const errorData = await response.text();
         console.error(`Anthropic API error (attempt ${attempt + 1}):`, errorData);
         
+        // Check for credit balance error
+        if (errorData.includes('credit balance is too low')) {
+          throw new Error(`Anthropic API error: ${errorData}`);
+        }
+        
         if (response.status === 429 && attempt < retries - 1) {
           const waitTime = 2000 * (attempt + 1);
           console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
@@ -48,6 +53,9 @@ export async function analyzeWithClaude(
       return data.content[0].text;
     } catch (error) {
       console.error(`Error on attempt ${attempt + 1}:`, error);
+      if (error instanceof Error && error.message.includes('credit balance')) {
+        throw error; // Don't retry credit balance errors
+      }
       if (attempt === retries - 1) throw error;
       const waitTime = 2000 * (attempt + 1);
       console.log(`Error occurred, waiting ${waitTime}ms before retry...`);

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -33,10 +34,15 @@ type Project = {
 const RecentProjects = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
 
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error("No authenticated user");
+      }
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -53,6 +59,7 @@ const RecentProjects = () => {
 
       return data as Project[];
     },
+    enabled: !!session?.user?.id, // Only run query when we have a user ID
   });
 
   return (

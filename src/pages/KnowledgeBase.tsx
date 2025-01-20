@@ -43,7 +43,10 @@ const KnowledgeBase = () => {
             />
             <div className="lg:col-span-3 space-y-6">
               <SearchBar />
-              <RecentEntries selectedCategory={selectedCategory} />
+              <RecentEntries 
+                selectedCategory={selectedCategory} 
+                categories={categories}
+              />
             </div>
           </div>
         </div>

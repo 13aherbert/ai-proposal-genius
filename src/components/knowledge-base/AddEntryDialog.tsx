@@ -8,6 +8,8 @@ import { FileText, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { KnowledgeCategory } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@supabase/auth-helpers-react";
 
 interface AddEntryDialogProps {
   categories: KnowledgeCategory[];
@@ -19,15 +21,74 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
   const [uploadMode, setUploadMode] = useState<'text' | 'file'>('text');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const auth = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!auth?.user?.id) {
+      toast.error("You must be logged in to add entries");
+      return;
+    }
+
     if (uploadMode === 'file' && !selectedFile) {
       toast.error("Please select a file to upload");
       return;
     }
-    onOpenChange(false);
-    toast.success("Entry added successfully!");
+
+    try {
+      setIsSubmitting(true);
+      let filePath = null;
+
+      if (uploadMode === 'file' && selectedFile) {
+        // Upload file to storage
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const { error: uploadError, data } = await supabase.storage
+          .from('knowledge-files')
+          .upload(`files/${fileName}`, selectedFile);
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        filePath = data.path;
+      }
+
+      // Insert entry into database
+      const { error: insertError } = await supabase
+        .from('knowledge_entries')
+        .insert({
+          title,
+          category,
+          content: uploadMode === 'text' ? content : null,
+          file_path: filePath,
+          user_id: auth.user.id
+        });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      toast.success("Entry added successfully!");
+      onOpenChange(false);
+      
+      // Reset form
+      setTitle("");
+      setCategory("");
+      setContent("");
+      setSelectedFile(null);
+      setUploadMode('text');
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      toast.error("Failed to save entry. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,11 +144,21 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" placeholder="Enter the title of your entry" required />
+            <Input 
+              id="title" 
+              placeholder="Enter the title of your entry" 
+              required 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select required>
+            <Select 
+              required
+              value={category}
+              onValueChange={setCategory}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -127,6 +198,8 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
                 placeholder="Enter the content of your knowledge base entry"
                 className="min-h-[200px]"
                 required={uploadMode === 'text'}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
               />
             </div>
           ) : (
@@ -167,7 +240,9 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save Entry</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Entry"}
+            </Button>
           </div>
         </form>
       </DialogContent>

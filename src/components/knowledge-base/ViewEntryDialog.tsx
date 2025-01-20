@@ -79,29 +79,34 @@ export const ViewEntryDialog = ({
       }}>
         <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
           <EntryHeader
-            title={editedTitle}
-            originalTitle={title}
-            editMode={editMode}
-            setEditMode={setEditMode}
-            onTitleChange={setEditedTitle}
+            isEditing={editMode}
+            initialTitle={title}
+            editedTitle={editedTitle}
+            onEditedTitleChange={setEditedTitle}
+            onStartEditing={() => setEditMode(true)}
+            onCancelEditing={() => {
+              setEditMode(false);
+              setEditedTitle(title);
+            }}
+            onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
             onDelete={() => setShowDeleteAlert(true)}
           />
           
           <EntryCategory
-            category={editedCategory}
-            originalCategory={category}
+            isEditing={editMode}
+            initialCategory={category}
+            editedCategory={editedCategory}
             categories={categories}
-            editMode={editMode}
-            onCategoryChange={setEditedCategory}
+            onEditedCategoryChange={setEditedCategory}
           />
 
           <EntryContent
-            content={editedContent}
-            originalContent={content}
-            filePath={filePath}
-            editMode={editMode}
             isLoading={isLoading}
-            onContentChange={setEditedContent}
+            filePath={filePath || ""}
+            content={content || ""}
+            isEditing={editMode}
+            editedContent={editedContent}
+            onEditedContentChange={setEditedContent}
             onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
             onDownload={handleDownload}
           />

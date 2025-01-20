@@ -28,15 +28,16 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       });
 
       if (error) {
-        // Check for rate limit error specifically
-        if (error.message?.includes('rate limit') && retryCount < MAX_RETRIES) {
+        // Handle rate limit errors
+        if ((error.message?.includes('rate limit') || error.status === 429) && retryCount < MAX_RETRIES) {
+          const waitTime = 5000 * Math.pow(2, retryCount);
           setRetryCount(prev => prev + 1);
-          toast.error("Rate limit reached. Retrying in 2 seconds...");
-          setTimeout(() => handleAnalyze(), 2000);
+          toast.error(`Rate limit reached. Retrying in ${waitTime/1000} seconds...`);
+          setTimeout(() => handleAnalyze(), waitTime);
           return;
         }
 
-        // Check for Anthropic credit balance error
+        // Handle credit balance errors
         if (error.message?.includes('credit balance is too low')) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
           throw new Error("Anthropic API credit balance too low");
@@ -51,10 +52,12 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     } catch (error) {
       console.error('Error analyzing RFP:', error);
       
-      // Set a user-friendly error message
+      // Set user-friendly error messages
       if (error instanceof Error) {
         if (error.message.includes('credit balance')) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
+        } else if (error.message.includes('rate limit')) {
+          setError("The AI service is currently experiencing high demand. Please try again in a few minutes.");
         } else {
           setError(`Analysis failed: ${error.message}`);
         }

@@ -1,4 +1,4 @@
-import { ANTHROPIC_API_VERSION, CLAUDE_MODEL, MAX_TOKENS, MAX_RETRIES } from './config.ts';
+import { ANTHROPIC_API_VERSION, CLAUDE_MODEL, MAX_TOKENS, MAX_RETRIES, RATE_LIMIT_BACKOFF } from './config.ts';
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -40,11 +40,14 @@ export async function analyzeWithClaude(
           throw new Error(`Anthropic API error: ${errorData}`);
         }
         
-        if (response.status === 429 && attempt < retries - 1) {
-          const waitTime = 2000 * (attempt + 1);
-          console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
-          await sleep(waitTime);
-          continue;
+        // Handle rate limit errors with exponential backoff
+        if (response.status === 429 || errorData.includes('rate limit')) {
+          if (attempt < retries - 1) {
+            const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
+            console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
+            await sleep(waitTime);
+            continue;
+          }
         }
         throw new Error(`Anthropic API error: ${errorData}`);
       }
@@ -53,11 +56,24 @@ export async function analyzeWithClaude(
       return data.content[0].text;
     } catch (error) {
       console.error(`Error on attempt ${attempt + 1}:`, error);
-      if (error instanceof Error && error.message.includes('credit balance')) {
-        throw error; // Don't retry credit balance errors
+      
+      if (error instanceof Error) {
+        // Don't retry credit balance errors
+        if (error.message.includes('credit balance')) {
+          throw error;
+        }
+        
+        // For rate limit errors, use exponential backoff
+        if (error.message.includes('rate limit') && attempt < retries - 1) {
+          const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
+          console.log(`Rate limit error, waiting ${waitTime}ms before retry...`);
+          await sleep(waitTime);
+          continue;
+        }
       }
+      
       if (attempt === retries - 1) throw error;
-      const waitTime = 2000 * (attempt + 1);
+      const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
       console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
       await sleep(waitTime);
     }

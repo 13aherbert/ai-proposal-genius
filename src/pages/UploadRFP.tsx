@@ -10,6 +10,11 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 const UploadRFP = () => {
   const navigate = useNavigate();
@@ -17,6 +22,7 @@ const UploadRFP = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("");
+  const [deadline, setDeadline] = useState<Date>();
   const { session } = useAuth();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -57,7 +63,8 @@ const UploadRFP = () => {
           .insert({
             title: file.name.replace(`.${fileExt}`, ''),
             rfp_file_path: sanitizedFileName,
-            user_id: session.user.id
+            user_id: session.user.id,
+            deadline: deadline?.toISOString(),
           })
           .select()
           .single();
@@ -95,7 +102,7 @@ const UploadRFP = () => {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  }, [session]);
+  }, [session, deadline]);
 
   const handleUpdateProject = async () => {
     if (!projectId) return;
@@ -103,7 +110,10 @@ const UploadRFP = () => {
     try {
       const { error } = await supabase
         .from('projects')
-        .update({ title: projectTitle })
+        .update({ 
+          title: projectTitle,
+          deadline: deadline?.toISOString(),
+        })
         .eq('id', projectId);
 
       if (error) throw error;
@@ -198,13 +208,65 @@ const UploadRFP = () => {
                         placeholder="Enter project title"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Deadline</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !deadline && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={deadline}
+                            onSelect={setDeadline}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <Button onClick={handleUpdateProject}>Update Project</Button>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">
-                    Upload an RFP document to begin. Once uploaded, you'll be able to
-                    enter project details and start the AI analysis.
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Upload an RFP document to begin. Once uploaded, you'll be able to
+                      enter project details and start the AI analysis.
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Deadline (Optional)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !deadline && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={deadline}
+                            onSelect={setDeadline}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>

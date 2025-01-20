@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
+import { toast } from "sonner";
 
-export const useRFPUpload = () => {
+export function useRFPUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -11,91 +11,76 @@ export const useRFPUpload = () => {
   const { session } = useAuth();
 
   const handleFileUpload = async (file: File, deadline?: Date) => {
-    if (!file || !session?.user) return;
+    if (!session?.user) {
+      toast.error("You must be logged in to upload files");
+      return;
+    }
 
     try {
       setIsUploading(true);
-      setUploadProgress(0);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const fileExt = file.name.split('.').pop();
-      const sanitizedFileName = `${session.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: uploadError, data } = await supabase.storage
+        .from("rfp-files")
+        .upload(fileName, file, {
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          },
+        });
 
-      const reader = new FileReader();
-      reader.readAsArrayBuffer(file);
+      if (uploadError) throw uploadError;
 
-      reader.onload = async () => {
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('rfp-files')
-          .upload(sanitizedFileName, file, {
-            cacheControl: '3600',
-            upsert: false,
-          });
+      const { error: insertError, data: project } = await supabase
+        .from("projects")
+        .insert({
+          title: file.name.replace(`.${fileExt}`, ""),
+          rfp_file_path: fileName,
+          user_id: session.user.id,
+          deadline: deadline,
+        })
+        .select()
+        .single();
 
-        if (uploadError) {
-          throw uploadError;
-        }
+      if (insertError) throw insertError;
 
-        const { error: projectError, data: projectData } = await supabase
-          .from('projects')
-          .insert({
-            title: file.name.replace(`.${fileExt}`, ''),
-            rfp_file_path: sanitizedFileName,
-            user_id: session.user.id,
-            deadline: deadline?.toISOString(),
-          })
-          .select()
-          .single();
-
-        if (projectError) {
-          await supabase.storage
-            .from('rfp-files')
-            .remove([sanitizedFileName]);
-          throw projectError;
-        }
-
-        setProjectId(projectData.id);
-        setProjectTitle(projectData.title);
-        setUploadProgress(100);
-        toast.success("Project created successfully!");
-        
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress(0);
-        }, 500);
-      };
-
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = (event.loaded / event.total) * 100;
-          setUploadProgress(percent);
-        }
-      };
-
+      setProjectId(project.id);
+      setProjectTitle(project.title);
+      toast.success("File uploaded successfully");
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error("Failed to create project. Please try again.");
+      console.error("Upload error:", error);
+      toast.error("Failed to upload file");
+    } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
   };
 
-  const updateProject = async (title: string, deadline?: Date) => {
+  const updateProject = async (
+    title: string,
+    deadline?: Date,
+    clientName?: string,
+    businessName?: string
+  ) => {
     if (!projectId) return;
 
     try {
       const { error } = await supabase
-        .from('projects')
-        .update({ 
+        .from("projects")
+        .update({
           title,
-          deadline: deadline?.toISOString(),
+          deadline,
+          client_name: clientName,
+          business_name: businessName,
         })
-        .eq('id', projectId);
+        .eq("id", projectId);
 
       if (error) throw error;
-      toast.success("Project updated successfully!");
+      toast.success("Project updated successfully");
     } catch (error) {
-      console.error('Update error:', error);
-      toast.error("Failed to update project. Please try again.");
+      console.error("Update error:", error);
+      toast.error("Failed to update project");
     }
   };
 
@@ -108,4 +93,4 @@ export const useRFPUpload = () => {
     handleFileUpload,
     updateProject,
   };
-};
+}

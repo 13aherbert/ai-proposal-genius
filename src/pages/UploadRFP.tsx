@@ -6,20 +6,11 @@ import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
 
-/**
- * UploadRFP Page Component
- * 
- * This component provides a user interface for uploading RFP documents and managing project information.
- * It supports:
- * - File upload via drag & drop or file selection
- * - Progress tracking for uploads
- * - Project title editing
- * - Deadline setting
- * - Automatic project creation upon successful upload
- */
 const UploadRFP = () => {
   const navigate = useNavigate();
   const [deadline, setDeadline] = useState<Date>();
+  const [clientName, setClientName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const {
     uploadProgress,
     isUploading,
@@ -38,7 +29,7 @@ const UploadRFP = () => {
   };
 
   const handleUpdateProject = () => {
-    updateProject(projectTitle, deadline);
+    updateProject(projectTitle, deadline, clientName, businessName);
   };
 
   return (
@@ -65,8 +56,12 @@ const UploadRFP = () => {
             <ProjectForm
               projectId={projectId}
               projectTitle={projectTitle}
+              clientName={clientName}
+              businessName={businessName}
               deadline={deadline}
               onTitleChange={setProjectTitle}
+              onClientNameChange={setClientName}
+              onBusinessNameChange={setBusinessName}
               onDeadlineChange={setDeadline}
               onSubmit={handleUpdateProject}
             />

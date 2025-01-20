@@ -48,7 +48,15 @@ function splitIntoChunks(text: string, maxChunkSize: number = 60000): string[] {
   return chunks;
 }
 
-async function analyzeChunk(chunk: string, openAIApiKey: string): Promise<string> {
+async function analyzeChunk(chunk: string, openAIApiKey: string, projectInfo: any): Promise<string> {
+  const systemPrompt = `Act as an expert proposal writer.
+
+The company ${projectInfo.business_name || '[Business Name Not Specified]'} is submitting a proposal to ${projectInfo.client_name || '[Client Name Not Specified]'} to a solicitation titled ${projectInfo.title}.
+
+The solicitation includes a Statement of Work (SOW) that describes the work to be performed. The SOW and the proposal instructions are in the RFP document.
+
+Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Ensure the outline covers all the items specified in the instructions. Be sure to follow the proposal instructions exactly. For the individual section headings, use the same words used in the proposal instructions.`;
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -60,7 +68,7 @@ async function analyzeChunk(chunk: string, openAIApiKey: string): Promise<string
       messages: [
         {
           role: 'system',
-          content: 'You are an expert at analyzing RFP (Request for Proposal) documents. Analyze the following section and provide a concise summary of key points.'
+          content: systemPrompt
         },
         {
           role: 'user',
@@ -86,10 +94,10 @@ serve(async (req) => {
   }
 
   try {
-    const { filePath } = await req.json();
+    const { filePath, projectId } = await req.json();
     
-    if (!filePath) {
-      throw new Error('No file path provided');
+    if (!filePath || !projectId) {
+      throw new Error('No file path or project ID provided');
     }
 
     console.log('Processing file:', filePath);
@@ -99,6 +107,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Get project information
+    const { data: projectData, error: projectError } = await supabaseAdmin
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      throw new Error(`Error fetching project: ${projectError.message}`);
+    }
 
     // Download the file from storage
     const { data: fileData, error: downloadError } = await supabaseAdmin
@@ -124,15 +143,16 @@ serve(async (req) => {
     const chunks = splitIntoChunks(text);
     console.log(`Split document into ${chunks.length} chunks`);
 
-    // Analyze each chunk
+    // Analyze each chunk with project context
     const chunkAnalyses = await Promise.all(
-      chunks.map(chunk => analyzeChunk(chunk, openAIApiKey))
+      chunks.map(chunk => analyzeChunk(chunk, openAIApiKey, projectData))
     );
 
     // Combine the analyses
     const combinedAnalysis = await analyzeChunk(
       `Combine and summarize these section analyses into a cohesive summary:\n\n${chunkAnalyses.join('\n\n')}`,
-      openAIApiKey
+      openAIApiKey,
+      projectData
     );
 
     return new Response(

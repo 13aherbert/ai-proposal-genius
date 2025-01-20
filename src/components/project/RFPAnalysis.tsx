@@ -7,9 +7,10 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface RFPAnalysisProps {
   filePath: string;
+  projectId: string;
 }
 
-export function RFPAnalysis({ filePath }: RFPAnalysisProps) {
+export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export function RFPAnalysis({ filePath }: RFPAnalysisProps) {
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-rfp', {
-        body: { filePath }
+        body: { filePath, projectId }
       });
 
       if (error) throw error;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,18 +26,26 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     try {
       console.log('Starting analysis with file path:', filePath, 'and project ID:', projectId);
       
+      // Add a small delay before making the request to ensure proper connection
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const { data, error } = await supabase.functions.invoke('analyze-rfp', {
-        body: { filePath, projectId }
+        body: { filePath, projectId },
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (error) {
         console.error('Edge function error:', error);
         
         // Handle connection errors with retry logic
-        if (error.message?.includes('Failed to send') && retryCount < MAX_RETRIES) {
+        if ((error.message?.includes('Failed to fetch') || error.message?.includes('Failed to send')) && retryCount < MAX_RETRIES) {
           console.log(`Retrying analysis (attempt ${retryCount + 1} of ${MAX_RETRIES})`);
           setRetryCount(prev => prev + 1);
-          setTimeout(() => handleAnalyze(), RETRY_DELAY);
+          // Use exponential backoff for retries
+          const backoffDelay = RETRY_DELAY * Math.pow(2, retryCount);
+          setTimeout(() => handleAnalyze(), backoffDelay);
           return;
         }
 
@@ -62,6 +70,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       setAnalysis(data.analysis);
       setRetryCount(0);
       setError(null);
+      toast.success("Analysis completed successfully");
     } catch (error) {
       console.error('Analysis error:', error);
       
@@ -71,7 +80,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
         } else if (error.message.includes('rate limit')) {
           setError("The AI service is currently experiencing high demand. Please try again in a few minutes.");
-        } else if (error.message.includes('Failed to send')) {
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('Failed to send')) {
           setError("Unable to connect to the analysis service. Please check your connection and try again.");
         } else {
           setError(`Analysis failed: ${error.message}`);
@@ -86,7 +95,13 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           : "Failed to analyze RFP document"
       );
     } finally {
-      setIsAnalyzing(false);
+      if (retryCount >= MAX_RETRIES) {
+        setIsAnalyzing(false);
+        setRetryCount(0);
+        setError("Maximum retry attempts reached. Please try again later.");
+      } else if (!error) {
+        setIsAnalyzing(false);
+      }
     }
   };
 
@@ -98,7 +113,20 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       <CardContent className="space-y-4">
         {error && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setError(null);
+                  setRetryCount(0);
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
         
@@ -106,9 +134,10 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           <Button 
             onClick={handleAnalyze} 
             disabled={isAnalyzing}
+            className="w-full"
           >
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
+            {isAnalyzing ? `Analyzing${retryCount > 0 ? ` (Attempt ${retryCount + 1}/${MAX_RETRIES})` : '...'}` : 'Analyze RFP'}
           </Button>
         )}
         

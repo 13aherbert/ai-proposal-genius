@@ -4,10 +4,11 @@ import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
 import { SearchBar } from "@/components/knowledge-base/SearchBar";
 import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
-import { KnowledgeCategory, KnowledgeEntry } from "@/components/knowledge-base/types";
+import { KnowledgeCategory } from "@/components/knowledge-base/types";
 
 const KnowledgeBase = () => {
   const [open, setOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const categories: KnowledgeCategory[] = [
     { icon: <BookOpen className="h-4 w-4" />, name: "Company Boilerplates" },
@@ -17,24 +18,6 @@ const KnowledgeBase = () => {
     { icon: <Folder className="h-4 w-4" />, name: "Competitive Insights" },
     { icon: <DollarSign className="h-4 w-4" />, name: "Pricing Templates" },
     { icon: <FileText className="h-4 w-4" />, name: "Estimation Tools" },
-  ];
-
-  const recentEntries: KnowledgeEntry[] = [
-    {
-      title: "Standard Legal Disclaimer Template",
-      category: "Legal Disclaimers",
-      updated: "1 day ago"
-    },
-    {
-      title: "Q4 2023 Pricing Guidelines",
-      category: "Pricing Templates",
-      updated: "2 days ago"
-    },
-    {
-      title: "Government RFP Response Template",
-      category: "Prior RFP Responses",
-      updated: "3 days ago"
-    }
   ];
 
   return (
@@ -53,10 +36,14 @@ const KnowledgeBase = () => {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100%-5rem)]">
-            <CategorySidebar categories={categories} />
+            <CategorySidebar 
+              categories={categories} 
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
             <div className="lg:col-span-3 space-y-6">
               <SearchBar />
-              <RecentEntries entries={recentEntries} />
+              <RecentEntries selectedCategory={selectedCategory} />
             </div>
           </div>
         </div>

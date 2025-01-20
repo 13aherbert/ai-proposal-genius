@@ -8,23 +8,29 @@ import { useToast } from "@/hooks/use-toast";
 import { ViewEntryDialog } from "./ViewEntryDialog";
 
 interface RecentEntriesProps {
-  entries?: KnowledgeEntry[];
+  selectedCategory: string | null;
 }
 
-export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
+export const RecentEntries = ({ selectedCategory }: RecentEntriesProps) => {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchRecentEntries = async () => {
+    const fetchEntries = async () => {
       try {
-        const { data, error } = await supabase
+        setIsLoading(true);
+        let query = supabase
           .from('knowledge_entries')
           .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(5);
+          .order('updated_at', { ascending: false });
+
+        if (selectedCategory) {
+          query = query.eq('category', selectedCategory);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -36,10 +42,10 @@ export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
 
         setEntries(formattedEntries);
       } catch (error) {
-        console.error('Error fetching recent entries:', error);
+        console.error('Error fetching entries:', error);
         toast({
           title: "Error",
-          description: "Failed to load recent entries",
+          description: "Failed to load entries",
           variant: "destructive",
         });
       } finally {
@@ -47,18 +53,20 @@ export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
       }
     };
 
-    fetchRecentEntries();
-  }, [toast]);
+    fetchEntries();
+  }, [toast, selectedCategory]);
 
   if (isLoading) {
     return (
       <Card className="bg-secondary/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Recent Entries</CardTitle>
+          <CardTitle>
+            {selectedCategory ? `${selectedCategory} Entries` : 'All Entries'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p className="text-muted-foreground">Loading recent entries...</p>
+            <p className="text-muted-foreground">Loading entries...</p>
           </div>
         </CardContent>
       </Card>
@@ -69,12 +77,19 @@ export const RecentEntries = ({ entries: propEntries }: RecentEntriesProps) => {
     <>
       <Card className="bg-secondary/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Recent Entries</CardTitle>
+          <CardTitle>
+            {selectedCategory ? `${selectedCategory} Entries` : 'All Entries'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {entries.length === 0 ? (
-              <p className="text-muted-foreground">No entries found</p>
+              <p className="text-muted-foreground">
+                {selectedCategory 
+                  ? `No entries found in ${selectedCategory}`
+                  : 'No entries found'
+                }
+              </p>
             ) : (
               entries.map((item, index) => (
                 <div key={index}>

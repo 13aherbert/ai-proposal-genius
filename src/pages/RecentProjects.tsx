@@ -32,6 +32,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 type Project = {
   id: string;
@@ -53,10 +55,11 @@ const RecentProjects = () => {
     return null;
   }
 
-  const { data: projects, isLoading, error } = useQuery({
+  const { data: projects, isLoading, error, refetch } = useQuery({
     queryKey: ["projects", session.user.id],
     queryFn: async () => {
       try {
+        console.log("Fetching projects...");
         const { data, error } = await supabase
           .from("projects")
           .select("*")
@@ -74,16 +77,12 @@ const RecentProjects = () => {
         return data as Project[];
       } catch (err) {
         console.error("Query error:", err);
-        toast({
-          variant: "destructive",
-          title: "Error fetching projects",
-          description: "Please try again later or contact support if the issue persists.",
-        });
         throw err;
       }
     },
     enabled: !!session.user.id,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
   });
 
   const handleDeleteProject = async (projectId: string) => {
@@ -130,14 +129,18 @@ const RecentProjects = () => {
             </header>
             <Card>
               <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  <p>Failed to load projects. Please try again later.</p>
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>
+                    Failed to load projects. Please check your connection and try again.
+                  </AlertDescription>
+                </Alert>
+                <div className="text-center">
                   <Button
                     variant="outline"
                     className="mt-4"
-                    onClick={() => queryClient.invalidateQueries({ queryKey: ["projects"] })}
+                    onClick={() => refetch()}
                   >
-                    Retry
+                    Try Again
                   </Button>
                 </div>
               </CardContent>
@@ -175,7 +178,9 @@ const RecentProjects = () => {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="text-center py-4">Loading projects...</div>
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
               ) : !projects?.length ? (
                 <div className="text-center py-4 text-muted-foreground">
                   No projects found. Create your first project by clicking "New

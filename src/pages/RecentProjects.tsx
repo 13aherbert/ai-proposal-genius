@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, ArrowLeft, Calendar } from "lucide-react";
 import { format } from "date-fns";
@@ -59,7 +58,7 @@ const RecentProjects = () => {
 
       return data as Project[];
     },
-    enabled: !!session?.user?.id, // Only run query when we have a user ID
+    enabled: !!session?.user?.id,
   });
 
   return (
@@ -108,7 +107,11 @@ const RecentProjects = () => {
                     </TableHeader>
                     <TableBody>
                       {projects.map((project) => (
-                        <TableRow key={project.id}>
+                        <TableRow 
+                          key={project.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/projects/${project.id}`)}
+                        >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -139,13 +142,9 @@ const RecentProjects = () => {
                           <TableCell>
                             <Button
                               variant="ghost"
-                              onClick={() => {
-                                // TODO: Implement project details view
-                                toast({
-                                  title: "Coming soon",
-                                  description:
-                                    "Project details view will be implemented soon.",
-                                });
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/projects/${project.id}`);
                               }}
                             >
                               View Details

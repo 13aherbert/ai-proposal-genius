@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import UploadRFP from "./pages/UploadRFP";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import RecentProjects from "./pages/RecentProjects";
+import ProjectDetails from "./pages/ProjectDetails";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <RecentProjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects/:projectId"
+              element={
+                <ProtectedRoute>
+                  <ProjectDetails />
                 </ProtectedRoute>
               }
             />

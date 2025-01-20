@@ -12,6 +12,8 @@ export async function analyzeWithClaude(
 ): Promise<string> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
+      console.log(`Attempt ${attempt + 1}: Analyzing content of length ${content.length}`);
+      
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -53,6 +55,7 @@ export async function analyzeWithClaude(
       }
 
       const data = await response.json();
+      console.log('Successfully processed chunk');
       return data.content[0].text;
     } catch (error) {
       console.error(`Error on attempt ${attempt + 1}:`, error);

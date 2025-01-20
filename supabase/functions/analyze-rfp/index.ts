@@ -45,13 +45,21 @@ serve(async (req) => {
 
     const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
 
-    const chunkAnalyses = await Promise.all(
-      chunks.map(chunk => analyzeWithClaude(prompt, chunk, anthropicApiKey))
-    );
+    // Process chunks sequentially instead of in parallel
+    const chunkAnalyses = [];
+    for (const chunk of chunks) {
+      console.log('Processing chunk of length:', chunk.length);
+      const analysis = await analyzeWithClaude(prompt, chunk, anthropicApiKey);
+      chunkAnalyses.push(analysis);
+      // Add a delay between chunks to respect rate limits
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
 
+    // Final analysis with reduced content
+    const summaryPrompt = `Combine and summarize these section analyses into a concise summary:\n\n${chunkAnalyses.join('\n\n')}`;
     const combinedAnalysis = await analyzeWithClaude(
       prompt,
-      `Combine and summarize these section analyses into a cohesive summary:\n\n${chunkAnalyses.join('\n\n')}`,
+      summaryPrompt,
       anthropicApiKey
     );
 

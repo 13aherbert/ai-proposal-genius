@@ -60,7 +60,7 @@ const ProjectDetails = () => {
 
           <div className="grid gap-6">
             <ProjectInfo project={project} />
-            <RFPAnalysis filePath={project.rfp_file_path} />
+            <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />
             <DocumentViewer filePath={project.rfp_file_path} project={project} />
           </div>
         </div>

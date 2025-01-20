@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface RFPAnalysisProps {
   filePath: string;
@@ -13,7 +13,8 @@ interface RFPAnalysisProps {
 export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { toast } = useToast();
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -22,15 +23,26 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         body: { filePath, projectId }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a rate limit error
+        if (error.message?.includes('rate limit') && retryCount < MAX_RETRIES) {
+          setRetryCount(prev => prev + 1);
+          toast.error("Rate limit reached. Retrying in 2 seconds...");
+          setTimeout(() => handleAnalyze(), 2000);
+          return;
+        }
+        throw error;
+      }
+
       setAnalysis(data.analysis);
+      setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error('Error analyzing RFP:', error);
-      toast({
-        variant: "destructive",
-        title: "Analysis failed",
-        description: "There was an error analyzing the RFP document."
-      });
+      toast.error(
+        error instanceof Error 
+          ? `Analysis failed: ${error.message}`
+          : "Failed to analyze RFP document"
+      );
     } finally {
       setIsAnalyzing(false);
     }
@@ -48,7 +60,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
             disabled={isAnalyzing}
           >
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Analyze RFP
+            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
           </Button>
         )}
         
@@ -58,7 +70,10 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={() => setAnalysis(null)}
+              onClick={() => {
+                setAnalysis(null);
+                setRetryCount(0);
+              }}
             >
               Start New Analysis
             </Button>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { FileText, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Project } from "@/hooks/use-project-details";
+import { useAuth } from "@/components/AuthProvider";
 
 interface AdditionalDocumentsProps {
   project: Project;
@@ -24,6 +25,7 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState("addendum");
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: documents } = useQuery({
     queryKey: ["project-documents", project.id],
@@ -44,7 +46,7 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (!selectedFile || !session?.user) {
       toast.error("Please select a file to upload");
       return;
     }
@@ -66,6 +68,7 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
           file_path: fileName,
           file_name: selectedFile.name,
           document_type: documentType,
+          user_id: session.user.id,
         });
 
       if (dbError) throw dbError;

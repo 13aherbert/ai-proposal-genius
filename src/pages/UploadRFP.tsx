@@ -6,29 +6,56 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 
 const UploadRFP = () => {
   const navigate = useNavigate();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const { session } = useAuth();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (!file) return;
+    if (!file || !session?.user) return;
 
-    // Simulate file upload progress
-    setIsUploading(true);
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 5;
-      setUploadProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setIsUploading(false);
-        toast.success("File uploaded successfully!");
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Create a sanitized filename
+      const fileExt = file.name.split('.').pop();
+      const sanitizedFileName = `${session.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('rfp-files')
+        .upload(sanitizedFileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          },
+        });
+
+      if (uploadError) {
+        throw uploadError;
       }
-    }, 100);
-  }, []);
+
+      toast.success("RFP uploaded successfully!");
+      // Reset the upload state after a short delay to show 100%
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error("Failed to upload RFP. Please try again.");
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [session]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -38,6 +65,7 @@ const UploadRFP = () => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
     },
     maxFiles: 1,
+    maxSize: 20 * 1024 * 1024, // 20MB max file size
   });
 
   return (
@@ -80,7 +108,7 @@ const UploadRFP = () => {
                     <div className="space-y-2">
                       <p>Drag and drop your RFP file here, or click to select</p>
                       <p className="text-sm text-muted-foreground">
-                        Supported formats: PDF, DOC, DOCX
+                        Supported formats: PDF, DOC, DOCX (max 20MB)
                       </p>
                     </div>
                   )}
@@ -90,7 +118,7 @@ const UploadRFP = () => {
                   <div className="mt-6 space-y-2">
                     <Progress value={uploadProgress} />
                     <p className="text-sm text-muted-foreground text-center">
-                      Uploading... {uploadProgress}%
+                      Uploading... {Math.round(uploadProgress)}%
                     </p>
                   </div>
                 )}

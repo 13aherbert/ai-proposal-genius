@@ -1,91 +1,27 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, FileText } from "lucide-react";
-import { format } from "date-fns";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { DocumentViewer } from "@/components/project/DocumentViewer";
+import { ProjectInfo } from "@/components/project/ProjectInfo";
+import { useProjectDetails } from "@/hooks/use-project-details";
 
+/**
+ * ProjectDetails Component
+ * 
+ * Displays detailed information about a specific project, including:
+ * - Project title and basic information
+ * - Status and creation date
+ * - Access to the original RFP document
+ * 
+ * The component handles loading states and ensures proper authentication
+ * before displaying any project data.
+ */
 const ProjectDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { session } = useAuth();
-
-  const { data: project, isLoading } = useQuery({
-    queryKey: ["project", projectId, session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id || !projectId) {
-        throw new Error("No authenticated user or project ID");
-      }
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error fetching project",
-          description: error.message,
-        });
-        throw error;
-      }
-
-      if (!data) {
-        throw new Error("Project not found");
-      }
-
-      return data;
-    },
-    enabled: !!session?.user?.id && !!projectId,
-  });
-
-  const handleViewDocument = async () => {
-    if (!project?.rfp_file_path) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No RFP document found",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.storage
-        .from('rfp-files')
-        .download(project.rfp_file_path);
-
-      if (error) {
-        throw error;
-      }
-
-      // Create a blob URL and open it in a new tab
-      const blob = new Blob([data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-
-      // Clean up the blob URL after opening
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not access the RFP file",
-      });
-    }
-  };
+  const { data: project, isLoading } = useProjectDetails(projectId, session?.user);
 
   if (isLoading) {
     return (
@@ -133,37 +69,8 @@ const ProjectDetails = () => {
           </header>
 
           <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Information</CardTitle>
-                <CardDescription>Details about your RFP project</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>Status: {project.status}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>Created: {format(new Date(project.created_at), "PPP")}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>RFP Document</CardTitle>
-                <CardDescription>Access the original RFP document</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  variant="outline"
-                  onClick={handleViewDocument}
-                >
-                  View RFP Document
-                </Button>
-              </CardContent>
-            </Card>
+            <ProjectInfo project={project} />
+            <DocumentViewer filePath={project.rfp_file_path} />
           </div>
         </div>
       </div>

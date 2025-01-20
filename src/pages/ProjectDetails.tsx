@@ -4,19 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { DocumentViewer } from "@/components/project/DocumentViewer";
 import { ProjectInfo } from "@/components/project/ProjectInfo";
+import { AdditionalDocuments } from "@/components/project/AdditionalDocuments";
 import { useProjectDetails } from "@/hooks/use-project-details";
 
-/**
- * ProjectDetails Component
- * 
- * Displays detailed information about a specific project, including:
- * - Project title and basic information
- * - Status and creation date
- * - Access to the original RFP document
- * 
- * The component handles loading states and ensures proper authentication
- * before displaying any project data.
- */
 const ProjectDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -71,6 +61,7 @@ const ProjectDetails = () => {
           <div className="grid gap-6">
             <ProjectInfo project={project} />
             <DocumentViewer filePath={project.rfp_file_path} />
+            <AdditionalDocuments project={project} />
           </div>
         </div>
       </div>

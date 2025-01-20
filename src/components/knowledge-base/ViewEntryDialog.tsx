@@ -1,15 +1,14 @@
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
-import { KnowledgeCategory } from "./types";
 import { EntryHeader } from "./dialog/EntryHeader";
-import { EntryCategory } from "./dialog/EntryCategory";
 import { EntryContent } from "./dialog/EntryContent";
+import { EntryCategory } from "./dialog/EntryCategory";
 import { DeleteEntryAlert } from "./dialog/DeleteEntryAlert";
 import { useEntryOperations } from "./hooks/useEntryOperations";
+import { KnowledgeCategory } from "./types";
 
 interface ViewEntryDialogProps {
   open: boolean;
@@ -23,16 +22,16 @@ interface ViewEntryDialogProps {
 export const ViewEntryDialog = ({
   open,
   onOpenChange,
-  title: initialTitle,
-  category: initialCategory,
+  title,
+  category,
   categories,
   onEntryUpdated,
 }: ViewEntryDialogProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(initialTitle);
-  const [editedCategory, setEditedCategory] = useState(initialCategory);
-  const [editedContent, setEditedContent] = useState<string>("");
+  const [editMode, setEditMode] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(title);
+  const [editedCategory, setEditedCategory] = useState(category);
+  const [editedContent, setEditedContent] = useState("");
 
   const {
     content,
@@ -42,64 +41,77 @@ export const ViewEntryDialog = ({
     handleSave,
     handleDelete,
     handleDownload,
-  } = useEntryOperations(initialTitle, onEntryUpdated, () => onOpenChange(false));
+  } = useEntryOperations(title, onEntryUpdated, () => {
+    setShowDeleteAlert(false);
+    onOpenChange(false);
+    setEditMode(false);
+    setEditedTitle("");
+    setEditedCategory("");
+    setEditedContent("");
+  });
 
   useEffect(() => {
     if (open) {
       fetchEntryContent();
-      setEditedTitle(initialTitle);
-      setEditedCategory(initialCategory);
-      setIsEditing(false);
-      setEditedContent(content || "");
     }
-  }, [open, initialTitle, content]);
+  }, [open, fetchEntryContent]);
 
-  const onSave = () => {
-    handleSave(editedTitle, editedCategory, editedContent);
-    setIsEditing(false);
+  useEffect(() => {
+    if (content) {
+      setEditedContent(content);
+    }
+  }, [content]);
+
+  const handleDeleteConfirm = async () => {
+    await handleDelete();
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <EntryHeader
-              isEditing={isEditing}
-              initialTitle={initialTitle}
-              editedTitle={editedTitle}
-              onEditedTitleChange={setEditedTitle}
-              onStartEditing={() => setIsEditing(true)}
-              onCancelEditing={() => setIsEditing(false)}
-              onSave={onSave}
-              onDelete={() => setShowDeleteAlert(true)}
-            />
-          </DialogHeader>
-          <div className="space-y-4">
-            <EntryCategory
-              isEditing={isEditing}
-              initialCategory={initialCategory}
-              editedCategory={editedCategory}
-              categories={categories}
-              onEditedCategoryChange={setEditedCategory}
-            />
-            <EntryContent
-              isLoading={isLoading}
-              filePath={filePath}
-              content={content}
-              isEditing={isEditing}
-              editedContent={editedContent}
-              onEditedContentChange={setEditedContent}
-              onDownload={handleDownload}
-            />
-          </div>
+      <Dialog open={open} onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          setEditMode(false);
+          setEditedTitle("");
+          setEditedCategory("");
+          setEditedContent("");
+        }
+        onOpenChange(newOpen);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+          <EntryHeader
+            title={editedTitle}
+            originalTitle={title}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            onTitleChange={setEditedTitle}
+            onDelete={() => setShowDeleteAlert(true)}
+          />
+          
+          <EntryCategory
+            category={editedCategory}
+            originalCategory={category}
+            categories={categories}
+            editMode={editMode}
+            onCategoryChange={setEditedCategory}
+          />
+
+          <EntryContent
+            content={editedContent}
+            originalContent={content}
+            filePath={filePath}
+            editMode={editMode}
+            isLoading={isLoading}
+            onContentChange={setEditedContent}
+            onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
+            onDownload={handleDownload}
+          />
         </DialogContent>
       </Dialog>
 
       <DeleteEntryAlert
         open={showDeleteAlert}
         onOpenChange={setShowDeleteAlert}
-        onConfirmDelete={handleDelete}
+        onConfirmDelete={handleDeleteConfirm}
         hasFile={!!filePath}
       />
     </>

@@ -27,27 +27,41 @@ const UploadRFP = () => {
       const fileExt = file.name.split('.').pop();
       const sanitizedFileName = `${session.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { error: uploadError, data } = await supabase.storage
-        .from('rfp-files')
-        .upload(sanitizedFileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          },
-        });
+      // Create a readable stream from the file
+      const reader = new FileReader();
+      reader.readAsArrayBuffer(file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      reader.onload = async () => {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const fileData = new Uint8Array(arrayBuffer);
 
-      toast.success("RFP uploaded successfully!");
-      // Reset the upload state after a short delay to show 100%
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+        const { error: uploadError } = await supabase.storage
+          .from('rfp-files')
+          .upload(sanitizedFileName, fileData, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        setUploadProgress(100);
+        toast.success("RFP uploaded successfully!");
+        
+        // Reset the upload state after a short delay to show 100%
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+        }, 500);
+      };
+
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = (event.loaded / event.total) * 100;
+          setUploadProgress(percent);
+        }
+      };
 
     } catch (error) {
       console.error('Upload error:', error);

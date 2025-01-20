@@ -2,10 +2,58 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "./ui/card";
+import { Alert, AlertDescription } from "./ui/alert";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthError } from "@supabase/supabase-js";
 
 export const AuthForm = () => {
+  const [error, setError] = useState<string>("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard");
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        navigate("/dashboard");
+      }
+      if (event === "SIGNED_OUT") {
+        navigate("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case "Invalid login credentials":
+        return "Invalid email or password. Please check your credentials and try again.";
+      case "Email not confirmed":
+        return "Please verify your email address before signing in.";
+      case "User not found":
+        return "No user found with these credentials.";
+      default:
+        return error.message;
+    }
+  };
+
   return (
     <Card className="w-full max-w-md bg-secondary/50 backdrop-blur-sm p-6">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <Auth
         supabaseClient={supabase}
         appearance={{
@@ -21,6 +69,7 @@ export const AuthForm = () => {
         }}
         providers={[]}
         theme="light"
+        onError={(error) => setError(getErrorMessage(error))}
       />
     </Card>
   );

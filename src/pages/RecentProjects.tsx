@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { FileText, ArrowLeft, Calendar } from "lucide-react";
+import { FileText, ArrowLeft, Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -21,6 +21,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Project = {
   id: string;
@@ -34,6 +45,7 @@ const RecentProjects = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects", session?.user?.id],
@@ -60,6 +72,31 @@ const RecentProjects = () => {
     },
     enabled: !!session?.user?.id,
   });
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", projectId);
+
+      if (error) throw error;
+
+      // Invalidate and refetch projects
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+      toast({
+        title: "Project deleted",
+        description: "The project has been successfully deleted.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error deleting project",
+        description: "Failed to delete the project. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -140,15 +177,42 @@ const RecentProjects = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/projects/${project.id}`);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                onClick={() => navigate(`/projects/${project.id}`)}
+                              >
+                                View Details
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this project? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteProject(project.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

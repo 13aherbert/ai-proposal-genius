@@ -21,6 +21,8 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
   const fetchEntries = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching entries with selected category:', selectedCategory);
+      
       let query = supabase
         .from('knowledge_entries')
         .select('*')
@@ -34,12 +36,15 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
 
       if (error) throw error;
 
+      console.log('Raw data from database:', data);
+
       const formattedEntries = data.map(entry => ({
         title: entry.title,
         category: entry.category,
         updated: new Date(entry.updated_at).toLocaleDateString()
       }));
 
+      console.log('Formatted entries:', formattedEntries);
       setEntries(formattedEntries);
     } catch (error) {
       console.error('Error fetching entries:', error);

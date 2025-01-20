@@ -28,7 +28,6 @@ const KnowledgeBase = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission with file handling
     if (uploadMode === 'file' && !selectedFile) {
       toast.error("Please select a file to upload");
       return;
@@ -40,8 +39,8 @@ const KnowledgeBase = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error("File size must be less than 5MB");
+      if (file.size > 20 * 1024 * 1024) { // 20MB limit
+        toast.error("File size must be less than 20MB");
         return;
       }
       setSelectedFile(file);
@@ -137,7 +136,7 @@ const KnowledgeBase = () => {
                             {selectedFile ? selectedFile.name : "Click to upload or drag and drop"}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            PDF, DOC, DOCX, TXT (max 5MB)
+                            PDF, DOC, DOCX, TXT (max 20MB)
                           </span>
                         </label>
                       </div>

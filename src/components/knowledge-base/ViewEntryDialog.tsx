@@ -4,9 +4,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 interface ViewEntryDialogProps {
   open: boolean;
@@ -22,6 +24,7 @@ export const ViewEntryDialog = ({
   category,
 }: ViewEntryDialogProps) => {
   const [content, setContent] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -29,12 +32,13 @@ export const ViewEntryDialog = ({
     try {
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content')
+        .select('content, file_path')
         .eq('title', title)
         .single();
 
       if (error) throw error;
       setContent(data.content);
+      setFilePath(data.file_path);
     } catch (error) {
       console.error('Error fetching entry content:', error);
       toast({
@@ -47,7 +51,41 @@ export const ViewEntryDialog = ({
     }
   };
 
-  useState(() => {
+  const handleDownload = async () => {
+    if (!filePath) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('knowledge-files')
+        .download(filePath);
+
+      if (error) throw error;
+
+      // Create a download link and trigger it
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filePath.split('/').pop() || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "File downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
     if (open) {
       fetchEntryContent();
     }
@@ -66,6 +104,19 @@ export const ViewEntryDialog = ({
           </div>
           {isLoading ? (
             <p className="text-muted-foreground">Loading content...</p>
+          ) : filePath ? (
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <p className="text-sm text-muted-foreground">This entry contains an uploaded document</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download File
+              </Button>
+            </div>
           ) : (
             <div className="prose prose-sm max-w-none">
               {content || "No content available"}

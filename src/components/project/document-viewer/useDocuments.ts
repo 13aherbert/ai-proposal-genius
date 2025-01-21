@@ -19,7 +19,6 @@ export function useDocuments(projectId: string) {
         .from("project_documents")
         .select("*")
         .eq("project_id", projectId)
-        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -50,8 +49,7 @@ export function useDocuments(projectId: string) {
       const { error: dbError } = await supabase
         .from("project_documents")
         .delete()
-        .eq("id", document.id)
-        .eq("user_id", session.user.id);
+        .eq("id", document.id);
 
       if (dbError) throw dbError;
 

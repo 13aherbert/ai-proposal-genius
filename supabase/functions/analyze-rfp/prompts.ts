@@ -1,51 +1,36 @@
 import { ProjectInfo, KnowledgeEntry } from './types.ts';
 
 export function generateAnalysisPrompt(projectInfo: ProjectInfo, knowledgeEntries: KnowledgeEntry[] = []): string {
-  const knowledgeContext = knowledgeEntries.length > 0
-    ? `Here is relevant information from our Knowledge Base that you should reference:\n${
-        knowledgeEntries.map(entry => `${entry.category}: ${entry.title}`).join('\n')
-      }`
-    : 'No specific knowledge base entries are available for reference.';
-
   return `Act as an expert RFP analyst.
 
-The company ${projectInfo.business_name || '[Business Name Not Specified]'} is reviewing an RFP from ${projectInfo.client_name || '[Client Name Not Specified]'} titled ${projectInfo.title}.
+Analyze the following RFP document for ${projectInfo.business_name || '[Business Name Not Specified]'} from ${projectInfo.client_name || '[Client Name Not Specified]'} titled ${projectInfo.title}.
 
-${knowledgeContext}
-
-Analyze the following RFP document content and provide a structured analysis with these sections:
+Provide a concise, structured analysis focusing only on these key elements:
 
 1. Key Requirements
-- Extract and list all major requirements
-- Highlight any technical specifications
+- List the most critical requirements (maximum 5)
 - Note any mandatory certifications or qualifications
+- Highlight technical specifications if present
 
-2. Timeline Analysis
-- Submission deadline
-- Project milestones
+2. Timeline & Deadlines
+- Submission deadline (exact date if specified)
+- Key project milestones
 - Implementation schedule
-- Review periods
 
 3. Evaluation Criteria
-- List all evaluation factors
-- Note their relative weights if provided
-- Highlight key scoring elements
+- List main evaluation factors
+- Note scoring weights if provided
+- Highlight any pass/fail criteria
 
 4. Required Response Elements
-- List all sections requiring specific responses
+- List mandatory sections requiring responses
 - Note any page limits or formatting requirements
-- Identify required forms or attachments
+- List required forms or attachments
 
 5. Risk Assessment
-- Identify potential red flags
-- Note any ambiguous terms or specifications
-- List missing information that needs clarification
-- Highlight any challenging requirements
+- Identify potential red flags (maximum 3)
+- List any ambiguous terms or specifications
+- Note any missing critical information
 
-6. Team Assignment Recommendations
-- Suggest team members or roles needed for each section
-- Note areas where specific expertise is required
-- Reference relevant knowledge base entries for each section
-
-Format the analysis clearly with appropriate headers and bullet points. Prioritize actionable insights that will help the team respond effectively.`;
+Format the response in a clear, bullet-point structure. Keep each section brief and actionable. Focus on the most important elements that will impact the bid decision and response strategy.`;
 }

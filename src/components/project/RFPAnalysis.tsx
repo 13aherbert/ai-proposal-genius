@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, AlertTriangle, Calendar, CheckSquare, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,13 +11,58 @@ interface RFPAnalysisProps {
   projectId: string;
 }
 
+interface AnalysisSection {
+  title: string;
+  content: string[];
+  icon: React.ReactNode;
+}
+
 export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 2000; // 2 seconds
+  const RETRY_DELAY = 2000;
+
+  const parseAnalysis = (text: string): AnalysisSection[] => {
+    const sections = text.split(/\d\.\s+(?=[A-Z])/);
+    const sectionTitles = text.match(/\d\.\s+[A-Z][^:\n]+/g) || [];
+    
+    return sectionTitles.map((title, index) => {
+      const cleanTitle = title.replace(/^\d\.\s+/, '');
+      const content = sections[index + 1]
+        ?.split('\n')
+        .filter(line => line.trim().startsWith('-'))
+        .map(line => line.trim().replace(/^-\s+/, ''))
+        .filter(Boolean) || [];
+
+      const icon = getIconForSection(cleanTitle);
+      
+      return {
+        title: cleanTitle,
+        content,
+        icon
+      };
+    });
+  };
+
+  const getIconForSection = (title: string) => {
+    switch (title) {
+      case 'Key Requirements':
+        return <CheckSquare className="h-5 w-5" />;
+      case 'Timeline & Deadlines':
+        return <Calendar className="h-5 w-5" />;
+      case 'Evaluation Criteria':
+        return <ListChecks className="h-5 w-5" />;
+      case 'Required Response Elements':
+        return <CheckSquare className="h-5 w-5" />;
+      case 'Risk Assessment':
+        return <AlertTriangle className="h-5 w-5" />;
+      default:
+        return null;
+    }
+  };
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -26,29 +71,15 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     
     const attemptAnalysis = async () => {
       try {
-        console.log('Starting analysis attempt', currentRetry + 1, 'with file path:', filePath, 'and project ID:', projectId);
+        console.log('Starting analysis attempt', currentRetry + 1);
         
-        const requestBody = {
-          filePath,
-          projectId
-        };
-
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: requestBody,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          body: { filePath, projectId },
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log('Response:', data, 'Error:', functionError);
-
-        if (functionError) {
-          throw functionError;
-        }
-
-        if (!data || !data.analysis) {
-          throw new Error("Invalid response from analysis service");
-        }
+        if (functionError) throw functionError;
+        if (!data?.analysis) throw new Error("Invalid response from analysis service");
 
         setAnalysis(data.analysis);
         setRetryCount(0);
@@ -60,24 +91,15 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         if (currentRetry < MAX_RETRIES - 1) {
           currentRetry++;
           const delay = RETRY_DELAY * Math.pow(2, currentRetry - 1);
-          console.log(`Retrying in ${delay}ms... (attempt ${currentRetry + 1}/${MAX_RETRIES})`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptAnalysis();
         }
         
-        let errorMessage = "Failed to analyze RFP document. Please try again.";
-        
-        if (error instanceof Error) {
-          if (error.message.includes('Failed to fetch')) {
-            errorMessage = "Unable to connect to the analysis service. Please check your connection and try again.";
-          } else if (error.message.includes('credit balance')) {
-            errorMessage = "The AI service is currently unavailable due to credit limitations. Please try again later or contact support.";
-          } else if (error.message.includes('rate limit')) {
-            errorMessage = "The AI service is currently experiencing high demand. Please try again in a few minutes.";
-          } else {
-            errorMessage = `Analysis failed: ${error.message}`;
-          }
-        }
+        const errorMessage = error instanceof Error 
+          ? error.message.includes('Failed to fetch')
+            ? "Unable to connect to the analysis service. Please check your connection and try again."
+            : `Analysis failed: ${error.message}`
+          : "Failed to analyze RFP document. Please try again.";
         
         setError(errorMessage);
         toast.error(errorMessage);
@@ -88,6 +110,8 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
 
     await attemptAnalysis();
   };
+
+  const parsedSections = analysis ? parseAnalysis(analysis) : [];
 
   return (
     <Card>
@@ -126,8 +150,20 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         )}
         
         {analysis && (
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap font-mono">{analysis}</div>
+          <div className="space-y-6">
+            {parsedSections.map((section, index) => (
+              <div key={index} className="space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-lg">
+                  {section.icon}
+                  {section.title}
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-6">
+                  {section.content.map((item, itemIndex) => (
+                    <li key={itemIndex}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
             <Button 
               variant="outline" 
               className="mt-4"

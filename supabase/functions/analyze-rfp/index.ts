@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds
+const RETRY_DELAY = 2000;
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -18,12 +18,15 @@ async function sleep(ms: number) {
 
 async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key is not configured');
+  }
   
   try {
     console.log(`Attempt ${retryCount + 1}: Calling OpenAI API`);
     
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -32,7 +35,7 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages,
         max_tokens: 1000,
       }),
@@ -78,18 +81,61 @@ serve(async (req) => {
   }
 
   try {
-    const { filePath, projectId } = await req.json();
+    // Validate request content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error('Request must be application/json');
+    }
+
+    // Parse request body with error handling
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: error.message 
+        }),
+        { 
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    const { filePath, projectId } = body;
     console.log('Processing request for:', { filePath, projectId });
 
     if (!filePath || !projectId) {
-      throw new Error('Missing required fields: filePath and projectId are required');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields',
+          details: 'filePath and projectId are required' 
+        }),
+        { 
+          status: 400,
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration is missing');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get project info for context
     const { data: projectData, error: projectError } = await supabase
@@ -118,7 +164,7 @@ serve(async (req) => {
     console.log('File converted to text, length:', text.length);
 
     // Split text into manageable chunks
-    const chunks = splitIntoChunks(text, 4000); // Reduced chunk size
+    const chunks = splitIntoChunks(text, 4000);
     console.log(`Split text into ${chunks.length} chunks`);
 
     // Process each chunk with OpenAI
@@ -156,7 +202,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);
     
-    // Determine if it's a known error type
     let errorMessage = error.message;
     let statusCode = 500;
     

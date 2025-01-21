@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -15,9 +15,41 @@ export type Project = {
   deadline: string | null;
 };
 
-export function useProjectDetails(projectId: string | undefined, user: User | null) {
-  const { toast } = useToast();
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
+const fetchProjectWithRetry = async (projectId: string, userId: string, attempt = 1): Promise<Project> => {
+  try {
+    console.log(`Attempting to fetch project ${projectId}, attempt ${attempt}`);
+    
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error("Project not found");
+    }
+
+    return data as Project;
+  } catch (error) {
+    if (attempt < MAX_RETRIES) {
+      console.log(`Retry attempt ${attempt} failed, waiting ${RETRY_DELAY}ms before next attempt`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
+      return fetchProjectWithRetry(projectId, userId, attempt + 1);
+    }
+    throw error;
+  }
+};
+
+export function useProjectDetails(projectId: string | undefined, user: User | null) {
   return useQuery({
     queryKey: ["project", projectId, user?.id],
     queryFn: async () => {
@@ -25,28 +57,16 @@ export function useProjectDetails(projectId: string | undefined, user: User | nu
         throw new Error("No authenticated user or project ID");
       }
 
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .eq("user_id", user.id)
-        .single();
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error fetching project",
-          description: error.message,
-        });
+      try {
+        return await fetchProjectWithRetry(projectId, user.id);
+      } catch (error) {
+        console.error("Failed to fetch project details:", error);
+        toast.error("Failed to load project details. Please try again.");
         throw error;
       }
-
-      if (!data) {
-        throw new Error("Project not found");
-      }
-
-      return data as Project;
     },
     enabled: !!user?.id && !!projectId,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
   });
 }

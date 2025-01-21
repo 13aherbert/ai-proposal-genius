@@ -1,5 +1,6 @@
 import { CheckSquare, Calendar, ListChecks, AlertTriangle } from "lucide-react";
 import type { AnalysisSection } from "./types";
+import { ReactNode } from "react";
 
 export function parseAnalysis(text: string): AnalysisSection[] {
   const sections = text.split(/\d\.\s+(?=[A-Z])/);
@@ -23,7 +24,7 @@ export function parseAnalysis(text: string): AnalysisSection[] {
   });
 }
 
-export function getIconForSection(title: string) {
+export function getIconForSection(title: string): ReactNode {
   switch (title) {
     case 'Key Requirements':
       return <CheckSquare className="h-5 w-5" />;

@@ -1,15 +1,16 @@
 import { ProjectInfo, KnowledgeEntry } from './types.ts';
 
-export function generateAnalysisPrompt(projectInfo: ProjectInfo, knowledgeEntries: KnowledgeEntry[]): string {
-  const knowledgeContext = knowledgeEntries
-    .map(entry => `${entry.category}: ${entry.title}`)
-    .join('\n');
+export function generateAnalysisPrompt(projectInfo: ProjectInfo, knowledgeEntries: KnowledgeEntry[] = []): string {
+  const knowledgeContext = knowledgeEntries.length > 0
+    ? `Here is relevant information from our Knowledge Base that you should reference:\n${
+        knowledgeEntries.map(entry => `${entry.category}: ${entry.title}`).join('\n')
+      }`
+    : 'No specific knowledge base entries are available for reference.';
 
   return `Act as an expert RFP analyst.
 
 The company ${projectInfo.business_name || '[Business Name Not Specified]'} is reviewing an RFP from ${projectInfo.client_name || '[Client Name Not Specified]'} titled ${projectInfo.title}.
 
-Here is relevant information from our Knowledge Base that you should reference:
 ${knowledgeContext}
 
 Analyze the following RFP document content and provide a structured analysis with these sections:

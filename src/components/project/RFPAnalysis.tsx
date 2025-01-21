@@ -22,61 +22,71 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setError(null);
+    let currentRetry = 0;
     
-    try {
-      console.log('Starting analysis with file path:', filePath, 'and project ID:', projectId);
-      
-      const requestBody = {
-        filePath,
-        projectId
-      };
+    const attemptAnalysis = async () => {
+      try {
+        console.log('Starting analysis attempt', currentRetry + 1, 'with file path:', filePath, 'and project ID:', projectId);
+        
+        const requestBody = {
+          filePath,
+          projectId
+        };
 
-      console.log('Sending request with body:', requestBody);
+        const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
+          body: requestBody,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
-      const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-        body: requestBody
-      });
+        console.log('Response:', data, 'Error:', functionError);
 
-      console.log('Response:', data, 'Error:', functionError);
-
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw functionError;
-      }
-
-      if (!data || !data.analysis) {
-        throw new Error("Invalid response from analysis service");
-      }
-
-      setAnalysis(data.analysis);
-      setRetryCount(0);
-      setError(null);
-      toast.success("Analysis completed successfully");
-    } catch (error) {
-      console.error('Analysis error:', error);
-      
-      if (error instanceof Error) {
-        if (error.message.includes('credit balance')) {
-          setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
-        } else if (error.message.includes('rate limit')) {
-          setError("The AI service is currently experiencing high demand. Please try again in a few minutes.");
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('Failed to send')) {
-          setError("Unable to connect to the analysis service. Please check your connection and try again.");
-        } else {
-          setError(`Analysis failed: ${error.message}`);
+        if (functionError) {
+          throw functionError;
         }
-      } else {
-        setError("Failed to analyze RFP document. Please try again.");
+
+        if (!data || !data.analysis) {
+          throw new Error("Invalid response from analysis service");
+        }
+
+        setAnalysis(data.analysis);
+        setRetryCount(0);
+        setError(null);
+        toast.success("Analysis completed successfully");
+      } catch (error) {
+        console.error('Analysis error:', error);
+        
+        if (currentRetry < MAX_RETRIES - 1) {
+          currentRetry++;
+          const delay = RETRY_DELAY * Math.pow(2, currentRetry - 1);
+          console.log(`Retrying in ${delay}ms... (attempt ${currentRetry + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attemptAnalysis();
+        }
+        
+        let errorMessage = "Failed to analyze RFP document. Please try again.";
+        
+        if (error instanceof Error) {
+          if (error.message.includes('Failed to fetch')) {
+            errorMessage = "Unable to connect to the analysis service. Please check your connection and try again.";
+          } else if (error.message.includes('credit balance')) {
+            errorMessage = "The AI service is currently unavailable due to credit limitations. Please try again later or contact support.";
+          } else if (error.message.includes('rate limit')) {
+            errorMessage = "The AI service is currently experiencing high demand. Please try again in a few minutes.";
+          } else {
+            errorMessage = `Analysis failed: ${error.message}`;
+          }
+        }
+        
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setIsAnalyzing(false);
       }
-      
-      toast.error(
-        error instanceof Error 
-          ? `Analysis failed: ${error.message}`
-          : "Failed to analyze RFP document"
-      );
-    } finally {
-      setIsAnalyzing(false);
-    }
+    };
+
+    await attemptAnalysis();
   };
 
   return (

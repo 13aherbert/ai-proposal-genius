@@ -22,6 +22,9 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
   try {
     console.log(`Attempt ${retryCount + 1}: Calling OpenAI API`);
     
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -33,7 +36,10 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
         messages,
         max_tokens: 1000,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -51,6 +57,10 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout: The operation took too long to complete');
+    }
+    
     if (retryCount < MAX_RETRIES - 1) {
       const waitTime = RETRY_DELAY * Math.pow(2, retryCount);
       console.log(`Error occurred, retrying in ${waitTime}ms...`);
@@ -108,7 +118,7 @@ serve(async (req) => {
     console.log('File converted to text, length:', text.length);
 
     // Split text into manageable chunks
-    const chunks = splitIntoChunks(text);
+    const chunks = splitIntoChunks(text, 4000); // Reduced chunk size
     console.log(`Split text into ${chunks.length} chunks`);
 
     // Process each chunk with OpenAI
@@ -156,6 +166,9 @@ serve(async (req) => {
     } else if (error.message.includes('rate limit')) {
       errorMessage = "The AI service is currently experiencing high demand. Please try again in a few minutes.";
       statusCode = 429;
+    } else if (error.message.includes('timeout')) {
+      errorMessage = "The request timed out. Please try again.";
+      statusCode = 504;
     }
 
     return new Response(

@@ -5,7 +5,7 @@ import { corsHeaders } from './config.ts';
 import { AnalyzeRequest, ApiResponse, ApiError } from './types.ts';
 import { getKnowledgeBaseEntries, getProjectInfo, downloadRFPFile } from './database.ts';
 import { generateAnalysisPrompt } from './prompts.ts';
-import { analyzeWithClaude } from './claude-client.ts';
+import { analyzeWithOpenAI } from './openai-client.ts';
 import { splitIntoChunks } from './text-processing.ts';
 
 serve(async (req) => {
@@ -40,9 +40,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!anthropicApiKey) {
-      throw new Error('Anthropic API key not configured');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     const projectInfo = await getProjectInfo(supabaseAdmin, projectId);
@@ -61,7 +61,7 @@ serve(async (req) => {
     const chunkAnalyses = [];
     for (const chunk of chunks) {
       console.log('Processing chunk of length:', chunk.length);
-      const analysis = await analyzeWithClaude(prompt, chunk, anthropicApiKey);
+      const analysis = await analyzeWithOpenAI(prompt, chunk, openaiApiKey);
       chunkAnalyses.push(analysis);
       // Add a delay between chunks to respect rate limits
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -69,10 +69,10 @@ serve(async (req) => {
 
     // Final analysis with reduced content
     const summaryPrompt = `Combine and summarize these section analyses into a concise summary:\n\n${chunkAnalyses.join('\n\n')}`;
-    const combinedAnalysis = await analyzeWithClaude(
+    const combinedAnalysis = await analyzeWithOpenAI(
       prompt,
       summaryPrompt,
-      anthropicApiKey
+      openaiApiKey
     );
 
     const response: ApiResponse = { analysis: combinedAnalysis };

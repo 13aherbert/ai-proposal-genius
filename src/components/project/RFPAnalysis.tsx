@@ -26,48 +26,21 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     try {
       console.log('Starting analysis with file path:', filePath, 'and project ID:', projectId);
       
-      // Add a small delay before making the request to ensure proper connection
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Ensure the request body is properly formatted JSON
       const requestBody = {
-        filePath: filePath,
-        projectId: projectId
+        filePath,
+        projectId
       };
 
       console.log('Sending request with body:', requestBody);
 
       const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-        body: JSON.stringify(requestBody),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: requestBody
       });
 
       console.log('Response:', data, 'Error:', functionError);
 
       if (functionError) {
         console.error('Edge function error:', functionError);
-        
-        // Handle connection errors with retry logic
-        if ((functionError.message?.includes('Failed to fetch') || functionError.message?.includes('Failed to send')) && retryCount < MAX_RETRIES) {
-          console.log(`Retrying analysis (attempt ${retryCount + 1} of ${MAX_RETRIES})`);
-          setRetryCount(prev => prev + 1);
-          // Use exponential backoff for retries
-          const backoffDelay = RETRY_DELAY * Math.pow(2, retryCount);
-          setTimeout(() => handleAnalyze(), backoffDelay);
-          return;
-        }
-
-        // Handle rate limit errors
-        if ((functionError.message?.includes('rate limit') || functionError.status === 429) && retryCount < MAX_RETRIES) {
-          const waitTime = 5000 * Math.pow(2, retryCount);
-          setRetryCount(prev => prev + 1);
-          toast.error(`Rate limit reached. Retrying in ${waitTime/1000} seconds...`);
-          setTimeout(() => handleAnalyze(), waitTime);
-          return;
-        }
-
         throw functionError;
       }
 
@@ -82,7 +55,6 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     } catch (error) {
       console.error('Analysis error:', error);
       
-      // Set user-friendly error messages
       if (error instanceof Error) {
         if (error.message.includes('credit balance')) {
           setError("The AI service is currently unavailable due to credit limitations. Please try again later or contact support.");
@@ -103,13 +75,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           : "Failed to analyze RFP document"
       );
     } finally {
-      if (retryCount >= MAX_RETRIES) {
-        setIsAnalyzing(false);
-        setRetryCount(0);
-        setError("Maximum retry attempts reached. Please try again later.");
-      } else if (!error) {
-        setIsAnalyzing(false);
-      }
+      setIsAnalyzing(false);
     }
   };
 
@@ -145,7 +111,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
             className="w-full"
           >
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? `Analyzing${retryCount > 0 ? ` (Attempt ${retryCount + 1}/${MAX_RETRIES})` : '...'}` : 'Analyze RFP'}
+            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
           </Button>
         )}
         

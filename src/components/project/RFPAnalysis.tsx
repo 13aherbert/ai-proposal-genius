@@ -73,9 +73,16 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
       try {
         console.log('Starting analysis attempt', currentRetry + 1);
         
+        // Ensure we're sending properly formatted JSON data
+        const requestBody = {
+          filePath: filePath,
+          projectId: projectId
+        };
+
+        console.log('Sending request with body:', requestBody);
+
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: { filePath, projectId },
-          headers: { 'Content-Type': 'application/json' }
+          body: requestBody
         });
 
         if (functionError) throw functionError;

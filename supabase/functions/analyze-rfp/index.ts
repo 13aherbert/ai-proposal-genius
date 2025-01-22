@@ -11,13 +11,16 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-// Initialize PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-
 async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
-    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    
+    // Configure PDF.js for server environment
+    const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+    
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     let fullText = '';
     
     for (let i = 1; i <= pdf.numPages; i++) {

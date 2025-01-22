@@ -1,26 +1,47 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Max-Age': '86400',
-};
+import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
 
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 if (!openaiApiKey) {
   throw new Error('OPENAI_API_KEY is not set');
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+async function extractTextFromPDF(pdfData: ArrayBuffer): Promise<string> {
+  try {
+    console.log('Loading PDF document...');
+    const loadingTask = pdfjs.getDocument({ data: pdfData });
+    const pdf = await loadingTask.promise;
+    console.log('PDF loaded, pages:', pdf.numPages);
+
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+
+    console.log('Text extraction complete, length:', fullText.length);
+    return fullText;
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    throw new Error('Failed to extract text from PDF');
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -57,8 +78,15 @@ serve(async (req) => {
       throw new Error('Failed to download RFP file');
     }
 
-    const text = await fileData.text();
-    console.log('File content length:', text.length);
+    // Convert file to ArrayBuffer for PDF parsing
+    const arrayBuffer = await fileData.arrayBuffer();
+    const text = await extractTextFromPDF(arrayBuffer);
+    
+    console.log('Extracted text length:', text.length);
+
+    if (!text || text.length === 0) {
+      throw new Error('No text content extracted from PDF');
+    }
 
     // Call OpenAI API
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

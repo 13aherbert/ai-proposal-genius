@@ -22,13 +22,14 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
       throw new Error(`Failed to download PDF file: ${downloadError.message}`);
     }
 
-    // Convert ArrayBuffer to Base64 more efficiently
+    // Convert ArrayBuffer to Base64 with proper data URI format
     const bytes = new Uint8Array(await fileData.arrayBuffer());
-    const base64 = btoa(
+    const base64Data = btoa(
       bytes.reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
+    const dataUri = `data:application/pdf;base64,${base64Data}`;
 
-    console.log('File converted to base64');
+    console.log('File converted to base64 with data URI');
 
     // Call OpenAI API with the base64 file
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -49,7 +50,7 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
               },
               {
                 type: 'file',
-                file_id: base64,
+                file: dataUri,
                 purpose: 'assistive-content'
               }
             ],

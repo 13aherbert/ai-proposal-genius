@@ -17,14 +17,16 @@ serve(async (req) => {
   }
 
   try {
-    // Get the request body without content-type validation
+    // Get the raw request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
 
+    // Validate request body
     if (!rawBody) {
       throw new Error('Request body is empty');
     }
 
+    // Parse request data
     let requestData: AnalyzeRequest;
     try {
       requestData = JSON.parse(rawBody);
@@ -50,6 +52,7 @@ serve(async (req) => {
     }
 
     // Get project information and knowledge base entries
+    console.log('Fetching project info and knowledge entries...');
     const [projectInfo, knowledgeEntries] = await Promise.all([
       getProjectInfo(supabaseAdmin, requestData.projectId),
       getKnowledgeBaseEntries(supabaseAdmin)
@@ -83,7 +86,12 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
@@ -98,7 +106,10 @@ serve(async (req) => {
       JSON.stringify(errorResponse),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
       }
     );
   }

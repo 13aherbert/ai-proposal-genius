@@ -27,7 +27,7 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
       bytes.reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
 
-    console.log('File converted to base64');
+    console.log('File converted to base64, making OpenAI API call');
 
     // Call OpenAI API with the base64 file
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -37,7 +37,7 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'user',
@@ -47,10 +47,9 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
                 text: 'Please read this PDF document and extract all the text content from it. Return only the raw text content, no analysis yet.' 
               },
               {
-                type: 'file',
-                file: {
-                  type: 'application/pdf',
-                  base64: base64Data
+                type: 'image',
+                image_url: {
+                  url: `data:application/pdf;base64,${base64Data}`
                 }
               }
             ],
@@ -116,7 +115,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

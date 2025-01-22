@@ -1,54 +1,60 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { KnowledgeEntry, ProjectInfo } from './types.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-/**
- * Retrieves all knowledge base entries from the database
- */
-export async function getKnowledgeBaseEntries(supabaseAdmin: any): Promise<KnowledgeEntry[]> {
-  const { data: entries, error } = await supabaseAdmin
-    .from('knowledge_entries')
-    .select('*')
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching knowledge base entries:', error);
-    return [];
-  }
-
-  return entries;
-}
-
-/**
- * Retrieves project information from the database
- */
-export async function getProjectInfo(supabaseAdmin: any, projectId: string): Promise<ProjectInfo> {
-  const { data: projectData, error: projectError } = await supabaseAdmin
+export async function getProjectInfo(supabase: ReturnType<typeof createClient>, projectId: string) {
+  console.log('Fetching project info for:', projectId);
+  const { data, error } = await supabase
     .from('projects')
     .select('*')
     .eq('id', projectId)
     .single();
 
-  if (projectError) {
-    console.error('Error fetching project:', projectError);
-    throw new Error(`Error fetching project: ${projectError.message}`);
+  if (error) {
+    console.error('Error fetching project:', error);
+    throw error;
   }
 
-  return projectData;
+  console.log('Successfully fetched project info');
+  return data;
 }
 
-/**
- * Downloads and extracts text content from an RFP file
- */
-export async function downloadRFPFile(supabaseAdmin: any, filePath: string): Promise<string> {
-  const { data: fileData, error: downloadError } = await supabaseAdmin
-    .storage
-    .from('rfp-files')
-    .download(filePath);
+export async function getKnowledgeBaseEntries(supabase: ReturnType<typeof createClient>) {
+  console.log('Fetching knowledge base entries');
+  const { data, error } = await supabase
+    .from('knowledge_entries')
+    .select('*');
 
-  if (downloadError) {
-    console.error('Download error:', downloadError);
-    throw new Error(`Error downloading file: ${downloadError.message}`);
+  if (error) {
+    console.error('Error fetching knowledge entries:', error);
+    throw error;
   }
 
-  return await fileData.text();
+  console.log('Successfully fetched knowledge entries');
+  return data;
+}
+
+export async function downloadRFPFile(supabase: ReturnType<typeof createClient>, filePath: string): Promise<string> {
+  console.log('Downloading RFP file:', filePath);
+  
+  try {
+    const { data, error } = await supabase.storage
+      .from('rfp-files')
+      .download(filePath);
+
+    if (error) {
+      console.error('Error downloading file:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No file data received');
+    }
+
+    // Convert blob to text
+    const text = await data.text();
+    console.log('Successfully downloaded and converted file to text');
+    return text;
+  } catch (error) {
+    console.error('Error in downloadRFPFile:', error);
+    throw new Error(`Failed to download RFP file: ${error.message}`);
+  }
 }

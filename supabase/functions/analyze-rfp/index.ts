@@ -22,41 +22,57 @@ serve(async (req) => {
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
+      console.error('OpenAI API key not configured');
       throw new Error('OpenAI API key not configured');
     }
 
     // Parse and validate request body
     const requestData: AnalyzeRequest = await req.json();
     if (!requestData.filePath || !requestData.projectId) {
+      console.error('Invalid request body:', requestData);
       throw new Error('Invalid request body: missing required fields');
     }
 
     console.log('Starting analysis for project:', requestData.projectId);
+    console.log('File path:', requestData.filePath);
 
-    // Get project information and knowledge base entries
-    const [projectInfo, knowledgeEntries] = await Promise.all([
-      getProjectInfo(supabaseAdmin, requestData.projectId),
-      getKnowledgeBaseEntries(supabaseAdmin)
-    ]);
+    try {
+      // Get project information and knowledge base entries
+      const [projectInfo, knowledgeEntries] = await Promise.all([
+        getProjectInfo(supabaseAdmin, requestData.projectId),
+        getKnowledgeBaseEntries(supabaseAdmin)
+      ]);
 
-    // Download and process the RFP file
-    const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
-    const chunks = splitIntoChunks(fileContent);
-    
-    console.log(`Processing ${chunks.length} chunks of content`);
+      console.log('Successfully fetched project info and knowledge entries');
 
-    // Generate the analysis prompt
-    const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
+      // Download and process the RFP file
+      console.log('Attempting to download RFP file...');
+      const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
+      console.log('Successfully downloaded file, content length:', fileContent.length);
 
-    // Analyze the content
-    const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
+      const chunks = splitIntoChunks(fileContent);
+      console.log(`Processing ${chunks.length} chunks of content`);
 
-    const response: ApiResponse = { analysis };
-    
-    return new Response(
-      JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      // Generate the analysis prompt
+      const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
+      console.log('Generated analysis prompt');
+
+      // Analyze the content
+      console.log('Starting OpenAI analysis...');
+      const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
+      console.log('Successfully completed OpenAI analysis');
+
+      const response: ApiResponse = { analysis };
+      
+      return new Response(
+        JSON.stringify(response),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (error) {
+      console.error('Detailed error in analysis process:', error);
+      throw error; // Re-throw to be caught by outer try-catch
+    }
 
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);

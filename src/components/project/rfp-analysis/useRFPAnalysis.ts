@@ -26,17 +26,14 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
         console.log(`Starting analysis attempt ${currentRetry + 1}`);
         
         const requestBody = {
-          filePath,
-          projectId
+          filePath: filePath.trim(),
+          projectId: projectId.trim()
         };
 
         console.log('Sending request with body:', requestBody);
 
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: requestBody,
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          body: requestBody
         });
 
         if (functionError) {

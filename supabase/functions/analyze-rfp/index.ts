@@ -13,22 +13,13 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
   try {
     console.log('Starting PDF text extraction for file:', filePath);
     
-    // Download the file from Supabase Storage
-    const { data: fileData, error: downloadError } = await supabaseAdmin
-      .storage
-      .from('rfp-files')
-      .download(filePath);
-
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw new Error(`Failed to download PDF file: ${downloadError.message}`);
-    }
-
     // Get the file URL
     const { data: { publicUrl } } = supabaseAdmin
       .storage
       .from('rfp-files')
       .getPublicUrl(filePath);
+
+    console.log('Got public URL:', publicUrl);
 
     // Call OpenAI API with the file URL
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -49,7 +40,10 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
               },
               {
                 type: 'image_url',
-                image_url: publicUrl
+                image_url: {
+                  url: publicUrl,
+                  detail: "high"
+                }
               }
             ],
           }
@@ -99,11 +93,6 @@ serve(async (req) => {
       }
     );
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     // Extract text from PDF
     const textContent = await extractTextFromPDF(requestData.filePath, supabaseAdmin);
     if (!textContent || textContent.trim().length === 0) {
@@ -116,7 +105,7 @@ serve(async (req) => {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

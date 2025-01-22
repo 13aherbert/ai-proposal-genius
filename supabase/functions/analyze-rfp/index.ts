@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
 
+// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -38,11 +39,18 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
 }
 
 serve(async (req) => {
-  console.log(`Received ${req.method} request`);
+  // Always include CORS headers in the response
+  const responseHeaders = {
+    ...corsHeaders,
+    'Content-Type': 'application/json',
+  };
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: responseHeaders,
+      status: 204
+    });
   }
 
   try {
@@ -59,7 +67,13 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -128,12 +142,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ analysis }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers: responseHeaders }
     );
 
   } catch (error) {
@@ -146,10 +155,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: responseHeaders
       }
     );
   }

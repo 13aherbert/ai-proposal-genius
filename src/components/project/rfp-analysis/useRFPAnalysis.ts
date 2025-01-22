@@ -4,16 +4,15 @@ import { toast } from "sonner";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
+const MAX_BACKOFF = 10000; // Maximum delay between retries
 
 export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const handleReset = () => {
     setAnalysis(null);
-    setRetryCount(0);
     setError(null);
   };
 
@@ -24,7 +23,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
     
     const attemptAnalysis = async () => {
       try {
-        console.log('Starting analysis attempt', currentRetry + 1);
+        console.log(`Starting analysis attempt ${currentRetry + 1}`);
         
         const requestBody = {
           filePath: filePath,
@@ -34,31 +33,51 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
         console.log('Sending request with body:', requestBody);
 
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: requestBody
+          body: requestBody,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
-        if (functionError) throw functionError;
-        if (!data?.analysis) throw new Error("Invalid response from analysis service");
+        if (functionError) {
+          console.error('Function error:', functionError);
+          throw new Error(functionError.message || 'Error calling analysis service');
+        }
+
+        if (!data?.analysis) {
+          throw new Error("Invalid response from analysis service");
+        }
 
         setAnalysis(data.analysis);
-        setRetryCount(0);
         setError(null);
         toast.success("Analysis completed successfully");
       } catch (error) {
         console.error('Analysis error:', error);
         
+        // Check if we should retry
         if (currentRetry < MAX_RETRIES - 1) {
           currentRetry++;
-          const delay = RETRY_DELAY * Math.pow(2, currentRetry - 1);
+          // Exponential backoff with jitter and max delay
+          const baseDelay = Math.min(RETRY_DELAY * Math.pow(2, currentRetry - 1), MAX_BACKOFF);
+          const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+          const delay = baseDelay + jitter;
+          
+          console.log(`Retry attempt ${currentRetry} failed, waiting ${delay}ms before next attempt`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptAnalysis();
         }
         
-        const errorMessage = error instanceof Error 
-          ? error.message.includes('Failed to fetch')
-            ? "Unable to connect to the analysis service. Please check your connection and try again."
-            : `Analysis failed: ${error.message}`
-          : "Failed to analyze RFP document. Please try again.";
+        // Format user-friendly error message
+        let errorMessage = "Failed to analyze RFP document. ";
+        if (error instanceof Error) {
+          if (error.message.includes('Failed to fetch')) {
+            errorMessage = "Unable to connect to the analysis service. Please check your connection and try again.";
+          } else if (error.message.includes('timeout')) {
+            errorMessage = "The analysis request timed out. Please try again.";
+          } else {
+            errorMessage += error.message;
+          }
+        }
         
         setError(errorMessage);
         toast.error(errorMessage);

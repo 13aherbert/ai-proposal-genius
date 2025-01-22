@@ -5,7 +5,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRFPAnalysis } from "./rfp-analysis/useRFPAnalysis";
 import { AnalysisContent } from "./rfp-analysis/AnalysisContent";
 import { parseAnalysis } from "./rfp-analysis/utils";
-import type { RFPAnalysisProps } from "./rfp-analysis/types";
+
+interface RFPAnalysisProps {
+  filePath: string;
+  projectId: string;
+}
 
 export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   const {
@@ -30,14 +34,22 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           </Alert>
         )}
         
-        {!analysis && (
+        {!analysis && !isAnalyzing && (
           <Button 
             onClick={handleAnalyze} 
-            disabled={isAnalyzing}
             className="w-full"
           >
-            {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isAnalyzing ? 'Analyzing...' : 'Analyze RFP'}
+            Analyze RFP
+          </Button>
+        )}
+
+        {isAnalyzing && (
+          <Button 
+            disabled
+            className="w-full"
+          >
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Analyzing...
           </Button>
         )}
         

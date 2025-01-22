@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
-const MAX_BACKOFF = 10000; // Maximum delay between retries
+const MAX_BACKOFF = 10000;
 
 export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -17,17 +17,17 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   };
 
   const handleAnalyze = async () => {
+    let currentRetry = 0;
     setIsAnalyzing(true);
     setError(null);
-    let currentRetry = 0;
-    
+
     const attemptAnalysis = async () => {
       try {
         console.log(`Starting analysis attempt ${currentRetry + 1}`);
         
         const requestBody = {
-          filePath: filePath,
-          projectId: projectId
+          filePath,
+          projectId
         };
 
         console.log('Sending request with body:', requestBody);
@@ -54,12 +54,10 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       } catch (error) {
         console.error('Analysis error:', error);
         
-        // Check if we should retry
         if (currentRetry < MAX_RETRIES - 1) {
           currentRetry++;
-          // Exponential backoff with jitter and max delay
           const baseDelay = Math.min(RETRY_DELAY * Math.pow(2, currentRetry - 1), MAX_BACKOFF);
-          const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+          const jitter = Math.random() * 1000;
           const delay = baseDelay + jitter;
           
           console.log(`Retry attempt ${currentRetry} failed, waiting ${delay}ms before next attempt`);
@@ -67,7 +65,6 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
           return attemptAnalysis();
         }
         
-        // Format user-friendly error message
         let errorMessage = "Failed to analyze RFP document. ";
         if (error instanceof Error) {
           if (error.message.includes('Failed to fetch')) {

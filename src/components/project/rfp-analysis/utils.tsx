@@ -3,16 +3,24 @@ import type { AnalysisSection } from "./types";
 import { ReactNode } from "react";
 
 export function parseAnalysis(text: string): AnalysisSection[] {
-  const sections = text.split(/\d\.\s+(?=[A-Z])/);
-  const sectionTitles = text.match(/\d\.\s+[A-Z][^:\n]+/g) || [];
+  // First, split by numbered sections (1., 2., etc)
+  const sections = text.split(/\d\.\s+/);
   
-  return sectionTitles.map((title, index) => {
-    const cleanTitle = title.replace(/^\d\.\s+/, '');
-    const content = sections[index + 1]
-      ?.split('\n')
+  // Remove any empty sections
+  const validSections = sections.filter(Boolean);
+  
+  return validSections.map(section => {
+    // Split section into title and content
+    const [title, ...contentLines] = section.split('\n').filter(Boolean);
+    
+    // Clean up the title
+    const cleanTitle = title.trim();
+    
+    // Process content lines, keeping only bullet points
+    const content = contentLines
       .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s+/, ''))
-      .filter(Boolean) || [];
+      .map(line => line.trim().replace(/^-\s*/, ''))
+      .filter(Boolean);
 
     const icon = getIconForSection(cleanTitle);
     
@@ -25,18 +33,23 @@ export function parseAnalysis(text: string): AnalysisSection[] {
 }
 
 export function getIconForSection(title: string): ReactNode {
-  switch (title) {
-    case 'Key Requirements':
-      return <CheckSquare className="h-5 w-5" />;
-    case 'Timeline & Deadlines':
-      return <Calendar className="h-5 w-5" />;
-    case 'Evaluation Criteria':
-      return <ListChecks className="h-5 w-5" />;
-    case 'Required Response Elements':
-      return <CheckSquare className="h-5 w-5" />;
-    case 'Risk Assessment':
-      return <AlertTriangle className="h-5 w-5" />;
-    default:
-      return null;
+  // Normalize the title for comparison
+  const normalizedTitle = title.toLowerCase().trim();
+  
+  if (normalizedTitle.includes('key requirement')) {
+    return <CheckSquare className="h-5 w-5" />;
   }
+  if (normalizedTitle.includes('timeline') || normalizedTitle.includes('deadline')) {
+    return <Calendar className="h-5 w-5" />;
+  }
+  if (normalizedTitle.includes('evaluation')) {
+    return <ListChecks className="h-5 w-5" />;
+  }
+  if (normalizedTitle.includes('required response')) {
+    return <CheckSquare className="h-5 w-5" />;
+  }
+  if (normalizedTitle.includes('risk')) {
+    return <AlertTriangle className="h-5 w-5" />;
+  }
+  return <CheckSquare className="h-5 w-5" />; // Default icon
 }

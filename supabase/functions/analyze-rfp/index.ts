@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { PDFParser } from "https://esm.sh/pdf2json@2.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,30 +13,51 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     
-    return new Promise((resolve, reject) => {
-      const pdfParser = new PDFParser();
-
-      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
-        try {
-          const text = pdfData.Pages
-            .map((page: any) => page.Texts.map((text: any) => text.R.map((r: any) => r.T).join(' ')).join(' '))
-            .join('\n');
-          
-          console.log('PDF text extraction completed successfully');
-          resolve(text);
-        } catch (error) {
-          reject(new Error(`Error processing PDF data: ${error.message}`));
-        }
-      });
-
-      pdfParser.on("pdfParser_dataError", (error: Error) => {
-        reject(new Error(`PDF parsing error: ${error.message}`));
-      });
-
-      // Convert ArrayBuffer to Buffer for the parser
-      const buffer = new Uint8Array(arrayBuffer);
-      pdfParser.parseBuffer(buffer);
+    // Convert ArrayBuffer to Base64
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const base64 = btoa(String.fromCharCode.apply(null, uint8Array));
+    
+    // Use OpenAI's PDF understanding capabilities directly
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4-vision-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { 
+                type: 'text', 
+                text: 'Please read this PDF document and extract all the text content from it. Return only the raw text content, no analysis yet.' 
+              },
+              {
+                type: 'image',
+                image_url: {
+                  url: `data:application/pdf;base64,${base64}`,
+                }
+              }
+            ],
+          }
+        ],
+        max_tokens: 4096,
+      }),
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
+    }
+
+    const data = await response.json();
+    const extractedText = data.choices[0].message.content;
+    
+    console.log('PDF text extraction completed successfully');
+    return extractedText;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     throw new Error(`Failed to extract text from PDF: ${error.message}`);
@@ -99,7 +119,7 @@ serve(async (req) => {
 
     console.log('Text content extracted, length:', textContent.length);
 
-    // Call OpenAI API
+    // Call OpenAI API for analysis
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

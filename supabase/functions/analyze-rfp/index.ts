@@ -19,15 +19,13 @@ async function sleep(ms: number) {
 async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
+    console.error('OpenAI API key is not configured');
     throw new Error('OpenAI API key is not configured');
   }
   
   try {
     console.log(`Attempt ${retryCount + 1}: Calling OpenAI API`);
     
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -35,14 +33,11 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages,
         max_tokens: 1000,
       }),
-      signal: controller.signal,
     });
-
-    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -60,9 +55,7 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout: The operation took too long to complete');
-    }
+    console.error(`Error in OpenAI API call (attempt ${retryCount + 1}):`, error);
     
     if (retryCount < MAX_RETRIES - 1) {
       const waitTime = RETRY_DELAY * Math.pow(2, retryCount);
@@ -81,63 +74,50 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting RFP analysis request');
+    
     // Validate request content type
     const contentType = req.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      throw new Error('Request must be application/json');
-    }
-
-    // Parse request body with error handling
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      console.error('Error parsing request body:', error);
+      console.error('Invalid content type:', contentType);
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid JSON in request body',
-          details: error.message 
-        }),
+        JSON.stringify({ error: 'Request must be application/json' }),
         { 
           status: 400,
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
+    // Parse request body
+    const body = await req.json();
     const { filePath, projectId } = body;
-    console.log('Processing request for:', { filePath, projectId });
-
+    
     if (!filePath || !projectId) {
+      console.error('Missing required fields:', { filePath, projectId });
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required fields',
-          details: 'filePath and projectId are required' 
-        }),
+        JSON.stringify({ error: 'filePath and projectId are required' }),
         { 
           status: 400,
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+
+    console.log('Processing request for:', { filePath, projectId });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase configuration missing');
       throw new Error('Supabase configuration is missing');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get project info for context
+    // Get project info
     const { data: projectData, error: projectError } = await supabase
       .from('projects')
       .select('*')
@@ -149,7 +129,7 @@ serve(async (req) => {
       throw new Error('Failed to fetch project information');
     }
 
-    // Download the file from storage
+    // Download file
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('rfp-files')
       .download(filePath);
@@ -159,17 +139,14 @@ serve(async (req) => {
       throw new Error('Failed to download RFP file');
     }
 
-    // Convert file to text
     const text = await fileData.text();
     console.log('File converted to text, length:', text.length);
 
-    // Split text into manageable chunks
+    // Process text
     const chunks = splitIntoChunks(text, 4000);
     console.log(`Split text into ${chunks.length} chunks`);
 
-    // Process each chunk with OpenAI
     let combinedAnalysis = '';
-
     for (const [index, chunk] of chunks.entries()) {
       console.log(`Processing chunk ${index + 1} of ${chunks.length}`);
       
@@ -202,27 +179,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);
     
-    let errorMessage = error.message;
-    let statusCode = 500;
-    
-    if (error.message.includes('credit balance')) {
-      errorMessage = "The AI service is currently unavailable due to credit limitations. Please try again later or contact support.";
-      statusCode = 402;
-    } else if (error.message.includes('rate limit')) {
-      errorMessage = "The AI service is currently experiencing high demand. Please try again in a few minutes.";
-      statusCode = 429;
-    } else if (error.message.includes('timeout')) {
-      errorMessage = "The request timed out. Please try again.";
-      statusCode = 504;
-    }
-
     return new Response(
       JSON.stringify({
-        error: errorMessage,
-        details: error.stack
+        error: error.message || 'An unexpected error occurred',
       }),
       { 
-        status: statusCode,
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'

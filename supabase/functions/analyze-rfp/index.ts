@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import * as pdfjs from "npm:pdf-parse@1.1.1";
+import pdfParse from "npm:pdf-parse@1.1.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +15,8 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
     // Convert ArrayBuffer to Uint8Array for pdf-parse
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Parse PDF
-    const data = await pdfjs(uint8Array);
+    // Parse PDF using the default export function
+    const data = await pdfParse(uint8Array);
     console.log('PDF text extraction completed, text length:', data.text.length);
     
     return data.text;

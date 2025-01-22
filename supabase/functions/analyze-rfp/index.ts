@@ -6,6 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function validateEnvironment() {
+  const requiredEnvVars = [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'OPENAI_API_KEY'
+  ];
+
+  for (const envVar of requiredEnvVars) {
+    if (!Deno.env.get(envVar)) {
+      throw new Error(`Missing required environment variable: ${envVar}`);
+    }
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,6 +27,9 @@ serve(async (req) => {
   }
 
   try {
+    // Validate environment variables first
+    validateEnvironment();
+
     const { filePath, projectId } = await req.json();
     
     if (!filePath || !projectId) {
@@ -27,17 +44,14 @@ serve(async (req) => {
 
     console.log('Processing request for file:', filePath);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    
-    if (!supabaseUrl || !supabaseKey || !openaiApiKey) {
-      throw new Error('Missing required environment variables');
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Download and transform the file to text
+    console.log('Downloading and transforming file...');
     const { data, error: downloadError } = await supabase.storage
       .from('rfp-files')
       .download(filePath, {
@@ -62,6 +76,7 @@ serve(async (req) => {
     console.log('Successfully extracted text, length:', text.length);
 
     // Call OpenAI API for analysis
+    console.log('Calling OpenAI API...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

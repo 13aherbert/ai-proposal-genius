@@ -22,9 +22,10 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
       throw new Error(`Failed to download PDF file: ${downloadError.message}`);
     }
 
-    // Convert the file to base64
-    const fileBase64 = await fileData.arrayBuffer().then(buffer => 
-      btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    // Convert ArrayBuffer to Base64 more efficiently
+    const bytes = new Uint8Array(await fileData.arrayBuffer());
+    const base64 = btoa(
+      bytes.reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
 
     console.log('File converted to base64');
@@ -48,7 +49,7 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
               },
               {
                 type: 'file',
-                file_id: fileBase64,
+                file_id: base64,
                 purpose: 'assistive-content'
               }
             ],

@@ -1,8 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { getPdf } from 'https://deno.land/x/pdf_parse_wasm@1.0.2/mod.ts';
 
-// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -14,37 +14,11 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     
-    // Import PDF.js dynamically
-    const pdfjsLib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm');
-    
-    // Create a custom worker URL
-    const workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-    
-    // Set up the worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-    
-    // Wait a moment for worker initialization
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('PDF.js worker initialized');
-    
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      console.log(`Processing page ${i} of ${pdf.numPages}`);
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n\n';
-    }
+    const pdf = await getPdf(new Uint8Array(arrayBuffer));
+    const text = await pdf.text();
     
     console.log('PDF text extraction completed successfully');
-    return fullText;
+    return text;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     throw new Error(`Failed to extract text from PDF: ${error.message}`);
@@ -52,25 +26,12 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
 }
 
 serve(async (req) => {
-  // Always include CORS headers in the response
-  const responseHeaders = {
-    ...corsHeaders,
-    'Content-Type': 'application/json',
-  };
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: responseHeaders,
-      status: 204
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    if (req.method !== 'POST') {
-      throw new Error(`HTTP method ${req.method} is not supported.`);
-    }
-
     const requestData = await req.json();
     console.log('Received request data:', requestData);
 
@@ -155,7 +116,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ analysis }),
-      { headers: responseHeaders }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
@@ -168,7 +129,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: responseHeaders
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

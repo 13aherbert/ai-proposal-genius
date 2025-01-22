@@ -13,11 +13,20 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     
-    // Convert ArrayBuffer to Base64
+    // Convert ArrayBuffer to Base64 in chunks
     const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(String.fromCharCode.apply(null, uint8Array));
+    const chunkSize = 0x8000; // Process 32KB at a time
+    let base64 = '';
     
-    // Use OpenAI's PDF understanding capabilities directly
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      base64 += String.fromCharCode.apply(null, chunk);
+    }
+    
+    const base64Data = btoa(base64);
+    console.log('PDF converted to base64, size:', base64Data.length);
+    
+    // Use OpenAI's PDF understanding capabilities
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -25,7 +34,7 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'user',
@@ -37,7 +46,7 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
               {
                 type: 'image',
                 image_url: {
-                  url: `data:application/pdf;base64,${base64}`,
+                  url: `data:application/pdf;base64,${base64Data}`,
                 }
               }
             ],
@@ -127,7 +136,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',

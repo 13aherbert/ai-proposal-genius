@@ -1,40 +1,25 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import * as pdfjsLib from "https://cdn.skypack.dev/pdfjs-dist@3.11.174/legacy/build/pdf.js";
+import * as pdfjs from "npm:pdf-parse@1.1.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.skypack.dev/pdfjs-dist@3.11.174/legacy/build/pdf.worker.js`;
-
 async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction');
     
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    console.log('PDF document loaded, pages:', pdf.numPages);
+    // Convert ArrayBuffer to Uint8Array for pdf-parse
+    const uint8Array = new Uint8Array(arrayBuffer);
     
-    let fullText = '';
+    // Parse PDF
+    const data = await pdfjs(uint8Array);
+    console.log('PDF text extraction completed, text length:', data.text.length);
     
-    // Extract text from each page
-    for (let i = 1; i <= pdf.numPages; i++) {
-      console.log(`Processing page ${i}/${pdf.numPages}`);
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n\n';
-    }
-    
-    console.log('Text extraction completed, length:', fullText.length);
-    return fullText;
+    return data.text;
   } catch (error) {
     console.error('Error in PDF text extraction:', error);
     throw new Error(`Failed to extract text from PDF: ${error.message}`);

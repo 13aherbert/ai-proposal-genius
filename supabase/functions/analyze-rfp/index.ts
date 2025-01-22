@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { parse } from "https://deno.land/x/deno_pdf@0.0.15/mod.ts";
+import { PDFParser } from "https://esm.sh/pdf2json@2.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,11 +14,30 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     
-    const pdf = await parse(new Uint8Array(arrayBuffer));
-    const text = pdf.pages.map(page => page.text).join('\n');
-    
-    console.log('PDF text extraction completed successfully');
-    return text;
+    return new Promise((resolve, reject) => {
+      const pdfParser = new PDFParser();
+
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        try {
+          const text = pdfData.Pages
+            .map((page: any) => page.Texts.map((text: any) => text.R.map((r: any) => r.T).join(' ')).join(' '))
+            .join('\n');
+          
+          console.log('PDF text extraction completed successfully');
+          resolve(text);
+        } catch (error) {
+          reject(new Error(`Error processing PDF data: ${error.message}`));
+        }
+      });
+
+      pdfParser.on("pdfParser_dataError", (error: Error) => {
+        reject(new Error(`PDF parsing error: ${error.message}`));
+      });
+
+      // Convert ArrayBuffer to Buffer for the parser
+      const buffer = new Uint8Array(arrayBuffer);
+      pdfParser.parseBuffer(buffer);
+    });
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
     throw new Error(`Failed to extract text from PDF: ${error.message}`);
@@ -88,7 +107,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',

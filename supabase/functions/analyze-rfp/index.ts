@@ -1,27 +1,12 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface RequestBody {
-  filePath: string;
-  projectId: string;
-}
-
-function isValidRequestBody(body: unknown): body is RequestBody {
-  if (!body || typeof body !== 'object') return false;
-  
-  const { filePath, projectId } = body as RequestBody;
-  return (
-    typeof filePath === 'string' && 
-    filePath.trim().length > 0 &&
-    typeof projectId === 'string' && 
-    projectId.trim().length > 0
-  );
-}
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { corsHeaders } from "./config.ts";
+import { AnalyzeRequest, ApiResponse, ApiError } from "./types.ts";
+import { getKnowledgeBaseEntries, getProjectInfo, downloadRFPFile } from "./database.ts";
+import { splitIntoChunks } from "./text-processing.ts";
+import { generateAnalysisPrompt } from "./prompts.ts";
+import { analyzeWithOpenAI } from "./openai-client.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -30,192 +15,62 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Analyzing RFP document...');
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
     // Parse and validate request body
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch (error) {
-      console.error('Error parsing request body:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    const requestData: AnalyzeRequest = await req.json();
+    if (!requestData.filePath || !requestData.projectId) {
+      throw new Error('Invalid request body: missing required fields');
     }
 
-    if (!isValidRequestBody(body)) {
-      console.error('Invalid request body structure:', body);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request body. Required fields: filePath (string), projectId (string)' 
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    console.log('Starting analysis for project:', requestData.projectId);
 
-    const { filePath, projectId } = body;
-    console.log('Processing request for file:', filePath, 'and project:', projectId);
+    // Get project information and knowledge base entries
+    const [projectInfo, knowledgeEntries] = await Promise.all([
+      getProjectInfo(supabaseAdmin, requestData.projectId),
+      getKnowledgeBaseEntries(supabaseAdmin)
+    ]);
 
-    // Validate environment variables
-    const requiredEnvVars = [
-      'SUPABASE_URL',
-      'SUPABASE_SERVICE_ROLE_KEY',
-      'OPENAI_API_KEY'
-    ];
+    // Download and process the RFP file
+    const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
+    const chunks = splitIntoChunks(fileContent);
     
-    const missingVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
-    if (missingVars.length > 0) {
-      console.error('Missing required environment variables:', missingVars);
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    console.log(`Processing ${chunks.length} chunks of content`);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    // Generate the analysis prompt
+    const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Analyze the content
+    const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
 
-    // Download file
-    console.log('Downloading file...');
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('rfp-files')
-      .download(filePath);
-
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      return new Response(
-        JSON.stringify({ error: `Failed to download RFP file: ${downloadError.message}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    if (!fileData) {
-      return new Response(
-        JSON.stringify({ error: 'No file data received from storage' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Convert blob to text
-    console.log('Converting file to text...');
-    let text;
-    try {
-      text = await fileData.text();
-    } catch (error) {
-      console.error('Error converting file to text:', error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to extract text from file' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    if (!text) {
-      return new Response(
-        JSON.stringify({ error: 'No text content extracted from file' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    console.log('Successfully extracted text, length:', text.length);
-
-    // Call OpenAI API for analysis
-    console.log('Calling OpenAI API...');
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using the correct model name
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at analyzing RFP documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points starting with "-" for the most important details.'
-          },
-          {
-            role: 'user',
-            content: text
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error response:', errorText);
-      return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${errorText}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const openaiData = await openaiResponse.json();
-    if (!openaiData?.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI API response format:', openaiData);
-      return new Response(
-        JSON.stringify({ error: 'Invalid response format from OpenAI API' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const analysis = openaiData.choices[0].message.content;
-    console.log('Analysis completed successfully');
-
+    const response: ApiResponse = { analysis };
+    
     return new Response(
-      JSON.stringify({ analysis }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+      JSON.stringify(response),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);
+    
+    const errorResponse: ApiError = {
+      error: 'Failed to analyze RFP',
+      details: error.message
+    };
+
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      }),
+      JSON.stringify(errorResponse),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

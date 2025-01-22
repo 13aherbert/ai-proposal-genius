@@ -1,5 +1,11 @@
 import { CHUNK_SIZE } from './config.ts';
 
+/**
+ * Splits text into manageable chunks for processing
+ * @param text The text to split into chunks
+ * @param maxChunkSize Maximum size of each chunk
+ * @returns Array of text chunks
+ */
 export function splitIntoChunks(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
   const chunks: string[] = [];
   let currentChunk = '';

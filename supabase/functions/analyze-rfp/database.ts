@@ -1,6 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { KnowledgeEntry, ProjectInfo } from './types.ts';
 
+/**
+ * Retrieves all knowledge base entries from the database
+ */
 export async function getKnowledgeBaseEntries(supabaseAdmin: any): Promise<KnowledgeEntry[]> {
   const { data: entries, error } = await supabaseAdmin
     .from('knowledge_entries')
@@ -15,6 +18,9 @@ export async function getKnowledgeBaseEntries(supabaseAdmin: any): Promise<Knowl
   return entries;
 }
 
+/**
+ * Retrieves project information from the database
+ */
 export async function getProjectInfo(supabaseAdmin: any, projectId: string): Promise<ProjectInfo> {
   const { data: projectData, error: projectError } = await supabaseAdmin
     .from('projects')
@@ -30,6 +36,9 @@ export async function getProjectInfo(supabaseAdmin: any, projectId: string): Pro
   return projectData;
 }
 
+/**
+ * Downloads and extracts text content from an RFP file
+ */
 export async function downloadRFPFile(supabaseAdmin: any, filePath: string): Promise<string> {
   const { data: fileData, error: downloadError } = await supabaseAdmin
     .storage

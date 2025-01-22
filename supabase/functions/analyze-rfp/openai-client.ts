@@ -21,8 +21,12 @@ export async function analyzeWithOpenAI(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: GPT_MODEL,
+          model: 'gpt-4o-mini',
           messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that generates content based on user prompts.'
+            },
             {
               role: 'user',
               content: `${prompt}\n\nAnalyze this RFP document content:\n\n${content}`

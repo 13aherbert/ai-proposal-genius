@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
+import { Document } from 'https://deno.land/x/pdfparser@v1.0.3/mod.ts';
 
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 if (!openaiApiKey) {
@@ -13,21 +13,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function extractTextFromPDF(pdfData: ArrayBuffer): Promise<string> {
+async function extractTextFromPDF(pdfData: Uint8Array): Promise<string> {
   try {
-    console.log('Loading PDF document...');
-    const loadingTask = pdfjs.getDocument({ data: pdfData });
-    const pdf = await loadingTask.promise;
-    console.log('PDF loaded, pages:', pdf.numPages);
-
+    console.log('Starting PDF text extraction...');
+    const document = new Document(pdfData);
+    const pages = await document.getAllPages();
+    
     let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
+    for (const page of pages) {
+      const text = await page.text();
+      fullText += text + '\n';
     }
 
     console.log('Text extraction complete, length:', fullText.length);
@@ -78,9 +73,10 @@ serve(async (req) => {
       throw new Error('Failed to download RFP file');
     }
 
-    // Convert file to ArrayBuffer for PDF parsing
+    // Convert file to Uint8Array for PDF parsing
     const arrayBuffer = await fileData.arrayBuffer();
-    const text = await extractTextFromPDF(arrayBuffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const text = await extractTextFromPDF(uint8Array);
     
     console.log('Extracted text length:', text.length);
 
@@ -96,7 +92,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

@@ -16,6 +16,8 @@ serve(async (req) => {
 
   try {
     console.log('Starting analysis process...');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
     // Validate request content type
     const contentType = req.headers.get('content-type');
@@ -46,7 +48,7 @@ serve(async (req) => {
       }
       
       requestData = JSON.parse(text);
-      console.log('Parsed request data:', JSON.stringify(requestData));
+      console.log('Parsed request data:', requestData);
       
       if (!requestData.filePath || !requestData.projectId) {
         throw new Error('Missing required fields: filePath and projectId are required');

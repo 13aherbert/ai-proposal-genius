@@ -2,10 +2,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
-const MAX_BACKOFF = 10000;
-
 export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -25,6 +21,11 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       try {
         console.log(`Starting analysis attempt ${currentRetry + 1}`);
         
+        // Validate input parameters
+        if (!filePath || !projectId) {
+          throw new Error("Missing required parameters: filePath and projectId");
+        }
+
         const requestBody = {
           filePath,
           projectId
@@ -48,18 +49,16 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
           throw new Error("Invalid response from analysis service");
         }
 
+        console.log('Analysis completed successfully:', data);
         setAnalysis(data.analysis);
         setError(null);
         toast.success("Analysis completed successfully");
       } catch (error) {
         console.error('Analysis error:', error);
         
-        if (currentRetry < MAX_RETRIES - 1) {
+        if (currentRetry < 2) { // Reduced retries for faster feedback
           currentRetry++;
-          const baseDelay = Math.min(RETRY_DELAY * Math.pow(2, currentRetry - 1), MAX_BACKOFF);
-          const jitter = Math.random() * 1000;
-          const delay = baseDelay + jitter;
-          
+          const delay = 1000 * currentRetry; // Simple linear backoff
           console.log(`Retry attempt ${currentRetry} failed, waiting ${delay}ms before next attempt`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptAnalysis();

@@ -7,73 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise<string> {
-  try {
-    console.log('Starting PDF text extraction for file:', filePath);
-    
-    const { data: fileData, error: downloadError } = await supabaseAdmin
-      .storage
-      .from('rfp-files')
-      .download(filePath);
-
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw new Error(`Failed to download PDF file: ${downloadError.message}`);
-    }
-
-    // Convert ArrayBuffer to Base64
-    const bytes = new Uint8Array(await fileData.arrayBuffer());
-    const base64Data = btoa(
-      bytes.reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
-
-    console.log('File converted to base64, making OpenAI API call');
-
-    // Call OpenAI API with the base64 file
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { 
-                type: 'text', 
-                text: 'Please read this PDF document and extract all the text content from it. Return only the raw text content, no analysis yet.' 
-              },
-              {
-                type: 'image',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64Data}`
-                }
-              }
-            ],
-          }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
-    }
-
-    const data = await response.json();
-    console.log('Successfully received OpenAI response');
-    
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw error;
-  }
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -99,15 +32,23 @@ serve(async (req) => {
       throw new Error('Missing required fields: filePath and projectId');
     }
 
-    // Extract text from PDF
-    const textContent = await extractTextFromPDF(requestData.filePath, supabaseAdmin);
-    if (!textContent || textContent.trim().length === 0) {
-      throw new Error('No text content extracted from PDF');
+    // Download file from storage
+    console.log('Downloading file:', requestData.filePath);
+    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+      .from('rfp-files')
+      .download(requestData.filePath);
+
+    if (downloadError) {
+      console.error('Error downloading file:', downloadError);
+      throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    console.log('Text content extracted, length:', textContent.length);
+    // Convert file to text
+    const text = await fileData.text();
+    console.log('File converted to text, length:', text.length);
 
     // Call OpenAI API for analysis
+    console.log('Calling OpenAI API for analysis');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -123,7 +64,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: textContent.substring(0, 15000) // Limit text length
+            content: text.substring(0, 15000) // Limit text length
           }
         ],
       }),

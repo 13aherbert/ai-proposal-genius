@@ -9,9 +9,7 @@ import { generateAnalysisPrompt } from "./prompts.ts";
 import { analyzeWithOpenAI } from "./openai-client.ts";
 
 serve(async (req) => {
-  // Log request details
-  console.log('Request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('Request received:', req.method);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -19,15 +17,26 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting analysis process...');
-    
-    // Validate request content type
-    const contentType = req.headers.get('content-type');
-    console.log('Content-Type header:', contentType);
-    
-    if (!contentType?.includes('application/json')) {
-      console.error('Invalid content type:', contentType);
-      throw new Error('Content-Type must be application/json');
+    // Get the request body without content-type validation
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
+
+    if (!rawBody) {
+      throw new Error('Request body is empty');
+    }
+
+    let requestData: AnalyzeRequest;
+    try {
+      requestData = JSON.parse(rawBody);
+      console.log('Parsed request data:', requestData);
+    } catch (error) {
+      console.error('Error parsing JSON:', error);
+      throw new Error(`Invalid JSON in request body: ${error.message}`);
+    }
+
+    // Validate required fields
+    if (!requestData.filePath || !requestData.projectId) {
+      throw new Error('Missing required fields: filePath and projectId are required');
     }
 
     const supabaseAdmin = createClient(
@@ -37,76 +46,45 @@ serve(async (req) => {
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      console.error('OpenAI API key not configured');
       throw new Error('OpenAI API key not configured');
     }
 
-    // Parse and validate request body with detailed logging
-    let requestData: AnalyzeRequest;
-    try {
-      // Log the raw request body
-      const rawBody = await req.text();
-      console.log('Raw request body:', rawBody);
-      
-      if (!rawBody) {
-        console.error('Request body is empty');
-        throw new Error('Request body is empty');
-      }
-      
-      requestData = JSON.parse(rawBody);
-      console.log('Parsed request data:', requestData);
-      
-      if (!requestData.filePath || !requestData.projectId) {
-        console.error('Missing required fields:', requestData);
-        throw new Error('Missing required fields: filePath and projectId are required');
-      }
-    } catch (error) {
-      console.error('Error parsing request:', error);
-      throw new Error(`Invalid request body: ${error.message}`);
+    // Get project information and knowledge base entries
+    const [projectInfo, knowledgeEntries] = await Promise.all([
+      getProjectInfo(supabaseAdmin, requestData.projectId),
+      getKnowledgeBaseEntries(supabaseAdmin)
+    ]);
+
+    console.log('Successfully fetched project info and knowledge entries');
+
+    // Download and process the RFP file
+    console.log('Downloading RFP file:', requestData.filePath);
+    const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
+    
+    if (!fileContent) {
+      throw new Error('Failed to download RFP file or file is empty');
     }
+    
+    console.log('Successfully downloaded file, content length:', fileContent.length);
 
-    try {
-      // Get project information and knowledge base entries
-      const [projectInfo, knowledgeEntries] = await Promise.all([
-        getProjectInfo(supabaseAdmin, requestData.projectId),
-        getKnowledgeBaseEntries(supabaseAdmin)
-      ]);
+    const chunks = splitIntoChunks(fileContent);
+    console.log(`Processing ${chunks.length} chunks of content`);
 
-      console.log('Successfully fetched project info and knowledge entries');
+    // Generate the analysis prompt
+    const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
+    console.log('Generated analysis prompt');
 
-      // Download and process the RFP file
-      console.log('Downloading RFP file:', requestData.filePath);
-      const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
-      
-      if (!fileContent) {
-        throw new Error('Failed to download RFP file or file is empty');
-      }
-      
-      console.log('Successfully downloaded file, content length:', fileContent.length);
+    // Analyze the content
+    console.log('Starting OpenAI analysis...');
+    const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
+    console.log('Successfully completed OpenAI analysis');
 
-      const chunks = splitIntoChunks(fileContent);
-      console.log(`Processing ${chunks.length} chunks of content`);
-
-      // Generate the analysis prompt
-      const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
-      console.log('Generated analysis prompt');
-
-      // Analyze the content
-      console.log('Starting OpenAI analysis...');
-      const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
-      console.log('Successfully completed OpenAI analysis');
-
-      const response: ApiResponse = { analysis };
-      
-      return new Response(
-        JSON.stringify(response),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-
-    } catch (error) {
-      console.error('Detailed error in analysis process:', error);
-      throw error;
-    }
+    const response: ApiResponse = { analysis };
+    
+    return new Response(
+      JSON.stringify(response),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);

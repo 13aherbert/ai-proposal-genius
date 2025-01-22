@@ -48,7 +48,7 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
                 text: 'Please read this PDF document and extract all the text content from it. Return only the raw text content, no analysis yet.' 
               },
               {
-                type: 'image',
+                type: 'image_url',
                 image_url: publicUrl
               }
             ],

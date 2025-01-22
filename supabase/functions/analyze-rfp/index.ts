@@ -9,6 +9,10 @@ import { generateAnalysisPrompt } from "./prompts.ts";
 import { analyzeWithOpenAI } from "./openai-client.ts";
 
 serve(async (req) => {
+  // Log request details
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,11 +20,11 @@ serve(async (req) => {
 
   try {
     console.log('Starting analysis process...');
-    console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
     // Validate request content type
     const contentType = req.headers.get('content-type');
+    console.log('Content-Type header:', contentType);
+    
     if (!contentType?.includes('application/json')) {
       console.error('Invalid content type:', contentType);
       throw new Error('Content-Type must be application/json');
@@ -37,20 +41,23 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Parse and validate request body
+    // Parse and validate request body with detailed logging
     let requestData: AnalyzeRequest;
     try {
-      const text = await req.text();
-      console.log('Raw request body:', text);
+      // Log the raw request body
+      const rawBody = await req.text();
+      console.log('Raw request body:', rawBody);
       
-      if (!text) {
+      if (!rawBody) {
+        console.error('Request body is empty');
         throw new Error('Request body is empty');
       }
       
-      requestData = JSON.parse(text);
+      requestData = JSON.parse(rawBody);
       console.log('Parsed request data:', requestData);
       
       if (!requestData.filePath || !requestData.projectId) {
+        console.error('Missing required fields:', requestData);
         throw new Error('Missing required fields: filePath and projectId are required');
       }
     } catch (error) {

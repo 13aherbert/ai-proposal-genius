@@ -17,6 +17,13 @@ serve(async (req) => {
   try {
     console.log('Starting analysis process...');
     
+    // Validate request content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      console.error('Invalid content type:', contentType);
+      throw new Error('Content-Type must be application/json');
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -31,11 +38,18 @@ serve(async (req) => {
     // Parse and validate request body
     let requestData: AnalyzeRequest;
     try {
-      requestData = await req.json();
-      console.log('Received request data:', JSON.stringify(requestData));
+      const text = await req.text();
+      console.log('Raw request body:', text);
+      
+      if (!text) {
+        throw new Error('Request body is empty');
+      }
+      
+      requestData = JSON.parse(text);
+      console.log('Parsed request data:', JSON.stringify(requestData));
       
       if (!requestData.filePath || !requestData.projectId) {
-        throw new Error('Missing required fields');
+        throw new Error('Missing required fields: filePath and projectId are required');
       }
     } catch (error) {
       console.error('Error parsing request:', error);
@@ -52,8 +66,13 @@ serve(async (req) => {
       console.log('Successfully fetched project info and knowledge entries');
 
       // Download and process the RFP file
-      console.log('Downloading RFP file...');
+      console.log('Downloading RFP file:', requestData.filePath);
       const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
+      
+      if (!fileContent) {
+        throw new Error('Failed to download RFP file or file is empty');
+      }
+      
       console.log('Successfully downloaded file, content length:', fileContent.length);
 
       const chunks = splitIntoChunks(fileContent);

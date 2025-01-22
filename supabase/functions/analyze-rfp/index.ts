@@ -6,19 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function validateEnvironment() {
-  const requiredEnvVars = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'OPENAI_API_KEY'
-  ];
+interface RequestBody {
+  filePath: string;
+  projectId: string;
+}
+
+function isValidRequestBody(body: unknown): body is RequestBody {
+  if (!body || typeof body !== 'object') return false;
   
-  const missingVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
-  
-  if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars);
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-  }
+  const { filePath, projectId } = body as RequestBody;
+  return (
+    typeof filePath === 'string' && 
+    filePath.trim().length > 0 &&
+    typeof projectId === 'string' && 
+    projectId.trim().length > 0
+  );
 }
 
 serve(async (req) => {
@@ -28,14 +30,29 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    let body;
+    console.log('Analyzing RFP document...');
+
+    // Parse and validate request body
+    let body: unknown;
     try {
       body = await req.json();
     } catch (error) {
       console.error('Error parsing request body:', error);
       return new Response(
-        JSON.stringify({ error: 'Invalid request body' }),
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (!isValidRequestBody(body)) {
+      console.error('Invalid request body structure:', body);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request body. Required fields: filePath (string), projectId (string)' 
+        }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -44,27 +61,32 @@ serve(async (req) => {
     }
 
     const { filePath, projectId } = body;
+    console.log('Processing request for file:', filePath, 'and project:', projectId);
+
+    // Validate environment variables
+    const requiredEnvVars = [
+      'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'OPENAI_API_KEY'
+    ];
     
-    if (!filePath || !projectId) {
-      console.error('Missing required parameters:', { filePath, projectId });
+    const missingVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
+    if (missingVars.length > 0) {
+      console.error('Missing required environment variables:', missingVars);
       return new Response(
-        JSON.stringify({ error: 'filePath and projectId are required' }),
+        JSON.stringify({ error: 'Server configuration error' }),
         { 
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    // Validate environment after parsing request
-    await validateEnvironment();
-
-    console.log('Processing request for file:', filePath);
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
+    // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Download file
@@ -85,7 +107,6 @@ serve(async (req) => {
     }
 
     if (!fileData) {
-      console.error('No file data received from storage');
       return new Response(
         JSON.stringify({ error: 'No file data received from storage' }),
         { 
@@ -112,7 +133,6 @@ serve(async (req) => {
     }
 
     if (!text) {
-      console.error('No text content extracted');
       return new Response(
         JSON.stringify({ error: 'No text content extracted from file' }),
         { 
@@ -126,39 +146,27 @@ serve(async (req) => {
 
     // Call OpenAI API for analysis
     console.log('Calling OpenAI API...');
-    let openaiResponse;
-    try {
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert at analyzing RFP documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points starting with "-" for the most important details.'
-            },
-            {
-              role: 'user',
-              content: text
-            }
-          ],
-          max_tokens: 1000,
-        }),
-      });
-    } catch (error) {
-      console.error('Error calling OpenAI API:', error);
-      return new Response(
-        JSON.stringify({ error: 'Failed to call OpenAI API' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing RFP documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points starting with "-" for the most important details.'
+          },
+          {
+            role: 'user',
+            content: text
+          }
+        ],
+        max_tokens: 1000,
+      }),
+    });
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
@@ -172,20 +180,7 @@ serve(async (req) => {
       );
     }
 
-    let openaiData;
-    try {
-      openaiData = await openaiResponse.json();
-    } catch (error) {
-      console.error('Error parsing OpenAI response:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid response from OpenAI API' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
+    const openaiData = await openaiResponse.json();
     if (!openaiData?.choices?.[0]?.message?.content) {
       console.error('Unexpected OpenAI API response format:', openaiData);
       return new Response(
@@ -211,7 +206,6 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);
-    
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'An unexpected error occurred',

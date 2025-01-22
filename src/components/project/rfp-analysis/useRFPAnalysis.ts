@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -6,6 +6,29 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load saved analysis when component mounts
+  useEffect(() => {
+    const loadSavedAnalysis = async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('projects')
+          .select('analysis')
+          .eq('id', projectId)
+          .single();
+
+        if (fetchError) throw fetchError;
+        if (data?.analysis) {
+          setAnalysis(data.analysis);
+        }
+      } catch (error) {
+        console.error('Error loading saved analysis:', error);
+        toast.error("Failed to load saved analysis");
+      }
+    };
+
+    loadSavedAnalysis();
+  }, [projectId]);
 
   const handleReset = () => {
     setAnalysis(null);
@@ -47,10 +70,21 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
           throw new Error("Invalid response from analysis service");
         }
 
-        console.log('Analysis completed successfully:', data);
+        // Save the analysis to the database
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ analysis: data.analysis })
+          .eq('id', projectId);
+
+        if (updateError) {
+          console.error('Error saving analysis:', updateError);
+          throw new Error('Failed to save analysis');
+        }
+
+        console.log('Analysis completed and saved successfully:', data);
         setAnalysis(data.analysis);
         setError(null);
-        toast.success("Analysis completed successfully");
+        toast.success("Analysis completed and saved successfully");
       } catch (error) {
         console.error('Analysis error:', error);
         

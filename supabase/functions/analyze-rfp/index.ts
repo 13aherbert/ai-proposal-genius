@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import { Document } from 'https://deno.land/x/pdfparser@v1.0.3/mod.ts';
+import * as pdf from "https://deno.land/x/deno_pdf@0.1.1/mod.ts";
 
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 if (!openaiApiKey) {
@@ -16,8 +16,8 @@ const corsHeaders = {
 async function extractTextFromPDF(pdfData: Uint8Array): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
-    const document = new Document(pdfData);
-    const pages = await document.getAllPages();
+    const document = await pdf.load(pdfData);
+    const pages = await document.pages();
     
     let fullText = '';
     for (const page of pages) {
@@ -92,7 +92,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',

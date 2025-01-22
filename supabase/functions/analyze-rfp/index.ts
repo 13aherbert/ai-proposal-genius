@@ -5,23 +5,31 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
 };
 
 async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise<string> {
   try {
     console.log('Starting PDF text extraction for file:', filePath);
     
-    // Get the file URL
-    const { data: { publicUrl } } = supabaseAdmin
+    // Download the file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin
       .storage
       .from('rfp-files')
-      .getPublicUrl(filePath);
+      .download(filePath);
 
-    console.log('Got public URL:', publicUrl);
+    if (downloadError) {
+      console.error('Error downloading file:', downloadError);
+      throw new Error(`Failed to download PDF file: ${downloadError.message}`);
+    }
 
-    // Call OpenAI API with the file URL
+    // Convert the file to base64
+    const fileBase64 = await fileData.arrayBuffer().then(buffer => 
+      btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    );
+
+    console.log('File converted to base64');
+
+    // Call OpenAI API with the base64 file
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -39,11 +47,9 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
                 text: 'Please read this PDF document and extract all the text content from it. Return only the raw text content, no analysis yet.' 
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: publicUrl,
-                  detail: "high"
-                }
+                type: 'file',
+                file_id: fileBase64,
+                purpose: 'assistive-content'
               }
             ],
           }
@@ -58,13 +64,12 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
     }
 
     const data = await response.json();
-    const extractedText = data.choices[0].message.content;
+    console.log('Successfully received OpenAI response');
     
-    console.log('PDF text extraction completed successfully');
-    return extractedText;
+    return data.choices[0].message.content;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    throw error;
   }
 }
 
@@ -75,13 +80,6 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    console.log('Received request data:', requestData);
-
-    if (!requestData.filePath || !requestData.projectId) {
-      throw new Error('Missing required fields: filePath and projectId');
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -92,6 +90,13 @@ serve(async (req) => {
         }
       }
     );
+
+    const requestData = await req.json();
+    console.log('Received request data:', requestData);
+
+    if (!requestData.filePath || !requestData.projectId) {
+      throw new Error('Missing required fields: filePath and projectId');
+    }
 
     // Extract text from PDF
     const textContent = await extractTextFromPDF(requestData.filePath, supabaseAdmin);
@@ -124,9 +129,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
     }
 
     const analysisData = await response.json();
@@ -141,11 +146,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-rfp function:', error);
-    
     return new Response(
-      JSON.stringify({
-        error: 'Failed to analyze RFP',
-        details: error.message
+      JSON.stringify({ 
+        error: 'Failed to analyze RFP', 
+        details: error.message 
       }),
       { 
         status: 500,

@@ -1,11 +1,40 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
+  try {
+    console.log('Starting PDF text extraction');
+    
+    // Initialize PDF.js
+    const pdfjsLib = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    console.log('PDF document loaded, pages:', pdfjsLib.numPages);
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let i = 1; i <= pdfjsLib.numPages; i++) {
+      const page = await pdfjsLib.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n\n';
+    }
+    
+    console.log('Text extraction completed, length:', fullText.length);
+    return fullText;
+  } catch (error) {
+    console.error('Error in PDF text extraction:', error);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -43,9 +72,15 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    // Convert file to text
-    const text = await fileData.text();
-    console.log('File converted to text, length:', text.length);
+    // Convert file to ArrayBuffer and extract text
+    const arrayBuffer = await fileData.arrayBuffer();
+    const extractedText = await extractTextFromPDF(arrayBuffer);
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      throw new Error('No text content extracted from PDF');
+    }
+
+    console.log('Text extracted successfully, length:', extractedText.length);
 
     // Call OpenAI API for analysis
     console.log('Calling OpenAI API for analysis');
@@ -64,7 +99,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: text.substring(0, 15000) // Limit text length
+            content: extractedText.substring(0, 15000) // Limit text length
           }
         ],
       }),

@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { getPdf } from 'https://deno.land/x/pdf_parse_wasm@1.0.2/mod.ts';
+import { parse } from "https://deno.land/x/deno_pdf@0.0.15/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +14,8 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction...');
     
-    const pdf = await getPdf(new Uint8Array(arrayBuffer));
-    const text = await pdf.text();
+    const pdf = await parse(new Uint8Array(arrayBuffer));
+    const text = pdf.pages.map(page => page.text).join('\n');
     
     console.log('PDF text extraction completed successfully');
     return text;
@@ -84,11 +84,11 @@ serve(async (req) => {
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -99,7 +99,6 @@ serve(async (req) => {
             content: textContent.substring(0, 15000) // Limit text length
           }
         ],
-        temperature: 0.7,
       }),
     });
 

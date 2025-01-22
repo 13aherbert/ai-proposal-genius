@@ -41,15 +41,6 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     if (!response.ok) {
       const errorData = await response.text();
       console.error(`OpenAI API error (attempt ${retryCount + 1}):`, errorData);
-      
-      if (response.status === 429) {
-        if (retryCount < MAX_RETRIES - 1) {
-          const waitTime = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_BACKOFF);
-          console.log(`Rate limit hit, waiting ${waitTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callOpenAIWithRetry(messages, retryCount + 1);
-        }
-      }
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 

@@ -56,9 +56,9 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       } catch (error) {
         console.error('Analysis error:', error);
         
-        if (currentRetry < 2) { // Reduced retries for faster feedback
+        if (currentRetry < 2) {
           currentRetry++;
-          const delay = 1000 * currentRetry; // Simple linear backoff
+          const delay = 1000 * currentRetry;
           console.log(`Retry attempt ${currentRetry} failed, waiting ${delay}ms before next attempt`);
           await new Promise(resolve => setTimeout(resolve, delay));
           return attemptAnalysis();

@@ -33,7 +33,7 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages,
         max_tokens: 1000,
       }),
@@ -42,17 +42,13 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     if (!response.ok) {
       const errorData = await response.text();
       console.error(`OpenAI API error (attempt ${retryCount + 1}):`, errorData);
-      
-      if (retryCount < MAX_RETRIES - 1) {
-        const waitTime = RETRY_DELAY * Math.pow(2, retryCount);
-        console.log(`Retrying in ${waitTime}ms...`);
-        await sleep(waitTime);
-        return callOpenAIWithRetry(messages, retryCount + 1);
-      }
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 
     const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI API');
+    }
     return data.choices[0].message.content;
   } catch (error) {
     console.error(`Error in OpenAI API call (attempt ${retryCount + 1}):`, error);
@@ -90,7 +86,20 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const { filePath, projectId } = body;
     
     if (!filePath || !projectId) {
@@ -181,7 +190,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        error: error.message || 'An unexpected error occurred',
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
       }),
       { 
         status: 500,

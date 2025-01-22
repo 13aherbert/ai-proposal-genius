@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Calendar, FileText, User, Building, Save } from "lucide-react";
+import { Calendar, FileText, User, Building, Save, Plus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -17,6 +17,17 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { Project } from "@/hooks/use-project-details";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { DocumentList } from "./document-viewer/DocumentList";
+import { DocumentUpload } from "./document-viewer/DocumentUpload";
+import { useDocuments } from "./document-viewer/useDocuments";
 
 interface ProjectInfoProps {
   project: Project;
@@ -31,6 +42,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
     project.deadline ? new Date(project.deadline) : undefined
   );
   const queryClient = useQueryClient();
+  const { documents, handleDelete, handleView } = useDocuments(project.id);
 
   const handleSave = async () => {
     try {
@@ -147,7 +159,7 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -177,6 +189,50 @@ export function ProjectInfo({ project }: ProjectInfoProps) {
               <span>Due Date: {project.deadline ? format(new Date(project.deadline), "PPP") : "Not specified"}</span>
             </div>
           </div>
+        </div>
+
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-medium">RFP Documents</h3>
+              <p className="text-sm text-muted-foreground">Access the original RFP document and additional files</p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => handleView(project.rfp_file_path)}
+              >
+                View RFP Document
+              </Button>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Additional Document</DialogTitle>
+                    <DialogDescription>
+                      Upload addendums and other project documents
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DocumentUpload 
+                    projectId={project.id}
+                    onSuccess={() => {}}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          <DocumentList 
+            documents={documents || []}
+            onView={handleView}
+            onDelete={handleDelete}
+          />
         </div>
       </CardContent>
     </Card>

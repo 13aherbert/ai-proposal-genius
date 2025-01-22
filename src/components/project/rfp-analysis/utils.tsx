@@ -32,26 +32,31 @@ export function parseAnalysis(analysisText: string): AnalysisSection[] {
 
   let currentSection: AnalysisSection | null = null;
 
-  analysisText.split('\n').forEach(line => {
-    const trimmedLine = line.trim();
+  // Split by section headers while preserving markdown
+  const lines = analysisText.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     
-    if (!trimmedLine) return;
+    if (!line) continue;
 
     // Check if this line is a section header
     const sectionMatch = sections.find(section => 
-      trimmedLine.toLowerCase().includes(section.title.toLowerCase())
+      line.toLowerCase().includes(section.title.toLowerCase())
     );
 
     if (sectionMatch) {
       currentSection = sectionMatch;
-    } else if (currentSection && (trimmedLine.startsWith('-') || trimmedLine.startsWith('•'))) {
-      // Clean up the bullet point and add to current section
-      const content = trimmedLine.replace(/^[-•]\s*/, '').trim();
-      if (content) {
-        currentSection.content.push(content);
+    } else if (currentSection) {
+      // Keep markdown formatting intact
+      if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
+        const content = line.trim();
+        if (content) {
+          currentSection.content.push(content);
+        }
       }
     }
-  });
+  }
 
   return sections;
 }

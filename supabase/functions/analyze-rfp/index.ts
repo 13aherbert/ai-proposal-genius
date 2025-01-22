@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm';
 import { corsHeaders } from "./config.ts";
 import { AnalyzeRequest, ApiResponse, ApiError } from "./types.ts";
 import { getKnowledgeBaseEntries, getProjectInfo, downloadRFPFile } from "./database.ts";
@@ -8,25 +9,40 @@ import { splitIntoChunks } from "./text-processing.ts";
 import { generateAnalysisPrompt } from "./prompts.ts";
 import { analyzeWithOpenAI } from "./openai-client.ts";
 
+// Initialize PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
+      .join(' ');
+    fullText += pageText + '\n\n';
+  }
+  
+  return fullText;
+}
+
 serve(async (req) => {
   console.log('Request received:', req.method);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the raw request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
 
-    // Validate request body
     if (!rawBody) {
       throw new Error('Request body is empty');
     }
 
-    // Parse request data
     let requestData: AnalyzeRequest;
     try {
       requestData = JSON.parse(rawBody);
@@ -36,7 +52,6 @@ serve(async (req) => {
       throw new Error(`Invalid JSON in request body: ${error.message}`);
     }
 
-    // Validate required fields
     if (!requestData.filePath || !requestData.projectId) {
       throw new Error('Missing required fields: filePath and projectId are required');
     }
@@ -51,7 +66,6 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Get project information and knowledge base entries
     console.log('Fetching project info and knowledge entries...');
     const [projectInfo, knowledgeEntries] = await Promise.all([
       getProjectInfo(supabaseAdmin, requestData.projectId),
@@ -60,24 +74,28 @@ serve(async (req) => {
 
     console.log('Successfully fetched project info and knowledge entries');
 
-    // Download and process the RFP file
     console.log('Downloading RFP file:', requestData.filePath);
-    const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
+    const fileBuffer = await downloadRFPFile(supabaseAdmin, requestData.filePath);
     
-    if (!fileContent) {
+    if (!fileBuffer) {
       throw new Error('Failed to download RFP file or file is empty');
     }
     
-    console.log('Successfully downloaded file, content length:', fileContent.length);
+    console.log('Successfully downloaded file, extracting text content...');
+    const textContent = await extractTextFromPDF(fileBuffer);
+    
+    if (!textContent || textContent.trim().length === 0) {
+      throw new Error('Failed to extract text from PDF');
+    }
+    
+    console.log('Successfully extracted text, content length:', textContent.length);
 
-    const chunks = splitIntoChunks(fileContent);
+    const chunks = splitIntoChunks(textContent);
     console.log(`Processing ${chunks.length} chunks of content`);
 
-    // Generate the analysis prompt
     const prompt = generateAnalysisPrompt(projectInfo, knowledgeEntries);
     console.log('Generated analysis prompt');
 
-    // Analyze the content
     console.log('Starting OpenAI analysis...');
     const analysis = await analyzeWithOpenAI(prompt, chunks[0], openaiApiKey);
     console.log('Successfully completed OpenAI analysis');

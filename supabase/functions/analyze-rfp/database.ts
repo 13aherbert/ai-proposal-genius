@@ -32,7 +32,7 @@ export async function getKnowledgeBaseEntries(supabase: ReturnType<typeof create
   return data;
 }
 
-export async function downloadRFPFile(supabase: ReturnType<typeof createClient>, filePath: string): Promise<string> {
+export async function downloadRFPFile(supabase: ReturnType<typeof createClient>, filePath: string): Promise<ArrayBuffer> {
   console.log('Starting download of RFP file:', filePath);
   
   try {
@@ -49,26 +49,11 @@ export async function downloadRFPFile(supabase: ReturnType<typeof createClient>,
       throw new Error('No file data received');
     }
 
-    // Convert blob to array buffer
+    // Return the array buffer directly
     const arrayBuffer = await data.arrayBuffer();
+    console.log('Successfully downloaded file, size:', arrayBuffer.byteLength);
     
-    // Convert array buffer to text
-    const decoder = new TextDecoder('utf-8');
-    let text = '';
-    try {
-      text = decoder.decode(arrayBuffer);
-      console.log('Successfully converted file to text, length:', text.length);
-      
-      // Basic validation of the text content
-      if (!text || text.trim().length === 0) {
-        throw new Error('File content is empty or invalid');
-      }
-      
-      return text;
-    } catch (decodeError) {
-      console.error('Error decoding file content:', decodeError);
-      throw new Error(`Failed to decode file content: ${decodeError.message}`);
-    }
+    return arrayBuffer;
   } catch (error) {
     console.error('Error in downloadRFPFile:', error);
     throw new Error(`Failed to process RFP file: ${error.message}`);

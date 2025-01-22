@@ -12,7 +12,7 @@ async function validateEnvironment() {
     'SUPABASE_SERVICE_ROLE_KEY',
     'OPENAI_API_KEY'
   ];
-
+  
   const missingVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
   
   if (missingVars.length > 0) {
@@ -52,9 +52,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Download and transform the file to text
-    console.log('Downloading and transforming file...');
-    const { data, error: downloadError } = await supabase.storage
+    // Download file
+    console.log('Downloading file...');
+    const { data: fileData, error: downloadError } = await supabase.storage
       .from('rfp-files')
       .download(filePath);
 
@@ -63,17 +63,18 @@ serve(async (req) => {
       throw new Error(`Failed to download RFP file: ${downloadError.message}`);
     }
 
-    if (!data) {
-      console.error('No data received from storage');
-      throw new Error('No data received from storage');
+    if (!fileData) {
+      console.error('No file data received from storage');
+      throw new Error('No file data received from storage');
     }
 
-    // Convert the downloaded data to text
-    const text = await data.text();
+    // Convert blob to text
+    console.log('Converting file to text...');
+    const text = await fileData.text();
     
     if (!text) {
       console.error('No text content extracted');
-      throw new Error('Failed to extract text from PDF');
+      throw new Error('Failed to extract text from file');
     }
 
     console.log('Successfully extracted text, length:', text.length);

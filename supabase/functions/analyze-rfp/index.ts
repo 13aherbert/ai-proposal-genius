@@ -81,7 +81,7 @@ serve(async (req) => {
     console.log('Text content extracted, length:', textContent.length);
 
     // Call OpenAI API
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -102,13 +102,13 @@ serve(async (req) => {
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json();
+    if (!response.ok) {
+      const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
       throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const analysisData = await openaiResponse.json();
+    const analysisData = await response.json();
     const analysis = analysisData.choices[0].message.content;
 
     console.log('Analysis completed successfully');

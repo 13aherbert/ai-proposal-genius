@@ -6,17 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function validateEnvironment() {
+async function validateEnvironment() {
   const requiredEnvVars = [
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
     'OPENAI_API_KEY'
   ];
 
-  for (const envVar of requiredEnvVars) {
-    if (!Deno.env.get(envVar)) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+  const missingVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
+  
+  if (missingVars.length > 0) {
+    console.error('Missing required environment variables:', missingVars);
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 }
 
@@ -27,12 +28,10 @@ serve(async (req) => {
   }
 
   try {
-    // Validate environment variables first
-    validateEnvironment();
-
     const { filePath, projectId } = await req.json();
     
     if (!filePath || !projectId) {
+      console.error('Missing required parameters:', { filePath, projectId });
       return new Response(
         JSON.stringify({ error: 'filePath and projectId are required' }),
         { 
@@ -41,6 +40,9 @@ serve(async (req) => {
         }
       );
     }
+
+    // Validate environment variables after request parsing
+    await validateEnvironment();
 
     console.log('Processing request for file:', filePath);
 
@@ -54,15 +56,16 @@ serve(async (req) => {
     console.log('Downloading and transforming file...');
     const { data, error: downloadError } = await supabase.storage
       .from('rfp-files')
-      .download(filePath, {
-        transform: {
-          format: 'text',
-        }
-      });
+      .download(filePath);
 
     if (downloadError) {
       console.error('Error downloading file:', downloadError);
-      throw new Error('Failed to download RFP file');
+      throw new Error(`Failed to download RFP file: ${downloadError.message}`);
+    }
+
+    if (!data) {
+      console.error('No data received from storage');
+      throw new Error('No data received from storage');
     }
 
     // Convert the downloaded data to text
@@ -105,15 +108,15 @@ serve(async (req) => {
       throw new Error(`OpenAI API error: ${errorText}`);
     }
 
-    const data = await openaiResponse.json();
+    const openaiData = await openaiResponse.json();
     console.log('OpenAI API response received');
     
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI API response format:', data);
+    if (!openaiData.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI API response format:', openaiData);
       throw new Error('Invalid response format from OpenAI API');
     }
 
-    const analysis = data.choices[0].message.content;
+    const analysis = openaiData.choices[0].message.content;
 
     return new Response(
       JSON.stringify({ analysis }),

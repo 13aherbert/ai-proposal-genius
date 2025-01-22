@@ -19,7 +19,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
 
     const attemptAnalysis = async () => {
       try {
-        console.log(`Starting analysis attempt ${currentRetry + 1}`);
+        console.log('Starting analysis attempt', currentRetry + 1);
         
         // Validate input parameters
         if (!filePath || !projectId) {
@@ -33,11 +33,9 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
 
         console.log('Sending request with body:', requestBody);
 
+        // Pass the request body directly without stringifying - the SDK will handle it
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: JSON.stringify(requestBody),
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          body: requestBody
         });
 
         if (functionError) {

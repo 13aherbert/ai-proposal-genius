@@ -1,4 +1,4 @@
-import { GPT_MODEL, MAX_TOKENS, MAX_RETRIES, RATE_LIMIT_BACKOFF } from './config.ts';
+import { MAX_TOKENS, MAX_RETRIES, RATE_LIMIT_BACKOFF } from './config.ts';
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -10,9 +10,11 @@ export async function analyzeWithOpenAI(
   openaiApiKey: string, 
   retries = MAX_RETRIES
 ): Promise<string> {
+  console.log('Starting OpenAI analysis with content length:', content.length);
+  
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      console.log(`Attempt ${attempt + 1}: Analyzing content of length ${content.length}`);
+      console.log(`Attempt ${attempt + 1}: Analyzing content`);
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -25,7 +27,7 @@ export async function analyzeWithOpenAI(
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful assistant that generates content based on user prompts.'
+              content: 'You are a helpful assistant that analyzes RFP documents.'
             },
             {
               role: 'user',
@@ -40,11 +42,10 @@ export async function analyzeWithOpenAI(
         const errorData = await response.text();
         console.error(`OpenAI API error (attempt ${attempt + 1}):`, errorData);
         
-        // Handle rate limit errors with exponential backoff
         if (response.status === 429 || errorData.includes('rate limit')) {
           if (attempt < retries - 1) {
             const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
-            console.log(`Rate limit hit, attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
+            console.log(`Rate limit hit, waiting ${waitTime}ms before retry...`);
             await sleep(waitTime);
             continue;
           }
@@ -53,12 +54,16 @@ export async function analyzeWithOpenAI(
       }
 
       const data = await response.json();
-      console.log('Successfully processed chunk');
+      console.log('Successfully received OpenAI response');
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+      
       return data.choices[0].message.content;
     } catch (error) {
       console.error(`Error on attempt ${attempt + 1}:`, error);
       
-      // For rate limit errors, use exponential backoff
       if (error instanceof Error && error.message.includes('rate limit') && attempt < retries - 1) {
         const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
         console.log(`Rate limit error, waiting ${waitTime}ms before retry...`);
@@ -67,6 +72,7 @@ export async function analyzeWithOpenAI(
       }
       
       if (attempt === retries - 1) throw error;
+      
       const waitTime = RATE_LIMIT_BACKOFF * Math.pow(2, attempt);
       console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
       await sleep(waitTime);

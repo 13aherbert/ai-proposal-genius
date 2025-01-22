@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting analysis process...');
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -27,14 +29,18 @@ serve(async (req) => {
     }
 
     // Parse and validate request body
-    const requestData: AnalyzeRequest = await req.json();
-    if (!requestData.filePath || !requestData.projectId) {
-      console.error('Invalid request body:', requestData);
-      throw new Error('Invalid request body: missing required fields');
+    let requestData: AnalyzeRequest;
+    try {
+      requestData = await req.json();
+      console.log('Received request data:', JSON.stringify(requestData));
+      
+      if (!requestData.filePath || !requestData.projectId) {
+        throw new Error('Missing required fields');
+      }
+    } catch (error) {
+      console.error('Error parsing request:', error);
+      throw new Error(`Invalid request body: ${error.message}`);
     }
-
-    console.log('Starting analysis for project:', requestData.projectId);
-    console.log('File path:', requestData.filePath);
 
     try {
       // Get project information and knowledge base entries
@@ -46,7 +52,7 @@ serve(async (req) => {
       console.log('Successfully fetched project info and knowledge entries');
 
       // Download and process the RFP file
-      console.log('Attempting to download RFP file...');
+      console.log('Downloading RFP file...');
       const fileContent = await downloadRFPFile(supabaseAdmin, requestData.filePath);
       console.log('Successfully downloaded file, content length:', fileContent.length);
 
@@ -71,7 +77,7 @@ serve(async (req) => {
 
     } catch (error) {
       console.error('Detailed error in analysis process:', error);
-      throw error; // Re-throw to be caught by outer try-catch
+      throw error;
     }
 
   } catch (error) {

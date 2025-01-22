@@ -6,7 +6,9 @@ import { generateAnalysisPrompt } from './prompts.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 };
 
 const MAX_RETRIES = 3;
@@ -40,7 +42,6 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
       const errorData = await response.text();
       console.error(`OpenAI API error (attempt ${retryCount + 1}):`, errorData);
       
-      // Handle rate limiting specifically
       if (response.status === 429) {
         if (retryCount < MAX_RETRIES - 1) {
           const waitTime = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_BACKOFF);
@@ -71,8 +72,12 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
 }
 
 serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    });
   }
 
   try {
@@ -120,7 +125,7 @@ serve(async (req) => {
     const text = await fileData.text();
     console.log('File converted to text, length:', text.length);
 
-    const chunks = splitIntoChunks(text, 2000); // Reduced chunk size
+    const chunks = splitIntoChunks(text, 2000);
     console.log(`Split text into ${chunks.length} chunks`);
 
     let combinedAnalysis = '';

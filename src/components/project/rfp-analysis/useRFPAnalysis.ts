@@ -32,8 +32,12 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
 
         console.log('Sending request with body:', requestBody);
 
+        // Add explicit function name and version
         const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: requestBody
+          body: requestBody,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
         if (functionError) {
@@ -65,7 +69,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
         let errorMessage = "Failed to analyze RFP document. ";
         if (error instanceof Error) {
           if (error.message.includes('Failed to fetch')) {
-            errorMessage = "Unable to connect to the analysis service. Please check your connection and try again.";
+            errorMessage = "Unable to connect to the analysis service. Please try again in a few moments.";
           } else if (error.message.includes('timeout')) {
             errorMessage = "The analysis request timed out. Please try again.";
           } else {

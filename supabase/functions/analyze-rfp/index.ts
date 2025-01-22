@@ -37,27 +37,25 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the file metadata and text content
-    const { data: fileData, error: fileError } = await supabase.storage
+    // Download and transform the file to text
+    const { data, error: downloadError } = await supabase.storage
       .from('rfp-files')
-      .download(filePath);
-
-    if (fileError) {
-      console.error('Error downloading file:', fileError);
-      throw new Error('Failed to download RFP file');
-    }
-
-    // Extract text content using Supabase Storage's built-in capabilities
-    const { data: { text }, error: extractError } = await supabase.storage
-      .from('rfp-files')
-      .getPublicUrl(filePath, {
+      .download(filePath, {
         transform: {
-          format: 'text'
+          format: 'text',
         }
       });
 
-    if (extractError || !text) {
-      console.error('Error extracting text:', extractError);
+    if (downloadError) {
+      console.error('Error downloading file:', downloadError);
+      throw new Error('Failed to download RFP file');
+    }
+
+    // Convert the downloaded data to text
+    const text = await data.text();
+    
+    if (!text) {
+      console.error('No text content extracted');
       throw new Error('Failed to extract text from PDF');
     }
 

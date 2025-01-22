@@ -9,24 +9,28 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
+async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise<string> {
   try {
-    console.log('Starting PDF text extraction...');
+    console.log('Starting PDF text extraction for file:', filePath);
     
-    // Convert ArrayBuffer to Base64 in chunks
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const chunkSize = 0x8000; // Process 32KB at a time
-    let base64 = '';
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      base64 += String.fromCharCode.apply(null, chunk);
+    // Download the file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin
+      .storage
+      .from('rfp-files')
+      .download(filePath);
+
+    if (downloadError) {
+      console.error('Error downloading file:', downloadError);
+      throw new Error(`Failed to download PDF file: ${downloadError.message}`);
     }
-    
-    const base64Data = btoa(base64);
-    console.log('PDF converted to base64, size:', base64Data.length);
-    
-    // Use OpenAI's PDF understanding capabilities
+
+    // Get the file URL
+    const { data: { publicUrl } } = supabaseAdmin
+      .storage
+      .from('rfp-files')
+      .getPublicUrl(filePath);
+
+    // Call OpenAI API with the file URL
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -45,14 +49,11 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
               },
               {
                 type: 'image',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64Data}`,
-                }
+                image_url: publicUrl
               }
             ],
           }
         ],
-        max_tokens: 4096,
       }),
     });
 
@@ -103,25 +104,8 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Downloading RFP file:', requestData.filePath);
-    const { data: fileData, error: downloadError } = await supabaseAdmin
-      .storage
-      .from('rfp-files')
-      .download(requestData.filePath);
-
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw new Error(`Failed to download RFP file: ${downloadError.message}`);
-    }
-
-    if (!fileData) {
-      throw new Error('No file data received');
-    }
-
-    const arrayBuffer = await fileData.arrayBuffer();
-    console.log('File downloaded successfully, size:', arrayBuffer.byteLength);
-
-    const textContent = await extractTextFromPDF(arrayBuffer);
+    // Extract text from PDF
+    const textContent = await extractTextFromPDF(requestData.filePath, supabaseAdmin);
     if (!textContent || textContent.trim().length === 0) {
       throw new Error('No text content extracted from PDF');
     }

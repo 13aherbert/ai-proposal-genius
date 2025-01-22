@@ -10,11 +10,8 @@ const corsHeaders = {
 };
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
-
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+const INITIAL_RETRY_DELAY = 2000;
+const MAX_BACKOFF = 10000;
 
 async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -33,7 +30,7 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages,
         max_tokens: 1000,
       }),
@@ -42,6 +39,16 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     if (!response.ok) {
       const errorData = await response.text();
       console.error(`OpenAI API error (attempt ${retryCount + 1}):`, errorData);
+      
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        if (retryCount < MAX_RETRIES - 1) {
+          const waitTime = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_BACKOFF);
+          console.log(`Rate limit hit, waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return callOpenAIWithRetry(messages, retryCount + 1);
+        }
+      }
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 
@@ -54,9 +61,9 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
     console.error(`Error in OpenAI API call (attempt ${retryCount + 1}):`, error);
     
     if (retryCount < MAX_RETRIES - 1) {
-      const waitTime = RETRY_DELAY * Math.pow(2, retryCount);
-      console.log(`Error occurred, retrying in ${waitTime}ms...`);
-      await sleep(waitTime);
+      const waitTime = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCount), MAX_BACKOFF);
+      console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       return callOpenAIWithRetry(messages, retryCount + 1);
     }
     throw error;
@@ -64,46 +71,14 @@ async function callOpenAIWithRetry(messages: any[], retryCount = 0): Promise<str
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting RFP analysis request');
-    
-    // Validate request content type
-    const contentType = req.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      console.error('Invalid content type:', contentType);
-      return new Response(
-        JSON.stringify({ error: 'Request must be application/json' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Parse request body
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      console.error('Error parsing request body:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const { filePath, projectId } = body;
+    const { filePath, projectId } = await req.json();
     
     if (!filePath || !projectId) {
-      console.error('Missing required fields:', { filePath, projectId });
       return new Response(
         JSON.stringify({ error: 'filePath and projectId are required' }),
         { 
@@ -113,20 +88,15 @@ serve(async (req) => {
       );
     }
 
-    console.log('Processing request for:', { filePath, projectId });
-
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Supabase configuration missing');
       throw new Error('Supabase configuration is missing');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get project info
     const { data: projectData, error: projectError } = await supabase
       .from('projects')
       .select('*')
@@ -138,7 +108,6 @@ serve(async (req) => {
       throw new Error('Failed to fetch project information');
     }
 
-    // Download file
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('rfp-files')
       .download(filePath);
@@ -151,8 +120,7 @@ serve(async (req) => {
     const text = await fileData.text();
     console.log('File converted to text, length:', text.length);
 
-    // Process text
-    const chunks = splitIntoChunks(text, 4000);
+    const chunks = splitIntoChunks(text, 2000); // Reduced chunk size
     console.log(`Split text into ${chunks.length} chunks`);
 
     let combinedAnalysis = '';
@@ -174,8 +142,6 @@ serve(async (req) => {
       combinedAnalysis += chunkAnalysis + '\n\n';
     }
 
-    console.log('Analysis completed successfully');
-    
     return new Response(
       JSON.stringify({ analysis: combinedAnalysis }),
       { 

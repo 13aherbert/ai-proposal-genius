@@ -11,7 +11,6 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
   try {
     console.log('Starting PDF text extraction for file:', filePath);
     
-    // Download the file from Supabase Storage
     const { data: fileData, error: downloadError } = await supabaseAdmin
       .storage
       .from('rfp-files')
@@ -22,14 +21,13 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
       throw new Error(`Failed to download PDF file: ${downloadError.message}`);
     }
 
-    // Convert ArrayBuffer to Base64 with proper data URI format
+    // Convert ArrayBuffer to Base64
     const bytes = new Uint8Array(await fileData.arrayBuffer());
     const base64Data = btoa(
       bytes.reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
-    const dataUri = `data:application/pdf;base64,${base64Data}`;
 
-    console.log('File converted to base64 with data URI');
+    console.log('File converted to base64');
 
     // Call OpenAI API with the base64 file
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -50,8 +48,10 @@ async function extractTextFromPDF(filePath: string, supabaseAdmin: any): Promise
               },
               {
                 type: 'file',
-                file: dataUri,
-                purpose: 'assistive-content'
+                file: {
+                  type: 'application/pdf',
+                  base64: base64Data
+                }
               }
             ],
           }

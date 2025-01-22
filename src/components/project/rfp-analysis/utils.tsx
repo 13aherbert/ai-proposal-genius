@@ -1,55 +1,57 @@
-import { CheckSquare, Calendar, ListChecks, AlertTriangle } from "lucide-react";
-import type { AnalysisSection } from "./types";
-import { ReactNode } from "react";
+import { AlertTriangle, Calendar, FileCheck, ListChecks, Scale } from "lucide-react";
+import { AnalysisSection } from "./types";
 
-export function parseAnalysis(text: string): AnalysisSection[] {
-  // First, split by numbered sections (1., 2., etc)
-  const sections = text.split(/\d\.\s+/);
-  
-  // Remove any empty sections
-  const validSections = sections.filter(Boolean);
-  
-  return validSections.map(section => {
-    // Split section into title and content
-    const [title, ...contentLines] = section.split('\n').filter(Boolean);
-    
-    // Clean up the title
-    const cleanTitle = title.trim();
-    
-    // Process content lines, keeping only bullet points
-    const content = contentLines
-      .filter(line => line.trim().startsWith('-'))
-      .map(line => line.trim().replace(/^-\s*/, ''))
-      .filter(Boolean);
+export function parseAnalysis(analysisText: string): AnalysisSection[] {
+  const sections = [
+    {
+      title: "Key Requirements",
+      icon: <ListChecks className="h-4 w-4 text-blue-500" />,
+      content: [] as string[]
+    },
+    {
+      title: "Timeline and Deadlines",
+      icon: <Calendar className="h-4 w-4 text-green-500" />,
+      content: [] as string[]
+    },
+    {
+      title: "Evaluation Criteria",
+      icon: <Scale className="h-4 w-4 text-purple-500" />,
+      content: [] as string[]
+    },
+    {
+      title: "Required Response Format",
+      icon: <FileCheck className="h-4 w-4 text-orange-500" />,
+      content: [] as string[]
+    },
+    {
+      title: "Potential Risks",
+      icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+      content: [] as string[]
+    }
+  ];
 
-    const icon = getIconForSection(cleanTitle);
+  let currentSection: AnalysisSection | null = null;
+
+  analysisText.split('\n').forEach(line => {
+    const trimmedLine = line.trim();
     
-    return {
-      title: cleanTitle,
-      content,
-      icon
-    };
+    if (!trimmedLine) return;
+
+    // Check if this line is a section header
+    const sectionMatch = sections.find(section => 
+      trimmedLine.toLowerCase().includes(section.title.toLowerCase())
+    );
+
+    if (sectionMatch) {
+      currentSection = sectionMatch;
+    } else if (currentSection && (trimmedLine.startsWith('-') || trimmedLine.startsWith('•'))) {
+      // Clean up the bullet point and add to current section
+      const content = trimmedLine.replace(/^[-•]\s*/, '').trim();
+      if (content) {
+        currentSection.content.push(content);
+      }
+    }
   });
-}
 
-export function getIconForSection(title: string): ReactNode {
-  // Normalize the title for comparison
-  const normalizedTitle = title.toLowerCase().trim();
-  
-  if (normalizedTitle.includes('key requirement')) {
-    return <CheckSquare className="h-5 w-5" />;
-  }
-  if (normalizedTitle.includes('timeline') || normalizedTitle.includes('deadline')) {
-    return <Calendar className="h-5 w-5" />;
-  }
-  if (normalizedTitle.includes('evaluation')) {
-    return <ListChecks className="h-5 w-5" />;
-  }
-  if (normalizedTitle.includes('required response')) {
-    return <CheckSquare className="h-5 w-5" />;
-  }
-  if (normalizedTitle.includes('risk')) {
-    return <AlertTriangle className="h-5 w-5" />;
-  }
-  return <CheckSquare className="h-5 w-5" />; // Default icon
+  return sections;
 }

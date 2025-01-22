@@ -11,14 +11,9 @@ const corsHeaders = {
 async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF text extraction');
-    
-    // Convert ArrayBuffer to Uint8Array for pdf-parse
     const uint8Array = new Uint8Array(arrayBuffer);
-    
-    // Parse PDF using the default export function
     const data = await pdfParse(uint8Array);
     console.log('PDF text extraction completed, text length:', data.text.length);
-    
     return data.text;
   } catch (error) {
     console.error('Error in PDF text extraction:', error);
@@ -27,7 +22,6 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -81,7 +75,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -89,7 +83,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: extractedText.substring(0, 15000) // Limit text length
+            content: extractedText.substring(0, 15000)
           }
         ],
       }),
@@ -104,7 +98,19 @@ serve(async (req) => {
     const analysisData = await response.json();
     const analysis = analysisData.choices[0].message.content;
 
-    console.log('Analysis completed successfully');
+    // Save analysis to database
+    console.log('Saving analysis to database');
+    const { error: updateError } = await supabaseAdmin
+      .from('projects')
+      .update({ analysis })
+      .eq('id', requestData.projectId);
+
+    if (updateError) {
+      console.error('Error saving analysis:', updateError);
+      throw new Error(`Failed to save analysis: ${updateError.message}`);
+    }
+
+    console.log('Analysis completed and saved successfully');
 
     return new Response(
       JSON.stringify({ analysis }),

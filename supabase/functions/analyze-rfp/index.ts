@@ -61,14 +61,14 @@ serve(async (req) => {
     console.log('File content length:', text.length);
 
     // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -83,13 +83,20 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData}`);
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
-    const data = await response.json();
+    const data = await openaiResponse.json();
+    console.log('OpenAI API response received');
+    
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI API response format:', data);
+      throw new Error('Invalid response format from OpenAI API');
+    }
+
     const analysis = data.choices[0].message.content;
 
     return new Response(

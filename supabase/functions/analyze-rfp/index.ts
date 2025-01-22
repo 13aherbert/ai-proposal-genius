@@ -1,37 +1,10 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import * as pdf from "https://deno.land/x/deno_pdf@0.1.1/mod.ts";
-
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-if (!openaiApiKey) {
-  throw new Error('OPENAI_API_KEY is not set');
-}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-async function extractTextFromPDF(pdfData: Uint8Array): Promise<string> {
-  try {
-    console.log('Starting PDF text extraction...');
-    const document = await pdf.load(pdfData);
-    const pages = await document.pages();
-    
-    let fullText = '';
-    for (const page of pages) {
-      const text = await page.text();
-      fullText += text + '\n';
-    }
-
-    console.log('Text extraction complete, length:', fullText.length);
-    return fullText;
-  } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw new Error('Failed to extract text from PDF');
-  }
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -56,35 +29,41 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration is missing');
+    if (!supabaseUrl || !supabaseKey || !openaiApiKey) {
+      throw new Error('Missing required environment variables');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Download the file
-    const { data: fileData, error: downloadError } = await supabase.storage
+    // Get the file metadata and text content
+    const { data: fileData, error: fileError } = await supabase.storage
       .from('rfp-files')
       .download(filePath);
 
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
+    if (fileError) {
+      console.error('Error downloading file:', fileError);
       throw new Error('Failed to download RFP file');
     }
 
-    // Convert file to Uint8Array for PDF parsing
-    const arrayBuffer = await fileData.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const text = await extractTextFromPDF(uint8Array);
-    
-    console.log('Extracted text length:', text.length);
+    // Extract text content using Supabase Storage's built-in capabilities
+    const { data: { text }, error: extractError } = await supabase.storage
+      .from('rfp-files')
+      .getPublicUrl(filePath, {
+        transform: {
+          format: 'text'
+        }
+      });
 
-    if (!text || text.length === 0) {
-      throw new Error('No text content extracted from PDF');
+    if (extractError || !text) {
+      console.error('Error extracting text:', extractError);
+      throw new Error('Failed to extract text from PDF');
     }
 
-    // Call OpenAI API
+    console.log('Successfully extracted text, length:', text.length);
+
+    // Call OpenAI API for analysis
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

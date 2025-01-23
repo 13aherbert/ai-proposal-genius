@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useProposalOutline } from "./useProposalOutline";
+import ReactMarkdown from "react-markdown";
 
 interface ProposalOutlineProps {
   projectId: string;
@@ -60,8 +61,10 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
           <Accordion type="single" collapsible defaultValue="outline">
             <AccordionItem value="outline">
               <AccordionTrigger>Outline Results</AccordionTrigger>
-              <AccordionContent className="whitespace-pre-wrap">
-                {outline}
+              <AccordionContent>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{outline}</ReactMarkdown>
+                </div>
                 <div className="mt-4">
                   <Button 
                     variant="outline" 

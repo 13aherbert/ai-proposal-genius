@@ -51,6 +51,31 @@ async function getKnowledgeBaseEntries(supabase: ReturnType<typeof createClient>
     }));
 }
 
+function formatKnowledgeBaseContext(entries: any[]) {
+  if (!entries || entries.length === 0) {
+    return "No knowledge base entries available.";
+  }
+
+  // Group entries by category for better context organization
+  const entriesByCategory = entries.reduce((acc: any, entry: any) => {
+    if (!acc[entry.category]) {
+      acc[entry.category] = [];
+    }
+    acc[entry.category].push(entry);
+    return acc;
+  }, {});
+
+  // Format the context with clear category separation
+  return Object.entries(entriesByCategory)
+    .map(([category, categoryEntries]: [string, any[]]) => {
+      const entriesText = categoryEntries
+        .map((entry: any) => `${entry.title}:\n${entry.content}`)
+        .join('\n\n');
+      return `Category: ${category}\n${entriesText}`;
+    })
+    .join('\n\n==========\n\n');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -75,12 +100,10 @@ serve(async (req) => {
       getKnowledgeBaseEntries(supabase, userId)
     ]);
 
-    // Format knowledge base entries for context
-    const knowledgeBaseContext = knowledgeEntries
-      .map(entry => `${entry.category} - ${entry.title}:\n${entry.content}`)
-      .join('\n\n');
+    // Format knowledge base entries with better structure
+    const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries);
 
-    // Construct the prompt with all available context
+    // Construct the prompt with improved context integration
     const prompt = `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. Here is the relevant context:
 
 Project Information:
@@ -93,7 +116,16 @@ Project Information:
 Knowledge Base Information:
 ${knowledgeBaseContext}
 
-Using ALL the context above, write a detailed and professional "${sectionTitle}" section for the proposal. Focus on:
+Instructions for using the Knowledge Base:
+1. Review ALL knowledge base entries carefully
+2. Incorporate relevant information from EACH category that applies to this section
+3. Use specific examples and data points from the knowledge base
+4. Maintain consistency with company standards found in boilerplates
+5. Reference any relevant legal disclaimers or compliance requirements
+6. Include industry benchmarks or competitive insights where applicable
+7. Apply pricing templates or estimation tools if relevant to this section
+
+Using the above context, write a detailed and professional "${sectionTitle}" section for the proposal. Focus on:
 1. Addressing specific client needs mentioned in the RFP analysis
 2. Incorporating relevant company information from the knowledge base
 3. Maintaining a formal, business-appropriate tone

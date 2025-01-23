@@ -58,7 +58,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
         )}
         
         {outline && (
-          <Accordion type="single" collapsible defaultValue="outline">
+          <Accordion type="single" collapsible>
             <AccordionItem value="outline">
               <AccordionTrigger>Outline Results</AccordionTrigger>
               <AccordionContent>

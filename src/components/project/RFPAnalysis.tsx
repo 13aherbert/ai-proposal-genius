@@ -60,7 +60,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         )}
         
         {analysis && (
-          <Accordion type="single" collapsible defaultValue="analysis">
+          <Accordion type="single" collapsible>
             <AccordionItem value="analysis">
               <AccordionTrigger>Analysis Results</AccordionTrigger>
               <AccordionContent>

@@ -27,26 +27,25 @@ const KnowledgeBase = () => {
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)]">
         <div className="flex flex-col gap-8 h-full">
-          <header className="space-y-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <div className="flex items-center justify-between">
+          <header className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
                 Knowledge Base
               </h1>
-              <AddEntryDialog 
-                categories={categories}
-                open={open}
-                onOpenChange={setOpen}
-              />
             </div>
+            <AddEntryDialog 
+              categories={categories}
+              open={open}
+              onOpenChange={setOpen}
+            />
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100%-5rem)]">

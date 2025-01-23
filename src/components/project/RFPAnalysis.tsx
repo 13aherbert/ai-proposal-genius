@@ -5,6 +5,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRFPAnalysis } from "./rfp-analysis/useRFPAnalysis";
 import { AnalysisContent } from "./rfp-analysis/AnalysisContent";
 import { parseAnalysis } from "./rfp-analysis/utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface RFPAnalysisProps {
   filePath: string;
@@ -54,10 +60,17 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         )}
         
         {analysis && (
-          <AnalysisContent 
-            sections={parsedSections} 
-            onReset={handleReset} 
-          />
+          <Accordion type="single" collapsible defaultValue="analysis">
+            <AccordionItem value="analysis">
+              <AccordionTrigger>Analysis Results</AccordionTrigger>
+              <AccordionContent>
+                <AnalysisContent 
+                  sections={parsedSections} 
+                  onReset={handleReset} 
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
       </CardContent>
     </Card>

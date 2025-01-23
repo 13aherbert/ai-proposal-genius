@@ -41,7 +41,6 @@ async function getKnowledgeBaseEntries(supabase: ReturnType<typeof createClient>
     throw entriesError;
   }
 
-  // Filter out entries without content and format them for the AI
   return entries
     .filter(entry => entry.content || entry.parsed_content)
     .map(entry => ({
@@ -56,7 +55,6 @@ function formatKnowledgeBaseContext(entries: any[]) {
     return "No knowledge base entries available.";
   }
 
-  // Group entries by category for better context organization
   const entriesByCategory = entries.reduce((acc: any, entry: any) => {
     if (!acc[entry.category]) {
       acc[entry.category] = [];
@@ -65,15 +63,16 @@ function formatKnowledgeBaseContext(entries: any[]) {
     return acc;
   }, {});
 
-  // Format the context with clear category separation
-  return Object.entries(entriesByCategory)
-    .map(([category, categoryEntries]: [string, any[]]) => {
-      const entriesText = categoryEntries
-        .map((entry: any) => `${entry.title}:\n${entry.content}`)
-        .join('\n\n');
-      return `Category: ${category}\n${entriesText}`;
-    })
-    .join('\n\n==========\n\n');
+  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION) ===\n\n";
+  
+  Object.entries(entriesByCategory).forEach(([category, categoryEntries]: [string, any[]]) => {
+    formattedContext += `### ${category.toUpperCase()} ###\n\n`;
+    categoryEntries.forEach((entry: any) => {
+      formattedContext += `${entry.title}:\n${entry.content}\n---\n\n`;
+    });
+  });
+
+  return formattedContext;
 }
 
 serve(async (req) => {
@@ -91,20 +90,16 @@ serve(async (req) => {
 
     console.log(`Generating content for section: ${sectionTitle} in project: ${projectId}`);
     
-    // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch project and knowledge base context
     const [project, knowledgeEntries] = await Promise.all([
       getProjectContext(supabase, projectId),
       getKnowledgeBaseEntries(supabase, userId)
     ]);
 
-    // Format knowledge base entries with better structure
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries);
 
-    // Construct the prompt with improved context integration
-    const prompt = `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. Here is the relevant context:
+    const prompt = `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. You MUST use the knowledge base information provided below to create this section.
 
 Project Information:
 - Title: ${project.title}
@@ -113,28 +108,28 @@ Project Information:
 - RFP Analysis: ${project.analysis || 'No analysis available'}
 - Proposal Outline: ${project.proposal_outline || 'No outline available'}
 
-Knowledge Base Information:
 ${knowledgeBaseContext}
 
-Instructions for using the Knowledge Base:
-1. Review ALL knowledge base entries carefully
-2. Incorporate relevant information from EACH category that applies to this section
-3. Use specific examples and data points from the knowledge base
-4. Maintain consistency with company standards found in boilerplates
-5. Reference any relevant legal disclaimers or compliance requirements
-6. Include industry benchmarks or competitive insights where applicable
-7. Apply pricing templates or estimation tools if relevant to this section
+IMPORTANT INSTRUCTIONS:
+1. You MUST use the knowledge base information provided above. Do not say you don't have access to information - it's all provided above.
+2. For each point you make, reference specific information from the knowledge base.
+3. If you find relevant boilerplate text in the knowledge base, incorporate it.
+4. If you find relevant pricing or estimation information, include it.
+5. If you find relevant legal disclaimers, include them.
+6. Maintain consistency with any company standards found in the knowledge base.
+7. Use specific examples and data points from the knowledge base.
 
-Using the above context, write a detailed and professional "${sectionTitle}" section for the proposal. Focus on:
-1. Addressing specific client needs mentioned in the RFP analysis
-2. Incorporating relevant company information from the knowledge base
-3. Maintaining a formal, business-appropriate tone
-4. Being detailed and thorough while staying relevant to the section topic
-5. Using active voice and clear language
-6. Supporting all claims with specific examples from the knowledge base
-7. Ensuring all information aligns with both the RFP requirements and company capabilities
+Write a detailed and professional "${sectionTitle}" section that:
+1. Addresses the client's specific needs from the RFP analysis
+2. Uses concrete information from the knowledge base
+3. Maintains a formal, business-appropriate tone
+4. Is detailed and thorough
+5. Uses active voice
+6. Supports all claims with specific examples from the knowledge base
 
 Write the section now:\n\nAssistant:`;
+
+    console.log('Sending prompt to Claude with knowledge base entries:', knowledgeEntries.length);
 
     const response = await fetch('https://api.anthropic.com/v1/complete', {
       method: 'POST',

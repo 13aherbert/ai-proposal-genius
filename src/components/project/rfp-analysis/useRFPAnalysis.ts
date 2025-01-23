@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { loadSavedAnalysis, clearAnalysis, analyzeRFP } from "./api/rfpAnalysisApi";
+import { retryOperation } from "./utils/retryOperation";
 
+/**
+ * Hook for managing RFP analysis state and operations
+ * @param filePath - Path to the RFP file to analyze
+ * @param projectId - ID of the project
+ */
 export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -9,17 +15,11 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
 
   // Load saved analysis when component mounts
   useEffect(() => {
-    const loadSavedAnalysis = async () => {
+    const initializeAnalysis = async () => {
       try {
-        const { data, error: fetchError } = await supabase
-          .from('projects')
-          .select('analysis')
-          .eq('id', projectId)
-          .single();
-
-        if (fetchError) throw fetchError;
-        if (data?.analysis) {
-          setAnalysis(data.analysis);
+        const savedAnalysis = await loadSavedAnalysis(projectId);
+        if (savedAnalysis) {
+          setAnalysis(savedAnalysis);
         }
       } catch (error) {
         console.error('Error loading saved analysis:', error);
@@ -27,20 +27,12 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       }
     };
 
-    loadSavedAnalysis();
+    initializeAnalysis();
   }, [projectId]);
 
   const handleReset = async () => {
     try {
-      // Update the database to clear the analysis
-      const { error: updateError } = await supabase
-        .from('projects')
-        .update({ analysis: null })
-        .eq('id', projectId);
-
-      if (updateError) throw updateError;
-
-      // Clear the local state
+      await clearAnalysis(projectId);
       setAnalysis(null);
       setError(null);
       toast.success("Analysis cleared successfully");
@@ -51,79 +43,33 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   };
 
   const handleAnalyze = async () => {
-    let currentRetry = 0;
     setIsAnalyzing(true);
     setError(null);
 
-    const attemptAnalysis = async () => {
-      try {
-        console.log('Starting analysis attempt', currentRetry + 1);
-        
-        // Validate input parameters
-        if (!filePath || !projectId) {
-          throw new Error("Missing required parameters: filePath and projectId");
-        }
-
-        const requestBody = {
-          filePath,
-          projectId
-        };
-
-        console.log('Sending request with body:', requestBody);
-
-        // Pass the request body directly without stringifying - the SDK will handle it
-        const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
-          body: requestBody
-        });
-
-        if (functionError) {
-          console.error('Function error:', functionError);
-          throw new Error(functionError.message || 'Error calling analysis service');
-        }
-
-        if (!data?.analysis) {
-          throw new Error("Invalid response from analysis service");
-        }
-
-        // Save the analysis to the database
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({ analysis: data.analysis })
-          .eq('id', projectId);
-
-        if (updateError) {
-          console.error('Error saving analysis:', updateError);
-          throw new Error('Failed to save analysis');
-        }
-
-        console.log('Analysis completed and saved successfully:', data);
-        setAnalysis(data.analysis);
-        setError(null);
-        toast.success("Analysis completed and saved successfully");
-      } catch (error) {
-        console.error('Analysis error:', error);
-        
-        if (currentRetry < 2) {
-          currentRetry++;
-          const delay = 1000 * currentRetry;
-          console.log(`Retry attempt ${currentRetry} failed, waiting ${delay}ms before next attempt`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return attemptAnalysis();
-        }
-        
-        let errorMessage = "Failed to analyze RFP document. ";
-        if (error instanceof Error) {
-          errorMessage += error.message;
-        }
-        
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setIsAnalyzing(false);
+    try {
+      // Validate input parameters
+      if (!filePath || !projectId) {
+        throw new Error("Missing required parameters: filePath and projectId");
       }
-    };
 
-    await attemptAnalysis();
+      const result = await retryOperation(async () => {
+        console.log('Starting analysis attempt');
+        return analyzeRFP(filePath, projectId);
+      });
+
+      setAnalysis(result);
+      toast.success("Analysis completed and saved successfully");
+    } catch (error) {
+      console.error('Analysis error:', error);
+      const errorMessage = error instanceof Error 
+        ? `Failed to analyze RFP document. ${error.message}`
+        : "Failed to analyze RFP document.";
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return {

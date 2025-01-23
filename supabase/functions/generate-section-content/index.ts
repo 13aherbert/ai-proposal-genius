@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.fresh.dev/std@v1/http/server.ts';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { corsHeaders } from '../_shared/cors.ts';
 import { formatKnowledgeBaseContext } from './knowledge-base.ts';
 import { generatePrompt } from './prompt.ts';

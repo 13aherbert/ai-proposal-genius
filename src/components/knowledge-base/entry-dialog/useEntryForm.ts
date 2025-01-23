@@ -33,6 +33,7 @@ export const useEntryForm = (onSuccess: () => void) => {
     try {
       setIsSubmitting(true);
       let filePath = null;
+      let entryId = null;
 
       if (uploadMode === 'file' && selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
@@ -50,7 +51,7 @@ export const useEntryForm = (onSuccess: () => void) => {
         filePath = data.path;
       }
 
-      const { error: insertError } = await supabase
+      const { error: insertError, data: insertData } = await supabase
         .from('knowledge_entries')
         .insert({
           title,
@@ -58,12 +59,26 @@ export const useEntryForm = (onSuccess: () => void) => {
           content: uploadMode === 'text' ? content : null,
           file_path: filePath,
           user_id: userId
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Insert error:', insertError);
         toast.error("Failed to save entry");
         return;
+      }
+
+      // If a file was uploaded, trigger the parsing function
+      if (filePath && insertData) {
+        const { error: parseError } = await supabase.functions.invoke('parse-knowledge-file', {
+          body: { entryId: insertData.id, filePath }
+        });
+
+        if (parseError) {
+          console.error('Parse error:', parseError);
+          toast.error("File uploaded but content parsing failed");
+        }
       }
 
       toast.success("Entry added successfully!");

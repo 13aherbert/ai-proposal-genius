@@ -28,19 +28,27 @@ async function getProjectContext(supabase: ReturnType<typeof createClient>, proj
   return project;
 }
 
-async function getKnowledgeBaseEntries(supabase: ReturnType<typeof createClient>) {
+async function getKnowledgeBaseEntries(supabase: ReturnType<typeof createClient>, userId: string) {
   console.log('Fetching knowledge base entries');
   
   const { data: entries, error: entriesError } = await supabase
     .from('knowledge_entries')
-    .select('*');
+    .select('*')
+    .eq('user_id', userId);
 
   if (entriesError) {
     console.error('Error fetching knowledge entries:', entriesError);
     throw entriesError;
   }
 
-  return entries;
+  // Filter out entries without content and format them for the AI
+  return entries
+    .filter(entry => entry.content || entry.parsed_content)
+    .map(entry => ({
+      title: entry.title,
+      category: entry.category,
+      content: entry.parsed_content || entry.content
+    }));
 }
 
 serve(async (req) => {
@@ -49,7 +57,7 @@ serve(async (req) => {
   }
 
   try {
-    const { sectionTitle, projectId } = await req.json();
+    const { sectionTitle, projectId, userId } = await req.json();
     
     if (!anthropicApiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
@@ -64,13 +72,12 @@ serve(async (req) => {
     // Fetch project and knowledge base context
     const [project, knowledgeEntries] = await Promise.all([
       getProjectContext(supabase, projectId),
-      getKnowledgeBaseEntries(supabase)
+      getKnowledgeBaseEntries(supabase, userId)
     ]);
 
     // Format knowledge base entries for context
-    const relevantKnowledge = knowledgeEntries
-      .filter(entry => !entry.file_path) // Only include text entries
-      .map(entry => `${entry.title}:\n${entry.content || 'No content'}`)
+    const knowledgeBaseContext = knowledgeEntries
+      .map(entry => `${entry.category} - ${entry.title}:\n${entry.content}`)
       .join('\n\n');
 
     // Construct the prompt with all available context
@@ -83,16 +90,17 @@ Project Information:
 - RFP Analysis: ${project.analysis || 'No analysis available'}
 - Proposal Outline: ${project.proposal_outline || 'No outline available'}
 
-Relevant Knowledge Base Information:
-${relevantKnowledge}
+Knowledge Base Information:
+${knowledgeBaseContext}
 
-Using the context above, write a detailed and professional "${sectionTitle}" section for the proposal. Focus on:
+Using ALL the context above, write a detailed and professional "${sectionTitle}" section for the proposal. Focus on:
 1. Addressing specific client needs mentioned in the RFP analysis
 2. Incorporating relevant company information from the knowledge base
 3. Maintaining a formal, business-appropriate tone
-4. Being detailed and thorough
-5. Using active voice
-6. Ensuring all claims are supported by the provided context
+4. Being detailed and thorough while staying relevant to the section topic
+5. Using active voice and clear language
+6. Supporting all claims with specific examples from the knowledge base
+7. Ensuring all information aligns with both the RFP requirements and company capabilities
 
 Write the section now:\n\nAssistant:`;
 

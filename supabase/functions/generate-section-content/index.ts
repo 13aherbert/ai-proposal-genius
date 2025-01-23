@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,23 +18,37 @@ serve(async (req) => {
     
     const prompt = `Write the ${sectionTitle} section. Be detailed and thorough. Use a formal tone, with the focus on presenting information in a clear and detailed manner. Write in the active voice.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-3-opus-20240229',
+        max_tokens: 1500,
         messages: [
-          { role: 'system', content: 'You are an expert proposal writer, skilled at creating professional and detailed content.' },
-          { role: 'user', content: prompt }
-        ],
+          {
+            role: 'system',
+            content: 'You are an expert proposal writer, skilled at creating professional and detailed content.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Claude API error:', errorData);
+      throw new Error('Failed to generate content with Claude');
+    }
+
     const data = await response.json();
-    const generatedContent = data.choices[0].message.content;
+    const generatedContent = data.content[0].text;
 
     return new Response(JSON.stringify({ content: generatedContent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -38,13 +38,27 @@ serve(async (req) => {
 
     if (knowledgeError) throw new Error('Failed to fetch knowledge base entries');
 
-    // Construct the prompt with project information
+    // Construct the prompt with project information and format instructions
     const prompt = `Act as an expert proposal writer.
 
 The company ${project.business_name || '[Business Name Not Specified]'} is submitting a proposal to ${project.client_name || '[Client Name Not Specified]'} to a solicitation titled ${project.title}.
 
 The solicitation includes a Statement of Work (SOW) that describes the work to be performed. The SOW and the proposal instructions are the Request for Proposal.
 Review the attached Request for Proposal's SOW and the instructions and create a detailed outline for the proposal. Ensure the outline covers all the items specified in the instructions. Be sure to follow the proposal instructions exactly. For the individual section headings, use the same words used in the proposal instructions.
+
+Format your response as a structured outline using markdown, following this format:
+# Section 1: [Main Section Title]
+## 1.1 [Subsection Title]
+- Key point or requirement
+- Supporting details
+  - Additional detail or specification
+
+## 1.2 [Subsection Title]
+- Key requirements
+  - Specific details
+
+# Section 2: [Main Section Title]
+[Continue with the same structure]
 
 Here is the RFP analysis to help you understand the requirements:
 ${analysis}

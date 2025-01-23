@@ -25,7 +25,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>AI Analysis</CardTitle>
+        <CardTitle>RFP Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (

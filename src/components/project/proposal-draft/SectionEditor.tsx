@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Save, Wand2 } from "lucide-react";
 import { useProposalSections, ProposalSection } from "./useProposalSections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/components/AuthProvider";
 
 interface SectionEditorProps {
   section: ProposalSection;
@@ -20,6 +21,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const { updateSection } = useProposalSections(section.project_id);
+  const { session } = useAuth();
 
   const handleSave = () => {
     updateSection(section.id, content, title);
@@ -28,13 +30,19 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   };
 
   const generateContent = async () => {
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to generate content");
+      return;
+    }
+
     setIsGenerating(true);
     try {
       console.log('Generating content for project:', section.project_id);
       const { data, error } = await supabase.functions.invoke('generate-section-content', {
         body: { 
           sectionTitle: title,
-          projectId: section.project_id // Ensure we're passing the project ID
+          projectId: section.project_id,
+          userId: session.user.id // Add the user ID here
         },
       });
 

@@ -35,22 +35,28 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
     setError(null);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('generate-proposal-outline', {
+      // Generate outline using edge function
+      const { data: generatedData, error: functionError } = await supabase.functions.invoke('generate-proposal-outline', {
         body: { projectId, analysis }
       });
 
       if (functionError) throw new Error(functionError.message);
-      if (!data?.outline) throw new Error("Invalid response from outline generation");
+      if (!generatedData?.outline) throw new Error("Invalid response from outline generation");
 
       // Save the outline to the database
       const { error: updateError } = await supabase
         .from('projects')
-        .update({ proposal_outline: data.outline })
-        .eq('id', projectId);
+        .update({ 
+          proposal_outline: generatedData.outline,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId)
+        .select()
+        .single();
 
       if (updateError) throw updateError;
 
-      setOutline(data.outline);
+      setOutline(generatedData.outline);
       toast.success("Outline generated and saved successfully!");
     } catch (error) {
       console.error('Error generating outline:', error);

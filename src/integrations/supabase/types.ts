@@ -119,6 +119,7 @@ export type Database = {
           created_at: string
           deadline: string | null
           id: string
+          proposal_outline: string | null
           rfp_file_path: string
           status: string
           title: string
@@ -132,6 +133,7 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           id?: string
+          proposal_outline?: string | null
           rfp_file_path: string
           status?: string
           title: string
@@ -145,6 +147,7 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           id?: string
+          proposal_outline?: string | null
           rfp_file_path?: string
           status?: string
           title?: string

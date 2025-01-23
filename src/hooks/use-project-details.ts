@@ -13,6 +13,8 @@ export type Project = {
   client_name: string | null;
   business_name: string | null;
   deadline: string | null;
+  analysis: string | null;
+  proposal_outline: string | null;
 };
 
 const MAX_RETRIES = 3;

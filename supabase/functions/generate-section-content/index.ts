@@ -63,7 +63,7 @@ function formatKnowledgeBaseContext(entries: any[]) {
     return acc;
   }, {});
 
-  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION) ===\n\n";
+  let formattedContext = "=== KNOWLEDGE BASE CONTENT ===\n\n";
   
   Object.entries(entriesByCategory).forEach(([category, categoryEntries]: [string, any[]]) => {
     formattedContext += `### ${category.toUpperCase()} ###\n\n`;
@@ -99,33 +99,25 @@ serve(async (req) => {
 
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries);
 
-    const prompt = `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. You MUST use the knowledge base information provided below to create this section.
+    const prompt = `\n\nHuman: You are writing a business proposal section. Here is the context:
 
 Project Information:
 - Title: ${project.title}
 - Client: ${project.client_name || 'Not specified'}
 - Business: ${project.business_name || 'Not specified'}
 - RFP Analysis: ${project.analysis || 'No analysis available'}
-- Proposal Outline: ${project.proposal_outline || 'No outline available'}
 
 ${knowledgeBaseContext}
 
-IMPORTANT INSTRUCTIONS:
-1. You MUST use the knowledge base information provided above. Do not say you don't have access to information - it's all provided above.
-2. For each point you make, reference specific information from the knowledge base.
-3. If you find relevant boilerplate text in the knowledge base, incorporate it.
-4. If you find relevant pricing or estimation information, include it.
-5. If you find relevant legal disclaimers, include them.
-6. Maintain consistency with any company standards found in the knowledge base.
-7. Use specific examples and data points from the knowledge base.
+Using the RFP and information you know about the business from the knowledge base, write the "${sectionTitle}" section. Be detailed and thorough. Use a formal tone, with the focus on presenting information in a clear and detailed manner. Write in the active voice.
 
-Write a detailed and professional "${sectionTitle}" section that:
-1. Addresses the client's specific needs from the RFP analysis
-2. Uses concrete information from the knowledge base
-3. Maintains a formal, business-appropriate tone
-4. Is detailed and thorough
-5. Uses active voice
-6. Supports all claims with specific examples from the knowledge base
+IMPORTANT INSTRUCTIONS:
+1. You MUST use the knowledge base information provided above.
+2. Reference specific details from the RFP analysis.
+3. Incorporate any relevant boilerplate text, pricing information, or legal disclaimers from the knowledge base.
+4. Maintain consistency with company standards found in the knowledge base.
+5. Support all claims with specific examples.
+6. Write in active voice and maintain a formal, professional tone.
 
 Write the section now:\n\nAssistant:`;
 

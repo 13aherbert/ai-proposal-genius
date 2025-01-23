@@ -30,9 +30,24 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
     loadSavedAnalysis();
   }, [projectId]);
 
-  const handleReset = () => {
-    setAnalysis(null);
-    setError(null);
+  const handleReset = async () => {
+    try {
+      // Update the database to clear the analysis
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({ analysis: null })
+        .eq('id', projectId);
+
+      if (updateError) throw updateError;
+
+      // Clear the local state
+      setAnalysis(null);
+      setError(null);
+      toast.success("Analysis cleared successfully");
+    } catch (error) {
+      console.error('Error clearing analysis:', error);
+      toast.error("Failed to clear analysis");
+    }
   };
 
   const handleAnalyze = async () => {

@@ -32,7 +32,6 @@ export function useProposalSections(projectId: string) {
 
   const addSectionMutation = useMutation({
     mutationFn: async (title: string) => {
-      // Get the current user's session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         throw new Error("No authenticated user");
@@ -66,13 +65,15 @@ export function useProposalSections(projectId: string) {
     mutationFn: async ({
       sectionId,
       content,
+      title,
     }: {
       sectionId: string;
       content: string;
+      title: string;
     }) => {
       const { data, error } = await supabase
         .from("proposal_sections")
-        .update({ content })
+        .update({ content, section_title: title })
         .eq("id", sectionId)
         .select()
         .single();
@@ -96,7 +97,7 @@ export function useProposalSections(projectId: string) {
     isLoading,
     error,
     addSection: (title: string) => addSectionMutation.mutate(title),
-    updateSection: (sectionId: string, content: string) =>
-      updateSectionMutation.mutate({ sectionId, content }),
+    updateSection: (sectionId: string, content: string, title: string) =>
+      updateSectionMutation.mutate({ sectionId, content, title }),
   };
 }

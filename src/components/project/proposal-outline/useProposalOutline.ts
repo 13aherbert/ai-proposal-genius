@@ -42,6 +42,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       if (functionError) throw new Error(functionError.message);
       if (!data?.outline) throw new Error("Invalid response from outline generation");
 
+      // Save the outline to the database
       const { error: updateError } = await supabase
         .from('projects')
         .update({ proposal_outline: data.outline })
@@ -50,7 +51,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       if (updateError) throw updateError;
 
       setOutline(data.outline);
-      toast.success("Outline generated successfully!");
+      toast.success("Outline generated and saved successfully!");
     } catch (error) {
       console.error('Error generating outline:', error);
       setError("Failed to generate outline. Please try again.");

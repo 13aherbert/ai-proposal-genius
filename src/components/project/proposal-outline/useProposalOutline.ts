@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -6,6 +6,29 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
   const [outline, setOutline] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Initialize outline from project data
+  useEffect(() => {
+    const loadSavedOutline = async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('projects')
+          .select('proposal_outline')
+          .eq('id', projectId)
+          .single();
+
+        if (fetchError) throw fetchError;
+        if (data?.proposal_outline) {
+          setOutline(data.proposal_outline);
+        }
+      } catch (error) {
+        console.error('Error loading saved outline:', error);
+        toast.error("Failed to load saved outline");
+      }
+    };
+
+    loadSavedOutline();
+  }, [projectId]);
 
   const handleReset = async () => {
     try {

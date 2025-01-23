@@ -3,7 +3,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { corsHeaders } from '../_shared/cors.ts';
 import { formatKnowledgeBaseContext } from './knowledge-base.ts';
 import { generatePrompt } from './prompt.ts';
-import { generateWithClaude } from './claude-client.ts';
 import type { GenerateContentRequest, Project, KnowledgeEntry } from './types.ts';
 
 serve(async (req) => {

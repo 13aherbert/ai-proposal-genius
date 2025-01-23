@@ -1,12 +1,5 @@
 import { Project } from './types';
 
-/**
- * Generates the AI prompt for content generation
- * @param sectionTitle - Title of the section to generate
- * @param project - Project details
- * @param knowledgeBaseContext - Formatted knowledge base context
- * @returns Complete prompt string
- */
 export function generatePrompt(
   sectionTitle: string,
   project: Project,

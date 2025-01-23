@@ -30,8 +30,12 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const generateContent = async () => {
     setIsGenerating(true);
     try {
+      console.log('Generating content for project:', section.project_id);
       const { data, error } = await supabase.functions.invoke('generate-section-content', {
-        body: { sectionTitle: title },
+        body: { 
+          sectionTitle: title,
+          projectId: section.project_id // Ensure we're passing the project ID
+        },
       });
 
       if (error) throw error;

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { RFPAnalysis } from "@/components/project/RFPAnalysis";
 import { ProposalOutline } from "@/components/project/proposal-outline/ProposalOutline";
+import { ProposalDraft } from "@/components/project/proposal-draft/ProposalDraft";
 import { useProjectDetails } from "@/hooks/use-project-details";
 
 const ProjectDetails = () => {
@@ -62,6 +63,7 @@ const ProjectDetails = () => {
             <ProjectInfo project={project} />
             <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />
             <ProposalOutline projectId={project.id} analysis={project.analysis} />
+            <ProposalDraft projectId={project.id} outline={project.proposal_outline} />
           </div>
         </div>
       </div>

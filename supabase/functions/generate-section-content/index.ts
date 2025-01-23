@@ -63,7 +63,7 @@ function formatKnowledgeBaseContext(entries: any[]) {
     return acc;
   }, {});
 
-  let formattedContext = "=== KNOWLEDGE BASE CONTENT ===\n\n";
+  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION AND NOTHING ELSE) ===\n\n";
   
   Object.entries(entriesByCategory).forEach(([category, categoryEntries]: [string, any[]]) => {
     formattedContext += `### ${category.toUpperCase()} ###\n\n`;
@@ -99,7 +99,7 @@ serve(async (req) => {
 
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries);
 
-    const prompt = `\n\nHuman: You are writing a business proposal section. Here is the context:
+    const prompt = `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. You MUST ONLY use the knowledge base information provided below to create this section. DO NOT make up or infer any information that is not explicitly stated in the knowledge base.
 
 Project Information:
 - Title: ${project.title}
@@ -109,32 +109,36 @@ Project Information:
 
 ${knowledgeBaseContext}
 
-Using the RFP and information you know about the business from the knowledge base, write the "${sectionTitle}" section. Be detailed and thorough. Use a formal tone, with the focus on presenting information in a clear and detailed manner. Write in the active voice.
+STRICT INSTRUCTIONS:
+1. You MUST ONLY use information that is explicitly stated in the knowledge base above. DO NOT make up or infer any information.
+2. If you cannot find specific information in the knowledge base for a point you want to make, DO NOT include that point.
+3. For every statement you make, you must be able to point to the exact source in the knowledge base.
+4. Use the exact terminology and phrasing from the knowledge base to maintain accuracy.
+5. If relevant boilerplate text exists in the knowledge base, use it verbatim.
+6. If relevant pricing information exists in the knowledge base, use it exactly as stated.
+7. If relevant legal disclaimers exist in the knowledge base, include them without modification.
+8. Write in active voice and maintain a formal, professional tone.
 
-IMPORTANT INSTRUCTIONS:
-1. You MUST use the knowledge base information provided above.
-2. Reference specific details from the RFP analysis.
-3. Incorporate any relevant boilerplate text, pricing information, or legal disclaimers from the knowledge base.
-4. Maintain consistency with company standards found in the knowledge base.
-5. Support all claims with specific examples.
-6. Write in active voice and maintain a formal, professional tone.
-
-Write the section now:\n\nAssistant:`;
+Write the section now, using ONLY the information provided above:\n\nAssistant:`;
 
     console.log('Sending prompt to Claude with knowledge base entries:', knowledgeEntries.length);
 
-    const response = await fetch('https://api.anthropic.com/v1/complete', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'x-api-key': anthropicApiKey,
         'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-2',
-        prompt,
-        max_tokens_to_sample: 1500,
-        temperature: 0.7,
+        model: 'claude-3-opus-20240229',
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
       }),
     });
 
@@ -149,12 +153,12 @@ Write the section now:\n\nAssistant:`;
     const data = await response.json();
     console.log('Claude API response received');
 
-    if (!data.completion) {
+    if (!data.content) {
       console.error('Unexpected response structure:', JSON.stringify(data));
       throw new Error('Invalid response structure from Claude API');
     }
 
-    return new Response(JSON.stringify({ content: data.completion }), {
+    return new Response(JSON.stringify({ content: data.content[0].text }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

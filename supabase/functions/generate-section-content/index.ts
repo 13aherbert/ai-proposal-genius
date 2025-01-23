@@ -23,28 +23,18 @@ serve(async (req) => {
 
     console.log(`Generating content for section: ${sectionTitle}`);
     
-    const prompt = `Write the ${sectionTitle} section. Be detailed and thorough. Use a formal tone, with the focus on presenting information in a clear and detailed manner. Write in the active voice.`;
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.anthropic.com/v1/complete', {
       method: 'POST',
       headers: {
         'x-api-key': anthropicApiKey,
-        'anthropic-version': '2024-02-15-preview',
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
-        max_tokens: 1500,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert proposal writer, skilled at creating professional and detailed content.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        model: 'claude-2',
+        prompt: `\n\nHuman: Write the ${sectionTitle} section for a business proposal. Be detailed and thorough. Use a formal tone, with the focus on presenting information in a clear and detailed manner. Write in the active voice.\n\nAssistant:`,
+        max_tokens_to_sample: 1000,
+        temperature: 0.7,
       }),
     });
 
@@ -59,14 +49,12 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Claude API response received');
 
-    if (!data.content || !data.content[0] || !data.content[0].text) {
+    if (!data.completion) {
       console.error('Unexpected response structure:', JSON.stringify(data));
       throw new Error('Invalid response structure from Claude API');
     }
 
-    const generatedContent = data.content[0].text;
-
-    return new Response(JSON.stringify({ content: generatedContent }), {
+    return new Response(JSON.stringify({ content: data.completion }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

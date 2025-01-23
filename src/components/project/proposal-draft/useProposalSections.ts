@@ -32,14 +32,19 @@ export function useProposalSections(projectId: string) {
 
   const addSectionMutation = useMutation({
     mutationFn: async (title: string) => {
+      // Get the current user's session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error("No authenticated user");
+      }
+
       const { data, error } = await supabase
         .from("proposal_sections")
-        .insert([
-          {
-            project_id: projectId,
-            section_title: title,
-          },
-        ])
+        .insert({
+          project_id: projectId,
+          section_title: title,
+          user_id: session.user.id,
+        })
         .select()
         .single();
 

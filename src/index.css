@@ -40,16 +40,16 @@
 }
 
 .gradient-bg {
-  background: radial-gradient(circle at top center, #4A90E2 0%, #0072B1 70%);
+  background: radial-gradient(circle at top center, #34D399 0%, #059669 70%);
 }
 
 /* Custom utility classes for the new color scheme */
 .bg-brand-gradient {
-  background: linear-gradient(to right, #4A90E2, #0072B1);
+  background: linear-gradient(to right, #34D399, #059669);
 }
 
 .text-brand-gradient {
-  background: linear-gradient(to right, #4A90E2, #0072B1);
+  background: linear-gradient(to right, #34D399, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

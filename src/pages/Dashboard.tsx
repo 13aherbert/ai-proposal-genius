@@ -109,11 +109,11 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-8">
           <header className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-brand-gradient">
+            <h1 className="text-3xl font-bold text-brand-green">
               Welcome to OptiRFP
             </h1>
             <div className="flex items-center gap-4">
-              <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-gradient hover:opacity-90">
+              <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
                 <Plus className="h-4 w-4" />
                 New Project
               </Button>
@@ -195,9 +195,9 @@ const Dashboard = () => {
                       >
                         <div className="flex items-center gap-3">
                           {activity.type === 'project' ? (
-                            <FolderOpen className="h-4 w-4 text-brand-blue" />
+                            <FolderOpen className="h-4 w-4 text-brand-green" />
                           ) : (
-                            <BookOpen className="h-4 w-4 text-brand-blue" />
+                            <BookOpen className="h-4 w-4 text-brand-green" />
                           )}
                           <div>
                             <p className="font-medium text-brand-gray">{activity.title}</p>
@@ -209,7 +209,7 @@ const Dashboard = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="text-brand-blue hover:text-brand-blue-dark hover:bg-brand-blue/10"
+                          className="text-brand-green hover:text-brand-green/80 hover:bg-brand-green/10"
                         >
                           View
                         </Button>

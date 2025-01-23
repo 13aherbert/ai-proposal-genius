@@ -20,10 +20,10 @@ export default {
     extend: {
       colors: {
         // Custom brand colors
-        'brand-blue': '#4A90E2',
-        'brand-blue-dark': '#0072B1',
-        'brand-gray': '#4B4F54',
         'brand-green': '#34D399',
+        'brand-green-dark': '#059669',
+        'brand-gray': '#4B4F54',
+        'brand-blue': '#4A90E2',
         'brand-silver': '#D9D9D9',
         // System colors
         border: "hsl(var(--border))",

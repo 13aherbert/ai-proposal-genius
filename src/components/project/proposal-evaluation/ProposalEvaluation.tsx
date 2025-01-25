@@ -14,19 +14,6 @@ interface ProposalEvaluationProps {
   analysis: string | null;
 }
 
-/**
- * ProposalEvaluation Component
- * 
- * Manages the AI-powered evaluation of proposals, including:
- * - Triggering the evaluation process
- * - Displaying progress during evaluation
- * - Showing evaluation results in a formatted view
- * - Handling error states
- * - Collapsible interface for better space management
- * 
- * @param projectId - The ID of the project being evaluated
- * @param analysis - The existing analysis text (currently unused, maintained for future use)
- */
 export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationProps) {
   const {
     evaluation,
@@ -40,23 +27,17 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
 
   return (
     <Card className="bg-white shadow-md">
-      <CollapsibleTrigger
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full"
-      >
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <CollapsibleTrigger className="flex items-center gap-2">
               <CardTitle className="text-2xl font-semibold text-gray-800">
                 Proposal Evaluation
               </CardTitle>
               <ChevronDown className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </div>
+            </CollapsibleTrigger>
             <Button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEvaluate();
-              }}
+              onClick={handleEvaluate}
               disabled={isEvaluating}
               variant={evaluation ? "outline" : "default"}
               className="flex items-center gap-2 min-w-[140px]"
@@ -79,9 +60,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
           </p>
           <Separator />
         </CardHeader>
-      </CollapsibleTrigger>
-      
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+
         <CollapsibleContent>
           <CardContent className="space-y-6">
             {error && (

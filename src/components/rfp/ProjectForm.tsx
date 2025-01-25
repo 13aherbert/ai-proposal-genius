@@ -102,7 +102,7 @@ export const ProjectForm = ({
               enter project details and start the AI analysis.
             </p>
             <div className="space-y-2">
-              <Label>Deadline (Optional)</Label>
+              <Label>Due Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button

@@ -10,8 +10,16 @@ interface ProjectContentProps {
 }
 
 /**
- * Main content component for the project details page
- * Renders all project-related components in a grid layout
+ * ProjectContent Component
+ * 
+ * Organizes and displays all project-related content sections:
+ * - Project information
+ * - RFP analysis
+ * - Proposal outline
+ * - Proposal draft
+ * - Proposal evaluation
+ * 
+ * @param project - The project object containing all necessary data
  */
 export function ProjectContent({ project }: ProjectContentProps) {
   return (

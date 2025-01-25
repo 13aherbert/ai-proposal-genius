@@ -12,6 +12,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   // Load saved analysis when component mounts
   useEffect(() => {
@@ -35,6 +36,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       await clearAnalysis(projectId);
       setAnalysis(null);
       setError(null);
+      setProgress(0);
       toast.success("Analysis cleared successfully");
     } catch (error) {
       console.error('Error clearing analysis:', error);
@@ -45,6 +47,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setError(null);
+    setProgress(0);
 
     try {
       // Validate input parameters
@@ -52,11 +55,24 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
         throw new Error("Missing required parameters: filePath and projectId");
       }
 
+      // Simulate progress during analysis
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 1000);
+
       const result = await retryOperation(async () => {
         console.log('Starting analysis attempt');
         return analyzeRFP(filePath, projectId);
       });
 
+      clearInterval(progressInterval);
+      setProgress(100);
       setAnalysis(result);
       toast.success("Analysis completed and saved successfully");
     } catch (error) {
@@ -76,6 +92,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
     analysis,
     isAnalyzing,
     error,
+    progress,
     handleAnalyze,
     handleReset
   };

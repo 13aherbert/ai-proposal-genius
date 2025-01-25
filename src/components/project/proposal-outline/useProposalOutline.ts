@@ -6,6 +6,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
   const [outline, setOutline] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   // Initialize outline from project data
   useEffect(() => {
@@ -41,6 +42,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
       setOutline(null);
       setError(null);
+      setProgress(0);
       toast.success("Outline cleared successfully");
     } catch (error) {
       console.error('Error clearing outline:', error);
@@ -56,12 +58,26 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
     setIsGenerating(true);
     setError(null);
+    setProgress(0);
 
     try {
+      // Simulate progress during generation
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 1000);
+
       // Generate outline using edge function
       const { data: generatedData, error: functionError } = await supabase.functions.invoke('generate-proposal-outline', {
         body: { projectId, analysis }
       });
+
+      clearInterval(progressInterval);
 
       if (functionError) throw new Error(functionError.message);
       if (!generatedData?.outline) throw new Error("Invalid response from outline generation");
@@ -79,6 +95,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
       if (updateError) throw updateError;
 
+      setProgress(100);
       setOutline(generatedData.outline);
       toast.success("Outline generated and saved successfully!");
     } catch (error) {
@@ -94,6 +111,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
     outline,
     isGenerating,
     error,
+    progress,
     handleGenerateOutline,
     handleReset
   };

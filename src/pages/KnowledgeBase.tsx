@@ -1,4 +1,4 @@
-import { BookOpen, FileText, Folder, List, Scale, DollarSign, LineChart, ArrowLeft } from "lucide-react";
+import { BookOpen, FileText, Folder, List, Scale, DollarSign, LineChart, ArrowLeft, Building } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const KnowledgeBase = () => {
     { icon: <Folder className="h-4 w-4" />, name: "Competitive Insights" },
     { icon: <DollarSign className="h-4 w-4" />, name: "Pricing Templates" },
     { icon: <FileText className="h-4 w-4" />, name: "Estimation Tools" },
+    { icon: <Building className="h-4 w-4" />, name: "Other Company Information" },
   ];
 
   return (

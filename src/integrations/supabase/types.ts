@@ -121,6 +121,7 @@ export type Database = {
           client_name: string | null
           created_at: string
           deadline: string | null
+          evaluation: string | null
           id: string
           proposal_outline: string | null
           rfp_file_path: string
@@ -135,6 +136,7 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           deadline?: string | null
+          evaluation?: string | null
           id?: string
           proposal_outline?: string | null
           rfp_file_path: string
@@ -149,6 +151,7 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           deadline?: string | null
+          evaluation?: string | null
           id?: string
           proposal_outline?: string | null
           rfp_file_path?: string

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -6,6 +6,29 @@ export function useProposalEvaluation(projectId: string) {
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load saved evaluation when component mounts
+  useEffect(() => {
+    const loadEvaluation = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('evaluation')
+          .eq('id', projectId)
+          .single();
+
+        if (error) throw error;
+        if (data?.evaluation) {
+          setEvaluation(data.evaluation);
+        }
+      } catch (error) {
+        console.error('Error loading evaluation:', error);
+        toast.error("Failed to load saved evaluation");
+      }
+    };
+
+    loadEvaluation();
+  }, [projectId]);
 
   const handleEvaluate = async () => {
     setIsEvaluating(true);
@@ -43,8 +66,16 @@ export function useProposalEvaluation(projectId: string) {
 
       if (evaluationError) throw evaluationError;
 
+      // Save the evaluation to the database
+      const { error: saveError } = await supabase
+        .from('projects')
+        .update({ evaluation: data.evaluation })
+        .eq('id', projectId);
+
+      if (saveError) throw saveError;
+
       setEvaluation(data.evaluation);
-      toast.success('Proposal evaluated successfully');
+      toast.success('Proposal evaluated and saved successfully');
     } catch (error) {
       console.error('Error evaluating proposal:', error);
       setError('Failed to evaluate proposal. Please try again.');

@@ -23,33 +23,33 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Proposal Evaluation</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Proposal Evaluation</CardTitle>
+          <Button 
+            onClick={handleEvaluate}
+            disabled={isEvaluating}
+            variant={evaluation ? "outline" : "default"}
+            className="flex items-center gap-2"
+          >
+            {isEvaluating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Evaluating...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                {evaluation ? "Reevaluate" : "Evaluate"} Proposal
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        )}
-
-        {!evaluation && !isEvaluating && (
-          <Button 
-            onClick={handleEvaluate}
-            className="w-full flex items-center gap-2"
-          >
-            <Wand2 className="h-4 w-4" />
-            Evaluate Proposal
-          </Button>
-        )}
-
-        {isEvaluating && (
-          <Button 
-            disabled
-            className="w-full"
-          >
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Evaluating...
-          </Button>
         )}
 
         {evaluation && (

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useProposalSections } from "./useProposalSections";
 import { SectionEditor } from "./SectionEditor";
+import { toast } from "sonner";
 
 interface ProposalDraftProps {
   projectId: string;
@@ -18,6 +19,7 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
     const title = prompt("Enter section title:");
     if (title) {
       addSection(title);
+      toast.success("New section added successfully");
     }
   };
 

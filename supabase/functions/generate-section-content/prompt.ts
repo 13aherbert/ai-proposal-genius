@@ -5,7 +5,7 @@ export function generatePrompt(
   project: Project,
   knowledgeBaseContext: string
 ): string {
-  return `You are writing the "${sectionTitle}" section for a business proposal. You MUST incorporate relevant information from the knowledge base provided below. This is CRITICAL - use the knowledge base content to support and enhance your response.
+  return `You are writing the "${sectionTitle}" section for a business proposal. Your primary task is to write content using the knowledge base information provided below. DO NOT create placeholders - you must use the actual content provided.
 
 Project Information:
 - Title: ${project.title}
@@ -16,23 +16,16 @@ Project Information:
 ${knowledgeBaseContext}
 
 STRICT INSTRUCTIONS:
-1. You MUST use information from the knowledge base above. This is your primary source of content.
-2. Look for and use:
-   - Company boilerplates and standard language
-   - Past project examples and case studies
-   - Relevant pricing information
-   - Legal disclaimers
-   - Industry benchmarks
-   - Competitive insights
-3. When you find relevant content in the knowledge base, incorporate it directly into your response.
-4. If you find boilerplate text or standard language, use it as-is or adapt it minimally to fit this proposal.
+1. DO NOT create placeholders or mention "inserting content from knowledge base" - actually use the content directly.
+2. When you find relevant content in the knowledge base, incorporate it verbatim or with minimal adaptation.
+3. If specific content is not available in the knowledge base, write naturally without mentioning the missing information.
+4. Focus on:
+   - Using actual examples and case studies from the knowledge base
+   - Including real metrics and outcomes from past projects
+   - Incorporating genuine testimonials and references
+   - Using verified company credentials and certifications
 5. Write in a professional, business proposal style.
-6. Focus on demonstrating:
-   - Understanding of the client's needs
-   - Your organization's relevant experience (from the knowledge base)
-   - Past successes in similar projects (from the knowledge base)
-   - Competitive advantages (from the knowledge base)
-7. If specific types of information are missing from the knowledge base, continue writing with what IS available rather than noting what's missing.
+6. Maintain a confident tone based on real achievements and capabilities documented in the knowledge base.
 
-Write the ${sectionTitle} section now, using the knowledge base content provided above:`;
+Write the ${sectionTitle} section now, using ONLY the actual content from the knowledge base provided above. Do not create placeholders or reference sections that should be inserted later:`;
 }

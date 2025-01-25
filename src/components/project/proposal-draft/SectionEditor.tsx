@@ -26,7 +26,6 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const handleSave = () => {
     updateSection(section.id, content, title);
     setIsEditing(false);
-    toast.success("Section updated successfully");
   };
 
   const generateContent = async () => {
@@ -42,7 +41,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
         body: { 
           sectionTitle: title,
           projectId: section.project_id,
-          userId: session.user.id // Add the user ID here
+          userId: session.user.id
         },
       });
 

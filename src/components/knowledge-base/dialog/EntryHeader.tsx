@@ -26,40 +26,38 @@ export const EntryHeader = ({
   onDelete,
 }: EntryHeaderProps) => {
   return (
-    <div className="flex flex-row items-center justify-between">
+    <div className="flex flex-col space-y-2">
       {isEditing ? (
-        <div className="flex-1">
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={editedTitle}
-            onChange={(e) => onEditedTitleChange(e.target.value)}
-            className="mt-1"
-          />
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={editedTitle}
+              onChange={(e) => onEditedTitleChange(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onCancelEditing}
+            className="mb-[2px]"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="default"
+            size="icon"
+            onClick={onSave}
+            className="mb-[2px]"
+          >
+            <Save className="h-4 w-4" />
+          </Button>
         </div>
       ) : (
-        <DialogTitle>{initialTitle}</DialogTitle>
-      )}
-      <div className="flex gap-2">
-        {isEditing ? (
-          <>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onCancelEditing}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="default"
-              size="icon"
-              onClick={onSave}
-            >
-              <Save className="h-4 w-4" />
-            </Button>
-          </>
-        ) : (
-          <>
+        <div className="flex items-center justify-between">
+          <DialogTitle>{initialTitle}</DialogTitle>
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="icon"
@@ -74,9 +72,9 @@ export const EntryHeader = ({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

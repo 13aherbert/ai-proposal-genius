@@ -36,8 +36,11 @@ export const useEntryForm = (onSuccess: () => void) => {
       let entryId = null;
 
       if (uploadMode === 'file' && selectedFile) {
+        // Create a sanitized filename based on the title
+        const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const fileName = `${sanitizedTitle}.${fileExt}`;
+        
         const { error: uploadError, data } = await supabase.storage
           .from('knowledge-files')
           .upload(`${userId}/${fileName}`, selectedFile);

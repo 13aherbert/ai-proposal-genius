@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Project } from "@/hooks/use-project-details";
 
 interface ProjectEditFormProps {
@@ -22,6 +29,7 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
   const [title, setTitle] = useState(project.title);
   const [clientName, setClientName] = useState(project.client_name || "");
   const [businessName, setBusinessName] = useState(project.business_name || "");
+  const [status, setStatus] = useState(project.status);
   const [deadline, setDeadline] = useState<Date | undefined>(
     project.deadline ? new Date(project.deadline) : undefined
   );
@@ -36,6 +44,7 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
           client_name: clientName || null,
           business_name: businessName || null,
           deadline: deadline?.toISOString() || null,
+          status,
         })
         .eq("id", project.id);
 
@@ -59,6 +68,20 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter project title"
         />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Status</label>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="review">Review</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Client Name</label>

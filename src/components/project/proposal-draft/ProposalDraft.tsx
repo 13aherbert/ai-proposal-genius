@@ -15,7 +15,7 @@ interface ProposalDraftProps {
 export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
-  const { sections, isLoading, error, addSection } = useProposalSections(projectId);
+  const { sections, isLoading, error, addSection, reorderSections } = useProposalSections(projectId);
 
   const handleAddSection = () => {
     const title = prompt("Enter section title:");
@@ -45,6 +45,7 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
                 sections={sections}
                 selectedSection={selectedSection}
                 onSelectSection={setSelectedSection}
+                onReorderSections={reorderSections}
                 isLoading={isLoading}
                 error={error}
               />

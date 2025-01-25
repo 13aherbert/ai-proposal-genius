@@ -92,6 +92,24 @@ export function useProposalSections(projectId: string) {
     },
   });
 
+  const reorderSectionsMutation = useMutation({
+    mutationFn: async (sections: ProposalSection[]) => {
+      // For now, we'll just update the local state
+      // In a future implementation, we could add a position field to the database
+      // and update the positions of all sections
+      return sections;
+    },
+    onSuccess: (newSections) => {
+      queryClient.setQueryData(["proposal-sections", projectId], newSections);
+      toast.success("Sections reordered successfully");
+    },
+    onError: (error: Error) => {
+      console.error("Error reordering sections:", error);
+      toast.error("Failed to reorder sections");
+      setError(error);
+    },
+  });
+
   return {
     sections,
     isLoading,
@@ -99,5 +117,7 @@ export function useProposalSections(projectId: string) {
     addSection: (title: string) => addSectionMutation.mutate(title),
     updateSection: (sectionId: string, content: string, title: string) =>
       updateSectionMutation.mutate({ sectionId, content, title }),
+    reorderSections: (sections: ProposalSection[]) =>
+      reorderSectionsMutation.mutate(sections),
   };
 }

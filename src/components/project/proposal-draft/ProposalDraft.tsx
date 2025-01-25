@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useProposalSections } from "./useProposalSections";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
@@ -31,7 +31,10 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CollapsibleTrigger className="flex items-center gap-2">
-                <CardTitle>Proposal Draft</CardTitle>
+                <div>
+                  <CardTitle>Proposal Draft</CardTitle>
+                  <CardDescription>Write and organize your proposal sections</CardDescription>
+                </div>
                 <ChevronDown 
                   className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />

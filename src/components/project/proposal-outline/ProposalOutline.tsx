@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIProgress } from "@/components/shared/AIProgress";
@@ -30,7 +30,10 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CollapsibleTrigger className="flex items-center gap-2">
-              <CardTitle>Proposal Outline</CardTitle>
+              <div>
+                <CardTitle>Proposal Outline</CardTitle>
+                <CardDescription>AI-generated structure for your proposal</CardDescription>
+              </div>
               <ChevronDown 
                 className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               />

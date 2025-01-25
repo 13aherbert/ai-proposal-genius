@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRFPAnalysis } from "./rfp-analysis/useRFPAnalysis";
@@ -25,15 +25,16 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
   } = useRFPAnalysis(filePath, projectId);
   const [isOpen, setIsOpen] = useState(false);
 
-  const parsedSections = analysis ? parseAnalysis(analysis) : [];
-
   return (
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CollapsibleTrigger className="flex items-center gap-2">
-              <CardTitle>RFP Summary</CardTitle>
+              <div>
+                <CardTitle>RFP Summary</CardTitle>
+                <CardDescription>AI-generated analysis of your RFP document</CardDescription>
+              </div>
               <ChevronDown 
                 className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               />

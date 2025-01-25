@@ -3,25 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProposalSections } from "./useProposalSections";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 interface ProposalDraftProps {
   projectId: string;
   outline: string | null;
 }
 
-/**
- * ProposalDraft Component
- * 
- * Manages the proposal drafting interface, allowing users to:
- * - Add new sections via a prompt dialog
- * - View and edit existing sections
- * - Track the currently selected section
- * 
- * @param projectId - The ID of the current project
- * @param outline - The proposal outline (currently unused, but maintained for future use)
- */
 export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(true);
   const { sections, isLoading, error, addSection } = useProposalSections(projectId);
 
   const handleAddSection = () => {
@@ -33,21 +25,30 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Proposal Draft</CardTitle>
-          <AddSectionButton onAdd={handleAddSection} />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <SectionsList
-          sections={sections}
-          selectedSection={selectedSection}
-          onSelectSection={setSelectedSection}
-          isLoading={isLoading}
-          error={error}
-        />
-      </CardContent>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger className="flex items-center gap-2">
+              <CardTitle>Proposal Draft</CardTitle>
+              <ChevronDown 
+                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </CollapsibleTrigger>
+            <AddSectionButton onAdd={handleAddSection} />
+          </div>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
+            <SectionsList
+              sections={sections}
+              selectedSection={selectedSection}
+              onSelectSection={setSelectedSection}
+              isLoading={isLoading}
+              error={error}
+            />
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

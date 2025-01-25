@@ -29,20 +29,20 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
       <Card>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CollapsibleTrigger className="flex items-center gap-2 w-full">
-                <div className="flex flex-col items-start text-left">
-                  <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                    Proposal Draft
-                  </CardTitle>
-                  <CardDescription>
-                    Create and manage your proposal sections
-                  </CardDescription>
-                </div>
+            <div className="flex items-center gap-4">
+              <CollapsibleTrigger>
                 <ChevronDown 
-                  className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`}
+                  className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
               </CollapsibleTrigger>
+              <div className="flex flex-col items-start flex-1">
+                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                  Proposal Draft
+                </CardTitle>
+                <CardDescription>
+                  Create and manage your proposal sections
+                </CardDescription>
+              </div>
               <AddSectionButton onAdd={handleAddSection} />
             </div>
           </CardHeader>

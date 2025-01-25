@@ -31,20 +31,20 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CollapsibleTrigger className="flex items-center gap-2 w-full">
-              <div className="flex flex-col items-start text-left">
-                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                  RFP Summary
-                </CardTitle>
-                <CardDescription>
-                  AI-powered analysis of your RFP document
-                </CardDescription>
-              </div>
+          <div className="flex items-center gap-4">
+            <CollapsibleTrigger>
               <ChevronDown 
-                className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               />
             </CollapsibleTrigger>
+            <div className="flex flex-col items-start">
+              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                RFP Summary
+              </CardTitle>
+              <CardDescription>
+                AI-powered analysis of your RFP document
+              </CardDescription>
+            </div>
           </div>
         </CardHeader>
         <CollapsibleContent>

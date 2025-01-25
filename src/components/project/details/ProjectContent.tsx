@@ -3,6 +3,7 @@ import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { RFPAnalysis } from "@/components/project/RFPAnalysis";
 import { ProposalOutline } from "@/components/project/proposal-outline/ProposalOutline";
 import { ProposalDraft } from "@/components/project/proposal-draft/ProposalDraft";
+import { ProposalEvaluation } from "@/components/project/proposal-evaluation/ProposalEvaluation";
 
 interface ProjectContentProps {
   project: Project;
@@ -19,6 +20,7 @@ export function ProjectContent({ project }: ProjectContentProps) {
       <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />
       <ProposalOutline projectId={project.id} analysis={project.analysis} />
       <ProposalDraft projectId={project.id} outline={project.proposal_outline} />
+      <ProposalEvaluation projectId={project.id} analysis={project.analysis} />
     </div>
   );
 }

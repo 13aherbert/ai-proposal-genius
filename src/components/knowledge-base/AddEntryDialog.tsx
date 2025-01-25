@@ -40,11 +40,11 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           Add New Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="sm:max-w-[625px] relative">
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 

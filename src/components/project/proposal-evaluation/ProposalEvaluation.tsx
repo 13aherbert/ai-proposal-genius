@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Wand2, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,11 +30,16 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">
-            <CollapsibleTrigger className="flex items-center gap-2">
-              <CardTitle className="text-2xl font-semibold text-gray-800">
-                Proposal Evaluation
-              </CardTitle>
-              <ChevronDown className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <CollapsibleTrigger className="flex items-center gap-2 w-full">
+              <div className="flex flex-col items-start text-left">
+                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                  Proposal Evaluation
+                </CardTitle>
+                <CardDescription>
+                  Get an AI-powered evaluation of your proposal
+                </CardDescription>
+              </div>
+              <ChevronDown className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`} />
             </CollapsibleTrigger>
             <Button 
               onClick={handleEvaluate}
@@ -55,9 +60,6 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
               )}
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Get an AI-powered evaluation of your proposal's strengths and areas for improvement.
-          </p>
           <Separator />
         </CardHeader>
 

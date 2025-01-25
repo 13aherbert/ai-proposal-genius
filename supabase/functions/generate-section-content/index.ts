@@ -17,7 +17,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { projectId, sectionTitle, userId } = await req.json() as GenerateContentRequest;
 
-    // Fetch project details
+    console.log('Fetching project details for:', projectId);
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
@@ -26,19 +26,23 @@ serve(async (req) => {
 
     if (projectError) throw projectError;
 
-    // Fetch relevant knowledge base entries
+    console.log('Fetching knowledge base entries');
     const { data: knowledgeEntries, error: knowledgeError } = await supabase
       .from('knowledge_entries')
       .select('*')
       .eq('user_id', userId);
 
     if (knowledgeError) throw knowledgeError;
-
+    
+    console.log(`Found ${knowledgeEntries?.length || 0} knowledge base entries`);
+    
     // Format knowledge base context
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries as KnowledgeEntry[]);
+    console.log('Knowledge base context formatted');
 
     // Generate the prompt with project and knowledge base context
     const prompt = generatePrompt(sectionTitle, project as Project, knowledgeBaseContext);
+    console.log('Prompt generated, calling Claude API');
 
     // Call Anthropic's Claude API
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
@@ -60,9 +64,10 @@ serve(async (req) => {
     });
 
     const result = await response.json();
-    console.log('Claude API Response:', result);
+    console.log('Claude API response received');
 
     if (!response.ok) {
+      console.error('Claude API error:', result);
       throw new Error(`Claude API error: ${result.error?.message || 'Unknown error'}`);
     }
 

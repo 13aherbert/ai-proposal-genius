@@ -5,20 +5,25 @@ export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
     return "No knowledge base entries available.";
   }
 
+  // Group entries by category for better organization
   const entriesByCategory = entries.reduce((acc: { [key: string]: KnowledgeEntry[] }, entry) => {
-    if (!acc[entry.category]) {
-      acc[entry.category] = [];
+    const category = entry.category.replace(/-/g, ' ').toUpperCase();
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[entry.category].push(entry);
+    acc[category].push(entry);
     return acc;
   }, {});
 
-  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION) ===\n\n";
+  let formattedContext = "=== KNOWLEDGE BASE CONTENT ===\n\n";
   
   Object.entries(entriesByCategory).forEach(([category, categoryEntries]) => {
-    formattedContext += `### ${category.toUpperCase()} ###\n\n`;
+    formattedContext += `### ${category} ###\n\n`;
     categoryEntries.forEach(entry => {
-      formattedContext += `${entry.title}:\n${entry.content || entry.parsed_content || 'No content available'}\n\n`;
+      const content = entry.content || entry.parsed_content;
+      if (content) {
+        formattedContext += `[${entry.title}]\n${content}\n\n`;
+      }
     });
   });
 

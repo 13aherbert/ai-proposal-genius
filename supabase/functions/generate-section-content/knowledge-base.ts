@@ -20,13 +20,16 @@ export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
   Object.entries(entriesByCategory).forEach(([category, categoryEntries]) => {
     formattedContext += `${category}:\n\n`;
     categoryEntries.forEach(entry => {
-      if (entry.content || entry.parsed_content) {
-        // Include both the content and parsed_content if available
-        const content = entry.content || '';
-        const parsedContent = entry.parsed_content || '';
-        formattedContext += `${entry.title}:\n${content}\n${parsedContent}\n\n`;
+      formattedContext += `=== ${entry.title} ===\n`;
+      if (entry.content) {
+        formattedContext += `${entry.content}\n`;
       }
+      if (entry.parsed_content) {
+        formattedContext += `${entry.parsed_content}\n`;
+      }
+      formattedContext += '\n';
     });
+    formattedContext += '---\n\n';
   });
 
   return formattedContext;

@@ -5,7 +5,7 @@ export function generatePrompt(
   project: Project,
   knowledgeBaseContext: string
 ): string {
-  return `You are writing the "${sectionTitle}" section for a business proposal. Your primary task is to write content using the knowledge base information provided below. DO NOT create placeholders - you must use the actual content provided.
+  return `You are writing the "${sectionTitle}" section for a business proposal. ONLY use REAL examples and content from the knowledge base provided below. DO NOT invent, extrapolate, or create ANY content that is not explicitly present in the knowledge base.
 
 Project Information:
 - Title: ${project.title}
@@ -16,16 +16,26 @@ Project Information:
 ${knowledgeBaseContext}
 
 STRICT INSTRUCTIONS:
-1. DO NOT create placeholders or mention "inserting content from knowledge base" - actually use the content directly.
-2. When you find relevant content in the knowledge base, incorporate it verbatim or with minimal adaptation.
-3. If specific content is not available in the knowledge base, write naturally without mentioning the missing information.
-4. Focus on:
-   - Using actual examples and case studies from the knowledge base
-   - Including real metrics and outcomes from past projects
-   - Incorporating genuine testimonials and references
-   - Using verified company credentials and certifications
-5. Write in a professional, business proposal style.
-6. Maintain a confident tone based on real achievements and capabilities documented in the knowledge base.
+1. ONLY use real examples and information that exists verbatim in the knowledge base above.
+2. If you cannot find specific information in the knowledge base for a topic:
+   - DO NOT make up examples or content
+   - DO NOT use placeholder text
+   - DO NOT mention that information is missing
+   - Simply omit that topic entirely and focus on what IS available
+3. When using content from the knowledge base:
+   - Copy the exact text, numbers, and examples
+   - Only make minimal grammatical adjustments for flow
+   - Keep all specific details (dates, numbers, names) exactly as they appear
+4. Forbidden actions:
+   - NO hypothetical examples
+   - NO "such as" or similar phrases unless directly quoting
+   - NO generalizations about capabilities unless explicitly stated in the knowledge base
+   - NO invented metrics or outcomes
+5. Required elements (ONLY if they exist in the knowledge base):
+   - Use exact project names and details
+   - Use real client names and testimonials
+   - Use actual metrics and outcomes
+   - Use verified credentials and certifications
 
-Write the ${sectionTitle} section now, using ONLY the actual content from the knowledge base provided above. Do not create placeholders or reference sections that should be inserted later:`;
+Write the ${sectionTitle} section now, using EXCLUSIVELY the real content found in the knowledge base above. If certain information is not available, simply focus on what is available without mentioning gaps:`;
 }

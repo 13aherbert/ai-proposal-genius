@@ -1,5 +1,3 @@
-import { ClaudeResponse } from './types';
-
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-3-opus-20240229';
 
@@ -9,31 +7,24 @@ export async function generateWithClaude(prompt: string, apiKey: string): Promis
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 4000,
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
-          content: prompt,
-        },
-      ],
-    }),
+          content: prompt
+        }
+      ]
+    })
   });
 
   if (!response.ok) {
-    console.error('Claude API error:', response.status, response.statusText);
-    throw new Error(`Claude API error: ${response.status}`);
+    throw new Error(`Claude API error: ${response.statusText}`);
   }
 
-  const data = await response.json() as ClaudeResponse;
-  
-  if (!data.content?.[0]?.text) {
-    console.error('Unexpected response structure:', JSON.stringify(data));
-    throw new Error('Invalid response structure from Claude API');
-  }
-
-  return data.content[0].text;
+  const result = await response.json();
+  return result.content[0].text;
 }

@@ -1,5 +1,5 @@
-import { serve } from 'https://deno.fresh.dev/std@v1/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { corsHeaders } from '../_shared/cors.ts';
 import { formatKnowledgeBaseContext } from './knowledge-base.ts';
 import { generatePrompt } from './prompt.ts';
@@ -54,7 +54,33 @@ serve(async (req) => {
     // Generate content
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries as KnowledgeEntry[]);
     const prompt = generatePrompt(sectionTitle, project as Project, knowledgeBaseContext);
-    const content = await generateWithClaude(prompt, anthropicApiKey);
+
+    // Call Claude API
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-opus-20240229',
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const content = result.content[0].text;
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

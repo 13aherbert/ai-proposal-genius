@@ -10,6 +10,8 @@ export function useProposalEvaluation(projectId: string) {
   // Load saved evaluation when component mounts
   useEffect(() => {
     const loadEvaluation = async () => {
+      if (!projectId) return;
+      
       try {
         const { data, error } = await supabase
           .from('projects')
@@ -31,6 +33,8 @@ export function useProposalEvaluation(projectId: string) {
   }, [projectId]);
 
   const handleEvaluate = async () => {
+    if (!projectId) return;
+    
     setIsEvaluating(true);
     setError(null);
 

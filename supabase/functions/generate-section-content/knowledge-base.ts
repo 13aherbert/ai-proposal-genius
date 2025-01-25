@@ -1,6 +1,10 @@
-import { KnowledgeEntry } from './types.ts';
+import { KnowledgeEntry } from "./types.ts";
 
 export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
+  if (!entries || entries.length === 0) {
+    return "No knowledge base entries available.";
+  }
+
   const entriesByCategory = entries.reduce((acc: { [key: string]: KnowledgeEntry[] }, entry) => {
     if (!acc[entry.category]) {
       acc[entry.category] = [];
@@ -9,12 +13,12 @@ export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
     return acc;
   }, {});
 
-  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION AND NOTHING ELSE) ===\n\n";
+  let formattedContext = "=== KNOWLEDGE BASE CONTENT (YOU MUST USE THIS INFORMATION) ===\n\n";
   
   Object.entries(entriesByCategory).forEach(([category, categoryEntries]) => {
     formattedContext += `### ${category.toUpperCase()} ###\n\n`;
     categoryEntries.forEach(entry => {
-      formattedContext += `${entry.title}:\n${entry.content}\n\n`;
+      formattedContext += `${entry.title}:\n${entry.content || entry.parsed_content || 'No content available'}\n\n`;
     });
   });
 

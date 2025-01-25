@@ -5,23 +5,23 @@ export function generatePrompt(
   project: Project,
   knowledgeBaseContext: string
 ): string {
-  return `\n\nHuman: You are writing the "${sectionTitle}" section for a business proposal. You MUST ONLY use the knowledge base information provided below to create this section. DO NOT make up or infer any information that is not explicitly stated in the knowledge base.
+  return `You are writing the "${sectionTitle}" section for a business proposal. You MUST use the knowledge base information provided below to create this section. DO NOT make up or infer any information that is not explicitly stated in the knowledge base.
 
 Project Information:
 - Title: ${project.title}
+- Client: ${project.client_name || 'Not specified'}
+- Business: ${project.business_name || 'Not specified'}
 - Analysis: ${project.analysis || 'No analysis available'}
 
 ${knowledgeBaseContext}
 
 STRICT INSTRUCTIONS:
-1. You MUST ONLY use information that is explicitly stated in the knowledge base above. DO NOT make up or infer any information.
-2. If you cannot find specific information in the knowledge base for a point you want to make, DO NOT include that point.
-3. For every statement you make, you must be able to point to the exact source in the knowledge base.
-4. Use the exact terminology and phrasing from the knowledge base to maintain accuracy.
-5. If relevant boilerplate text exists in the knowledge base, use it verbatim.
-6. If relevant pricing information exists in the knowledge base, use it exactly as stated.
-7. If relevant legal disclaimers exist in the knowledge base, include them without modification.
-8. Write in active voice and maintain a formal, professional tone.
+1. You MUST use information from the knowledge base above to write this section.
+2. If you find relevant boilerplate text, pricing information, or legal disclaimers in the knowledge base, use them exactly as stated.
+3. Only include information that is explicitly stated in the knowledge base or project details.
+4. Write in a professional, business proposal style.
+5. Focus on demonstrating understanding of the client's needs and how your organization's experience (from the knowledge base) addresses them.
+6. If you cannot find enough relevant information in the knowledge base, acknowledge this and suggest what additional information would be helpful.
 
-Write the section now, using ONLY the information provided above:\n\nAssistant:`;
+Write the ${sectionTitle} section now, using ONLY the information provided above:`;
 }

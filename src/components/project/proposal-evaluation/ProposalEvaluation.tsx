@@ -1,19 +1,29 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Wand2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProposalEvaluation } from "./useProposalEvaluation";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import ReactMarkdown from "react-markdown";
 import { Separator } from "@/components/ui/separator";
+import { EvaluationProgress } from "./components/EvaluationProgress";
+import { EvaluationContent } from "./components/EvaluationContent";
 
 interface ProposalEvaluationProps {
   projectId: string;
   analysis: string | null;
 }
 
+/**
+ * ProposalEvaluation Component
+ * 
+ * Manages the AI-powered evaluation of proposals, including:
+ * - Triggering the evaluation process
+ * - Displaying progress during evaluation
+ * - Showing evaluation results in a formatted view
+ * - Handling error states
+ * 
+ * @param projectId - The ID of the project being evaluated
+ * @param analysis - The existing analysis text (currently unused, maintained for future use)
+ */
 export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationProps) {
   const {
     evaluation,
@@ -22,8 +32,6 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
     progress,
     handleEvaluate
   } = useProposalEvaluation(projectId);
-
-  const roundedProgress = Math.round(progress);
 
   return (
     <Card className="bg-white shadow-md">
@@ -64,47 +72,10 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
           </Alert>
         )}
 
-        {isEvaluating && (
-          <div className="space-y-2">
-            <Progress value={roundedProgress} className="w-full h-2" />
-            <p className="text-sm text-center text-muted-foreground">
-              Analyzing proposal... {roundedProgress}%
-            </p>
-          </div>
-        )}
+        {isEvaluating && <EvaluationProgress progress={progress} />}
 
         {evaluation ? (
-          <ScrollArea className="h-[500px] w-full rounded-md border bg-gray-50 p-6">
-            <div className="prose prose-gray max-w-none">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => (
-                    <h1 className="text-2xl font-bold mb-4 text-gray-900">{children}</h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="text-xl font-semibold mb-3 mt-6 text-gray-800">{children}</h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-lg font-medium mb-2 mt-4 text-gray-700">{children}</h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="mb-4 leading-relaxed text-gray-600">{children}</p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc pl-6 mb-4 space-y-2">{children}</ul>
-                  ),
-                  li: ({ children }) => (
-                    <li className="text-gray-600">{children}</li>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="font-semibold text-gray-800">{children}</strong>
-                  ),
-                }}
-              >
-                {evaluation}
-              </ReactMarkdown>
-            </div>
-          </ScrollArea>
+          <EvaluationContent content={evaluation} />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
             Click the evaluate button to get an AI-powered analysis of your proposal.

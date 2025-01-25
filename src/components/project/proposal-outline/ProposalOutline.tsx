@@ -1,16 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIProgress } from "@/components/shared/AIProgress";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useProposalOutline } from "./useProposalOutline";
 import ReactMarkdown from "react-markdown";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 
 interface ProposalOutlineProps {
   projectId: string;
@@ -26,64 +22,69 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
     handleGenerateOutline,
     handleReset
   } = useProposalOutline(projectId, analysis);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Proposal Outline</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {!outline && !isGenerating && (
-          <Button 
-            onClick={handleGenerateOutline} 
-            className="w-full"
-            disabled={!analysis}
-          >
-            Generate Proposal Outline
-          </Button>
-        )}
-
-        {isGenerating && (
-          <div className="space-y-4">
-            <Button 
-              disabled
-              className="w-full"
-            >
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </Button>
-            <AIProgress progress={progress} label="Generating outline" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger className="flex items-center gap-2">
+              <CardTitle>Proposal Outline</CardTitle>
+              <ChevronDown 
+                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </CollapsibleTrigger>
           </div>
-        )}
-        
-        {outline && (
-          <Accordion type="single" collapsible>
-            <AccordionItem value="outline">
-              <AccordionTrigger>Outline Results</AccordionTrigger>
-              <AccordionContent>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {!outline && !isGenerating && (
+              <Button 
+                onClick={handleGenerateOutline} 
+                className="w-full"
+                disabled={!analysis}
+              >
+                Generate Proposal Outline
+              </Button>
+            )}
+
+            {isGenerating && (
+              <div className="space-y-4">
+                <Button 
+                  disabled
+                  className="w-full"
+                >
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </Button>
+                <AIProgress progress={progress} label="Generating outline" />
+              </div>
+            )}
+            
+            {outline && (
+              <div className="space-y-4">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{outline}</ReactMarkdown>
                 </div>
-                <div className="mt-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleReset}
-                    size="sm"
-                  >
-                    Generate New Outline
-                  </Button>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
-      </CardContent>
+                <Button 
+                  variant="outline" 
+                  onClick={handleReset}
+                  size="sm"
+                >
+                  Generate New Outline
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

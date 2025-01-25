@@ -8,6 +8,7 @@ import { useProposalSections, ProposalSection } from "./useProposalSections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
+import { AIProgress } from "@/components/shared/AIProgress";
 
 interface SectionEditorProps {
   section: ProposalSection;
@@ -19,6 +20,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const [title, setTitle] = useState(section.section_title);
   const [content, setContent] = useState(section.content || "");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const { updateSection } = useProposalSections(section.project_id);
   const { session } = useAuth();
@@ -35,6 +37,16 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
     }
 
     setIsGenerating(true);
+    setProgress(0);
+    
+    // Start progress simulation
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        const next = Math.min(prev + Math.random() * 15, 90);
+        return next;
+      });
+    }, 1000);
+
     try {
       console.log('Generating content for project:', section.project_id);
       const { data, error } = await supabase.functions.invoke('generate-section-content', {
@@ -49,11 +61,13 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
       if (!data?.content) throw new Error('No content generated');
 
       setContent(data.content);
+      setProgress(100);
       toast.success('Content generated successfully!');
     } catch (error) {
       console.error('Error generating content:', error);
       toast.error('Failed to generate content. Please try again.');
     } finally {
+      clearInterval(progressInterval);
       setIsGenerating(false);
     }
   };
@@ -105,6 +119,9 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               {isGenerating ? "Generating..." : "Generate with AI"}
             </Button>
           </div>
+          {isGenerating && (
+            <AIProgress progress={progress} label="Generating content" />
+          )}
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}

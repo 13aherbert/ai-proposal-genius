@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AIProgress } from "@/components/shared/AIProgress";
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +22,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
     outline,
     isGenerating,
     error,
+    progress,
     handleGenerateOutline,
     handleReset
   } = useProposalOutline(projectId, analysis);
@@ -48,13 +50,16 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
         )}
 
         {isGenerating && (
-          <Button 
-            disabled
-            className="w-full"
-          >
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating...
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              disabled
+              className="w-full"
+            >
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </Button>
+            <AIProgress progress={progress} label="Generating outline" />
+          </div>
         )}
         
         {outline && (

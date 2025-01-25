@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRFPAnalysis } from "./rfp-analysis/useRFPAnalysis";
 import { AnalysisContent } from "./rfp-analysis/AnalysisContent";
 import { parseAnalysis } from "./rfp-analysis/utils";
+import { AIProgress } from "@/components/shared/AIProgress";
 import {
   Accordion,
   AccordionContent,
@@ -22,6 +23,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     analysis,
     isAnalyzing,
     error,
+    progress,
     handleAnalyze,
     handleReset
   } = useRFPAnalysis(filePath, projectId);
@@ -50,13 +52,16 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
         )}
 
         {isAnalyzing && (
-          <Button 
-            disabled
-            className="w-full"
-          >
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Analyzing...
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              disabled
+              className="w-full"
+            >
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </Button>
+            <AIProgress progress={progress} label="Analyzing RFP" />
+          </div>
         )}
         
         {analysis && (

@@ -12,12 +12,14 @@ interface ProjectContentProps {
 /**
  * ProjectContent Component
  * 
- * Organizes and displays all project-related content sections:
- * - Project information
- * - RFP analysis
- * - Proposal outline
- * - Proposal draft
- * - Proposal evaluation
+ * Organizes and displays all project-related content sections. Responsible for:
+ * 1. Rendering project information and details
+ * 2. Managing RFP analysis display
+ * 3. Coordinating proposal components (outline, draft, evaluation)
+ * 4. Maintaining proper spacing and layout between sections
+ * 
+ * The component ensures a consistent and organized display of all
+ * project-related information while maintaining proper component hierarchy.
  * 
  * @param project - The project object containing all necessary data
  */

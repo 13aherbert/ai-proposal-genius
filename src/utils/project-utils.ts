@@ -2,21 +2,17 @@
  * Utility functions for project-related operations
  */
 
+import { Project } from "@/hooks/use-project-details";
+
 /**
- * Sanitizes a filename by removing special characters and converting to lowercase
- * @param title - The original title to sanitize
- * @param extension - The file extension to append
- * @returns A filesystem-safe filename
+ * Formats project status for display with proper capitalization
  */
-export const createSanitizedFilename = (title: string, extension: string): string => {
-  const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  return `${sanitizedTitle}.${extension}`;
+export const formatProjectStatus = (status: string): string => {
+  return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
 /**
  * Formats the project deadline date for display
- * @param date - The deadline date string
- * @returns Formatted date string or "Not specified" if no date
  */
 export const formatDeadline = (date: string | null): string => {
   if (!date) return "Not specified";
@@ -25,4 +21,16 @@ export const formatDeadline = (date: string | null): string => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+/**
+ * Checks if a project has all required information filled out
+ */
+export const isProjectComplete = (project: Project): boolean => {
+  return !!(
+    project.title &&
+    project.client_name &&
+    project.business_name &&
+    project.deadline
+  );
 };

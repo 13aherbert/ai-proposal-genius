@@ -13,6 +13,11 @@ interface ProjectInfoProps {
  * - Client and business information
  * - Document management interface
  * 
+ * The component is responsible for:
+ * 1. Organizing project information in a structured layout
+ * 2. Providing document management capabilities
+ * 3. Enabling project detail updates
+ * 
  * @param project - The project object containing all project details
  */
 export function ProjectInfo({ project }: ProjectInfoProps) {

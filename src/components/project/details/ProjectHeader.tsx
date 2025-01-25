@@ -8,7 +8,13 @@ interface ProjectHeaderProps {
 
 /**
  * Header component for the project details page
- * Displays the project title and a back button to navigate to recent projects
+ * 
+ * Responsible for:
+ * 1. Displaying the project title
+ * 2. Providing navigation back to the projects list
+ * 3. Maintaining consistent header styling
+ * 
+ * @param title - The title of the project to display
  */
 export function ProjectHeader({ title }: ProjectHeaderProps) {
   const navigate = useNavigate();
@@ -19,6 +25,7 @@ export function ProjectHeader({ title }: ProjectHeaderProps) {
         variant="ghost"
         size="icon"
         onClick={() => navigate("/recent-projects")}
+        aria-label="Back to projects"
       >
         <ArrowLeft className="h-4 w-4" />
       </Button>

@@ -26,12 +26,14 @@ export function SectionsList({
       distance: 10,
     },
   });
+  
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
       delay: 250,
       tolerance: 5,
     },
   });
+  
   const sensors = useSensors(mouseSensor, touchSensor);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -67,7 +69,7 @@ export function SectionsList({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={sections} strategy={verticalListSortingStrategy}>
         <div className="space-y-4">
           {sections.map((section) => (
             <SortableSection

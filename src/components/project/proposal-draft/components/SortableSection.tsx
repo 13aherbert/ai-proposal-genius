@@ -18,7 +18,10 @@ export function SortableSection({ section, isSelected, onSelect }: SortableSecti
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: section.id });
+  } = useSortable({ 
+    id: section.id,
+    data: section
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

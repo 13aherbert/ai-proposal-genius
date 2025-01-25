@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIProgress } from "@/components/shared/AIProgress";
@@ -29,10 +29,17 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CollapsibleTrigger className="flex items-center gap-2">
-              <CardTitle>Proposal Outline</CardTitle>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full">
+              <div className="flex flex-col items-start text-left">
+                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                  Proposal Outline
+                </CardTitle>
+                <CardDescription>
+                  Generate an AI-powered outline for your proposal
+                </CardDescription>
+              </div>
               <ChevronDown 
-                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`}
               />
             </CollapsibleTrigger>
           </div>

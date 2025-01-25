@@ -24,8 +24,6 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     handleReset
   } = useRFPAnalysis(filePath, projectId);
   const [isOpen, setIsOpen] = useState(false);
-  
-  const parsedSections = analysis ? parseAnalysis(analysis) : [];
 
   return (
     <Card>

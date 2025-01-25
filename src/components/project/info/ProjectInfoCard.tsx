@@ -21,16 +21,16 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CollapsibleTrigger className="flex items-center gap-2">
-                <div>
-                  <CardTitle>Project Information</CardTitle>
-                  <CardDescription>Details about your RFP project</CardDescription>
-                </div>
+            <div className="flex items-center gap-4">
+              <CollapsibleTrigger>
                 <ChevronDown 
                   className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
               </CollapsibleTrigger>
+              <div className="flex flex-col items-start">
+                <CardTitle>Project Information</CardTitle>
+                <CardDescription>Details about your RFP project</CardDescription>
+              </div>
             </div>
             <Button
               variant="outline"

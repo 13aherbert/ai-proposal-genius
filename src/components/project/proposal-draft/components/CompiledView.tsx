@@ -33,37 +33,41 @@ export function CompiledView({ sections }: CompiledViewProps) {
   return (
     <Card className="mt-4">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CollapsibleTrigger className="flex items-center gap-2 w-full">
-            <div className="flex flex-col items-start text-left">
-              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                Compiled Proposal
-              </CardTitle>
-              <CardDescription>
-                View and copy your complete proposal
-              </CardDescription>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <CollapsibleTrigger>
+                <ChevronDown 
+                  className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </CollapsibleTrigger>
+              <div className="flex flex-col items-start">
+                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                  Compiled Proposal
+                </CardTitle>
+                <CardDescription>
+                  View and copy your complete proposal
+                </CardDescription>
+              </div>
             </div>
-            <ChevronDown 
-              className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`}
-            />
-          </CollapsibleTrigger>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowMarkdown(!showMarkdown)}
-            >
-              {showMarkdown ? "Show Raw" : "Show Formatted"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              className="flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMarkdown(!showMarkdown)}
+              >
+                {showMarkdown ? "Show Raw" : "Show Formatted"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CollapsibleContent>

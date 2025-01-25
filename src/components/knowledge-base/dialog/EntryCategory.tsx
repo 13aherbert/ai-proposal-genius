@@ -18,7 +18,7 @@ export const EntryCategory = ({
   onEditedCategoryChange,
 }: EntryCategoryProps) => {
   return (
-    <div>
+    <div className="mb-4">
       {isEditing ? (
         <div className="space-y-2">
           <Label htmlFor="category">Category</Label>
@@ -32,7 +32,10 @@ export const EntryCategory = ({
             <SelectContent>
               {categories.map((category) => (
                 <SelectItem key={category.name} value={category.name}>
-                  {category.name}
+                  <div className="flex items-center gap-2">
+                    {category.icon}
+                    {category.name}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

@@ -87,6 +87,7 @@ export const ViewEntryDialog = ({
             onCancelEditing={() => {
               setEditMode(false);
               setEditedTitle(title);
+              setEditedCategory(category);
             }}
             onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
             onDelete={() => setShowDeleteAlert(true)}

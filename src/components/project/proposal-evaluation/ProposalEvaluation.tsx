@@ -23,7 +23,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
     handleEvaluate
   } = useProposalEvaluation(projectId);
 
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card className="bg-white shadow-md">

@@ -15,7 +15,7 @@ interface CompiledViewProps {
 export function CompiledView({ sections }: CompiledViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMarkdown, setShowMarkdown] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const compiledContent = sections
     .map((section) => `# ${section.section_title}\n\n${section.content || ""}\n`)

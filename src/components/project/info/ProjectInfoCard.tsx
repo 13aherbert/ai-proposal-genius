@@ -5,6 +5,8 @@ import { ProjectEditForm } from "./ProjectEditForm";
 import { ProjectDetails } from "./ProjectDetails";
 import { ProjectDocuments } from "./ProjectDocuments";
 import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 interface ProjectInfoCardProps {
   project: Project;
@@ -12,37 +14,49 @@ interface ProjectInfoCardProps {
 
 export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Project Information</CardTitle>
-            <CardDescription>Details about your RFP project</CardDescription>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CollapsibleTrigger className="flex items-center gap-2">
+                <div>
+                  <CardTitle>Project Information</CardTitle>
+                  <CardDescription>Details about your RFP project</CardDescription>
+                </div>
+                <ChevronDown 
+                  className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </CollapsibleTrigger>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+            >
+              Edit Details
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsEditing(true)}
-          >
-            Edit Details
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {isEditing ? (
-          <ProjectEditForm 
-            project={project} 
-            onCancel={() => setIsEditing(false)}
-            onSuccess={() => setIsEditing(false)}
-          />
-        ) : (
-          <>
-            <ProjectDetails project={project} />
-            <ProjectDocuments project={project} />
-          </>
-        )}
-      </CardContent>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            {isEditing ? (
+              <ProjectEditForm 
+                project={project} 
+                onCancel={() => setIsEditing(false)}
+                onSuccess={() => setIsEditing(false)}
+              />
+            ) : (
+              <>
+                <ProjectDetails project={project} />
+                <ProjectDocuments project={project} />
+              </>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

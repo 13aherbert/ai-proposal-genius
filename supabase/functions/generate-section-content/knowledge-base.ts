@@ -1,4 +1,4 @@
-import { KnowledgeEntry } from './types';
+import { KnowledgeEntry } from './types.ts';
 
 export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
   const entriesByCategory = entries.reduce((acc: { [key: string]: KnowledgeEntry[] }, entry) => {

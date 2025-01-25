@@ -23,6 +23,8 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
     handleEvaluate
   } = useProposalEvaluation(projectId);
 
+  const roundedProgress = Math.round(progress);
+
   return (
     <Card className="bg-white shadow-md">
       <CardHeader className="space-y-4">
@@ -64,9 +66,9 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
 
         {isEvaluating && (
           <div className="space-y-2">
-            <Progress value={progress} className="w-full h-2" />
+            <Progress value={roundedProgress} className="w-full h-2" />
             <p className="text-sm text-center text-muted-foreground">
-              Analyzing proposal... {progress}%
+              Analyzing proposal... {roundedProgress}%
             </p>
           </div>
         )}

@@ -44,7 +44,7 @@ export function useProposalEvaluation(projectId: string) {
       // Simulate progress updates during evaluation
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          const next = prev + Math.random() * 15;
+          const next = Math.round(prev + Math.random() * 15);
           return next > 90 ? 90 : next;
         });
       }, 1000);

@@ -54,7 +54,21 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
 
         {evaluation && (
           <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-            <ReactMarkdown>{evaluation}</ReactMarkdown>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-xl font-semibold mb-3 mt-6">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-lg font-medium mb-2 mt-4">{children}</h3>,
+                  p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-2">{children}</ul>,
+                  li: ({ children }) => <li className="text-foreground/90">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                }}
+              >
+                {evaluation}
+              </ReactMarkdown>
+            </div>
           </ScrollArea>
         )}
       </CardContent>

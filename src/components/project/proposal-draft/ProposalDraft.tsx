@@ -5,6 +5,7 @@ import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { CompiledView } from "./components/CompiledView";
 
 interface ProposalDraftProps {
   projectId: string;
@@ -24,31 +25,34 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
   };
 
   return (
-    <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CollapsibleTrigger className="flex items-center gap-2">
-              <CardTitle>Proposal Draft</CardTitle>
-              <ChevronDown 
-                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+    <div className="space-y-4">
+      <Card>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger className="flex items-center gap-2">
+                <CardTitle>Proposal Draft</CardTitle>
+                <ChevronDown 
+                  className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </CollapsibleTrigger>
+              <AddSectionButton onAdd={handleAddSection} />
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              <SectionsList
+                sections={sections}
+                selectedSection={selectedSection}
+                onSelectSection={setSelectedSection}
+                isLoading={isLoading}
+                error={error}
               />
-            </CollapsibleTrigger>
-            <AddSectionButton onAdd={handleAddSection} />
-          </div>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="space-y-4">
-            <SectionsList
-              sections={sections}
-              selectedSection={selectedSection}
-              onSelectSection={setSelectedSection}
-              isLoading={isLoading}
-              error={error}
-            />
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+      {sections.length > 0 && <CompiledView sections={sections} />}
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChevronDown, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ProposalSection } from "../useProposalSections";
@@ -34,10 +34,17 @@ export function CompiledView({ sections }: CompiledViewProps) {
     <Card className="mt-4">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CollapsibleTrigger className="flex items-center gap-2">
-            <CardTitle className="text-lg">Compiled Proposal</CardTitle>
+          <CollapsibleTrigger className="flex items-center gap-2 w-full">
+            <div className="flex flex-col items-start text-left">
+              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                Compiled Proposal
+              </CardTitle>
+              <CardDescription>
+                View and copy your complete proposal
+              </CardDescription>
+            </div>
             <ChevronDown 
-              className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              className={`h-5 w-5 transition-transform ml-auto ${isOpen ? 'rotate-180' : ''}`}
             />
           </CollapsibleTrigger>
           <div className="flex gap-2">

@@ -1,10 +1,13 @@
 import { KnowledgeCategory } from "../types";
 
+export type UploadMode = 'text' | 'file';
+
 export type EntryFormData = {
   title: string;
   category: string;
   content: string;
-  file?: File | null;
+  uploadMode: UploadMode;
+  selectedFile: File | null;
 };
 
 export type AddEntryDialogProps = {
@@ -12,5 +15,3 @@ export type AddEntryDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-export type UploadMode = 'text' | 'file';

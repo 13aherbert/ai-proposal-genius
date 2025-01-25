@@ -108,7 +108,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           ) : (
             <FileUpload
               onFileSelect={setSelectedFile}
-              selectedFile={formData.file}
+              selectedFile={formData.selectedFile}
             />
           )}
           <div className="flex justify-end gap-2">

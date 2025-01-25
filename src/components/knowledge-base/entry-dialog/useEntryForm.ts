@@ -1,29 +1,29 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import type { EntryFormData, UploadMode } from "./types";
 
-/**
- * Custom hook for managing knowledge base entry form operations
- * Handles both file uploads and text content entries with proper error handling
- */
 export const useEntryForm = (onSuccess: () => void) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [formData, setFormData] = useState<EntryFormData>({
+    title: '',
+    category: '',
+    content: '',
+    uploadMode: 'text',
+    selectedFile: null,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /**
-   * Creates a sanitized filename from the entry title
-   * Converts to lowercase and replaces non-alphanumeric chars with hyphens
-   */
+  const setTitle = (title: string) => setFormData(prev => ({ ...prev, title }));
+  const setCategory = (category: string) => setFormData(prev => ({ ...prev, category }));
+  const setContent = (content: string) => setFormData(prev => ({ ...prev, content }));
+  const setSelectedFile = (file: File | null) => setFormData(prev => ({ ...prev, selectedFile: file }));
+  const setUploadMode = (mode: UploadMode) => setFormData(prev => ({ ...prev, uploadMode: mode }));
+
   const createSanitizedFilename = (title: string, extension: string): string => {
     const sanitizedTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     return `${sanitizedTitle}.${extension}`;
   };
 
-  /**
-   * Handles file upload to Supabase storage
-   * Returns the file path if successful, throws error if failed
-   */
   const handleFileUpload = async (
     userId: string,
     file: File,
@@ -45,10 +45,6 @@ export const useEntryForm = (onSuccess: () => void) => {
     return filePath;
   };
 
-  /**
-   * Creates a new knowledge entry in the database
-   * Returns the entry ID if successful, throws error if failed
-   */
   const createKnowledgeEntry = async (
     userId: string,
     data: EntryFormData,
@@ -74,56 +70,41 @@ export const useEntryForm = (onSuccess: () => void) => {
     return insertData.id;
   };
 
-  /**
-   * Main handler for form submission
-   * Manages the entire process of creating an entry with proper error handling
-   */
-  const handleSubmit = async (data: EntryFormData) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create entries",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
+  const handleSubmit = async (userId: string) => {
+    setIsSubmitting(true);
 
     try {
       let filePath: string | undefined;
       
-      if (data.uploadMode === 'file' && data.selectedFile) {
+      if (formData.uploadMode === 'file' && formData.selectedFile) {
         filePath = await handleFileUpload(
-          session.user.id,
-          data.selectedFile,
-          data.title
+          userId,
+          formData.selectedFile,
+          formData.title
         );
       }
 
-      await createKnowledgeEntry(session.user.id, data, filePath);
+      await createKnowledgeEntry(userId, formData, filePath);
 
-      toast({
-        title: "Success",
-        description: "Entry created successfully",
-      });
-      
+      toast.success("Entry created successfully");
       onSuccess();
     } catch (error) {
       console.error('Form submission error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create entry",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to create entry");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return {
-    isLoading,
+    formData,
+    setTitle,
+    setCategory,
+    setContent,
+    setSelectedFile,
+    uploadMode: formData.uploadMode,
+    setUploadMode,
+    isSubmitting,
     handleSubmit,
   };
 };

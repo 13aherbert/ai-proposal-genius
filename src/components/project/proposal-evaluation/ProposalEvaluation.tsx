@@ -5,6 +5,7 @@ import { Loader2, Wand2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProposalEvaluation } from "./useProposalEvaluation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import ReactMarkdown from "react-markdown";
 import { Separator } from "@/components/ui/separator";
 
@@ -18,6 +19,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
     evaluation,
     isEvaluating,
     error,
+    progress,
     handleEvaluate
   } = useProposalEvaluation(projectId);
 
@@ -58,6 +60,15 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+
+        {isEvaluating && (
+          <div className="space-y-2">
+            <Progress value={progress} className="w-full h-2" />
+            <p className="text-sm text-center text-muted-foreground">
+              Analyzing proposal... {progress}%
+            </p>
+          </div>
         )}
 
         {evaluation ? (

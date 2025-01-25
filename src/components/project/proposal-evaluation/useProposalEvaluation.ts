@@ -6,12 +6,13 @@ export function useProposalEvaluation(projectId: string) {
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   // Load saved evaluation when component mounts
   useEffect(() => {
+    if (!projectId) return;
+    
     const loadEvaluation = async () => {
-      if (!projectId) return;
-      
       try {
         const { data, error } = await supabase
           .from('projects')
@@ -37,8 +38,17 @@ export function useProposalEvaluation(projectId: string) {
     
     setIsEvaluating(true);
     setError(null);
+    setProgress(0);
 
     try {
+      // Simulate progress updates during evaluation
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          const next = prev + Math.random() * 15;
+          return next > 90 ? 90 : next;
+        });
+      }, 1000);
+
       console.log('Starting proposal evaluation for project:', projectId);
       
       // First, fetch all proposal sections
@@ -68,6 +78,9 @@ export function useProposalEvaluation(projectId: string) {
         }
       });
 
+      clearInterval(progressInterval);
+      setProgress(100);
+
       if (evaluationError) throw evaluationError;
 
       // Save the evaluation to the database
@@ -84,6 +97,7 @@ export function useProposalEvaluation(projectId: string) {
       console.error('Error evaluating proposal:', error);
       setError('Failed to evaluate proposal. Please try again.');
       toast.error('Failed to evaluate proposal');
+      setProgress(0);
     } finally {
       setIsEvaluating(false);
     }
@@ -93,6 +107,7 @@ export function useProposalEvaluation(projectId: string) {
     evaluation,
     isEvaluating,
     error,
+    progress,
     handleEvaluate
   };
 }

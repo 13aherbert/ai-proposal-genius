@@ -30,7 +30,7 @@ export const RecentActivityList = ({ activities, isLoading, onActivityClick }: R
       {activities.map((activity) => (
         <div
           key={`${activity.type}-${activity.id}`}
-          className="flex items-center justify-between p-2 rounded-lg hover:bg-brand-silver/10 cursor-pointer transition-colors"
+          className="flex items-center justify-between p-2 rounded-lg hover:bg-black/40 cursor-pointer transition-colors"
           onClick={() => onActivityClick(activity)}
         >
           <div className="flex items-center gap-3">

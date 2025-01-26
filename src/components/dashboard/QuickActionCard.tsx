@@ -15,7 +15,7 @@ export const QuickActionCard = ({ icon: Icon, title, description, onClick }: Qui
       onClick={onClick}
     >
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-brand-blue">
+        <CardTitle className="flex items-center gap-2 text-brand-green">
           <Icon className="h-5 w-5" />
           {title}
         </CardTitle>

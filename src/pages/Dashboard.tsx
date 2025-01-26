@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileUp, FolderOpen, BookOpen, Plus, LogOut } from "lucide-react";
+import { FileUp, FolderOpen, BookOpen, Plus, LogOut, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -113,6 +113,14 @@ const Dashboard = () => {
               Welcome to OptiRFP
             </h1>
             <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/account-settings")}
+                className="border-brand-gray text-brand-gray hover:bg-brand-gray/10"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
               <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
                 <Plus className="h-4 w-4" />
                 New Project

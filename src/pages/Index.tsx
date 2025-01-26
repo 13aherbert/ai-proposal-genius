@@ -13,6 +13,9 @@ const Index = () => {
             Transform your RFP responses with AI-driven insights and automated content generation.
             Upload your RFPs and let our AI assist you in crafting winning proposals.
           </p>
+          <button className="mt-6 bg-[#34D399] hover:bg-[#2eb982] text-white px-6 py-3 rounded-lg transition-colors duration-200">
+            Get Started
+          </button>
         </div>
         <div className="w-full max-w-md animate-fade-up [animation-delay:200ms] bg-[#181818]/95 p-8 rounded-lg shadow-2xl backdrop-blur-sm border border-[#282828]">
           <AuthForm />

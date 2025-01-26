@@ -43,7 +43,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-brand-green to-[#1a1a1a]">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 bg-black/30 rounded-lg">
         <div className="flex flex-col gap-8">
           <DashboardHeader />
 

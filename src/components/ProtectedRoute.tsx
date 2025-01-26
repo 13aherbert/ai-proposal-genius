@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2 } from "lucide-react";
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -23,3 +23,5 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return session ? <>{children}</> : null;
 };
+
+export { ProtectedRoute };

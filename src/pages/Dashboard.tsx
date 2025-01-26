@@ -60,7 +60,7 @@ const Dashboard = () => {
           </div>
 
           <div className="mt-4 md:mt-8">
-            <h2 className="text-xl md:text-2xl font-semibold text-brand-gray mb-3 md:mb-4">Recent Activity</h2>
+            <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Recent Activity</h2>
             <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
               <CardContent className="p-4 md:p-6">
                 <RecentActivityList

@@ -31,7 +31,7 @@ export function CompiledView({ sections }: CompiledViewProps) {
   };
 
   return (
-    <Card className="mt-4">
+    <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -55,6 +55,7 @@ export function CompiledView({ sections }: CompiledViewProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowMarkdown(!showMarkdown)}
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
               >
                 {showMarkdown ? "Show Raw" : "Show Formatted"}
               </Button>
@@ -62,7 +63,7 @@ export function CompiledView({ sections }: CompiledViewProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleCopy}
-                className="flex items-center gap-2"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
               >
                 <Copy className="h-4 w-4" />
                 Copy

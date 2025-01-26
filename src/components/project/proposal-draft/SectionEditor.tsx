@@ -30,6 +30,11 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
     setIsEditing(false);
   };
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+  };
+
   const generateContent = async () => {
     if (!session?.user?.id) {
       toast.error("You must be logged in to generate content");
@@ -100,6 +105,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
             variant="ghost" 
             size="sm"
             className="hover:bg-brand-green hover:text-white"
+            onClick={handleToggle}
           >
             {isSelected ? (
               <ChevronUp className="h-4 w-4" />

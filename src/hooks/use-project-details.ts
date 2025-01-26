@@ -18,11 +18,11 @@ export type Project = {
 };
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
+const RETRY_DELAY = 1000;
 
 const fetchProjectWithRetry = async (projectId: string, userId: string, attempt = 1): Promise<Project> => {
   try {
-    console.log(`Attempting to fetch project ${projectId} for user ${userId}, attempt ${attempt}`);
+    console.log(`Fetching project ${projectId} for user ${userId}`);
     
     const { data, error } = await supabase
       .from("projects")
@@ -44,9 +44,7 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
     console.log("Project data retrieved:", data);
     return data as Project;
   } catch (error) {
-    console.error(`Error fetching project (attempt ${attempt}):`, error);
     if (attempt < MAX_RETRIES) {
-      console.log(`Retry attempt ${attempt} failed, waiting ${RETRY_DELAY}ms before next attempt`);
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
       return fetchProjectWithRetry(projectId, userId, attempt + 1);
     }
@@ -59,17 +57,14 @@ export function useProjectDetails(projectId: string | undefined, user: User | nu
     queryKey: ["project", projectId, user?.id],
     queryFn: async () => {
       if (!user?.id || !projectId) {
-        console.error("No authenticated user or project ID");
         throw new Error("No authenticated user or project ID");
       }
-
-      console.log("Starting project fetch with:", { projectId, userId: user.id });
 
       try {
         return await fetchProjectWithRetry(projectId, user.id);
       } catch (error) {
         console.error("Failed to fetch project details:", error);
-        toast.error("Failed to load project details. Please try again.");
+        toast.error("Failed to load project details");
         throw error;
       }
     },

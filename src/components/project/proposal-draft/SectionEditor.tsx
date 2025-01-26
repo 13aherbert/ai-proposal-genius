@@ -86,7 +86,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               />
             ) : (
               <CardTitle 
-                className="text-lg hover:bg-accent hover:text-accent-foreground p-2 rounded-md cursor-text"
+                className="text-lg hover:bg-brand-green hover:text-white p-2 rounded-md cursor-text"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsEditing(true);

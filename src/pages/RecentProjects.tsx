@@ -7,13 +7,13 @@ import { Loader2 } from "lucide-react";
 
 const RecentProjects = () => {
   const { session } = useAuth();
-  const { projects, isLoading, error } = useProjects(session?.user);
+  const { projects, isLoading, error, refetch, deleteProject } = useProjects(session?.user);
 
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <ProjectsHeader />
-        <ProjectsError />
+        <ProjectsError onRetry={refetch} />
       </div>
     );
   }
@@ -26,7 +26,10 @@ const RecentProjects = () => {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : (
-        <ProjectsTable projects={projects || []} />
+        <ProjectsTable 
+          projects={projects || []} 
+          onDelete={deleteProject}
+        />
       )}
     </div>
   );

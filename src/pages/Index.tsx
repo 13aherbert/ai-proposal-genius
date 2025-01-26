@@ -6,7 +6,7 @@ const Index = () => {
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10 container mx-auto px-4 py-16 min-h-screen flex flex-col items-center justify-center">
         <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#1DB954] to-[#169C46] bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
             OptiRFP
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">

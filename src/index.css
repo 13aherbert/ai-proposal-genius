@@ -45,11 +45,11 @@
 
 /* Custom utility classes for the Spotify-inspired theme */
 .bg-spotify-gradient {
-  background: linear-gradient(to bottom, #1DB954, #169C46);
+  background: linear-gradient(to bottom, #34D399, #059669);
 }
 
 .text-spotify-gradient {
-  background: linear-gradient(to bottom, #1DB954, #169C46);
+  background: linear-gradient(to bottom, #34D399, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

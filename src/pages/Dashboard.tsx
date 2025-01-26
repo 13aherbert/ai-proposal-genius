@@ -119,7 +119,7 @@ const Dashboard = () => {
                 className="border-brand-gray text-brand-gray hover:bg-brand-gray/10"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Settings
+                Account
               </Button>
               <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
                 <Plus className="h-4 w-4" />

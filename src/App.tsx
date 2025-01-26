@@ -40,7 +40,7 @@ function App() {
                 }
               />
               <Route
-                path="/projects"
+                path="/recent-projects"
                 element={
                   <ProtectedRoute>
                     <RecentProjects />

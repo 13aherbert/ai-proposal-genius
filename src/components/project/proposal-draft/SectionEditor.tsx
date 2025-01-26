@@ -39,7 +39,6 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
     setIsGenerating(true);
     setProgress(0);
     
-    // Start progress simulation
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         const next = Math.min(prev + Math.random() * 15, 90);
@@ -113,7 +112,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               onClick={generateContent}
               disabled={isGenerating}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
             >
               <Wand2 className="h-4 w-4" />
               {isGenerating ? "Generating..." : "Generate with AI"}
@@ -128,7 +127,10 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
             placeholder="Write your content here..."
             className="min-h-[200px]"
           />
-          <Button onClick={handleSave} className="flex items-center gap-2">
+          <Button 
+            onClick={handleSave} 
+            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white"
+          >
             <Save className="h-4 w-4" />
             Save Changes
           </Button>

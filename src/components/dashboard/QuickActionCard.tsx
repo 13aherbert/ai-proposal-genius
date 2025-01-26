@@ -11,7 +11,7 @@ interface QuickActionCardProps {
 export const QuickActionCard = ({ icon: Icon, title, description, onClick }: QuickActionCardProps) => {
   return (
     <Card
-      className="bg-white hover:shadow-lg transition-shadow cursor-pointer border-brand-silver"
+      className="bg-black/30 backdrop-blur-sm hover:bg-black/40 transition-all cursor-pointer border-brand-silver"
       onClick={onClick}
     >
       <CardHeader>

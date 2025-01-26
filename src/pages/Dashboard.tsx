@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileUp, FolderOpen, BookOpen, Plus, LogOut, Settings } from "lucide-react";
+import { FileUp, FolderOpen, BookOpen, Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 type RecentActivity = {
   type: 'project' | 'knowledge';
@@ -21,22 +21,6 @@ const Dashboard = () => {
   const { session } = useAuth();
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Signed out successfully",
-      });
-      navigate("/");
-    }
-  };
 
   useEffect(() => {
     const fetchRecentActivity = async () => {
@@ -113,6 +97,10 @@ const Dashboard = () => {
               Welcome to OptiRFP
             </h1>
             <div className="flex items-center gap-4">
+              <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => navigate("/account-settings")}
@@ -120,14 +108,6 @@ const Dashboard = () => {
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Account
-              </Button>
-              <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-              <Button variant="outline" onClick={handleSignOut} className="border-brand-gray text-brand-gray hover:bg-brand-gray/10">
-                <LogOut className="h-4 w-4" />
-                Sign Out
               </Button>
             </div>
           </header>

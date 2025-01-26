@@ -26,21 +26,21 @@ export const RecentActivityList = ({ activities, isLoading, onActivityClick }: R
   }
 
   return (
-    <div className="space-y-3 md:space-y-4">
+    <div className="space-y-2 md:space-y-3">
       {activities.map((activity) => (
         <div
           key={`${activity.type}-${activity.id}`}
-          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg hover:bg-black/40 cursor-pointer transition-colors gap-3 sm:gap-0"
+          className="flex items-center justify-between p-2 md:p-3 rounded-lg hover:bg-black/40 transition-colors"
           onClick={() => onActivityClick(activity)}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {activity.type === 'project' ? (
               <FolderOpen className="h-4 w-4 text-brand-green shrink-0" />
             ) : (
               <BookOpen className="h-4 w-4 text-brand-green shrink-0" />
             )}
-            <div>
-              <p className="font-medium text-white text-sm md:text-base">{activity.title}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-white text-sm md:text-base truncate">{activity.title}</p>
               <p className="text-xs md:text-sm text-white/70">
                 {format(new Date(activity.date), 'MMM d, yyyy')}
               </p>
@@ -49,7 +49,7 @@ export const RecentActivityList = ({ activities, isLoading, onActivityClick }: R
           <Button 
             variant="ghost" 
             size="sm"
-            className="text-brand-green hover:text-brand-green/80 hover:bg-brand-green/10 w-full sm:w-auto"
+            className="text-brand-green hover:text-brand-green/80 hover:bg-brand-green/10 ml-2 shrink-0"
           >
             View
           </Button>

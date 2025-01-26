@@ -17,7 +17,12 @@ export function ProjectsHeader() {
         </Button>
         <h1 className="text-3xl font-bold text-white">Recent Projects</h1>
       </div>
-      <Button onClick={() => navigate("/upload-rfp")}>New Project</Button>
+      <Button 
+        onClick={() => navigate("/upload-rfp")}
+        className="bg-brand-green hover:bg-brand-green-dark"
+      >
+        New Project
+      </Button>
     </header>
   );
 }

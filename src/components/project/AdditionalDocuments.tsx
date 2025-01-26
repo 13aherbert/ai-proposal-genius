@@ -142,7 +142,11 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
               <option value="form">Form</option>
               <option value="other">Other</option>
             </select>
-            <Button onClick={handleUpload} disabled={!selectedFile}>
+            <Button 
+              onClick={handleUpload} 
+              disabled={!selectedFile}
+              className="bg-brand-green hover:bg-brand-green-dark text-white"
+            >
               Upload
             </Button>
           </div>
@@ -171,6 +175,7 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleViewDocument(doc)}
+                      className="hover:bg-brand-green/10 hover:text-brand-green"
                     >
                       View
                     </Button>
@@ -178,6 +183,7 @@ export function AdditionalDocuments({ project }: AdditionalDocumentsProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(doc)}
+                      className="hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

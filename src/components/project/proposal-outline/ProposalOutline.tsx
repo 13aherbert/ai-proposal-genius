@@ -55,7 +55,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
             {!outline && !isGenerating && (
               <Button 
                 onClick={handleGenerateOutline} 
-                className="w-full"
+                className="w-full bg-brand-green hover:bg-brand-green-dark text-white"
                 disabled={!analysis}
               >
                 Generate Proposal Outline
@@ -66,7 +66,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
               <div className="space-y-4">
                 <Button 
                   disabled
-                  className="w-full"
+                  className="w-full bg-brand-green hover:bg-brand-green-dark text-white"
                 >
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
@@ -84,6 +84,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
                   variant="outline" 
                   onClick={handleReset}
                   size="sm"
+                  className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
                 >
                   Generate New Outline
                 </Button>

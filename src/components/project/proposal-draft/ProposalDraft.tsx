@@ -24,6 +24,10 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
     }
   };
 
+  const handleSelectSection = (sectionId: string) => {
+    setSelectedSection(selectedSection === sectionId ? null : sectionId);
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -51,7 +55,7 @@ export function ProposalDraft({ projectId, outline }: ProposalDraftProps) {
               <SectionsList
                 sections={sections}
                 selectedSection={selectedSection}
-                onSelectSection={setSelectedSection}
+                onSelectSection={handleSelectSection}
                 onReorderSections={reorderSections}
                 isLoading={isLoading}
                 error={error}

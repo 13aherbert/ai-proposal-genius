@@ -18,7 +18,7 @@ export const DashboardHeader = () => {
         <Button 
           variant="outline" 
           onClick={() => navigate("/account-settings")}
-          className="bg-white border-brand-gray text-brand-gray hover:bg-brand-gray hover:text-white"
+          className="bg-white text-brand-green border border-brand-green hover:bg-brand-green hover:text-white"
         >
           <Settings className="h-4 w-4 mr-2" />
           Account

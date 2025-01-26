@@ -1,73 +1,90 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/components/AuthProvider";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Dashboard from "@/pages/Dashboard";
+import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
-import KnowledgeBase from "@/pages/KnowledgeBase";
-import ProjectDetails from "@/pages/ProjectDetails";
+import Dashboard from "@/pages/Dashboard";
 import RecentProjects from "@/pages/RecentProjects";
 import UploadRFP from "@/pages/UploadRFP";
+import ProjectDetails from "@/pages/ProjectDetails";
+import KnowledgeBase from "@/pages/KnowledgeBase";
 import AccountSettings from "@/pages/AccountSettings";
+import ProtectedRoute from "@/components/ProtectedRoute";
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/knowledge-base"
-            element={
-              <ProtectedRoute>
-                <KnowledgeBase />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projects/:id"
-            element={
-              <ProtectedRoute>
-                <ProjectDetails />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/recent-projects"
-            element={
-              <ProtectedRoute>
-                <RecentProjects />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/upload-rfp"
-            element={
-              <ProtectedRoute>
-                <UploadRFP />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/account-settings"
-            element={
-              <ProtectedRoute>
-                <AccountSettings />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <Toaster />
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" attribute="class">
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <RecentProjects />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload-rfp"
+                element={
+                  <ProtectedRoute>
+                    <UploadRFP />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:id"
+                element={
+                  <ProtectedRoute>
+                    <ProjectDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-base"
+                element={
+                  <ProtectedRoute>
+                    <KnowledgeBase />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <AccountSettings />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+            <Toaster />
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

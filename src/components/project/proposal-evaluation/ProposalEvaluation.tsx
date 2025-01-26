@@ -26,20 +26,20 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Card className="bg-white shadow-md">
+    <Card className="bg-background border-border">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-4">
             <CollapsibleTrigger>
               <ChevronDown 
-                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 transition-transform text-foreground ${isOpen ? 'rotate-180' : ''}`}
               />
             </CollapsibleTrigger>
             <div className="flex flex-col items-start flex-1">
-              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+              <CardTitle className="text-2xl font-semibold leading-none tracking-tight text-foreground">
                 Proposal Evaluation
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-muted-foreground">
                 Get an AI-powered evaluation of your proposal
               </CardDescription>
             </div>
@@ -62,7 +62,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
               )}
             </Button>
           </div>
-          <Separator />
+          <Separator className="bg-border" />
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="space-y-6">

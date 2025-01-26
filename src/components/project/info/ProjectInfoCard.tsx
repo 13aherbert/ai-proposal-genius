@@ -35,6 +35,7 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
             <Button
               variant="outline"
               onClick={() => setIsEditing(true)}
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
             >
               Edit Details
             </Button>

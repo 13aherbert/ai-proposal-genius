@@ -47,7 +47,11 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
               onClick={handleEvaluate}
               disabled={isEvaluating}
               variant={evaluation ? "outline" : "default"}
-              className="flex items-center gap-2 min-w-[140px]"
+              className={`flex items-center gap-2 min-w-[140px] ${
+                evaluation 
+                  ? "bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+                  : "bg-brand-green hover:bg-brand-green-dark text-white"
+              }`}
             >
               {isEvaluating ? (
                 <>
@@ -67,7 +71,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
         <CollapsibleContent>
           <CardContent className="space-y-6">
             {error && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}

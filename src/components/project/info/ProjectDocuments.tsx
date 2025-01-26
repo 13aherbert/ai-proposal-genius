@@ -31,13 +31,17 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
           <Button 
             variant="outline"
             onClick={() => handleView(project.rfp_file_path)}
+            className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
           >
             View RFP Document
           </Button>
 
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Document
               </Button>

@@ -11,7 +11,12 @@ interface AddSectionButtonProps {
  */
 export function AddSectionButton({ onAdd }: AddSectionButtonProps) {
   return (
-    <Button onClick={onAdd} variant="outline" size="sm">
+    <Button 
+      onClick={onAdd} 
+      variant="outline" 
+      size="sm"
+      className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+    >
       <Plus className="h-4 w-4 mr-2" />
       Add Section
     </Button>

@@ -46,21 +46,17 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
             <Button 
               onClick={handleEvaluate}
               disabled={isEvaluating}
-              variant={evaluation ? "outline" : "default"}
-              className={`flex items-center gap-2 min-w-[140px] ${
-                evaluation 
-                  ? "bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
-                  : "bg-brand-green hover:bg-brand-green-dark text-white"
-              }`}
+              variant="outline"
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
             >
               {isEvaluating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Evaluating...
                 </>
               ) : (
                 <>
-                  <Wand2 className="h-4 w-4" />
+                  <Wand2 className="h-4 w-4 mr-2" />
                   {evaluation ? "Reevaluate" : "Evaluate"}
                 </>
               )}

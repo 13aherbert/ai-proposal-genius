@@ -11,7 +11,7 @@ import UploadRFP from "@/pages/UploadRFP";
 import ProjectDetails from "@/pages/ProjectDetails";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import AccountSettings from "@/pages/AccountSettings";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Create a client
 const queryClient = new QueryClient({

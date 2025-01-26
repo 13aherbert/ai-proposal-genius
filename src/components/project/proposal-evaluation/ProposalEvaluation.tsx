@@ -26,7 +26,7 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Card className="bg-background border-border">
+    <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-4">

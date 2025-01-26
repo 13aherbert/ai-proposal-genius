@@ -7,18 +7,18 @@ export const DashboardHeader = () => {
 
   return (
     <header className="flex items-center justify-between">
-      <h1 className="text-3xl font-bold text-white">
+      <h1 className="text-3xl font-bold text-brand-gray">
         Welcome to OptiRFP
       </h1>
       <div className="flex items-center gap-4">
-        <Button onClick={() => navigate("/upload-rfp")} className="bg-brand-green text-white hover:opacity-90">
+        <Button onClick={() => navigate("/upload-rfp")} className="bg-white text-brand-green border border-brand-green hover:bg-brand-green hover:text-white">
           <Plus className="h-4 w-4" />
           New Project
         </Button>
         <Button 
           variant="outline" 
           onClick={() => navigate("/account-settings")}
-          className="border-brand-gray text-brand-gray hover:bg-brand-gray/10"
+          className="bg-white border-brand-gray text-brand-gray hover:bg-brand-gray hover:text-white"
         >
           <Settings className="h-4 w-4 mr-2" />
           Account

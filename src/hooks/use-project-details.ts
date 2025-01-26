@@ -22,7 +22,7 @@ const RETRY_DELAY = 1000; // 1 second
 
 const fetchProjectWithRetry = async (projectId: string, userId: string, attempt = 1): Promise<Project> => {
   try {
-    console.log(`Attempting to fetch project ${projectId}, attempt ${attempt}`);
+    console.log(`Attempting to fetch project ${projectId} for user ${userId}, attempt ${attempt}`);
     
     const { data, error } = await supabase
       .from("projects")
@@ -37,11 +37,14 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
     }
 
     if (!data) {
+      console.error("No project found with ID:", projectId);
       throw new Error("Project not found");
     }
 
+    console.log("Project data retrieved:", data);
     return data as Project;
   } catch (error) {
+    console.error(`Error fetching project (attempt ${attempt}):`, error);
     if (attempt < MAX_RETRIES) {
       console.log(`Retry attempt ${attempt} failed, waiting ${RETRY_DELAY}ms before next attempt`);
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
@@ -56,8 +59,11 @@ export function useProjectDetails(projectId: string | undefined, user: User | nu
     queryKey: ["project", projectId, user?.id],
     queryFn: async () => {
       if (!user?.id || !projectId) {
+        console.error("No authenticated user or project ID");
         throw new Error("No authenticated user or project ID");
       }
+
+      console.log("Starting project fetch with:", { projectId, userId: user.id });
 
       try {
         return await fetchProjectWithRetry(projectId, user.id);

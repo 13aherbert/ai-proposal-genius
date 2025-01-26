@@ -18,11 +18,11 @@ interface RecentActivityListProps {
 
 export const RecentActivityList = ({ activities, isLoading, onActivityClick }: RecentActivityListProps) => {
   if (isLoading) {
-    return <p className="text-brand-gray text-center">Loading recent activity...</p>;
+    return <p className="text-white text-center">Loading recent activity...</p>;
   }
 
   if (activities.length === 0) {
-    return <p className="text-brand-gray text-center">No recent activity to display</p>;
+    return <p className="text-white text-center">No recent activity to display</p>;
   }
 
   return (
@@ -40,8 +40,8 @@ export const RecentActivityList = ({ activities, isLoading, onActivityClick }: R
               <BookOpen className="h-4 w-4 text-brand-green" />
             )}
             <div>
-              <p className="font-medium text-brand-gray">{activity.title}</p>
-              <p className="text-sm text-brand-gray/70">
+              <p className="font-medium text-white">{activity.title}</p>
+              <p className="text-sm text-white/70">
                 {format(new Date(activity.date), 'MMM d, yyyy')}
               </p>
             </div>

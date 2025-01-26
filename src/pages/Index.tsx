@@ -2,7 +2,7 @@ import { AuthForm } from "@/components/AuthForm";
 
 const Index = () => {
   return (
-    <div className="min-h-screen w-full bg-[#121212] text-white">
+    <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10 container mx-auto px-4 py-16 min-h-screen flex flex-col items-center justify-center">
         <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl">

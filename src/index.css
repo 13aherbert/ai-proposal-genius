@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 220 16% 96%;
-    --foreground: 215 13% 31%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 13% 31%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 13% 31%;
-    --primary: 208 71% 59%;
+    --background: 240 3% 11%;
+    --foreground: 0 0% 100%;
+    --card: 240 2% 13%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 2% 13%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 142 72% 29%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 215 5% 31%;
+    --secondary: 240 3% 15%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 215 5% 85%;
-    --muted-foreground: 215 5% 45%;
-    --accent: 159 70% 52%;
+    --muted: 240 3% 15%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 142 72% 29%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 5% 85%;
-    --input: 215 5% 85%;
-    --ring: 208 71% 59%;
+    --border: 240 3% 15%;
+    --input: 240 3% 15%;
+    --ring: 142 72% 29%;
     --radius: 0.5rem;
   }
 }
@@ -40,16 +40,16 @@
 }
 
 .gradient-bg {
-  background: radial-gradient(circle at top center, #34D399 0%, #059669 70%);
+  background: linear-gradient(to bottom, rgba(18, 18, 18, 0.8) 0%, rgb(18, 18, 18) 100%);
 }
 
-/* Custom utility classes for the new color scheme */
-.bg-brand-gradient {
-  background: linear-gradient(to right, #34D399, #059669);
+/* Custom utility classes for the Spotify-inspired theme */
+.bg-spotify-gradient {
+  background: linear-gradient(to bottom, #1DB954, #169C46);
 }
 
-.text-brand-gradient {
-  background: linear-gradient(to right, #34D399, #059669);
+.text-spotify-gradient {
+  background: linear-gradient(to bottom, #1DB954, #169C46);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

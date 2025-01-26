@@ -96,7 +96,11 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               </CardTitle>
             )}
           </div>
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="hover:bg-brand-green hover:text-white"
+          >
             {isSelected ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -112,7 +116,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               onClick={generateContent}
               disabled={isGenerating}
               variant="outline"
-              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green text-white border-brand-green hover:border-brand-green"
             >
               <Wand2 className="h-4 w-4" />
               {isGenerating ? "Generating..." : "Generate with AI"}
@@ -129,7 +133,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
           />
           <Button 
             onClick={handleSave} 
-            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white"
+            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green text-white"
           >
             <Save className="h-4 w-4" />
             Save Changes

@@ -43,11 +43,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-brand-green to-[#1a1a1a]">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
+        <div className="flex flex-col gap-4 md:gap-8">
           <DashboardHeader />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
             {quickActions.map((action) => (
               <QuickActionCard
                 key={action.title}
@@ -59,10 +59,10 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <div className="mt-8">
-            <h2 className="text-2xl font-semibold text-brand-gray mb-4">Recent Activity</h2>
+          <div className="mt-4 md:mt-8">
+            <h2 className="text-xl md:text-2xl font-semibold text-brand-gray mb-3 md:mb-4">Recent Activity</h2>
             <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <RecentActivityList
                   activities={recentActivity}
                   isLoading={isLoading}

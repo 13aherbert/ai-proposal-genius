@@ -79,8 +79,9 @@ export const AuthForm = () => {
           variables: {
             default: {
               colors: {
-                brand: 'hsl(var(--primary))',
-                brandAccent: 'hsl(var(--primary))',
+                brand: '#34D399',
+                brandAccent: '#059669',
+                brandButtonText: 'white',
               },
             },
           },

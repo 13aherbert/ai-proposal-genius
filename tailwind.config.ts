@@ -24,8 +24,8 @@ export default {
       },
       colors: {
         // Custom brand colors
-        'brand-green': '#34D399',
-        'brand-green-dark': '#059669',
+        'brand-green': '#1DB954',
+        'brand-green-dark': '#169C46',
         'brand-gray': '#4B4F54',
         'brand-blue': '#4A90E2',
         'brand-silver': '#D9D9D9',

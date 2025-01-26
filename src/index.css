@@ -40,16 +40,16 @@
 }
 
 .gradient-bg {
-  background: linear-gradient(to bottom, #34D399 0%, #1a1a1a 100%);
+  background: linear-gradient(to bottom, #1DB954 0%, #1a1a1a 100%);
 }
 
 /* Custom utility classes for the Spotify-inspired theme */
 .bg-spotify-gradient {
-  background: linear-gradient(to bottom, #34D399, #059669);
+  background: linear-gradient(to bottom, #1DB954, #169C46);
 }
 
 .text-spotify-gradient {
-  background: linear-gradient(to bottom, #34D399, #059669);
+  background: linear-gradient(to bottom, #1DB954, #169C46);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -48,7 +48,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
           key={section.id}
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-2",
+            "w-full justify-start gap-2 hover:bg-brand-green hover:text-white",
             activeSection === section.id && "bg-muted"
           )}
           onClick={() => onSectionChange(section.id)}

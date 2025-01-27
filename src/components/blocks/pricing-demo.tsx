@@ -2,59 +2,58 @@ import { Pricing } from "./pricing";
 
 const demoPlans = [
   {
+    name: "TRIAL",
+    price: "0",
+    yearlyPrice: "0",
+    period: "Next 3 months",
+    features: [
+      "Up to 3 projects",
+      "Basic RFP Summary",
+      "Basic Proposal Outline",
+      "Community support",
+      "48-hour support response time",
+    ],
+    description: "Perfect for trying out our platform",
+    buttonText: "Start Free Trial",
+    href: "/subscription",
+    isPopular: false,
+  },
+  {
     name: "STARTER",
     price: "49",
     yearlyPrice: "470",
     period: "month",
     features: [
       "Up to 10 projects",
-      "Basic analytics",
-      "48-hour support response time",
-      "Limited API access",
-      "Community support",
-    ],
-    description: "Perfect for individuals and small projects",
-    buttonText: "Start Free Trial",
-    href: "/subscription",
-    isPopular: false,
-  },
-  {
-    name: "PROFESSIONAL",
-    price: "99",
-    yearlyPrice: "950",
-    period: "month",
-    features: [
-      "Unlimited projects",
-      "Advanced analytics",
+      "Advanced RFP Summary",
+      "Enhanced Proposal Outline",
+      "Basic Proposal Draft",
       "24-hour support response time",
-      "Full API access",
-      "Priority support",
-      "Team collaboration",
-      "Custom integrations",
+      "Email support",
     ],
-    description: "Ideal for growing teams and businesses",
+    description: "Ideal for small teams and individual consultants",
     buttonText: "Get Started",
     href: "/subscription",
     isPopular: true,
   },
   {
-    name: "ENTERPRISE",
-    price: "299",
-    yearlyPrice: "2990",
+    name: "PRO",
+    price: "99",
+    yearlyPrice: "950",
     period: "month",
     features: [
-      "Everything in Professional",
-      "Custom solutions",
-      "Dedicated account manager",
+      "Unlimited projects",
+      "Advanced RFP Summary",
+      "Enhanced Proposal Outline",
+      "Advanced Proposal Draft",
+      "Compiled Draft Preview",
+      "Proposal Evaluation",
+      "Priority support",
       "1-hour support response time",
-      "SSO Authentication",
-      "Advanced security",
-      "Custom contracts",
-      "SLA agreement",
     ],
-    description: "For large organizations with specific needs",
-    buttonText: "Contact Sales",
-    href: "/contact",
+    description: "For growing businesses with advanced needs",
+    buttonText: "Upgrade to Pro",
+    href: "/subscription",
     isPopular: false,
   },
 ];
@@ -66,7 +65,7 @@ export function PricingDemo() {
         plans={demoPlans}
         title="Simple, Transparent Pricing"
         description="Choose the plan that works for you
-All plans include access to our platform, lead generation tools, and dedicated support."
+All plans include access to our platform and dedicated support."
       />
     </div>
   );

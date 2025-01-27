@@ -1,13 +1,16 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "./ui/card";
 import { Alert, AlertDescription } from "./ui/alert";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthError } from "@supabase/supabase-js";
 
-export const AuthForm = () => {
+interface AuthFormProps {
+  defaultView?: 'sign_in' | 'sign_up';
+}
+
+export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
   const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
@@ -86,6 +89,7 @@ export const AuthForm = () => {
             },
           },
         }}
+        view={defaultView}
         providers={[]}
         theme="light"
       />

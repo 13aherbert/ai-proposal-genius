@@ -24,7 +24,7 @@ const Index = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <AuthForm />
+              <AuthForm defaultView="sign_in" />
             </DialogContent>
           </Dialog>
         </div>
@@ -35,10 +35,23 @@ const Index = () => {
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
               OptiRFP
             </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
               Transform your RFP responses with AI-driven insights and automated content generation.
               Upload your RFPs and let our AI assist you in crafting winning proposals.
             </p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  size="lg"
+                  className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold"
+                >
+                  Get Started
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <AuthForm defaultView="sign_up" />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>

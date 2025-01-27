@@ -23,9 +23,21 @@ export function ProjectContent({ project }: ProjectContentProps) {
       case "outline":
         return <ProposalOutline projectId={project.id} analysis={project.analysis} />;
       case "draft":
-        return <ProposalDraft projectId={project.id} outline={project.proposal_outline} />;
+        return (
+          <ProposalDraft 
+            projectId={project.id} 
+            outline={project.proposal_outline}
+            mode="draft"
+          />
+        );
       case "compiled":
-        return <ProposalDraft projectId={project.id} outline={project.proposal_outline} />;
+        return (
+          <ProposalDraft 
+            projectId={project.id} 
+            outline={project.proposal_outline}
+            mode="compiled"
+          />
+        );
       case "evaluation":
         return <ProposalEvaluation projectId={project.id} analysis={project.analysis} />;
       default:

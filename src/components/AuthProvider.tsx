@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type AuthContextType = {
   session: Session | null;
@@ -16,24 +17,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    // Initialize auth state from local storage if available
+    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        toast.error("Error initializing session");
+      }
+      setSession(initialSession);
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Set up real-time subscription to auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('Auth state changed:', event);
+      setSession(currentSession);
       setLoading(false);
-      if (!session) {
+
+      if (event === 'SIGNED_IN') {
+        toast.success("Successfully signed in");
+      } else if (event === 'SIGNED_OUT') {
+        toast.info("Signed out");
         navigate("/");
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      } else if (event === 'USER_UPDATED') {
+        toast.success("Profile updated");
+      }
+
+      // Handle specific error cases
+      if (event === 'USER_DELETED' || event === 'TOKEN_REFRESH_FAILED') {
+        setSession(null);
+        navigate("/");
+        toast.error("Session expired. Please sign in again.");
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return (

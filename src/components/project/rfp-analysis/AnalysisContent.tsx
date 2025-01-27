@@ -32,7 +32,7 @@ export function AnalysisContent({ sections, onReset }: AnalysisContentProps) {
       ))}
       <Button 
         variant="outline" 
-        className="mt-4"
+        className="mt-4 hover:bg-brand-green hover:text-white border-brand-green"
         onClick={onReset}
       >
         <RefreshCw className="h-4 w-4 mr-2" />

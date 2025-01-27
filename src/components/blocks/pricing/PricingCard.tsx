@@ -52,7 +52,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       }}
       className={cn(
         `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
-        plan.isPopular ? "border-primary border-2" : "border-border",
+        plan.isPopular ? "border-[#34D399] border-2" : "border-border",
         "flex flex-col",
         !plan.isPopular && "mt-5",
         index === 0 || index === 2
@@ -63,7 +63,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       )}
     >
       {plan.isPopular && (
-        <div className="absolute top-0 right-0 bg-primary py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
+        <div className="absolute top-0 right-0 bg-[#34D399] py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
           <Star className="text-primary-foreground h-4 w-4 fill-current" />
           <span className="text-primary-foreground ml-1 font-sans font-semibold">
             Popular
@@ -106,7 +106,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         <ul className="mt-5 gap-2 flex flex-col">
           {plan.features.map((feature, idx) => (
             <li key={idx} className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+              <Check className="h-4 w-4 text-[#34D399] mt-1 flex-shrink-0" />
               <span className="text-left">{feature}</span>
             </li>
           ))}
@@ -121,9 +121,9 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               variant: "outline",
             }),
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-primary hover:ring-offset-1 hover:bg-primary hover:text-primary-foreground",
+            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-primary-foreground",
             plan.isPopular
-              ? "bg-primary text-primary-foreground"
+              ? "bg-[#34D399] text-primary-foreground"
               : "bg-background text-foreground"
           )}
         >

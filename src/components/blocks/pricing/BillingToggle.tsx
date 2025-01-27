@@ -22,12 +22,7 @@ export function BillingToggle() {
           x: x / window.innerWidth,
           y: y / window.innerHeight,
         },
-        colors: [
-          "hsl(var(--primary))",
-          "hsl(var(--accent))",
-          "hsl(var(--secondary))",
-          "hsl(var(--muted))",
-        ],
+        colors: ["#34D399"],
         ticks: 200,
         gravity: 1.2,
         decay: 0.94,
@@ -50,7 +45,7 @@ export function BillingToggle() {
         </Label>
       </label>
       <span className="ml-2 font-semibold">
-        Annual billing <span className="text-primary">(Save 20%)</span>
+        Annual billing <span className="text-[#34D399]">(Save 20%)</span>
       </span>
     </div>
   );

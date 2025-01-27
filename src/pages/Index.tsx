@@ -1,5 +1,6 @@
 import { AuthForm } from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -12,14 +13,20 @@ const Index = () => {
       <div className="relative z-10">
         {/* Login Button */}
         <div className="absolute top-4 right-4">
-          <Button
-            onClick={() => navigate("/auth")}
-            variant="secondary"
-            className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-          >
-            <LogIn className="h-4 w-4" />
-            Login
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
+              >
+                <LogIn className="h-4 w-4" />
+                Login
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <AuthForm />
+            </DialogContent>
+          </Dialog>
         </div>
         
         {/* Main Content */}
@@ -32,9 +39,6 @@ const Index = () => {
               Transform your RFP responses with AI-driven insights and automated content generation.
               Upload your RFPs and let our AI assist you in crafting winning proposals.
             </p>
-          </div>
-          <div className="w-full max-w-md animate-fade-up [animation-delay:200ms] bg-[#181818]/95 p-8 rounded-lg shadow-2xl backdrop-blur-sm border border-[#282828]">
-            <AuthForm />
           </div>
         </div>
       </div>

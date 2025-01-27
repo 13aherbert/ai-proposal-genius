@@ -66,7 +66,7 @@ export const AuthForm = () => {
   };
 
   return (
-    <Card className="w-full max-w-md bg-secondary/50 backdrop-blur-sm p-6">
+    <div className="w-full">
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
@@ -89,6 +89,6 @@ export const AuthForm = () => {
         providers={[]}
         theme="light"
       />
-    </Card>
+    </div>
   );
 };

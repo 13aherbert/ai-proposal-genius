@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { toast } from "sonner";
 
 interface ProjectSidebarProps {
@@ -17,41 +17,41 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       id: "info",
       label: "Project Info",
       icon: FileText,
-      feature: null as const,
+      feature: null,
     },
     {
       id: "analysis",
       label: "RFP Summary",
       icon: ScrollText,
-      feature: "rfp_summary" as const,
+      feature: "rfp_summary" as FeatureName,
     },
     {
       id: "outline",
       label: "Proposal Outline",
       icon: LayoutTemplate,
-      feature: "proposal_outline" as const,
+      feature: "proposal_outline" as FeatureName,
     },
     {
       id: "draft",
       label: "Proposal Draft",
       icon: FileEdit,
-      feature: "proposal_draft" as const,
+      feature: "proposal_draft" as FeatureName,
     },
     {
       id: "compiled",
       label: "Compiled Draft",
       icon: BookOpen,
-      feature: "compiled_draft" as const,
+      feature: "compiled_draft" as FeatureName,
     },
     {
       id: "evaluation",
       label: "Evaluation",
       icon: CheckSquare,
-      feature: "evaluation" as const,
+      feature: "evaluation" as FeatureName,
     },
-  ];
+  ] as const;
 
-  const handleSectionChange = (sectionId: string, feature: string | null) => {
+  const handleSectionChange = (sectionId: string, feature: FeatureName | null) => {
     if (!feature || hasFeature(feature)) {
       onSectionChange(sectionId);
     } else {

@@ -39,22 +39,16 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
         return;
       }
 
-      const { data, error } = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ priceId: getPriceId() }),
-        }
-      ).then(res => res.json());
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { priceId: getPriceId() }
+      });
 
       if (error) throw error;
 
       if (data?.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);

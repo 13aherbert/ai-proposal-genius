@@ -16,7 +16,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     },
     {
       id: "analysis",
-      label: "RFP Analysis",
+      label: "RFP Summary",
       icon: ScrollText,
     },
     {

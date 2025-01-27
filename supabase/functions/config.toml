@@ -1,0 +1,7 @@
+project_id = "bmopbbkfxkgzlbmhhgox"
+
+[create-checkout-session]
+verify_jwt = true
+
+[check-subscription]
+verify_jwt = true

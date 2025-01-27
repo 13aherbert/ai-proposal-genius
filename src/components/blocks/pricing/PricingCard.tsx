@@ -64,18 +64,18 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
     >
       {plan.isPopular && (
         <div className="absolute top-0 right-0 bg-[#34D399] py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
-          <Star className="text-primary-foreground h-4 w-4 fill-current" />
-          <span className="text-primary-foreground ml-1 font-sans font-semibold">
+          <Star className="text-white h-4 w-4 fill-current" />
+          <span className="text-white ml-1 font-sans font-semibold">
             Popular
           </span>
         </div>
       )}
       <div className="flex-1 flex flex-col">
-        <p className="text-base font-semibold text-muted-foreground">
+        <p className="text-base font-semibold text-[#F1F0FB]">
           {plan.name}
         </p>
         <div className="mt-6 flex items-center justify-center gap-x-2">
-          <span className="text-5xl font-bold tracking-tight text-foreground">
+          <span className="text-5xl font-bold tracking-tight text-[#F1F1F1]">
             <NumberFlow
               value={isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)}
               format={{
@@ -93,13 +93,13 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             />
           </span>
           {plan.period !== "Next 3 months" && (
-            <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
+            <span className="text-sm font-semibold leading-6 tracking-wide text-[#C8C8C9]">
               / {plan.period}
             </span>
           )}
         </div>
 
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="text-xs leading-5 text-[#C8C8C9]">
           {isMonthly ? "billed monthly" : "billed annually"}
         </p>
 
@@ -107,12 +107,12 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           {plan.features.map((feature, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <Check className="h-4 w-4 text-[#34D399] mt-1 flex-shrink-0" />
-              <span className="text-left">{feature}</span>
+              <span className="text-[#F1F1F1] text-left">{feature}</span>
             </li>
           ))}
         </ul>
 
-        <hr className="w-full my-4" />
+        <hr className="w-full my-4 border-[#4B4F54]" />
 
         <button
           onClick={() => navigate(plan.href)}
@@ -121,15 +121,15 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               variant: "outline",
             }),
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-primary-foreground",
+            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
             plan.isPopular
-              ? "bg-[#34D399] text-primary-foreground"
-              : "bg-background text-foreground"
+              ? "bg-[#34D399] text-white"
+              : "bg-background text-[#F1F1F1]"
           )}
         >
           {plan.buttonText}
         </button>
-        <p className="mt-6 text-xs leading-5 text-muted-foreground">
+        <p className="mt-6 text-xs leading-5 text-[#C8C8C9]">
           {plan.description}
         </p>
       </div>

@@ -1,4 +1,4 @@
-import { NumberFlow } from "@number-flow/react";
+import NumberFlow from "@number-flow/react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 

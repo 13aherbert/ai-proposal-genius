@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronDown, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ProposalSection } from "../useProposalSections";
 import ReactMarkdown from "react-markdown";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CompiledViewProps {
   sections: ProposalSection[];
@@ -15,7 +14,6 @@ interface CompiledViewProps {
 export function CompiledView({ sections }: CompiledViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMarkdown, setShowMarkdown] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
 
   const compiledContent = sections
     .map((section) => `# ${section.section_title}\n\n${section.content || ""}\n`)
@@ -32,67 +30,56 @@ export function CompiledView({ sections }: CompiledViewProps) {
 
   return (
     <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <CollapsibleTrigger>
-                <ChevronDown 
-                  className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
-              </CollapsibleTrigger>
-              <div className="flex flex-col items-start">
-                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                  Compiled Proposal
-                </CardTitle>
-                <CardDescription>
-                  View and copy your complete proposal
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMarkdown(!showMarkdown)}
-                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
-              >
-                {showMarkdown ? "Show Raw" : "Show Formatted"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopy}
-                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                Copy
-              </Button>
-            </div>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start">
+            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+              Compiled Proposal
+            </CardTitle>
+            <CardDescription>
+              View and copy your complete proposal
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent>
-            {showMarkdown ? (
-              <div 
-                className={`prose dark:prose-invert max-w-none border rounded-md p-4 bg-background overflow-y-auto ${
-                  isExpanded ? "min-h-[500px]" : "min-h-[200px]"
-                }`}
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                <ReactMarkdown>{compiledContent}</ReactMarkdown>
-              </div>
-            ) : (
-              <Textarea
-                value={compiledContent}
-                readOnly
-                className={`resize-none ${isExpanded ? "min-h-[500px]" : "min-h-[200px]"}`}
-                onClick={() => setIsExpanded(!isExpanded)}
-              />
-            )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMarkdown(!showMarkdown)}
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+            >
+              {showMarkdown ? "Show Raw" : "Show Formatted"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {showMarkdown ? (
+          <div 
+            className={`prose dark:prose-invert max-w-none border rounded-md p-4 bg-background overflow-y-auto ${
+              isExpanded ? "min-h-[500px]" : "min-h-[200px]"
+            }`}
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <ReactMarkdown>{compiledContent}</ReactMarkdown>
+          </div>
+        ) : (
+          <Textarea
+            value={compiledContent}
+            readOnly
+            className={`resize-none ${isExpanded ? "min-h-[500px]" : "min-h-[200px]"}`}
+            onClick={() => setIsExpanded(!isExpanded)}
+          />
+        )}
+      </CardContent>
     </Card>
   );
 }

@@ -1,45 +1,32 @@
 import { AuthForm } from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { LogIn, DollarSign } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/AuthProvider";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
 
   return (
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
         {/* Login Button */}
-        <div className="absolute top-4 right-4 flex gap-4">
-          {session ? (
-            <Button
-              variant="secondary"
-              className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-              onClick={() => navigate('/subscription')}
-            >
-              <DollarSign className="h-4 w-4" />
-              Pricing
-            </Button>
-          ) : (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="secondary"
-                  className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Login
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <AuthForm defaultView="sign_in" />
-              </DialogContent>
-            </Dialog>
-          )}
+        <div className="absolute top-4 right-4">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
+              >
+                <LogIn className="h-4 w-4" />
+                Login
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <AuthForm defaultView="sign_in" />
+            </DialogContent>
+          </Dialog>
         </div>
         
         {/* Main Content */}

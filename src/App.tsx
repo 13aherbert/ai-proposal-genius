@@ -11,7 +11,6 @@ import UploadRFP from "@/pages/UploadRFP";
 import ProjectDetails from "@/pages/ProjectDetails";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import AccountSettings from "@/pages/AccountSettings";
-import Subscription from "@/pages/Subscription";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Create a client
@@ -77,14 +76,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AccountSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/subscription"
-                element={
-                  <ProtectedRoute>
-                    <Subscription />
                   </ProtectedRoute>
                 }
               />

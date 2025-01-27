@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Session } from "@supabase/supabase-js";
+import { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,27 +30,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up real-time subscription to auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
       console.log('Auth state changed:', event);
       setSession(currentSession);
       setLoading(false);
 
-      if (event === 'SIGNED_IN') {
-        toast.success("Successfully signed in");
-      } else if (event === 'SIGNED_OUT') {
-        toast.info("Signed out");
-        navigate("/");
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
-      } else if (event === 'USER_UPDATED') {
-        toast.success("Profile updated");
-      }
-
-      // Handle specific error cases
-      if (event === 'USER_DELETED' || event === 'TOKEN_REFRESH_FAILED') {
-        setSession(null);
-        navigate("/");
-        toast.error("Session expired. Please sign in again.");
+      switch (event) {
+        case 'SIGNED_IN':
+          toast.success("Successfully signed in");
+          break;
+        case 'SIGNED_OUT':
+          toast.info("Signed out");
+          navigate("/");
+          break;
+        case 'TOKEN_REFRESHED':
+          console.log('Token refreshed successfully');
+          break;
+        case 'USER_UPDATED':
+          toast.success("Profile updated");
+          break;
+        case 'PASSWORD_RECOVERY':
+          // Handle password recovery if needed
+          break;
+        default:
+          // Handle any other events if necessary
+          break;
       }
     });
 

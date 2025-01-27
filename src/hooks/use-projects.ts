@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import type { User } from "@supabase/supabase-js";
+import { useSubscriptionFeatures } from "./use-subscription-features";
 
 export type Project = {
   id: string;
@@ -14,6 +15,7 @@ export type Project = {
 export function useProjects(user: User | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getProjectLimit } = useSubscriptionFeatures();
 
   const {
     data: projects,
@@ -75,11 +77,18 @@ export function useProjects(user: User | null) {
     }
   };
 
+  const projectLimit = getProjectLimit();
+  const projectCount = projects?.length || 0;
+  const canCreateProject = projectCount < projectLimit;
+
   return {
     projects,
     isLoading,
     error,
     refetch,
     deleteProject,
+    projectLimit,
+    projectCount,
+    canCreateProject
   };
 }

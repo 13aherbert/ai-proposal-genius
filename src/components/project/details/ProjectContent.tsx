@@ -6,6 +6,8 @@ import { ProposalEvaluation } from "@/components/project/proposal-evaluation/Pro
 import { ProposalDraft } from "@/components/project/proposal-draft/ProposalDraft";
 import { useState } from "react";
 import { ProjectSidebar } from "./ProjectSidebar";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { toast } from "sonner";
 
 interface ProjectContentProps {
   project: Project;
@@ -13,33 +15,40 @@ interface ProjectContentProps {
 
 export function ProjectContent({ project }: ProjectContentProps) {
   const [activeSection, setActiveSection] = useState("info");
+  const { hasFeature } = useSubscriptionFeatures();
 
   const renderSection = () => {
     switch (activeSection) {
       case "info":
         return <ProjectInfo project={project} />;
       case "analysis":
-        return <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />;
+        return hasFeature("rfp_summary") ? (
+          <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />
+        ) : null;
       case "outline":
-        return <ProposalOutline projectId={project.id} analysis={project.analysis} />;
+        return hasFeature("proposal_outline") ? (
+          <ProposalOutline projectId={project.id} analysis={project.analysis} />
+        ) : null;
       case "draft":
-        return (
+        return hasFeature("proposal_draft") ? (
           <ProposalDraft 
             projectId={project.id} 
             outline={project.proposal_outline}
             mode="draft"
           />
-        );
+        ) : null;
       case "compiled":
-        return (
+        return hasFeature("compiled_draft") ? (
           <ProposalDraft 
             projectId={project.id} 
             outline={project.proposal_outline}
             mode="compiled"
           />
-        );
+        ) : null;
       case "evaluation":
-        return <ProposalEvaluation projectId={project.id} analysis={project.analysis} />;
+        return hasFeature("evaluation") ? (
+          <ProposalEvaluation projectId={project.id} analysis={project.analysis} />
+        ) : null;
       default:
         return null;
     }

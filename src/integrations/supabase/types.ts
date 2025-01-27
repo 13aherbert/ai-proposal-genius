@@ -204,8 +204,10 @@ export type Database = {
         Row: {
           created_at: string
           current_period_end: string | null
+          features: Json | null
           id: string
           plan_type: string
+          project_limit: number | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -215,8 +217,10 @@ export type Database = {
         Insert: {
           created_at?: string
           current_period_end?: string | null
+          features?: Json | null
           id?: string
           plan_type: string
+          project_limit?: number | null
           status: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -226,8 +230,10 @@ export type Database = {
         Update: {
           created_at?: string
           current_period_end?: string | null
+          features?: Json | null
           id?: string
           plan_type?: string
+          project_limit?: number | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -241,7 +247,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_project_limit: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,13 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRFPAnalysis } from "./rfp-analysis/useRFPAnalysis";
 import { AnalysisContent } from "./rfp-analysis/AnalysisContent";
 import { parseAnalysis } from "./rfp-analysis/utils";
 import { AIProgress } from "@/components/shared/AIProgress";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
 
 interface RFPAnalysisProps {
   filePath: string;
@@ -23,69 +21,57 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     handleAnalyze,
     handleReset
   } = useRFPAnalysis(filePath, projectId);
-  const [isOpen, setIsOpen] = useState(false);
 
   const parsedSections = analysis ? parseAnalysis(analysis) : [];
 
   return (
     <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <CollapsibleTrigger>
-              <ChevronDown 
-                className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-              />
-            </CollapsibleTrigger>
-            <div className="flex flex-col items-start">
-              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                RFP Summary
-              </CardTitle>
-              <CardDescription>
-                AI-powered analysis of your RFP document
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {!analysis && !isAnalyzing && (
-              <Button 
-                onClick={handleAnalyze} 
-                className="w-full"
-              >
-                Analyze RFP
-              </Button>
-            )}
+      <CardHeader>
+        <div className="flex flex-col items-start">
+          <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+            RFP Summary
+          </CardTitle>
+          <CardDescription>
+            AI-powered analysis of your RFP document
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        {!analysis && !isAnalyzing && (
+          <Button 
+            onClick={handleAnalyze} 
+            className="w-full"
+          >
+            Analyze RFP
+          </Button>
+        )}
 
-            {isAnalyzing && (
-              <div className="space-y-4">
-                <Button 
-                  disabled
-                  className="w-full"
-                >
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </Button>
-                <AIProgress progress={progress} label="Analyzing RFP" />
-              </div>
-            )}
-            
-            {analysis && (
-              <AnalysisContent 
-                sections={parsedSections} 
-                onReset={handleReset} 
-              />
-            )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+        {isAnalyzing && (
+          <div className="space-y-4">
+            <Button 
+              disabled
+              className="w-full"
+            >
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </Button>
+            <AIProgress progress={progress} label="Analyzing RFP" />
+          </div>
+        )}
+        
+        {analysis && (
+          <AnalysisContent 
+            sections={parsedSections} 
+            onReset={handleReset} 
+          />
+        )}
+      </CardContent>
     </Card>
   );
 }

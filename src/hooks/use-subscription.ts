@@ -15,15 +15,9 @@ const checkSubscription = async (): Promise<SubscriptionStatus> => {
     return { subscribed: false, plan: null };
   }
 
-  const { data, error } = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    }
-  ).then(res => res.json());
+  const { data, error } = await supabase.functions.invoke('check-subscription', {
+    method: 'GET'
+  });
 
   if (error) {
     console.error('Error checking subscription:', error);

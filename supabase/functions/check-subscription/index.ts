@@ -20,57 +20,33 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization')!
     const token = authHeader.replace('Bearer ', '')
-    const { data } = await supabaseClient.auth.getUser(token)
-    const user = data.user
-    const email = user?.email
+    const { data: { user } } = await supabaseClient.auth.getUser(token)
 
-    if (!email) {
+    if (!user?.email) {
       throw new Error('No email found')
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
-    })
-
-    const customers = await stripe.customers.list({
-      email: email,
-      limit: 1
-    })
-
-    if (customers.data.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          subscribed: false,
-          plan: null
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      )
-    }
-
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customers.data[0].id,
-      status: 'active',
-      limit: 1
-    })
+    const { data: subscription } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single()
 
     let plan = null;
-    if (subscriptions.data.length > 0) {
-      const priceId = subscriptions.data[0].items.data[0].price.id;
-      if (priceId.includes('starter')) {
+    if (subscription) {
+      if (subscription.plan_type.includes('starter')) {
         plan = 'starter';
-      } else if (priceId.includes('pro')) {
+      } else if (subscription.plan_type.includes('pro')) {
         plan = 'pro';
-      } else if (priceId.includes('trial')) {
+      } else if (subscription.plan_type.includes('trial')) {
         plan = 'trial';
       }
     }
 
     return new Response(
       JSON.stringify({ 
-        subscribed: subscriptions.data.length > 0,
+        subscribed: !!subscription,
         plan: plan
       }),
       {
@@ -82,7 +58,7 @@ serve(async (req) => {
     console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }

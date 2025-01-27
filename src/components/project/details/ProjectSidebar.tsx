@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileText, LayoutTemplate, CheckSquare, ScrollText } from "lucide-react";
+import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProjectSidebarProps {
@@ -23,6 +23,16 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       id: "outline",
       label: "Proposal Outline",
       icon: LayoutTemplate,
+    },
+    {
+      id: "draft",
+      label: "Proposal Draft",
+      icon: FileEdit,
+    },
+    {
+      id: "compiled",
+      label: "Compiled Draft",
+      icon: BookOpen,
     },
     {
       id: "evaluation",

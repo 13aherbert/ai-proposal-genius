@@ -3,6 +3,7 @@ import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { RFPAnalysis } from "@/components/project/RFPAnalysis";
 import { ProposalOutline } from "@/components/project/proposal-outline/ProposalOutline";
 import { ProposalEvaluation } from "@/components/project/proposal-evaluation/ProposalEvaluation";
+import { ProposalDraft } from "@/components/project/proposal-draft/ProposalDraft";
 import { useState } from "react";
 import { ProjectSidebar } from "./ProjectSidebar";
 
@@ -21,6 +22,10 @@ export function ProjectContent({ project }: ProjectContentProps) {
         return <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />;
       case "outline":
         return <ProposalOutline projectId={project.id} analysis={project.analysis} />;
+      case "draft":
+        return <ProposalDraft projectId={project.id} outline={project.proposal_outline} />;
+      case "compiled":
+        return <ProposalDraft projectId={project.id} outline={project.proposal_outline} />;
       case "evaluation":
         return <ProposalEvaluation projectId={project.id} analysis={project.analysis} />;
       default:

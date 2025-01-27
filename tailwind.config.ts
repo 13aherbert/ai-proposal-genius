@@ -23,7 +23,7 @@ export default {
         mono: ['Roboto Mono', 'monospace'],
       },
       colors: {
-        // Custom brand colors
+        // Custom brand colors - standardizing green colors
         'brand-green': '#34D399',
         'brand-green-dark': '#059669',
         'brand-gray': '#4B4F54',

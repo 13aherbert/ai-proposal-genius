@@ -46,7 +46,7 @@ export function PricingCard({ plan, isMonthly, index, isDesktop }: PricingCardPr
         <div className="flex items-baseline gap-1">
           <NumberFlow
             value={price}
-            options={{
+            format={{
               style: "currency",
               currency: "USD"
             }}

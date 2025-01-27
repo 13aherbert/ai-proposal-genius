@@ -72,7 +72,7 @@ function App() {
                 }
               />
               <Route
-                path="/account"
+                path="/account-settings"
                 element={
                   <ProtectedRoute>
                     <AccountSettings />

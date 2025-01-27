@@ -52,7 +52,7 @@ export function Pricing({
           x: x / window.innerWidth,
           y: y / window.innerHeight,
         },
-        colors: ["#34D399"], // Updated to use only Brand Green
+        colors: ["#34D399"],
         ticks: 200,
         gravity: 1.2,
         decay: 0.94,
@@ -80,7 +80,7 @@ export function Pricing({
               ref={switchRef as any}
               checked={!isMonthly}
               onCheckedChange={handleToggle}
-              className="relative"
+              className="relative bg-[#f3f3f3]"
             />
           </Label>
         </label>

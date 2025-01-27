@@ -153,8 +153,8 @@ export function Pricing({
                       currency: "USD",
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
+                      prefix: "$"
                     }}
-                    formatter={(value) => `$${value}`}
                     transformTiming={{
                       duration: 500,
                       easing: "ease-out",

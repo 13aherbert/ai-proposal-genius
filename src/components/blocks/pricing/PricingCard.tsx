@@ -1,126 +1,79 @@
-import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import NumberFlow from "@number-flow/react";
-import { useNavigate } from "react-router-dom";
-import type { PricingPlan } from "./types";
+import { NumberFlow } from "@number-flow/react";
+import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 
 interface PricingCardProps {
-  plan: PricingPlan;
+  plan: {
+    name: string;
+    description: string;
+    price: {
+      monthly: number;
+      annual: number;
+    };
+    features: string[];
+    highlight?: boolean;
+    cta?: string;
+  };
   isMonthly: boolean;
   index: number;
   isDesktop: boolean;
 }
 
 export function PricingCard({ plan, isMonthly, index, isDesktop }: PricingCardProps) {
-  const navigate = useNavigate();
+  const price = isMonthly ? plan.price.monthly : plan.price.annual;
+  const period = isMonthly ? "/month" : "/year";
 
   return (
-    <motion.div
-      initial={{ y: 50, opacity: 1 }}
-      whileInView={
-        isDesktop
-          ? {
-              y: plan.isPopular ? -20 : 0,
-              opacity: 1,
-              x: index === 2 ? -30 : index === 0 ? 30 : 0,
-              scale: index === 0 || index === 2 ? 0.94 : 1.0,
-            }
-          : {}
-      }
-      viewport={{ once: true }}
-      transition={{
-        duration: 1.6,
-        type: "spring",
-        stiffness: 100,
-        damping: 30,
-        delay: 0.4,
-        opacity: { duration: 0.5 },
-      }}
-      className={cn(
-        `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
-        plan.isPopular ? "border-primary border-2" : "border-border",
-        "flex flex-col",
-        !plan.isPopular && "mt-5",
-        index === 0 || index === 2
-          ? "z-0 transform translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg]"
-          : "z-10",
-        index === 0 && "origin-right",
-        index === 2 && "origin-left"
-      )}
+    <div
+      className={`relative p-6 rounded-lg ${
+        plan.highlight
+          ? "bg-brand-green text-white"
+          : "bg-black/30 backdrop-blur-sm text-white"
+      }`}
     >
-      {plan.isPopular && (
-        <div className="absolute top-0 right-0 bg-primary py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
-          <Star className="text-primary-foreground h-4 w-4 fill-current" />
-          <span className="text-primary-foreground ml-1 font-sans font-semibold">
-            Popular
+      {plan.highlight && isDesktop && (
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+          <span className="bg-white text-brand-green px-3 py-1 rounded-full text-sm font-medium">
+            Most Popular
           </span>
         </div>
       )}
-      <div className="flex-1 flex flex-col">
-        <p className="text-base font-semibold text-muted-foreground">
-          {plan.name}
-        </p>
-        <div className="mt-6 flex items-center justify-center gap-x-2">
-          <span className="text-5xl font-bold tracking-tight text-foreground">
-            <NumberFlow
-              value={isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)}
-              format={{
-                style: "currency",
-                currency: "USD",
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }}
-              transformTiming={{
-                duration: 500,
-                easing: "ease-out",
-              }}
-              willChange
-              className="font-variant-numeric: tabular-nums"
-            />
-          </span>
-          {plan.period !== "Next 3 months" && (
-            <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
-              / {plan.period}
-            </span>
-          )}
+
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold">{plan.name}</h3>
+        <p className="text-sm opacity-80">{plan.description}</p>
+
+        <div className="flex items-baseline gap-1">
+          <NumberFlow
+            value={price}
+            options={{
+              style: "currency",
+              currency: "USD"
+            }}
+            className="text-3xl font-bold"
+          />
+          <span className="text-sm opacity-80">{period}</span>
         </div>
 
-        <p className="text-xs leading-5 text-muted-foreground">
-          {isMonthly ? "billed monthly" : "billed annually"}
-        </p>
+        <Button
+          className={`w-full ${
+            plan.highlight
+              ? "bg-white text-brand-green hover:bg-gray-100"
+              : "bg-brand-green text-white hover:bg-brand-green/90"
+          }`}
+        >
+          {plan.cta || "Get Started"}
+        </Button>
 
-        <ul className="mt-5 gap-2 flex flex-col">
-          {plan.features.map((feature, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-              <span className="text-left">{feature}</span>
+        <ul className="space-y-3 pt-4">
+          {plan.features.map((feature, featureIndex) => (
+            <li key={featureIndex} className="flex items-start gap-2">
+              <Check className="h-5 w-5 shrink-0 opacity-80" />
+              <span className="text-sm">{feature}</span>
             </li>
           ))}
         </ul>
-
-        <hr className="w-full my-4" />
-
-        <button
-          onClick={() => navigate(plan.href)}
-          className={cn(
-            buttonVariants({
-              variant: "outline",
-            }),
-            "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-primary hover:ring-offset-1 hover:bg-primary hover:text-primary-foreground",
-            plan.isPopular
-              ? "bg-primary text-primary-foreground"
-              : "bg-background text-foreground"
-          )}
-        >
-          {plan.buttonText}
-        </button>
-        <p className="mt-6 text-xs leading-5 text-muted-foreground">
-          {plan.description}
-        </p>
       </div>
-    </motion.div>
+    </div>
   );
 }

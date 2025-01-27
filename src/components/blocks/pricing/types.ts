@@ -1,17 +1,15 @@
-export interface PricingPlan {
-  name: string;
-  price: string;
-  yearlyPrice: string;
-  period: string;
-  features: string[];
-  description: string;
-  buttonText: string;
-  href: string;
-  isPopular: boolean;
-}
-
 export interface PricingProps {
-  plans: PricingPlan[];
+  plans: {
+    name: string;
+    description: string;
+    price: {
+      monthly: number;
+      annual: number;
+    };
+    features: string[];
+    highlight?: boolean;
+    cta?: string;
+  }[];
   title?: string;
   description?: string;
 }

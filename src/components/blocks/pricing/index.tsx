@@ -1,34 +1,38 @@
-import { useMediaQuery } from "@/hooks/use-media-query";
-import { useState } from "react";
+import { PricingProvider } from "./PricingProvider";
 import { PricingHeader } from "./PricingHeader";
 import { BillingToggle } from "./BillingToggle";
-import { PricingCard } from "./PricingCard";
-import type { PricingProps } from "./types";
+import { PricingGrid } from "./PricingGrid";
+
+interface PricingPlan {
+  name: string;
+  price: string;
+  yearlyPrice: string;
+  period: string;
+  features: string[];
+  description: string;
+  buttonText: string;
+  href: string;
+  isPopular: boolean;
+}
+
+interface PricingProps {
+  plans: PricingPlan[];
+  title?: string;
+  description?: string;
+}
 
 export function Pricing({
   plans,
   title = "Simple, Transparent Pricing",
   description = "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support.",
 }: PricingProps) {
-  const [isMonthly, setIsMonthly] = useState(true);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
   return (
-    <div className="container py-20">
-      <PricingHeader title={title} description={description} />
-      <BillingToggle isMonthly={isMonthly} onToggle={(checked) => setIsMonthly(!checked)} />
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 sm:2 gap-4">
-        {plans.map((plan, index) => (
-          <PricingCard
-            key={index}
-            plan={plan}
-            isMonthly={isMonthly}
-            index={index}
-            isDesktop={isDesktop}
-          />
-        ))}
+    <PricingProvider>
+      <div className="container py-20">
+        <PricingHeader title={title} description={description} />
+        <BillingToggle />
+        <PricingGrid plans={plans} />
       </div>
-    </div>
+    </PricingProvider>
   );
 }

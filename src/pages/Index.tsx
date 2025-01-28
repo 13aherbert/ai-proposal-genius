@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { LogIn } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
+import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 
 const Index = () => {
   return (
@@ -90,6 +91,9 @@ const Index = () => {
 
           {/* Pricing Section */}
           <PricingDemo />
+
+          {/* Comparison Charts */}
+          <ComparisonCharts />
         </div>
       </div>
     </div>

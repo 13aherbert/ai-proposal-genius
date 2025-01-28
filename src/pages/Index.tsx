@@ -33,8 +33,11 @@ const Index = () => {
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
               OptiRFP
             </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-4">
               Optimize Proposals. Win Opportunities.
+            </p>
+            <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-8">
+              Streamline your RFP process, increase your win rate, and save hours with AI-powered tools designed for businesses like yours.
             </p>
             <Dialog>
               <DialogTrigger asChild>

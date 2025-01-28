@@ -11,7 +11,6 @@ const demoPlans = [
       "AI RFP Summary",
       "AI Proposal Outline", 
       "AI Proposal Draft",
-      "Community support",
     ],
     description: "Perfect for trying out our platform",
     buttonText: "Start Free Trial",

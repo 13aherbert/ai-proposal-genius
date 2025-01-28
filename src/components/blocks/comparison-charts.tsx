@@ -64,9 +64,10 @@ export function ComparisonCharts() {
                   className="fill-brand-green"
                   radius={[4, 4, 4, 4]}
                 />
-                <ChartTooltip>
-                  <ChartTooltipContent />
-                </ChartTooltip>
+                <ChartTooltip
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+                  content={<ChartTooltipContent />}
+                />
               </BarChart>
             </ChartContainer>
           </div>
@@ -94,9 +95,10 @@ export function ComparisonCharts() {
                   className="fill-brand-green"
                   radius={[4, 4, 4, 4]}
                 />
-                <ChartTooltip>
-                  <ChartTooltipContent />
-                </ChartTooltip>
+                <ChartTooltip
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+                  content={<ChartTooltipContent />}
+                />
               </BarChart>
             </ChartContainer>
           </div>

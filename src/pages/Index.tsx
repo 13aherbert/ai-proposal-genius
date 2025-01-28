@@ -74,7 +74,7 @@ const Index = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-100 mb-2">Smart Templates</h3>
-              <p className="text-gray-400">Access and customize winning proposal templates tailored to your industry and requirements.</p>
+              <p className="text-gray-400">Drafts tailored responses with AI precision.</p>
             </div>
 
             <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">

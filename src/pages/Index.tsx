@@ -64,7 +64,7 @@ const Index = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-100 mb-2">Smart Responses</h3>
-              <p className="text-gray-400">Draft responses tailored to you buinsess with the precision of AI</p>
+              <p className="text-gray-400">Draft responses tailored to your business with the precision of AI</p>
             </div>
 
             <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">

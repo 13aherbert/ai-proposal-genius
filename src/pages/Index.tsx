@@ -73,8 +73,8 @@ const Index = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-100 mb-2">Smart Templates</h3>
-              <p className="text-gray-400">Drafts tailored responses with AI precision.</p>
+              <h3 className="text-xl font-semibold text-gray-100 mb-2">Smart Responses</h3>
+              <p className="text-gray-400">Draft responses tailored to your business with the precision of AI.</p>
             </div>
 
             <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">

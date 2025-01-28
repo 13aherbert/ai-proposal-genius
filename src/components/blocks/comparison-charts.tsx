@@ -55,13 +55,21 @@ export function ComparisonCharts() {
               config={config}
               className="[&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
             >
-              <BarChart data={timeData} layout="vertical">
+              <BarChart 
+                data={timeData} 
+                layout="vertical"
+                margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
+              >
                 <XAxis type="number" unit=" hrs" />
-                <YAxis dataKey="name" type="category" />
+                <YAxis 
+                  dataKey="name" 
+                  type="category"
+                  width={90}
+                />
                 <Bar
                   dataKey="value"
                   fill="currentColor"
-                  className="fill-brand-green"
+                  className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip
@@ -86,13 +94,21 @@ export function ComparisonCharts() {
               config={config}
               className="[&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
             >
-              <BarChart data={costData} layout="vertical">
+              <BarChart 
+                data={costData} 
+                layout="vertical"
+                margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
+              >
                 <XAxis type="number" unit="$" />
-                <YAxis dataKey="name" type="category" />
+                <YAxis 
+                  dataKey="name" 
+                  type="category"
+                  width={90}
+                />
                 <Bar
                   dataKey="value"
                   fill="currentColor"
-                  className="fill-brand-green"
+                  className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip

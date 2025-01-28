@@ -45,7 +45,7 @@ export function BillingToggle() {
         </Label>
       </label>
       <span className="ml-2 font-semibold">
-        Annual billing <span className="text-[#34D399]">(Save 20%)</span>
+        Annual billing <span className="text-[#34D399]">(Save ~15%)</span>
       </span>
     </div>
   );

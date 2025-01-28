@@ -47,7 +47,7 @@ const Index = () => {
                   size="lg"
                   className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold"
                 >
-                  Get Started
+                  Start Your Free Trial Today
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">

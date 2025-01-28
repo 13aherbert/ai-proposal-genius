@@ -2,7 +2,7 @@ import { Pricing } from "./pricing";
 
 const demoPlans = [
   {
-    name: "TRIAL",
+    name: "14-DAY TRIAL",
     price: "0",
     yearlyPrice: "0",
     period: "Next 3 months",

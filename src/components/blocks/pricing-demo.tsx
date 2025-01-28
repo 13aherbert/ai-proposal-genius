@@ -5,7 +5,7 @@ const demoPlans = [
     name: "TRIAL",
     price: "0",
     yearlyPrice: "0",
-    period: "Next 3 months",
+    period: "14-day trial",
     features: [
       "Up to 3 projects",
       "Basic RFP Summary",

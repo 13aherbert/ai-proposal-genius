@@ -29,6 +29,7 @@ const Index = () => {
         
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
+          {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto">
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
               OptiRFP
@@ -52,6 +53,39 @@ const Index = () => {
                 <AuthForm defaultView="sign_up" />
               </DialogContent>
             </Dialog>
+          </div>
+
+          {/* Key Benefits Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">
+            <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
+              <div className="h-12 w-12 bg-brand-green/10 rounded-lg flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-2">AI-Powered Analysis</h3>
+              <p className="text-gray-400">Automatically analyze RFPs to identify key requirements, deadlines, and evaluation criteria.</p>
+            </div>
+
+            <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
+              <div className="h-12 w-12 bg-brand-green/10 rounded-lg flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-2">Smart Templates</h3>
+              <p className="text-gray-400">Access and customize winning proposal templates tailored to your industry and requirements.</p>
+            </div>
+
+            <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
+              <div className="h-12 w-12 bg-brand-green/10 rounded-lg flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-2">Time-Saving Automation</h3>
+              <p className="text-gray-400">Reduce proposal creation time by 50% with automated content generation and formatting.</p>
+            </div>
           </div>
 
           {/* Pricing Section */}

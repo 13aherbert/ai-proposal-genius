@@ -34,7 +34,7 @@ const Index = () => {
               OptiRFP
             </h1>
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
-              Optimize Proposals. Win Opportunities
+              Optimize Proposals. Win Opportunities.
             </p>
             <Dialog>
               <DialogTrigger asChild>

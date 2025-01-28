@@ -37,8 +37,8 @@ const demoPlans = [
   },
   {
     name: "PRO",
-    price: "99",
-    yearlyPrice: "950",
+    price: "149",
+    yearlyPrice: "1499",
     period: "month",
     features: [
       "Unlimited projects",

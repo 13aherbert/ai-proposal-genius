@@ -34,8 +34,7 @@ const Index = () => {
               OptiRFP
             </h1>
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
-              Transform your RFP responses with AI-driven insights and automated content generation.
-              Upload your RFPs and let our AI assist you in crafting winning proposals.
+              Optimize Proposals. Win Opportunities
             </p>
             <Dialog>
               <DialogTrigger asChild>

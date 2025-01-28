@@ -10,8 +10,8 @@ const timeData = [
   },
   {
     name: 'OptiRFP',
-    value: 12,
-    label: '12 Hours',
+    value: 0.5,
+    label: '30 Minutes',
   },
 ];
 
@@ -65,14 +65,14 @@ export function ComparisonCharts() {
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip
+                  content={ChartTooltipContent}
                   cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
-                  content={<ChartTooltipContent />}
                 />
               </BarChart>
             </ChartContainer>
           </div>
           <p className="text-center text-gray-400 mt-4">
-            70% reduction in proposal creation time
+            98.75% reduction in proposal creation time
           </p>
         </div>
 
@@ -96,8 +96,8 @@ export function ComparisonCharts() {
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip
+                  content={ChartTooltipContent}
                   cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
-                  content={<ChartTooltipContent />}
                 />
               </BarChart>
             </ChartContainer>

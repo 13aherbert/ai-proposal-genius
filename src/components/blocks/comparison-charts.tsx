@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -5,13 +6,13 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 const timeData = [
   {
     name: 'Traditional',
-    value: 40,
-    label: '40 Hours',
+    value: 32,
+    label: '32 Hours',
   },
   {
     name: 'OptiRFP',
-    value: 0.5,
-    label: '30 Minutes',
+    value: 2,
+    label: '2 Hours',
   },
 ];
 
@@ -80,7 +81,7 @@ export function ComparisonCharts() {
             </ChartContainer>
           </div>
           <p className="text-center text-gray-400 mt-4">
-            98.75% reduction in proposal creation time
+            93.75% reduction in proposal creation time
           </p>
         </div>
 

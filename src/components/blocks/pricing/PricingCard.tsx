@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           </span>
           {plan.period !== "Next 3 months" && (
             <span className="text-sm font-semibold leading-6 tracking-wide text-[#C8C8C9]">
-              / {plan.period}
+              / {isMonthly ? "mo" : "year"}
             </span>
           )}
         </div>

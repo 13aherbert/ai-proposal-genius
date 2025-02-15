@@ -34,7 +34,7 @@ export function BillingToggle() {
   return <div className="flex justify-center mb-10">
       <label className="relative inline-flex items-center cursor-pointer">
         <Label>
-          <Switch ref={switchRef as any} checked={!isMonthly} onCheckedChange={handleToggle} className="relative bg-gray-500 hover:bg-gray-400" />
+          <Switch ref={switchRef as any} checked={!isMonthly} onCheckedChange={handleToggle} className="relative bg-gray-500 hover:bg-gray-400 text-gray-500" />
         </Label>
       </label>
       <span className="ml-2 font-semibold">

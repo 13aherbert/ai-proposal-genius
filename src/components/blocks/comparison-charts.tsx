@@ -38,6 +38,19 @@ const config = {
   },
 };
 
+// Custom tooltip content component with improved styling
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#2A2A2A] border border-[#404040] rounded-lg p-3 shadow-lg">
+        <p className="text-[#F1F1F1] font-medium mb-1">{payload[0].payload.name}</p>
+        <p className="text-[#34D399] font-bold">{payload[0].payload.label}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function ComparisonCharts() {
   return (
     <div className="w-full space-y-12 py-16 animate-fade-up">
@@ -74,8 +87,8 @@ export function ComparisonCharts() {
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip
-                  content={ChartTooltipContent}
-                  cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+                  content={CustomTooltip}
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.2)' }}
                 />
               </BarChart>
             </ChartContainer>
@@ -113,8 +126,8 @@ export function ComparisonCharts() {
                   radius={[4, 4, 4, 4]}
                 />
                 <ChartTooltip
-                  content={ChartTooltipContent}
-                  cursor={{ fill: 'rgba(0, 0, 0, 0.1)' }}
+                  content={CustomTooltip}
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.2)' }}
                 />
               </BarChart>
             </ChartContainer>

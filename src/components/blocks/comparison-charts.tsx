@@ -88,7 +88,7 @@ export function ComparisonCharts() {
                 />
                 <ChartTooltip
                   content={CustomTooltip}
-                  cursor={{ fillOpacity: 0.1 }}
+                  cursor={{ fillOpacity: 0.3 }}
                 />
               </BarChart>
             </ChartContainer>
@@ -127,7 +127,7 @@ export function ComparisonCharts() {
                 />
                 <ChartTooltip
                   content={CustomTooltip}
-                  cursor={{ fillOpacity: 0.1 }}
+                  cursor={{ fillOpacity: 0.3 }}
                 />
               </BarChart>
             </ChartContainer>

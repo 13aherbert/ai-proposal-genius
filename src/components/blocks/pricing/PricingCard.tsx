@@ -95,7 +95,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           </span>
           {plan.period !== "Next 3 months" && (
             <span className="text-sm font-semibold leading-6 tracking-wide text-[#C8C8C9]">
-              / {isMonthly ? "mo" : "year"}
+              / {isMonthly ? "month" : "year"}
             </span>
           )}
         </div>

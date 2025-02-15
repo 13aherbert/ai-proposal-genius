@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -63,33 +64,35 @@ export function ComparisonCharts() {
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Time to Complete a Proposal
           </h3>
-          <div className="h-[300px]">
+          <div className="h-[300px] flex items-center justify-center">
             <ChartContainer
               config={config}
-              className="[&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
+              className="w-full [&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
             >
-              <BarChart 
-                data={timeData} 
-                layout="vertical"
-                margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
-              >
-                <XAxis type="number" unit=" hrs" />
-                <YAxis 
-                  dataKey="name" 
-                  type="category"
-                  width={90}
-                />
-                <Bar
-                  dataKey="value"
-                  fill="currentColor"
-                  className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
-                  radius={[4, 4, 4, 4]}
-                />
-                <ChartTooltip
-                  content={CustomTooltip}
-                  cursor={{ fillOpacity: 0.3 }}
-                />
-              </BarChart>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart 
+                  data={timeData} 
+                  layout="vertical"
+                  margin={{ left: 90, right: 30, top: 10, bottom: 10 }}
+                >
+                  <XAxis type="number" unit=" hrs" />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category"
+                    width={80}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="currentColor"
+                    className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
+                    radius={[4, 4, 4, 4]}
+                  />
+                  <ChartTooltip
+                    content={CustomTooltip}
+                    cursor={{ fillOpacity: 0.3 }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </div>
           <p className="text-center text-gray-400 mt-4">
@@ -102,33 +105,35 @@ export function ComparisonCharts() {
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Cost per Proposal
           </h3>
-          <div className="h-[300px]">
+          <div className="h-[300px] flex items-center justify-center">
             <ChartContainer
               config={config}
-              className="[&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
+              className="w-full [&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
             >
-              <BarChart 
-                data={costData} 
-                layout="vertical"
-                margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
-              >
-                <XAxis type="number" unit="$" />
-                <YAxis 
-                  dataKey="name" 
-                  type="category"
-                  width={90}
-                />
-                <Bar
-                  dataKey="value"
-                  fill="currentColor"
-                  className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
-                  radius={[4, 4, 4, 4]}
-                />
-                <ChartTooltip
-                  content={CustomTooltip}
-                  cursor={{ fillOpacity: 0.3 }}
-                />
-              </BarChart>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart 
+                  data={costData} 
+                  layout="vertical"
+                  margin={{ left: 90, right: 30, top: 10, bottom: 10 }}
+                >
+                  <XAxis type="number" unit="$" />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category"
+                    width={80}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="currentColor"
+                    className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2"
+                    radius={[4, 4, 4, 4]}
+                  />
+                  <ChartTooltip
+                    content={CustomTooltip}
+                    cursor={{ fillOpacity: 0.3 }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </div>
           <p className="text-center text-gray-400 mt-4">

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -19,13 +18,13 @@ const timeData = [
 const costData = [
   {
     name: 'Traditional',
-    value: 4000,
-    label: '$4,000',
+    value: 2000,
+    label: '$2,000',
   },
   {
     name: 'OptiRFP',
-    value: 1200,
-    label: '$1,200',
+    value: 49,
+    label: '$49',
   },
 ];
 
@@ -133,7 +132,7 @@ export function ComparisonCharts() {
             </ChartContainer>
           </div>
           <p className="text-center text-gray-400 mt-4">
-            70% cost savings per proposal
+            97.55% cost savings per proposal
           </p>
         </div>
       </div>

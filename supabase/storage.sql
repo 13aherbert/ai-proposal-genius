@@ -1,3 +1,4 @@
+
 insert into storage.buckets (id, name)
 values ('knowledge-files', 'knowledge-files')
 on conflict (id) do nothing;

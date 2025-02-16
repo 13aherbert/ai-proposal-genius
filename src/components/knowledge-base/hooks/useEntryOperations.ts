@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +19,7 @@ export const useEntryOperations = (
       console.log('Fetching entry content for title:', initialTitle);
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content, file_path, id, user_id')
+        .select('content, file_path, id, user_id, parsed_content')
         .eq('title', initialTitle)
         .single();
 
@@ -28,7 +29,7 @@ export const useEntryOperations = (
       }
       
       console.log('Fetched entry:', data);
-      setContent(data.content);
+      setContent(data.content || data.parsed_content);
       setFilePath(data.file_path);
       setEntryId(data.id);
     } catch (error) {

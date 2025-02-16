@@ -95,7 +95,7 @@ export function ComparisonCharts() {
               </ResponsiveContainer>
             </ChartContainer>
           </div>
-          <p className="text-center text-gray-400 mt-4">
+          <p className="text-center text-white mt-4 px-4 py-2 rounded-lg bg-[#34D399]/20 font-medium">
             93.75% reduction in proposal creation time
           </p>
         </div>
@@ -136,7 +136,7 @@ export function ComparisonCharts() {
               </ResponsiveContainer>
             </ChartContainer>
           </div>
-          <p className="text-center text-gray-400 mt-4">
+          <p className="text-center text-white mt-4 px-4 py-2 rounded-lg bg-[#34D399]/20 font-medium">
             97.55% cost savings per proposal
           </p>
         </div>

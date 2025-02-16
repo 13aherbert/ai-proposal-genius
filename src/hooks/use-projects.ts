@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -10,6 +11,7 @@ export type Project = {
   status: string;
   created_at: string;
   rfp_file_path: string;
+  last_update_at: string;
 };
 
 export function useProjects(user: User | null) {
@@ -33,7 +35,7 @@ export function useProjects(user: User | null) {
           .from("projects")
           .select("*")
           .eq("user_id", user?.id)
-          .order("created_at", { ascending: false });
+          .order("last_update_at", { ascending: false });
 
         if (error) {
           console.error("Supabase error:", error);

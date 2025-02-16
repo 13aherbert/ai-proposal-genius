@@ -17,9 +17,9 @@ export const useRecentActivity = (user: User | null) => {
       try {
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, title, created_at, updated_at')
+          .select('id, title, created_at, last_update_at')
           .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
+          .order('last_update_at', { ascending: false })
           .limit(5);
 
         if (projectsError) throw projectsError;
@@ -35,11 +35,11 @@ export const useRecentActivity = (user: User | null) => {
 
         const activities: RecentActivity[] = [
           ...(projects?.map(p => {
-            const isUpdate = new Date(p.updated_at) > new Date(p.created_at);
+            const isUpdate = new Date(p.last_update_at) > new Date(p.created_at);
             return {
               type: 'project' as const,
               title: p.title,
-              date: isUpdate ? p.updated_at : p.created_at,
+              date: isUpdate ? p.last_update_at : p.created_at,
               id: p.id,
               isUpdate
             };

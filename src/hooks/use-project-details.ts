@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ export type Project = {
   deadline: string | null;
   analysis: string | null;
   proposal_outline: string | null;
+  last_update_at: string;
 };
 
 const MAX_RETRIES = 3;

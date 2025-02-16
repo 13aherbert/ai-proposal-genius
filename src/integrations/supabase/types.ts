@@ -123,6 +123,7 @@ export type Database = {
           deadline: string | null
           evaluation: string | null
           id: string
+          last_update_at: string | null
           proposal_outline: string | null
           rfp_file_path: string
           status: string
@@ -138,6 +139,7 @@ export type Database = {
           deadline?: string | null
           evaluation?: string | null
           id?: string
+          last_update_at?: string | null
           proposal_outline?: string | null
           rfp_file_path: string
           status?: string
@@ -153,6 +155,7 @@ export type Database = {
           deadline?: string | null
           evaluation?: string | null
           id?: string
+          last_update_at?: string | null
           proposal_outline?: string | null
           rfp_file_path?: string
           status?: string

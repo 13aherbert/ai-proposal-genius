@@ -127,8 +127,9 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
       </div>
       <div className="flex gap-2">
         <Button 
-          onClick={handleSave} 
-          className="flex items-center gap-2 hover:bg-primary/90 transition-colors"
+          onClick={handleSave}
+          variant="default"
+          className="flex items-center gap-2"
         >
           <Save className="h-4 w-4" />
           Save Changes

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
@@ -26,23 +27,39 @@ serve(async (req) => {
       throw new Error('No email found')
     }
 
-    const { data: subscription } = await supabaseClient
+    console.log('Checking subscription for user:', user.id)
+
+    const { data: subscription, error: subscriptionError } = await supabaseClient
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .single()
 
-    let plan = null;
+    if (subscriptionError) {
+      console.log('No active subscription found, defaulting to trial plan')
+      return new Response(
+        JSON.stringify({ 
+          subscribed: false,
+          plan: 'trial'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      )
+    }
+
+    let plan = 'trial';
     if (subscription) {
       if (subscription.plan_type.includes('starter')) {
         plan = 'starter';
       } else if (subscription.plan_type.includes('pro')) {
         plan = 'pro';
-      } else if (subscription.plan_type.includes('trial')) {
-        plan = 'trial';
       }
     }
+
+    console.log('Subscription check result:', { subscribed: !!subscription, plan })
 
     return new Response(
       JSON.stringify({ 
@@ -57,10 +74,14 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        subscribed: false,
+        plan: 'trial',
+        error: error.message 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 200,
       }
     )
   }

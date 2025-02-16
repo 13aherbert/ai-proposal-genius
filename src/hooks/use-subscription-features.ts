@@ -1,3 +1,4 @@
+
 import { useSubscription } from "./use-subscription";
 
 export type FeatureName = 
@@ -11,18 +12,21 @@ export function useSubscriptionFeatures() {
   const { data: subscription, isLoading, error } = useSubscription();
 
   const hasFeature = (feature: FeatureName): boolean => {
-    if (isLoading || error || !subscription) return false;
+    if (isLoading || error) return false;
+
+    // Default to trial plan if no subscription data
+    const currentPlan = subscription?.plan || 'trial';
 
     // Pro tier has access to all features
-    if (subscription.plan === 'pro') return true;
+    if (currentPlan === 'pro') return true;
 
     // Starter tier has access to basic features
-    if (subscription.plan === 'starter') {
+    if (currentPlan === 'starter') {
       return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
     }
 
     // Trial tier has access to only RFP summary
-    if (subscription.plan === 'trial') {
+    if (currentPlan === 'trial') {
       return ['rfp_summary'].includes(feature);
     }
 
@@ -30,8 +34,9 @@ export function useSubscriptionFeatures() {
   };
 
   const getProjectLimit = (): number => {
-    if (!subscription?.plan) return 3; // Trial limit
-    switch (subscription.plan) {
+    const currentPlan = subscription?.plan || 'trial';
+    
+    switch (currentPlan) {
       case 'pro':
         return 30;
       case 'starter':
@@ -39,7 +44,7 @@ export function useSubscriptionFeatures() {
       case 'trial':
         return 3;
       default:
-        return 0;
+        return 3;
     }
   };
 

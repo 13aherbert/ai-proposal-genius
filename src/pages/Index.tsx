@@ -1,3 +1,4 @@
+
 import { AuthForm } from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -32,9 +33,11 @@ const Index = () => {
         <div className="container mx-auto px-4 py-16 min-h-screen">
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
-              OptiRFP
-            </h1>
+            <img 
+              src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" 
+              alt="OptiRFP Logo" 
+              className="h-16 md:h-20 mx-auto mb-4"
+            />
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-4">
               Optimize Proposals. Win Opportunities.
             </p>

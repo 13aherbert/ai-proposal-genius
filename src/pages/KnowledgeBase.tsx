@@ -1,3 +1,4 @@
+
 import { BookOpen, FileText, Folder, List, Scale, DollarSign, LineChart, ArrowLeft, Building } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +39,7 @@ const KnowledgeBase = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+              <h1 className="text-3xl font-bold text-brand-green">
                 Knowledge Base
               </h1>
             </div>

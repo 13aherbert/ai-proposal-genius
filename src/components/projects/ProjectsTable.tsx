@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { FileText, Calendar, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -81,6 +82,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                   <Button
                     variant="ghost"
                     onClick={() => navigate(`/projects/${project.id}`)}
+                    className="hover:text-[#34D399] hover:bg-[#34D399]/10"
                   >
                     View Details
                   </Button>

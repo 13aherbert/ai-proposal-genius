@@ -25,9 +25,9 @@ export function useSubscriptionFeatures() {
       return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
     }
 
-    // Trial tier has access to only RFP summary
+    // Trial tier now has access to RFP summary, proposal outline, and proposal draft
     if (currentPlan === 'trial') {
-      return ['rfp_summary'].includes(feature);
+      return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
     }
 
     return false;

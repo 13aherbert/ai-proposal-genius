@@ -123,7 +123,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               onClick={generateContent}
               disabled={isGenerating}
               variant="outline"
-              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/90 text-white border-brand-green"
+              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
             >
               <Wand2 className="h-4 w-4" />
               {isGenerating ? "Generating..." : "Generate with AI"}
@@ -140,7 +140,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
           />
           <Button 
             onClick={handleSave} 
-            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/90 text-white"
+            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
           >
             <Save className="h-4 w-4" />
             Save Changes

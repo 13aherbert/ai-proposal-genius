@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { List } from "lucide-react";
@@ -27,7 +28,7 @@ export const CategorySidebar = ({
           <Button 
             key="all" 
             variant={selectedCategory === null ? "default" : "ghost"} 
-            className="justify-start gap-2"
+            className="justify-start gap-2 hover:bg-brand-green hover:text-white"
             onClick={() => onSelectCategory(null)}
           >
             <List className="h-4 w-4" />
@@ -37,7 +38,7 @@ export const CategorySidebar = ({
             <Button 
               key={category.name} 
               variant={selectedCategory === category.name ? "default" : "ghost"} 
-              className="justify-start gap-2"
+              className="justify-start gap-2 hover:bg-brand-green hover:text-white"
               onClick={() => onSelectCategory(category.name)}
             >
               {category.icon}

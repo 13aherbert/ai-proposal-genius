@@ -1,3 +1,4 @@
+
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useRef } from "react";
@@ -45,7 +46,7 @@ export function BillingToggle() {
         </Label>
       </label>
       <span className="ml-2 font-semibold">
-        Annual billing <span className="text-[#34D399]">(Save ~15%)</span>
+        Annual billing <span className="text-brand-green">(Save ~15%)</span>
       </span>
     </div>
   );

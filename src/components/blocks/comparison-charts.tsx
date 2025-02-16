@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+
 const timeData = [{
   name: 'Traditional',
   value: 32,
@@ -10,6 +11,7 @@ const timeData = [{
   value: 2,
   label: '2 Hours'
 }];
+
 const costData = [{
   name: 'Traditional',
   value: 2000,
@@ -19,6 +21,7 @@ const costData = [{
   value: 49,
   label: '$49'
 }];
+
 const config = {
   traditional: {
     color: '#4B4F54'
@@ -28,7 +31,6 @@ const config = {
   }
 };
 
-// Custom tooltip content component with improved styling
 const CustomTooltip = ({
   active,
   payload,
@@ -42,6 +44,7 @@ const CustomTooltip = ({
   }
   return null;
 };
+
 export function ComparisonCharts() {
   return <div className="w-full space-y-12 py-16 animate-fade-up">
       <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-[#34D399] to-[#059669] bg-clip-text text-transparent">
@@ -49,7 +52,6 @@ export function ComparisonCharts() {
       </h2>
       
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Time Comparison Chart */}
         <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Time to Complete a Proposal
@@ -78,7 +80,6 @@ export function ComparisonCharts() {
           </p>
         </div>
 
-        {/* Cost Comparison Chart */}
         <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Cost per Proposal

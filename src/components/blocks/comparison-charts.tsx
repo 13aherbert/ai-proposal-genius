@@ -73,7 +73,7 @@ export function ComparisonCharts() {
                 <BarChart 
                   data={timeData} 
                   layout="vertical"
-                  margin={{ left: 90, right: 30, top: 10, bottom: 10 }}
+                  margin={{ left: 70, right: 50, top: 10, bottom: 10 }}
                 >
                   <XAxis type="number" unit=" hrs" />
                   <YAxis 
@@ -114,7 +114,7 @@ export function ComparisonCharts() {
                 <BarChart 
                   data={costData} 
                   layout="vertical"
-                  margin={{ left: 90, right: 30, top: 10, bottom: 10 }}
+                  margin={{ left: 70, right: 50, top: 10, bottom: 10 }}
                 >
                   <XAxis type="number" unit="$" />
                   <YAxis 

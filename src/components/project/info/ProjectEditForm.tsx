@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { Save } from "lucide-react";
@@ -125,7 +126,10 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
         </Popover>
       </div>
       <div className="flex gap-2">
-        <Button onClick={handleSave} className="flex items-center gap-2">
+        <Button 
+          onClick={handleSave} 
+          className="flex items-center gap-2 hover:bg-primary/90 transition-colors"
+        >
           <Save className="h-4 w-4" />
           Save Changes
         </Button>

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, FolderOpen } from "lucide-react";
@@ -8,6 +9,7 @@ export interface RecentActivity {
   title: string;
   date: string;
   id: string;
+  isUpdate?: boolean;
 }
 
 interface RecentActivityListProps {
@@ -42,7 +44,7 @@ export const RecentActivityList = ({ activities, isLoading, onActivityClick }: R
             <div className="min-w-0 flex-1">
               <p className="font-medium text-white text-sm md:text-base truncate">{activity.title}</p>
               <p className="text-xs md:text-sm text-white/70">
-                {format(new Date(activity.date), 'MMM d, yyyy')}
+                {activity.isUpdate ? 'Updated' : 'Created'} {format(new Date(activity.date), 'MMM d, yyyy')}
               </p>
             </div>
           </div>

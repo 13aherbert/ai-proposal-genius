@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,10 +17,10 @@ export const useRecentActivity = (user: User | null) => {
       try {
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, title, created_at')
+          .select('id, title, created_at, updated_at')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(3);
+          .order('updated_at', { ascending: false })
+          .limit(5);
 
         if (projectsError) throw projectsError;
 
@@ -33,12 +34,16 @@ export const useRecentActivity = (user: User | null) => {
         if (entriesError) throw entriesError;
 
         const activities: RecentActivity[] = [
-          ...(projects?.map(p => ({
-            type: 'project' as const,
-            title: p.title,
-            date: p.created_at,
-            id: p.id
-          })) || []),
+          ...(projects?.map(p => {
+            const isUpdate = new Date(p.updated_at) > new Date(p.created_at);
+            return {
+              type: 'project' as const,
+              title: p.title,
+              date: isUpdate ? p.updated_at : p.created_at,
+              id: p.id,
+              isUpdate
+            };
+          }) || []),
           ...(entries?.map(e => ({
             type: 'knowledge' as const,
             title: e.title,

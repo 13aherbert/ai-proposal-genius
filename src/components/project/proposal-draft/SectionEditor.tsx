@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your content here..."
-            className="min-h-[200px]"
+            className="min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
           />
           <Button 
             onClick={handleSave} 

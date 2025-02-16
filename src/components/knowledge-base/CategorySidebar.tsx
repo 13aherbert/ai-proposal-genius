@@ -28,17 +28,17 @@ export const CategorySidebar = ({
           <Button 
             key="all" 
             variant={selectedCategory === null ? "default" : "ghost"} 
-            className="justify-start gap-2 hover:bg-brand-green hover:text-white"
+            className="justify-start gap-2 hover:bg-brand-green hover:text-white min-h-[2.5rem] h-auto whitespace-normal text-left"
             onClick={() => onSelectCategory(null)}
           >
-            <List className="h-4 w-4" />
+            <List className="h-4 w-4 flex-shrink-0" />
             All Entries
           </Button>
           {categories.map((category) => (
             <Button 
               key={category.name} 
               variant={selectedCategory === category.name ? "default" : "ghost"} 
-              className="justify-start gap-2 hover:bg-brand-green hover:text-white"
+              className="justify-start gap-2 hover:bg-brand-green hover:text-white min-h-[2.5rem] h-auto whitespace-normal text-left"
               onClick={() => onSelectCategory(category.name)}
             >
               {category.icon}

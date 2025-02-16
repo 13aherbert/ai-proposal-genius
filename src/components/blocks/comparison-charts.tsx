@@ -64,7 +64,7 @@ export function ComparisonCharts() {
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Time to Complete a Proposal
           </h3>
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[300px] flex items-center justify-start">
             <ChartContainer
               config={config}
               className="w-full [&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
@@ -73,7 +73,7 @@ export function ComparisonCharts() {
                 <BarChart 
                   data={timeData} 
                   layout="vertical"
-                  margin={{ left: 70, right: 50, top: 10, bottom: 10 }}
+                  margin={{ left: 50, right: 70, top: 10, bottom: 10 }}
                 >
                   <XAxis type="number" unit=" hrs" />
                   <YAxis 
@@ -105,7 +105,7 @@ export function ComparisonCharts() {
           <h3 className="text-xl font-semibold text-center mb-6 text-gray-100">
             Average Cost per Proposal
           </h3>
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[300px] flex items-center justify-start">
             <ChartContainer
               config={config}
               className="w-full [&_.recharts-cartesian-grid-horizontal_line]:stroke-muted [&_.recharts-cartesian-grid-vertical_line]:stroke-muted"
@@ -114,7 +114,7 @@ export function ComparisonCharts() {
                 <BarChart 
                   data={costData} 
                   layout="vertical"
-                  margin={{ left: 70, right: 50, top: 10, bottom: 10 }}
+                  margin={{ left: 50, right: 70, top: 10, bottom: 10 }}
                 >
                   <XAxis type="number" unit="$" />
                   <YAxis 

@@ -25,7 +25,10 @@ For this cost-related section:
    - Consider the project scope and requirements
    - Propose reasonable cost structures that align with industry practices
    - Ensure pricing reflects market value while remaining competitive
-   - Include standard payment terms and conditions` : '';
+   - Include standard payment terms and conditions
+   - DO NOT invent or reference any past projects, clients, or case studies
+   - Only discuss pricing structures and terms in general industry terms
+   - Focus on the specific requirements of THIS project only` : '';
 
   return `${basePrompt}
 
@@ -50,16 +53,17 @@ STRICT INSTRUCTIONS:
    - Copy the exact text, numbers, and examples
    - Only make minimal grammatical adjustments for flow
    - Keep all specific details (dates, numbers, names) exactly as they appear
-4. Forbidden actions (except for cost sections when no knowledge base data exists):
-   - NO hypothetical examples
+4. Forbidden actions (even in cost sections):
+   - NO hypothetical examples or case studies
+   - NO references to non-existent past projects
+   - NO invented client testimonials or experiences
    - NO "such as" or similar phrases unless directly quoting
    - NO generalizations about capabilities unless explicitly stated in the knowledge base
-   - NO invented metrics or outcomes
 5. Required elements (ONLY if they exist in the knowledge base):
    - Use exact project names and details
    - Use real client names and testimonials
    - Use actual metrics and outcomes
    - Use verified credentials and certifications
 
-Write the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
+Write the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
 }

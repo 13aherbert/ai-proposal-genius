@@ -13,19 +13,19 @@
     --card-foreground: 0 0% 100%;
     --popover: 240 2% 13%;
     --popover-foreground: 0 0% 100%;
-    --primary: 142 72% 29%;
+    --primary: 151.8 69.7% 33.9%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 3% 15%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 3% 15%;
     --muted-foreground: 240 5% 64%;
-    --accent: 142 72% 29%;
+    --accent: 151.8 69.7% 33.9%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 3% 15%;
     --input: 240 3% 15%;
-    --ring: 142 72% 29%;
+    --ring: 151.8 69.7% 33.9%;
     --radius: 0.5rem;
   }
 }
@@ -44,19 +44,17 @@
   background: linear-gradient(to bottom, #34D399 0%, #1a1a1a 100%);
 }
 
-/* Custom utility classes for the Spotify-inspired theme */
 .bg-spotify-gradient {
-  background: linear-gradient(to bottom, #34D399, #059669);
+  background: linear-gradient(to bottom, #34D399, #34D399);
 }
 
 .text-spotify-gradient {
-  background: linear-gradient(to bottom, #34D399, #059669);
+  background: linear-gradient(to bottom, #34D399, #34D399);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Technical content class for Roboto Mono */
 .font-technical {
   @apply font-mono;
 }

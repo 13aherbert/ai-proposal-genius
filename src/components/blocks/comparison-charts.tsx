@@ -102,7 +102,7 @@ export function ComparisonCharts() {
               </ResponsiveContainer>
             </ChartContainer>
           </div>
-          <p className="text-center text-white mt-4 px-4 py-2 rounded-lg bg-[#34D399]/20 font-medium">
+          <p className="text-center text-white mt-4 px-4 py-2 rounded-lg bg-[#34D399] font-medium">
             97.55% cost savings per proposal
           </p>
         </div>

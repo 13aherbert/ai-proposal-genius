@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId } = await req.json();
+    const { priceId: productId } = await req.json();
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,9 +29,22 @@ serve(async (req) => {
       throw new Error('No email found')
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY') || '', {
       apiVersion: '2023-10-16',
     })
+
+    // Get the product's prices
+    const prices = await stripe.prices.list({
+      product: productId,
+      active: true,
+    });
+
+    if (prices.data.length === 0) {
+      throw new Error('No prices found for this product')
+    }
+
+    // Use the first active price for the product
+    const priceId = prices.data[0].id;
 
     // Check if customer exists
     const customers = await stripe.customers.list({
@@ -42,18 +55,6 @@ serve(async (req) => {
     let customerId = undefined
     if (customers.data.length > 0) {
       customerId = customers.data[0].id
-      
-      // Check if already subscribed
-      const { data: existingSubscription } = await supabaseClient
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single()
-
-      if (existingSubscription) {
-        throw new Error("Already have an active subscription")
-      }
     }
 
     console.log('Creating checkout session...')

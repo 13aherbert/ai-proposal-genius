@@ -18,8 +18,8 @@ const plans = [
     href: "/signup",
     isPopular: false,
     priceId: {
-      monthly: "price_trial",
-      annual: "price_trial"
+      monthly: "prod_Rn5PqfqaiB7u3T",
+      annual: "prod_Rn5PqfqaiB7u3T"
     }
   },
   {
@@ -40,8 +40,8 @@ const plans = [
     href: "/signup",
     isPopular: false,
     priceId: {
-      monthly: "price_starter_monthly",
-      annual: "price_starter_annual"
+      monthly: "prod_Rn5Qc3JRlG2dP5",
+      annual: "prod_Rn5Qc3JRlG2dP5"
     }
   },
   {
@@ -64,8 +64,8 @@ const plans = [
     href: "/signup",
     isPopular: true,
     priceId: {
-      monthly: "price_pro_monthly",
-      annual: "price_pro_annual"
+      monthly: "prod_Rn5STkpd7teaIR",
+      annual: "prod_Rn5STkpd7teaIR"
     }
   },
 ];

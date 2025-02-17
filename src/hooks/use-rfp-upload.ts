@@ -32,19 +32,27 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record with explicit column selection
-      const { error: insertError, data: project } = await supabase
+      // First, insert the project without returning data
+      const { error: insertError } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
-        })
-        .select('id, title, rfp_file_path, user_id, deadline, created_at, status')
-        .single();
+        });
 
       if (insertError) throw insertError;
+
+      // Then, fetch the project in a separate query
+      const { data: project, error: fetchError } = await supabase
+        .from("projects")
+        .select("id, title, rfp_file_path, deadline, created_at, status")
+        .eq("user_id", session.user.id)
+        .eq("rfp_file_path", fileName)
+        .single();
+
+      if (fetchError) throw fetchError;
       if (!project) throw new Error("Failed to create project");
 
       setProjectId(project.id);

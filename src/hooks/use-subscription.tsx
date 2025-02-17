@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -8,7 +9,6 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplet
 export interface SubscriptionPlan {
   id: string;
   status: SubscriptionStatus;
-  plan: string;
   plan_type: string;
   current_period_end: string | null;
   project_limit: number;
@@ -41,7 +41,6 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
 const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
   status: 'trialing',
   plan_type: 'trial',
-  plan: 'trial',
   project_limit: 3,
   features: {},
   current_period_end: null,
@@ -64,7 +63,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       const { data, error: subError } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
@@ -76,7 +75,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           status: data.status as SubscriptionStatus,
           features: (data.features || {}) as Record<string, any>,
           plan_type: data.plan_type || 'trial',
-          plan: data.plan_type || 'trial',
         };
         setSubscription(subscriptionData);
       } else {

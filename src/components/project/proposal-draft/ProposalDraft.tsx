@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useProposalSections } from "./useProposalSections";
@@ -36,7 +37,7 @@ export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDr
                 <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
                   Proposal Draft
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="pt-2">
                   Create and manage your proposal sections
                 </CardDescription>
               </div>

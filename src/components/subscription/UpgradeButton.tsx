@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +63,7 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       disabled={isLoading || (currentPlan === targetPlan)}
       className="w-full"
     >
-      {isLoading ? "Loading..." : `Upgrade to ${targetPlan}`}
+      {isLoading ? "Loading..." : currentPlan === targetPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
     </Button>
   );
 }

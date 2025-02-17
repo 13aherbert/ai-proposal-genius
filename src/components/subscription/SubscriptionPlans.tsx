@@ -34,8 +34,10 @@ export function SubscriptionPlans() {
           <CardContent>
             <div className="text-3xl font-bold mb-4">$0</div>
             <ul className="space-y-2">
-              <li>✓ Basic features</li>
-              <li>✓ 14-day access</li>
+              <li>✓ Process up to 3 Projects</li>
+              <li>✓ AI RFP Summary</li>
+              <li>✓ AI Proposal Outline</li>
+              <li>✓ AI Proposal Draft</li>
             </ul>
           </CardContent>
           <CardFooter>
@@ -56,9 +58,12 @@ export function SubscriptionPlans() {
               ${billingInterval === 'monthly' ? '49' : '499'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
             <ul className="space-y-2">
-              <li>✓ All Trial features</li>
-              <li>✓ Advanced analytics</li>
-              <li>✓ Priority support</li>
+              <li>✓ Up to 10 projects</li>
+              <li>✓ Advanced AI RFP Summary</li>
+              <li>✓ Enhanced AI Proposal Outline</li>
+              <li>✓ Basic AI Proposal Draft</li>
+              <li>✓ 24-hour support response time</li>
+              <li>✓ Email support</li>
             </ul>
           </CardContent>
           <CardFooter>
@@ -80,10 +85,14 @@ export function SubscriptionPlans() {
               ${billingInterval === 'monthly' ? '99' : '950'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
             <ul className="space-y-2">
-              <li>✓ All Starter features</li>
-              <li>✓ Custom integrations</li>
-              <li>✓ Dedicated support</li>
-              <li>✓ Advanced security</li>
+              <li>✓ Up to 30 projects</li>
+              <li>✓ Advanced AI RFP Summary</li>
+              <li>✓ Enhanced AI Proposal Outline</li>
+              <li>✓ Advanced AI Proposal Draft</li>
+              <li>✓ Compiled Draft Preview</li>
+              <li>✓ AI Proposal Evaluation</li>
+              <li>✓ 24-hour support response time</li>
+              <li>✓ Email support</li>
             </ul>
           </CardContent>
           <CardFooter>

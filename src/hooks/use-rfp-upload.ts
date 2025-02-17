@@ -32,7 +32,7 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record with explicit table reference for user_id
+      // Create project record with explicit column selection
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
@@ -41,7 +41,7 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select("projects.id, projects.title, projects.rfp_file_path, projects.user_id, projects.deadline")
+        .select("id, title, rfp_file_path, user_id, deadline, created_at, status")
         .single();
 
       if (insertError) throw insertError;

@@ -42,7 +42,7 @@ export function SubscriptionPlans() {
           </CardContent>
           <CardFooter>
             <UpgradeButton
-              currentPlan={subscription?.plan}
+              currentPlan={subscription}
               targetPlan="trial"
             />
           </CardFooter>
@@ -68,7 +68,7 @@ export function SubscriptionPlans() {
           </CardContent>
           <CardFooter>
             <UpgradeButton
-              currentPlan={subscription?.plan}
+              currentPlan={subscription}
               targetPlan="starter"
               variant={billingInterval}
             />
@@ -97,7 +97,7 @@ export function SubscriptionPlans() {
           </CardContent>
           <CardFooter>
             <UpgradeButton
-              currentPlan={subscription?.plan}
+              currentPlan={subscription}
               targetPlan="pro"
               variant={billingInterval}
             />

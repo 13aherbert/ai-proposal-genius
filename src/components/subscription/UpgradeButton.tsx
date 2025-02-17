@@ -14,7 +14,7 @@ const PRICE_IDS = {
 };
 
 interface UpgradeButtonProps {
-  currentPlan: SubscriptionPlan;
+  currentPlan: SubscriptionPlan | null;
   targetPlan: 'trial' | 'starter' | 'pro';
   variant?: 'monthly' | 'annual';
 }
@@ -57,13 +57,16 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
     }
   };
 
+  const isCurrentPlan = currentPlan?.plan_type === targetPlan;
+  const isUpgradeDisabled = isLoading || isCurrentPlan;
+
   return (
     <Button 
       onClick={handleUpgrade} 
-      disabled={isLoading || (currentPlan === targetPlan)}
+      disabled={isUpgradeDisabled}
       className="w-full"
     >
-      {isLoading ? "Loading..." : currentPlan === targetPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
+      {isLoading ? "Loading..." : isCurrentPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
     </Button>
   );
 }

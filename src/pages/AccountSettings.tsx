@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -122,7 +121,7 @@ export default function AccountSettings() {
     }
   };
 
-  const hasActiveSubscription = subscriptionData?.subscribed && subscriptionData?.plan !== 'trial';
+  const hasActiveSubscription = subscriptionData?.status === 'active' && subscriptionData?.plan_type !== 'trial';
 
   return (
     <div className="min-h-screen w-full bg-background">

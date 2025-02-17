@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -9,7 +8,7 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplet
 export interface SubscriptionPlan {
   id: string;
   status: SubscriptionStatus;
-  plan: string; // Keep both for backward compatibility
+  plan: string;
   plan_type: string;
   current_period_end: string | null;
   project_limit: number;
@@ -39,6 +38,17 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   checkSubscription: async () => {},
 });
 
+const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
+  status: 'trialing',
+  plan_type: 'trial',
+  plan: 'trial',
+  project_limit: 3,
+  features: {},
+  current_period_end: null,
+  stripe_customer_id: null,
+  stripe_subscription_id: null,
+};
+
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +66,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .from('subscriptions')
         .select('*')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (subError) throw subError;
       
@@ -66,9 +76,28 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           status: data.status as SubscriptionStatus,
           features: (data.features || {}) as Record<string, any>,
           plan_type: data.plan_type || 'trial',
-          plan: data.plan_type || 'trial', // Set both for backward compatibility
+          plan: data.plan_type || 'trial',
         };
         setSubscription(subscriptionData);
+      } else {
+        const newSubscription: SubscriptionPlan = {
+          id: crypto.randomUUID(),
+          user_id: session.user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ...DEFAULT_TRIAL_SUBSCRIPTION
+        } as SubscriptionPlan;
+
+        const { error: insertError } = await supabase
+          .from('subscriptions')
+          .insert([newSubscription]);
+
+        if (insertError) {
+          console.error('Error creating trial subscription:', insertError);
+          setSubscription(newSubscription);
+        } else {
+          setSubscription(newSubscription);
+        }
       }
     } catch (e) {
       console.error('Error fetching subscription:', e);

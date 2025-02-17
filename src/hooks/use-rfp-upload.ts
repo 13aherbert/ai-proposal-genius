@@ -32,31 +32,30 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // First, insert the project without returning data
-      const { error: insertError } = await supabase
+      // Insert project and return specific columns
+      const { data: insertedProject, error: insertError } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
-        });
+        })
+        .select(`
+          id,
+          title,
+          rfp_file_path,
+          deadline,
+          created_at,
+          status
+        `)
+        .maybeSingle();
 
       if (insertError) throw insertError;
+      if (!insertedProject) throw new Error("Failed to create project");
 
-      // Then, fetch the project in a separate query
-      const { data: project, error: fetchError } = await supabase
-        .from("projects")
-        .select("id, title, rfp_file_path, deadline, created_at, status")
-        .eq("user_id", session.user.id)
-        .eq("rfp_file_path", fileName)
-        .single();
-
-      if (fetchError) throw fetchError;
-      if (!project) throw new Error("Failed to create project");
-
-      setProjectId(project.id);
-      setProjectTitle(project.title);
+      setProjectId(insertedProject.id);
+      setProjectTitle(insertedProject.title);
       toast.success("File uploaded successfully");
     } catch (error) {
       console.error("Upload error:", error);

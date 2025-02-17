@@ -9,7 +9,7 @@ export type FeatureName =
   | "evaluation";
 
 export function useSubscriptionFeatures() {
-  const { subscription, isLoading, error } = useSubscription();
+  const { data: subscription, isLoading, error } = useSubscription();
 
   const hasFeature = (feature: FeatureName): boolean => {
     if (isLoading || error) return false;

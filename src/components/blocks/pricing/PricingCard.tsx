@@ -46,15 +46,23 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
     }
 
     try {
-      // Get fresh session to ensure we have valid token
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession) {
+      // Refresh the session first
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Session refresh error:', refreshError);
         toast.error("Session expired. Please sign in again.");
         return;
       }
 
-      console.log("Creating checkout session with auth token:", currentSession.access_token);
+      // Get the current session after refresh
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !currentSession) {
+        console.error('Session retrieval error:', sessionError);
+        toast.error("Unable to verify your session. Please sign in again.");
+        return;
+      }
+
+      console.log("Creating checkout session for user:", currentSession.user.id);
       
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
@@ -77,7 +85,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error("Failed to start subscription process");
+      toast.error("Failed to start subscription process. Please try again.");
     }
   };
 

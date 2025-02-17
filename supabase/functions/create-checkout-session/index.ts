@@ -9,6 +9,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -17,73 +18,81 @@ serve(async (req) => {
     const { priceId: productId } = await req.json();
     console.log('Product ID received:', productId);
     
+    // Verify authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      throw new Error('Missing authorization header');
     }
-    console.log('Auth header present');
     
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Use service role key for admin access
     )
 
+    // Get user from JWT token
     const token = authHeader.replace('Bearer ', '');
-    console.log('Attempting to get user from token');
-    
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
-      console.error('Error getting user:', userError);
-      throw userError;
+      console.error('Auth error:', userError);
+      throw new Error('Authentication failed');
     }
 
     if (!user) {
       console.error('No user found');
-      throw new Error('No user found');
+      throw new Error('User not found');
     }
 
     if (!user.email) {
-      console.error('User has no email:', user);
-      throw new Error('No email found');
+      console.error('User has no email');
+      throw new Error('User email not found');
     }
 
-    console.log('User found with email:', user.email);
+    console.log('Processing checkout for user:', user.id);
 
+    // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY') || '', {
       apiVersion: '2023-10-16',
     })
 
-    // Get the product's prices
+    // Get product prices
     const prices = await stripe.prices.list({
       product: productId,
       active: true,
     });
 
     if (prices.data.length === 0) {
-      throw new Error('No prices found for this product')
+      throw new Error('No active prices found for this product')
     }
 
-    // Use the first active price for the product
     const priceId = prices.data[0].id;
-    console.log('Found price ID:', priceId);
+    console.log('Using price:', priceId);
 
-    // Check if customer exists
+    // Get or create customer
+    let customer;
     const customers = await stripe.customers.list({
       email: user.email,
-      limit: 1
-    })
+      limit: 1,
+    });
 
-    let customerId = undefined;
     if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      console.log('Found existing customer:', customerId);
+      customer = customers.data[0];
+      console.log('Found existing customer:', customer.id);
+    } else {
+      customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      });
+      console.log('Created new customer:', customer.id);
     }
 
+    // Create checkout session
     console.log('Creating checkout session...');
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer: customer.id,
       line_items: [
         {
           price: priceId,
@@ -98,7 +107,7 @@ serve(async (req) => {
           user_id: user.id,
         },
       },
-    })
+    });
 
     console.log('Checkout session created:', session.id);
     return new Response(
@@ -107,7 +116,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
-    )
+    );
   } catch (error) {
     console.error('Error:', error);
     return new Response(
@@ -116,6 +125,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }
-    )
+    );
   }
-})
+});

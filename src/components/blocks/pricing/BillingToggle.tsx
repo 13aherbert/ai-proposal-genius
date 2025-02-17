@@ -34,19 +34,20 @@ export function BillingToggle() {
   };
 
   return (
-    <div className="flex justify-center mb-10">
+    <div className="flex justify-center items-center mb-10 gap-4">
+      <span className="font-semibold">Monthly</span>
       <label className="relative inline-flex items-center cursor-pointer">
         <Label>
           <Switch
             ref={switchRef as any}
             checked={!isMonthly}
             onCheckedChange={handleToggle}
-            className="relative"
+            className="h-7 w-14 bg-gray-600 data-[state=checked]:bg-brand-green border-2 border-white/20"
           />
         </Label>
       </label>
-      <span className="ml-2 font-semibold">
-        Annual billing <span className="text-brand-green">(Save ~15%)</span>
+      <span className="font-semibold">
+        Annual <span className="text-brand-green">(Save ~15%)</span>
       </span>
     </div>
   );

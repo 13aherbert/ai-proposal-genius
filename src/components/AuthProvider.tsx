@@ -37,14 +37,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       switch (event) {
         case 'SIGNED_IN':
-          if (currentSession?.user?.user_metadata?.is_new_user) {
-            // For new users, redirect to pricing page
-            navigate("/subscription");
-          } else {
-            // For existing users, redirect to dashboard
-            navigate("/dashboard");
+          // Check if this is a new signup by checking created_at timestamp
+          if (currentSession?.user) {
+            const createdAt = new Date(currentSession.user.created_at);
+            const now = new Date();
+            const isNewUser = (now.getTime() - createdAt.getTime()) < 10000; // Within 10 seconds
+
+            if (isNewUser) {
+              console.log('New user detected, redirecting to subscription page');
+              navigate("/subscription");
+              toast.success("Welcome! Please choose your subscription plan");
+            } else {
+              console.log('Existing user detected, redirecting to dashboard');
+              navigate("/dashboard");
+              toast.success("Successfully signed in");
+            }
           }
-          toast.success("Successfully signed in");
           break;
         case 'SIGNED_OUT':
           toast.info("Signed out");

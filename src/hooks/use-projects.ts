@@ -12,6 +12,7 @@ export type Project = {
   created_at: string;
   rfp_file_path: string;
   last_update_at: string;
+  user_id: string;
 };
 
 export function useProjects(user: User | null) {
@@ -31,11 +32,13 @@ export function useProjects(user: User | null) {
         console.log("Fetching projects...");
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const { data, error } = await supabase
+        const query = supabase
           .from("projects")
-          .select("id, title, status, created_at, rfp_file_path, last_update_at")
-          .eq("projects.user_id", user?.id)
+          .select("id, title, status, created_at, rfp_file_path, last_update_at, user_id")
+          .eq("user_id", user?.id)
           .order("last_update_at", { ascending: false });
+
+        const { data, error } = await query;
 
         if (error) {
           console.error("Supabase error:", error);

@@ -32,7 +32,7 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record
+      // Create project record using maybeSingle() instead of single()
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
@@ -41,10 +41,11 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select("id, title, rfp_file_path, user_id, deadline, created_at, status")
-        .single();
+        .select()
+        .maybeSingle();
 
       if (insertError) throw insertError;
+      if (!project) throw new Error("Failed to create project");
 
       setProjectId(project.id);
       setProjectTitle(project.title);

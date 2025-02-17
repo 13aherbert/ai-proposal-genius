@@ -2,18 +2,41 @@
 import { AuthForm } from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { LogIn } from "lucide-react";
+import { LogIn, DollarSign, HelpCircle } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
 
 const Index = () => {
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
-        {/* Login Button */}
-        <div className="absolute top-4 right-4">
+        {/* Navigation Buttons and Login */}
+        <div className="absolute top-4 right-4 flex items-center gap-4">
+          <Button
+            variant="secondary"
+            className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
+            onClick={() => scrollToSection('pricing')}
+          >
+            <DollarSign className="h-4 w-4" />
+            Pricing
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
+            onClick={() => scrollToSection('faq')}
+          >
+            <HelpCircle className="h-4 w-4" />
+            FAQ
+          </Button>
           <Dialog>
             <DialogTrigger asChild>
               <Button
@@ -94,13 +117,15 @@ const Index = () => {
           </div>
 
           {/* Pricing Section */}
-          <PricingDemo />
+          <div id="pricing">
+            <PricingDemo />
+          </div>
 
           {/* Comparison Charts */}
           <ComparisonCharts />
 
           {/* FAQ Section */}
-          <div className="bg-[#181818]/90 rounded-lg backdrop-blur-sm shadow-2xl mt-16">
+          <div id="faq" className="bg-[#181818]/90 rounded-lg backdrop-blur-sm shadow-2xl mt-16">
             <FAQ />
           </div>
         </div>

@@ -96,13 +96,13 @@ const Index = () => {
           {/* Pricing Section */}
           <PricingDemo />
 
+          {/* Comparison Charts */}
+          <ComparisonCharts />
+
           {/* FAQ Section */}
           <div className="bg-[#181818]/90 rounded-lg backdrop-blur-sm shadow-2xl mt-16">
             <FAQ />
           </div>
-
-          {/* Comparison Charts */}
-          <ComparisonCharts />
         </div>
       </div>
     </div>

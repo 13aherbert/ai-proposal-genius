@@ -21,14 +21,16 @@ export interface SubscriptionPlan {
 }
 
 interface SubscriptionContextType {
+  data: SubscriptionPlan | null; // Keep data for backward compatibility
   subscription: SubscriptionPlan | null;
   loading: boolean;
-  isLoading: boolean; // alias for loading to match react-query style
+  isLoading: boolean;
   error: Error | null;
   checkSubscription: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
+  data: null,
   subscription: null,
   loading: true,
   isLoading: true,
@@ -57,13 +59,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       if (subError) throw subError;
       
-      // Ensure status is of type SubscriptionStatus
       if (data) {
         const validStatus = data.status as SubscriptionStatus;
-        setSubscription({
+        const subscriptionData: SubscriptionPlan = {
           ...data,
           status: validStatus,
-        });
+          features: data.features || {},
+        };
+        setSubscription(subscriptionData);
       }
     } catch (e) {
       console.error('Error fetching subscription:', e);
@@ -80,11 +83,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   return (
     <SubscriptionContext.Provider 
       value={{ 
-        subscription, 
-        loading, 
-        isLoading: loading, 
-        error, 
-        checkSubscription 
+        data: subscription, // Keep data for backward compatibility
+        subscription,
+        loading,
+        isLoading: loading,
+        error,
+        checkSubscription
       }}
     >
       {children}

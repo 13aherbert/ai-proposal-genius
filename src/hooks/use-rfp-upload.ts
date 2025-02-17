@@ -32,7 +32,7 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record with only necessary columns in select
+      // Create project record with table-qualified columns in select
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
@@ -41,7 +41,15 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select("id, title, rfp_file_path, deadline, created_at, status")
+        .select(`
+          id,
+          title,
+          rfp_file_path,
+          projects.user_id,
+          deadline,
+          created_at,
+          status
+        `)
         .single();
 
       if (insertError) throw insertError;

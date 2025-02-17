@@ -40,19 +40,40 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const { session } = useAuth();
 
   const handleSubscribe = async () => {
-    if (!session) return;
+    if (!session) {
+      toast.error("Please sign in to subscribe");
+      return;
+    }
 
     try {
+      // Get fresh session to ensure we have valid token
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+
+      console.log("Creating checkout session with auth token:", currentSession.access_token);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
           priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual 
+        },
+        headers: {
+          Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Checkout session error:', error);
+        throw error;
+      }
 
       if (data?.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);

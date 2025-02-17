@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { LogIn } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
+import { FAQ } from "@/components/blocks/faq";
 
 const Index = () => {
   return (
@@ -94,6 +95,11 @@ const Index = () => {
 
           {/* Pricing Section */}
           <PricingDemo />
+
+          {/* FAQ Section */}
+          <div className="bg-[#181818]/90 rounded-lg backdrop-blur-sm shadow-2xl mt-16">
+            <FAQ />
+          </div>
 
           {/* Comparison Charts */}
           <ComparisonCharts />

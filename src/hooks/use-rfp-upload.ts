@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -31,7 +32,7 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record
+      // Create project record with explicit column selection
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
@@ -40,7 +41,7 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select()
+        .select("id, title, rfp_file_path, user_id, deadline")
         .single();
 
       if (insertError) throw insertError;

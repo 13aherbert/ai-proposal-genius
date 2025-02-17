@@ -32,7 +32,7 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Create project record using maybeSingle() instead of single()
+      // Create project record with explicit table alias to resolve ambiguous column
       const { error: insertError, data: project } = await supabase
         .from("projects")
         .insert({
@@ -41,8 +41,8 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select()
-        .maybeSingle();
+        .select('projects.id, projects.title, projects.rfp_file_path, projects.user_id, projects.deadline, projects.created_at, projects.status')
+        .single();
 
       if (insertError) throw insertError;
       if (!project) throw new Error("Failed to create project");

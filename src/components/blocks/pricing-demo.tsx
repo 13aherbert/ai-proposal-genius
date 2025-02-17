@@ -38,7 +38,7 @@ const plans = [
     description: "Perfect for small teams",
     buttonText: "Get Started",
     href: "/signup",
-    isPopular: false,
+    isPopular: true,
     priceId: {
       monthly: "prod_Rn5Qc3JRlG2dP5",
       annual: "prod_Rn5Qc3JRlG2dP5"
@@ -62,7 +62,7 @@ const plans = [
     description: "Best for growing businesses",
     buttonText: "Get Started",
     href: "/signup",
-    isPopular: true,
+    isPopular: false,
     priceId: {
       monthly: "prod_Rn5STkpd7teaIR",
       annual: "prod_Rn5STkpd7teaIR"

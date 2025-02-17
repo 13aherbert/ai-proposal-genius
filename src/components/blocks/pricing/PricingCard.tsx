@@ -6,6 +6,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import NumberFlow from "@number-flow/react";
 import { usePricingContext } from "./PricingContext";
+import { useAuth } from "@/components/AuthProvider";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { AuthForm } from "@/components/AuthForm";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PricingPlan {
   name: string;
@@ -17,6 +22,10 @@ interface PricingPlan {
   buttonText: string;
   href: string;
   isPopular: boolean;
+  priceId?: {
+    monthly: string;
+    annual: string;
+  };
 }
 
 interface PricingCardProps {
@@ -28,6 +37,28 @@ interface PricingCardProps {
 export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const navigate = useNavigate();
   const { isMonthly } = usePricingContext();
+  const { session } = useAuth();
+
+  const handleSubscribe = async () => {
+    if (!session) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { 
+          priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error("Failed to start subscription process");
+    }
+  };
 
   return (
     <motion.div
@@ -115,21 +146,45 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
 
         <hr className="w-full my-4 border-[#4B4F54]" />
 
-        <button
-          onClick={() => navigate(plan.href)}
-          className={cn(
-            buttonVariants({
-              variant: "outline",
-            }),
-            "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
-            plan.isPopular
-              ? "bg-[#34D399] text-white"
-              : "bg-[#f3f3f3] text-[#4B4F54]"
-          )}
-        >
-          {plan.buttonText}
-        </button>
+        {session ? (
+          <button
+            onClick={handleSubscribe}
+            className={cn(
+              buttonVariants({
+                variant: "outline",
+              }),
+              "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
+              "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+              plan.isPopular
+                ? "bg-[#34D399] text-white"
+                : "bg-[#f3f3f3] text-[#4B4F54]"
+            )}
+          >
+            {plan.buttonText}
+          </button>
+        ) : (
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                className={cn(
+                  buttonVariants({
+                    variant: "outline",
+                  }),
+                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
+                  "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+                  plan.isPopular
+                    ? "bg-[#34D399] text-white"
+                    : "bg-[#f3f3f3] text-[#4B4F54]"
+                )}
+              >
+                Sign Up
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <AuthForm defaultView="sign_up" />
+            </DialogContent>
+          </Dialog>
+        )}
         <p className="mt-6 text-xs leading-5 text-[#C8C8C9]">
           {plan.description}
         </p>

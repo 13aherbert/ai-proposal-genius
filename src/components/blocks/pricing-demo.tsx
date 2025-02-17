@@ -1,25 +1,29 @@
 
 import { Pricing } from "./pricing";
 
-const demoPlans = [
+const plans = [
   {
-    name: "14-DAY TRIAL",
+    name: "Trial",
     price: "0",
     yearlyPrice: "0",
     period: "Next 3 months",
     features: [
       "Process up to 3 Projects",
       "AI RFP Summary",
-      "AI Proposal Outline", 
+      "AI Proposal Outline",
       "AI Proposal Draft",
     ],
-    description: "Perfect for trying out our platform",
+    description: "No credit card required",
     buttonText: "Start Free Trial",
-    href: "/subscription",
+    href: "/signup",
     isPopular: false,
+    priceId: {
+      monthly: "price_trial",
+      annual: "price_trial"
+    }
   },
   {
-    name: "STARTER",
+    name: "Starter",
     price: "49",
     yearlyPrice: "499",
     period: "month",
@@ -31,13 +35,17 @@ const demoPlans = [
       "24-hour support response time",
       "Email support",
     ],
-    description: "Ideal for small teams and individual consultants",
+    description: "Perfect for small teams",
     buttonText: "Get Started",
-    href: "/subscription",
-    isPopular: true,
+    href: "/signup",
+    isPopular: false,
+    priceId: {
+      monthly: "price_starter_monthly",
+      annual: "price_starter_annual"
+    }
   },
   {
-    name: "PRO",
+    name: "Pro",
     price: "99",
     yearlyPrice: "950",
     period: "month",
@@ -51,22 +59,23 @@ const demoPlans = [
       "24-hour support response time",
       "Email support",
     ],
-    description: "For growing businesses with advanced needs",
-    buttonText: "Upgrade to Pro",
-    href: "/subscription",
-    isPopular: false,
+    description: "Best for growing businesses",
+    buttonText: "Get Started",
+    href: "/signup",
+    isPopular: true,
+    priceId: {
+      monthly: "price_pro_monthly",
+      annual: "price_pro_annual"
+    }
   },
 ];
 
 export function PricingDemo() {
   return (
-    <div className="h-full w-full">
-      <Pricing 
-        plans={demoPlans}
-        title="Simple, Transparent Pricing"
-        description="Choose the plan that works for you
-All plans include access to our platform and dedicated support."
-      />
-    </div>
+    <Pricing
+      plans={plans}
+      title="Simple, Transparent Pricing"
+      description="Choose the plan that works for you"
+    />
   );
 }

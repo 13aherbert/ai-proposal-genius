@@ -1,3 +1,4 @@
+
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { SubscriptionProvider } from "./hooks/use-subscription";
@@ -12,6 +13,7 @@ import UploadRFP from "@/pages/UploadRFP";
 import ProjectDetails from "@/pages/ProjectDetails";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import AccountSettings from "@/pages/AccountSettings";
+import Subscription from "@/pages/Subscription";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Create a client
@@ -38,6 +40,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscription"
+                  element={
+                    <ProtectedRoute>
+                      <Subscription />
                     </ProtectedRoute>
                   }
                 />

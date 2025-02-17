@@ -21,7 +21,6 @@ export interface SubscriptionPlan {
 }
 
 interface SubscriptionContextType {
-  data: SubscriptionPlan | null; // Keep data for backward compatibility
   subscription: SubscriptionPlan | null;
   loading: boolean;
   isLoading: boolean;
@@ -30,7 +29,6 @@ interface SubscriptionContextType {
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
-  data: null,
   subscription: null,
   loading: true,
   isLoading: true,
@@ -60,11 +58,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (subError) throw subError;
       
       if (data) {
-        const validStatus = data.status as SubscriptionStatus;
         const subscriptionData: SubscriptionPlan = {
           ...data,
-          status: validStatus,
-          features: data.features || {},
+          status: data.status as SubscriptionStatus,
+          features: data.features as Record<string, any> || {},
+          plan_type: data.plan_type || 'trial'
         };
         setSubscription(subscriptionData);
       }
@@ -83,7 +81,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   return (
     <SubscriptionContext.Provider 
       value={{ 
-        data: subscription, // Keep data for backward compatibility
         subscription,
         loading,
         isLoading: loading,

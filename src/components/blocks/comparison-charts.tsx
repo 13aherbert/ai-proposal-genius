@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -24,7 +25,7 @@ const costData = [{
 
 const config = {
   traditional: {
-    color: '#4B4F54'
+    color: '#F1F0FB' // Changed to a softer, less saturated gray
   },
   optirfp: {
     color: '#34D399'
@@ -67,7 +68,7 @@ export function ComparisonCharts() {
               }}>
                   <XAxis type="number" unit=" hrs" />
                   <YAxis dataKey="name" type="category" width={80} />
-                  <Bar dataKey="value" fill="currentColor" className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2" radius={[4, 4, 4, 4]} />
+                  <Bar dataKey="value" fill="currentColor" className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-[#F1F0FB] [&[dataKey='value'][name='Traditional']]:stroke-[#F1F0FB] [&[dataKey='value'][name='Traditional']]:stroke-2" radius={[4, 4, 4, 4]} />
                   <ChartTooltip content={CustomTooltip} cursor={{
                   fillOpacity: 0.3
                 }} />
@@ -95,7 +96,7 @@ export function ComparisonCharts() {
               }}>
                   <XAxis type="number" unit="$" />
                   <YAxis dataKey="name" type="category" width={80} />
-                  <Bar dataKey="value" fill="currentColor" className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-transparent [&[dataKey='value'][name='Traditional']]:stroke-white [&[dataKey='value'][name='Traditional']]:stroke-2" radius={[4, 4, 4, 4]} />
+                  <Bar dataKey="value" fill="currentColor" className="fill-brand-green [&[dataKey='value'][name='Traditional']]:fill-[#F1F0FB] [&[dataKey='value'][name='Traditional']]:stroke-[#F1F0FB] [&[dataKey='value'][name='Traditional']]:stroke-2" radius={[4, 4, 4, 4]} />
                   <ChartTooltip content={CustomTooltip} cursor={{
                   fillOpacity: 0.3
                 }} />

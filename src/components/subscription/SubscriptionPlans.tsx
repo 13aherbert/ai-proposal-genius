@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UpgradeButton } from "./UpgradeButton";
@@ -52,7 +53,7 @@ export function SubscriptionPlans() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold mb-4">
-              ${billingInterval === 'monthly' ? '49' : '470'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+              ${billingInterval === 'monthly' ? '49' : '499'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
             <ul className="space-y-2">
               <li>✓ All Trial features</li>

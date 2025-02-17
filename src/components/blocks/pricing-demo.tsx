@@ -1,3 +1,4 @@
+
 import { Pricing } from "./pricing";
 
 const demoPlans = [
@@ -37,8 +38,8 @@ const demoPlans = [
   },
   {
     name: "PRO",
-    price: "149",
-    yearlyPrice: "1499",
+    price: "99",
+    yearlyPrice: "950",
     period: "month",
     features: [
       "Up to 30 projects",

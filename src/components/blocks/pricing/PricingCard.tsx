@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,32 +37,31 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const navigate = useNavigate();
   const { isMonthly } = usePricingContext();
   const { session } = useAuth();
+  const { subscription } = useSubscription();
 
   const handleSubscribe = async () => {
     if (!session) {
-      toast.error("Please sign in to subscribe");
+      localStorage.setItem('selected_plan', JSON.stringify({
+        priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual,
+        isMonthly
+      }));
       return;
     }
 
     try {
-      // Refresh the session first
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error('Session refresh error:', refreshError);
-        toast.error("Session expired. Please sign in again.");
+      if (subscription && subscription.status === 'active') {
+        toast.error("You already have an active subscription. Please manage your subscription in the dashboard.");
+        navigate('/dashboard');
         return;
       }
 
-      // Get the current session after refresh
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !currentSession) {
-        console.error('Session retrieval error:', sessionError);
-        toast.error("Unable to verify your session. Please sign in again.");
+        console.error('Session error:', sessionError);
+        toast.error("Please sign in again");
         return;
       }
 
-      console.log("Creating checkout session for user:", currentSession.user.id);
-      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
           priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual 
@@ -73,18 +71,14 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         }
       });
 
-      if (error) {
-        console.error('Checkout session error:', error);
-        throw error;
-      }
-
+      if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL returned');
       }
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error:', error);
       toast.error("Failed to start subscription process. Please try again.");
     }
   };

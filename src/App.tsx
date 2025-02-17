@@ -1,9 +1,9 @@
-
 import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./components/AuthProvider";
+import { SubscriptionProvider } from "./hooks/use-subscription";
+import { Toaster } from "./components/ui/toaster";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
-import { AuthProvider } from "@/components/AuthProvider";
 import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -30,58 +30,60 @@ function App() {
       <ThemeProvider defaultTheme="light" attribute="class">
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recent-projects"
-                element={
-                  <ProtectedRoute>
-                    <RecentProjects />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/upload-rfp"
-                element={
-                  <ProtectedRoute>
-                    <UploadRFP />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/projects/:id"
-                element={
-                  <ProtectedRoute>
-                    <ProjectDetails />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/knowledge-base"
-                element={
-                  <ProtectedRoute>
-                    <KnowledgeBase />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/account-settings"
-                element={
-                  <ProtectedRoute>
-                    <AccountSettings />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-            <Toaster />
+            <SubscriptionProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/recent-projects"
+                  element={
+                    <ProtectedRoute>
+                      <RecentProjects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/upload-rfp"
+                  element={
+                    <ProtectedRoute>
+                      <UploadRFP />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ProjectDetails />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/knowledge-base"
+                  element={
+                    <ProtectedRoute>
+                      <KnowledgeBase />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account-settings"
+                  element={
+                    <ProtectedRoute>
+                      <AccountSettings />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+              <Toaster />
+            </SubscriptionProvider>
           </AuthProvider>
         </BrowserRouter>
       </ThemeProvider>

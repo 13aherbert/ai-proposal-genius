@@ -1,5 +1,6 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,9 +16,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Initialize auth state from local storage if available
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
@@ -27,7 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    // Set up real-time subscription to auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
@@ -37,6 +37,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       switch (event) {
         case 'SIGNED_IN':
+          if (currentSession?.user?.user_metadata?.is_new_user) {
+            // For new users, redirect to pricing page
+            navigate("/subscription");
+          } else {
+            // For existing users, redirect to dashboard
+            navigate("/dashboard");
+          }
           toast.success("Successfully signed in");
           break;
         case 'SIGNED_OUT':
@@ -49,16 +56,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         case 'USER_UPDATED':
           toast.success("Profile updated");
           break;
-        case 'PASSWORD_RECOVERY':
-          // Handle password recovery if needed
-          break;
         default:
-          // Handle any other events if necessary
           break;
       }
     });
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };

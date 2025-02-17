@@ -75,6 +75,6 @@ export function useSubscriptionFeatures() {
     getPlanName,
     isLoading,
     error,
-    plan: subscription?.plan_type
+    plan: subscription?.plan // Use plan for backward compatibility
   };
 }

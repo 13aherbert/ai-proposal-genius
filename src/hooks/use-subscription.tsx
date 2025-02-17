@@ -9,6 +9,7 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplet
 export interface SubscriptionPlan {
   id: string;
   status: SubscriptionStatus;
+  plan: string; // Keep both for backward compatibility
   plan_type: string;
   current_period_end: string | null;
   project_limit: number;
@@ -21,7 +22,7 @@ export interface SubscriptionPlan {
 }
 
 interface SubscriptionContextType {
-  data: SubscriptionPlan | null; // Keep for backward compatibility
+  data: SubscriptionPlan | null;
   subscription: SubscriptionPlan | null;
   loading: boolean;
   isLoading: boolean;
@@ -64,7 +65,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           ...data,
           status: data.status as SubscriptionStatus,
           features: (data.features || {}) as Record<string, any>,
-          plan_type: data.plan_type || 'trial'
+          plan_type: data.plan_type || 'trial',
+          plan: data.plan_type || 'trial', // Set both for backward compatibility
         };
         setSubscription(subscriptionData);
       }
@@ -83,7 +85,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   return (
     <SubscriptionContext.Provider 
       value={{ 
-        data: subscription, // Keep for backward compatibility
+        data: subscription,
         subscription,
         loading,
         isLoading: loading,

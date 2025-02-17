@@ -72,7 +72,7 @@ export function ComparisonCharts() {
                     dataKey="value" 
                     radius={[4, 4, 4, 4]}
                     fill="#34D399"
-                    className="[&[name='Traditional']]:!fill-[#E5E7EB]"
+                    className="[&[name='Traditional']]:!fill-[#E5E7EB] [&[name='Traditional']]:!opacity-50"
                   />
                   <ChartTooltip content={CustomTooltip} cursor={{
                   fillOpacity: 0.3
@@ -105,7 +105,7 @@ export function ComparisonCharts() {
                     dataKey="value" 
                     radius={[4, 4, 4, 4]}
                     fill="#34D399"
-                    className="[&[name='Traditional']]:!fill-[#E5E7EB]"
+                    className="[&[name='Traditional']]:!fill-[#E5E7EB] [&[name='Traditional']]:!opacity-50"
                   />
                   <ChartTooltip content={CustomTooltip} cursor={{
                   fillOpacity: 0.3

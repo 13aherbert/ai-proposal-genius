@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -106,10 +106,17 @@ export default function AccountSettings() {
       
       if (error) throw error;
 
-      toast.success("Your subscription has been cancelled successfully");
+      toast({
+        title: "Success",
+        description: "Your subscription has been cancelled successfully",
+      });
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast.error(error.message || "Failed to cancel subscription");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+      });
     } finally {
       setIsCancelling(false);
     }

@@ -9,13 +9,13 @@ export type FeatureName =
   | "evaluation";
 
 export function useSubscriptionFeatures() {
-  const { data: subscription, isLoading, error } = useSubscription();
+  const { subscription, loading: isLoading, error } = useSubscription();
 
   const hasFeature = (feature: FeatureName): boolean => {
     if (isLoading || error) return false;
 
     // Default to trial plan if no subscription data
-    const currentPlan = subscription?.plan || 'trial';
+    const currentPlan = subscription?.plan_type || 'trial';
 
     // Pro tier has access to all features
     if (currentPlan === 'pro') return true;
@@ -34,7 +34,11 @@ export function useSubscriptionFeatures() {
   };
 
   const getProjectLimit = (): number => {
-    const currentPlan = subscription?.plan || 'trial';
+    if (subscription?.project_limit) {
+      return subscription.project_limit;
+    }
+    
+    const currentPlan = subscription?.plan_type || 'trial';
     
     switch (currentPlan) {
       case 'pro':
@@ -55,7 +59,7 @@ export function useSubscriptionFeatures() {
       case 'proposal_outline':
         return 'Enhanced AI Proposal Outline';
       case 'proposal_draft':
-        return subscription?.plan === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
+        return subscription?.plan_type === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
       case 'compiled_draft':
         return 'Compiled Draft Preview';
       case 'evaluation':
@@ -71,6 +75,6 @@ export function useSubscriptionFeatures() {
     getPlanName,
     isLoading,
     error,
-    plan: subscription?.plan
+    plan: subscription?.plan_type
   };
 }

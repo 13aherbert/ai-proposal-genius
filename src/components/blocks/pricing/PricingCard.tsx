@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import NumberFlow from "@number-flow/react";
 import { usePricingContext } from "./PricingContext";
 import { useAuth } from "@/components/AuthProvider";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/AuthForm";
 import { supabase } from "@/integrations/supabase/client";

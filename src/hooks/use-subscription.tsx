@@ -6,16 +6,24 @@ import { toast } from 'sonner';
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid';
 
-interface Subscription {
+export interface SubscriptionPlan {
   id: string;
   status: SubscriptionStatus;
   plan_type: string;
   current_period_end: string | null;
+  project_limit: number;
+  features: Record<string, any>;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 interface SubscriptionContextType {
-  subscription: Subscription | null;
+  subscription: SubscriptionPlan | null;
   loading: boolean;
+  isLoading: boolean; // alias for loading to match react-query style
   error: Error | null;
   checkSubscription: () => Promise<void>;
 }
@@ -23,12 +31,13 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType>({
   subscription: null,
   loading: true,
+  isLoading: true,
   error: null,
   checkSubscription: async () => {},
 });
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { session } = useAuth();
@@ -47,7 +56,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .single();
 
       if (subError) throw subError;
-      setSubscription(data);
+      
+      // Ensure status is of type SubscriptionStatus
+      if (data) {
+        const validStatus = data.status as SubscriptionStatus;
+        setSubscription({
+          ...data,
+          status: validStatus,
+        });
+      }
     } catch (e) {
       console.error('Error fetching subscription:', e);
       setError(e as Error);
@@ -61,7 +78,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [session]);
 
   return (
-    <SubscriptionContext.Provider value={{ subscription, loading, error, checkSubscription }}>
+    <SubscriptionContext.Provider 
+      value={{ 
+        subscription, 
+        loading, 
+        isLoading: loading, 
+        error, 
+        checkSubscription 
+      }}
+    >
       {children}
     </SubscriptionContext.Provider>
   );

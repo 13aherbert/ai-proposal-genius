@@ -3,10 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, User, Mail, Lock, LogOut, Save } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, LogOut, Save, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
+import { useSubscription } from "@/hooks/use-subscription";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -17,6 +30,8 @@ export default function AccountSettings() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const { data: subscriptionData } = useSubscription();
 
   const handleSave = async () => {
     if (!session?.user?.id) return;
@@ -83,6 +98,24 @@ export default function AccountSettings() {
       });
     }
   };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setIsCancelling(true);
+      const { error } = await supabase.functions.invoke('cancel-subscription');
+      
+      if (error) throw error;
+
+      toast.success("Your subscription has been cancelled successfully");
+    } catch (error: any) {
+      console.error('Error cancelling subscription:', error);
+      toast.error(error.message || "Failed to cancel subscription");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const hasActiveSubscription = subscriptionData?.subscribed && subscriptionData?.plan !== 'trial';
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -179,6 +212,44 @@ export default function AccountSettings() {
                 </div>
               </CardContent>
             </Card>
+
+            {hasActiveSubscription && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Subscription
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive"
+                        disabled={isCancelling}
+                        className="w-full sm:w-auto"
+                      >
+                        {isCancelling ? "Cancelling..." : "Cancel Subscription"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to cancel your subscription? You'll continue to have access to premium features until the end of your current billing period.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>No, keep my subscription</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancelSubscription}>
+                          Yes, cancel subscription
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <Button 

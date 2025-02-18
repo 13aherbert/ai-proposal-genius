@@ -14,8 +14,8 @@ export type Database = {
           category: string
           content: string | null
           created_at: string
+          entry_id: string
           file_path: string | null
-          id: string
           parsed_content: string | null
           title: string
           updated_at: string
@@ -25,8 +25,8 @@ export type Database = {
           category: string
           content?: string | null
           created_at?: string
+          entry_id?: string
           file_path?: string | null
-          id?: string
           parsed_content?: string | null
           title: string
           updated_at?: string
@@ -36,8 +36,8 @@ export type Database = {
           category?: string
           content?: string | null
           created_at?: string
+          entry_id?: string
           file_path?: string | null
-          id?: string
           parsed_content?: string | null
           title?: string
           updated_at?: string
@@ -49,21 +49,21 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
-          id: string
+          profile_id: string
           updated_at: string
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          id: string
+          profile_id: string
           updated_at?: string
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
-          id?: string
+          profile_id?: string
           updated_at?: string
           username?: string | null
         }
@@ -72,28 +72,28 @@ export type Database = {
       project_documents: {
         Row: {
           created_at: string
+          document_id: string
           document_type: string
           file_name: string
           file_path: string
-          id: string
           project_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          document_id?: string
           document_type: string
           file_name: string
           file_path: string
-          id?: string
           project_id: string
           user_id: string
         }
         Update: {
           created_at?: string
+          document_id?: string
           document_type?: string
           file_name?: string
           file_path?: string
-          id?: string
           project_id?: string
           user_id?: string
         }
@@ -103,14 +103,14 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedColumns: ["project_id"]
           },
           {
             foreignKeyName: "project_documents_project_user_fkey"
             columns: ["project_id", "user_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["project_id", "user_id"]
           },
         ]
       }
@@ -122,8 +122,8 @@ export type Database = {
           created_at: string
           deadline: string | null
           evaluation: string | null
-          id: string
           last_update_at: string | null
+          project_id: string
           proposal_outline: string | null
           rfp_file_path: string
           status: string
@@ -138,8 +138,8 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           evaluation?: string | null
-          id?: string
           last_update_at?: string | null
+          project_id?: string
           proposal_outline?: string | null
           rfp_file_path: string
           status?: string
@@ -154,8 +154,8 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           evaluation?: string | null
-          id?: string
           last_update_at?: string | null
+          project_id?: string
           proposal_outline?: string | null
           rfp_file_path?: string
           status?: string
@@ -169,8 +169,8 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
-          id: string
           project_id: string
+          section_id: string
           section_title: string
           updated_at: string
           user_id: string
@@ -178,8 +178,8 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
-          id?: string
           project_id: string
+          section_id?: string
           section_title: string
           updated_at?: string
           user_id: string
@@ -187,8 +187,8 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
-          id?: string
           project_id?: string
+          section_id?: string
           section_title?: string
           updated_at?: string
           user_id?: string
@@ -199,7 +199,7 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
+            referencedColumns: ["project_id"]
           },
         ]
       }
@@ -208,12 +208,12 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           features: Json | null
-          id: string
           plan_type: string
           project_limit: number | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_id: string
           updated_at: string
           user_id: string
         }
@@ -221,12 +221,12 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           features?: Json | null
-          id?: string
           plan_type: string
           project_limit?: number | null
           status: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_id?: string
           updated_at?: string
           user_id: string
         }
@@ -234,12 +234,12 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           features?: Json | null
-          id?: string
           plan_type?: string
           project_limit?: number | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_id?: string
           updated_at?: string
           user_id?: string
         }

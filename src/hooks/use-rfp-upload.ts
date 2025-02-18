@@ -41,13 +41,13 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select("id, title, rfp_file_path, deadline, created_at, status")
+        .select("project_id, title, rfp_file_path, deadline, created_at, status")
         .single();
 
       if (insertError) throw insertError;
       if (!insertedProject) throw new Error("Failed to create project");
 
-      setProjectId(insertedProject.id);
+      setProjectId(insertedProject.project_id);
       setProjectTitle(insertedProject.title);
       toast.success("File uploaded successfully");
     } catch (error) {
@@ -76,7 +76,7 @@ export function useRFPUpload() {
           client_name: clientName,
           business_name: businessName,
         })
-        .eq("id", projectId);
+        .eq("project_id", projectId);
 
       if (error) throw error;
       toast.success("Project updated successfully");

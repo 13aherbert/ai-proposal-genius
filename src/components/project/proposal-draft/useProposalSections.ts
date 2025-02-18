@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface ProposalSection {
-  id: string;
+  section_id: string;
   project_id: string;
   section_title: string;
   content: string | null;
@@ -74,7 +75,7 @@ export function useProposalSections(projectId: string) {
       const { data, error } = await supabase
         .from("proposal_sections")
         .update({ content, section_title: title })
-        .eq("id", sectionId)
+        .eq("section_id", sectionId)
         .select()
         .single();
 
@@ -94,9 +95,6 @@ export function useProposalSections(projectId: string) {
 
   const reorderSectionsMutation = useMutation({
     mutationFn: async (sections: ProposalSection[]) => {
-      // For now, we'll just update the local state
-      // In a future implementation, we could add a position field to the database
-      // and update the positions of all sections
       return sections;
     },
     onSuccess: (newSections) => {

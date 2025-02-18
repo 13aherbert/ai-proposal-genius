@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 export type Project = {
-  id: string;
+  project_id: string;
   title: string;
   status: string;
   created_at: string;
@@ -29,7 +29,7 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
     const { data, error } = await supabase
       .from("projects")
       .select("*")
-      .eq("id", projectId)
+      .eq("project_id", projectId)
       .eq("user_id", userId)
       .single();
 

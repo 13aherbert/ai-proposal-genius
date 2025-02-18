@@ -19,7 +19,7 @@ export const useEntryOperations = (
       console.log('Fetching entry content for title:', initialTitle);
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content, file_path, id, user_id, parsed_content')
+        .select('content, file_path, entry_id, user_id, parsed_content')
         .eq('title', initialTitle)
         .single();
 
@@ -31,7 +31,7 @@ export const useEntryOperations = (
       console.log('Fetched entry:', data);
       setContent(data.content || data.parsed_content);
       setFilePath(data.file_path);
-      setEntryId(data.id);
+      setEntryId(data.entry_id);
     } catch (error) {
       console.error('Error fetching entry content:', error);
       toast({
@@ -64,7 +64,7 @@ export const useEntryOperations = (
           content: filePath ? null : editedContent,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', entryId);
+        .eq('entry_id', entryId);
 
       if (error) throw error;
 
@@ -122,7 +122,7 @@ export const useEntryOperations = (
       const { data: dbData, error: dbError } = await supabase
         .from('knowledge_entries')
         .delete()
-        .eq('id', entryId);
+        .eq('entry_id', entryId);
 
       console.log('Database deletion response:', { data: dbData, error: dbError });
 

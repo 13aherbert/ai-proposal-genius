@@ -6,7 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { useSubscriptionFeatures } from "./use-subscription-features";
 
 export type Project = {
-  id: string;
+  project_id: string;
   title: string;
   status: string;
   created_at: string;
@@ -34,7 +34,7 @@ export function useProjects(user: User | null) {
 
         const query = supabase
           .from("projects")
-          .select("id, title, status, created_at, rfp_file_path, last_update_at, user_id")
+          .select("project_id, title, status, created_at, rfp_file_path, last_update_at, user_id")
           .eq("user_id", user?.id)
           .order("last_update_at", { ascending: false });
 
@@ -62,7 +62,7 @@ export function useProjects(user: User | null) {
       const { error } = await supabase
         .from("projects")
         .delete()
-        .eq("id", projectId);
+        .eq("project_id", projectId);
 
       if (error) throw error;
 

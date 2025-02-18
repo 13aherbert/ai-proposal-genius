@@ -1,7 +1,8 @@
+
 import type { Project } from "@/hooks/use-project-details";
 
 export interface ProjectDocument {
-  id: string;
+  document_id: string;
   file_name: string;
   file_path: string;
   document_type: string;

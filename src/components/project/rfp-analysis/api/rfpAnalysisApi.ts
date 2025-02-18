@@ -1,15 +1,24 @@
+
 import { supabase } from "@/integrations/supabase/client";
+
+interface AnalysisResponse {
+  analysis: string | null;
+}
+
+interface ProjectUpdate {
+  analysis: string | null;
+}
 
 /**
  * Loads the saved analysis for a project from the database
  * @param projectId - The ID of the project to load the analysis for
  * @returns The saved analysis text or null if none exists
  */
-export async function loadSavedAnalysis(projectId: string) {
+export async function loadSavedAnalysis(projectId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('projects')
     .select('analysis')
-    .eq('id', projectId)
+    .eq('project_id', projectId)
     .single();
 
   if (error) throw error;
@@ -20,11 +29,11 @@ export async function loadSavedAnalysis(projectId: string) {
  * Clears the analysis for a project in the database
  * @param projectId - The ID of the project to clear the analysis for
  */
-export async function clearAnalysis(projectId: string) {
+export async function clearAnalysis(projectId: string): Promise<void> {
   const { error } = await supabase
     .from('projects')
-    .update({ analysis: null })
-    .eq('id', projectId);
+    .update({ analysis: null } as ProjectUpdate)
+    .eq('project_id', projectId);
 
   if (error) throw error;
 }
@@ -35,8 +44,8 @@ export async function clearAnalysis(projectId: string) {
  * @param projectId - ID of the project
  * @returns The analysis result
  */
-export async function analyzeRFP(filePath: string, projectId: string) {
-  const { data, error: functionError } = await supabase.functions.invoke('analyze-rfp', {
+export async function analyzeRFP(filePath: string, projectId: string): Promise<string> {
+  const { data, error: functionError } = await supabase.functions.invoke<AnalysisResponse>('analyze-rfp', {
     body: { filePath, projectId }
   });
 
@@ -46,8 +55,8 @@ export async function analyzeRFP(filePath: string, projectId: string) {
   // Save the analysis result
   const { error: updateError } = await supabase
     .from('projects')
-    .update({ analysis: data.analysis })
-    .eq('id', projectId);
+    .update({ analysis: data.analysis } as ProjectUpdate)
+    .eq('project_id', projectId);
 
   if (updateError) throw new Error('Failed to save analysis');
 

@@ -32,16 +32,17 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Insert project and return specific columns
+      // Insert project with proper column names
       const { data: insertedProject, error: insertError } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
-          user_id: session.user.id,
           deadline: deadline?.toISOString(),
+          status: 'draft',
+          user_id: session.user.id
         })
-        .select("project_id, title, rfp_file_path, deadline, created_at, status")
+        .select()
         .single();
 
       if (insertError) throw insertError;

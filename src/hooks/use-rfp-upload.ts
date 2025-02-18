@@ -41,7 +41,7 @@ export function useRFPUpload() {
           user_id: session.user.id,
           deadline: deadline?.toISOString(),
         })
-        .select("id, title, rfp_file_path, deadline, created_at, status")
+        .select("projects.id, projects.title, projects.rfp_file_path, projects.deadline, projects.created_at, projects.status")
         .maybeSingle();
 
       if (insertError) throw insertError;

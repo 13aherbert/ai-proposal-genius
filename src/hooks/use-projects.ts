@@ -13,6 +13,7 @@ export type Project = {
   rfp_file_path: string;
   last_update_at: string;
   user_id: string;
+  deadline: string | null;
 };
 
 export function useProjects(user: User | null) {
@@ -29,22 +30,30 @@ export function useProjects(user: User | null) {
     queryKey: ["projects", user?.id],
     queryFn: async () => {
       try {
-        console.log("Fetching projects...");
+        console.log("Fetching projects for user:", user?.id);
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const query = supabase
+        const { data, error } = await supabase
           .from("projects")
-          .select("project_id, title, status, created_at, rfp_file_path, last_update_at, user_id")
+          .select(`
+            project_id,
+            title,
+            status,
+            created_at,
+            rfp_file_path,
+            last_update_at,
+            user_id,
+            deadline
+          `)
           .eq("user_id", user?.id)
           .order("last_update_at", { ascending: false });
-
-        const { data, error } = await query;
 
         if (error) {
           console.error("Supabase error:", error);
           throw error;
         }
 
+        console.log("Projects fetched:", data);
         return data as Project[] || [];
       } catch (err) {
         console.error("Query error:", err);

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
 import type { DocumentListProps } from "./types";
@@ -11,7 +12,7 @@ export function DocumentList({ documents, onView, onDelete }: DocumentListProps)
       <div className="space-y-2">
         {documents.map((doc) => (
           <div
-            key={doc.id}
+            key={doc.document_id}
             className="flex items-center justify-between rounded-lg border p-3"
           >
             <div className="flex items-center gap-2">

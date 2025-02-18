@@ -1,5 +1,5 @@
+
 import { ProposalSection } from "../useProposalSections";
-import { SectionEditor } from "../SectionEditor";
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableSection } from "./SortableSection";
@@ -40,8 +40,8 @@ export function SectionsList({
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = sections.findIndex((section) => section.id === active.id);
-      const newIndex = sections.findIndex((section) => section.id === over.id);
+      const oldIndex = sections.findIndex((section) => section.section_id === active.id);
+      const newIndex = sections.findIndex((section) => section.section_id === over.id);
       
       const newSections = [...sections];
       const [movedSection] = newSections.splice(oldIndex, 1);
@@ -69,18 +69,8 @@ export function SectionsList({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <SortableContext items={sections} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4">
-          {sections.map((section) => (
-            <SortableSection
-              key={section.id}
-              section={section}
-              isSelected={selectedSection === section.id}
-              onSelect={() => onSelectSection(section.id)}
-            />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
-  );
-}
+      <SortableContext 
+        items={sections.map(section => ({ id: section.section_id }))} 
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space

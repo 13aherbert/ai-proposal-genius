@@ -1,3 +1,4 @@
+
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ProposalSection } from "../useProposalSections";
@@ -19,7 +20,7 @@ export function SortableSection({ section, isSelected, onSelect }: SortableSecti
     transition,
     isDragging,
   } = useSortable({ 
-    id: section.id,
+    id: section.section_id,
     data: section
   });
 

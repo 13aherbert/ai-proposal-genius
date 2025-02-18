@@ -46,9 +46,9 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
         <TableBody>
           {projects.map((project) => (
             <TableRow
-              key={project.id}
+              key={project.project_id}
               className="cursor-pointer hover:bg-muted/50"
-              onClick={() => navigate(`/projects/${project.id}`)}
+              onClick={() => navigate(`/projects/${project.project_id}`)}
             >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
@@ -81,7 +81,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                 >
                   <Button
                     variant="ghost"
-                    onClick={() => navigate(`/projects/${project.id}`)}
+                    onClick={() => navigate(`/projects/${project.project_id}`)}
                     className="hover:text-[#34D399] hover:bg-[#34D399]/10"
                   >
                     View Details
@@ -107,7 +107,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => onDelete(project.id)}
+                          onClick={() => onDelete(project.project_id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Delete

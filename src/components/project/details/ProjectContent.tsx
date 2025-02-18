@@ -1,3 +1,4 @@
+
 import { Project } from "@/hooks/use-project-details";
 import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { RFPAnalysis } from "@/components/project/RFPAnalysis";
@@ -23,20 +24,20 @@ export function ProjectContent({ project }: ProjectContentProps) {
         return <ProjectInfo project={project} />;
       case "analysis":
         return hasFeature("rfp_summary") ? (
-          <RFPAnalysis filePath={project.rfp_file_path} projectId={project.id} />
+          <RFPAnalysis filePath={project.rfp_file_path} projectId={project.project_id} />
         ) : (
           toast.error(`This feature is only available with ${getPlanName("rfp_summary")}`)
         );
       case "outline":
         return hasFeature("proposal_outline") ? (
-          <ProposalOutline projectId={project.id} analysis={project.analysis} />
+          <ProposalOutline projectId={project.project_id} analysis={project.analysis} />
         ) : (
           toast.error(`This feature is only available with ${getPlanName("proposal_outline")}`)
         );
       case "draft":
         return hasFeature("proposal_draft") ? (
           <ProposalDraft 
-            projectId={project.id} 
+            projectId={project.project_id} 
             outline={project.proposal_outline}
             mode="draft"
           />
@@ -46,7 +47,7 @@ export function ProjectContent({ project }: ProjectContentProps) {
       case "compiled":
         return hasFeature("compiled_draft") ? (
           <ProposalDraft 
-            projectId={project.id} 
+            projectId={project.project_id} 
             outline={project.proposal_outline}
             mode="compiled"
           />
@@ -55,7 +56,7 @@ export function ProjectContent({ project }: ProjectContentProps) {
         );
       case "evaluation":
         return hasFeature("evaluation") ? (
-          <ProposalEvaluation projectId={project.id} analysis={project.analysis} />
+          <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />
         ) : (
           toast.error(`This feature is only available with ${getPlanName("evaluation")}`)
         );

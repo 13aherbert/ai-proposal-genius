@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { Save } from "lucide-react";
@@ -9,7 +10,6 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,6 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
   const [deadline, setDeadline] = useState<Date | undefined>(
     project.deadline ? new Date(project.deadline) : undefined
   );
-  const queryClient = useQueryClient();
 
   const handleSave = async () => {
     try {
@@ -46,11 +45,10 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
           deadline: deadline?.toISOString() || null,
           status,
         })
-        .eq("id", project.id);
+        .eq("project_id", project.project_id);
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries({ queryKey: ["project", project.id] });
       toast.success("Project details updated successfully");
       onSuccess();
     } catch (error) {

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, User, Mail, Lock, LogOut, Save, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import {
@@ -22,7 +22,6 @@ import {
 
 export default function AccountSettings() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { session } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState(session?.user?.email || "");
@@ -30,7 +29,7 @@ export default function AccountSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const { data: subscriptionData } = useSubscription();
+  const { data: subscription } = useSubscription();
 
   const handleSave = async () => {
     if (!session?.user?.id) return;
@@ -42,7 +41,7 @@ export default function AccountSettings() {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ username })
-          .eq('id', session.user.id);
+          .eq('profile_id', session.user.id);
 
         if (profileError) throw profileError;
       }
@@ -121,7 +120,7 @@ export default function AccountSettings() {
     }
   };
 
-  const hasActiveSubscription = subscriptionData?.status === 'active' && subscriptionData?.plan_type !== 'trial';
+  const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
 
   return (
     <div className="min-h-screen w-full bg-background">

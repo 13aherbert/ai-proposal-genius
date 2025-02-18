@@ -34,8 +34,8 @@ export function useProjects(user: User | null) {
 
         const query = supabase
           .from("projects")
-          .select("project_id, title, status, created_at, rfp_file_path, last_update_at, user_id")
-          .eq("user_id", user?.id)
+          .select("project_id, title, status, created_at, rfp_file_path, last_update_at, projects.user_id")
+          .eq("projects.user_id", user?.id)
           .order("last_update_at", { ascending: false });
 
         const { data, error } = await query;

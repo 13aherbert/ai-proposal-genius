@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,7 +31,6 @@ export function useDocuments(projectId: string) {
       return data as ProjectDocument[];
     },
     enabled: !!session?.user?.id && !!projectId,
-    retry: 2,
   });
 
   const handleDelete = async (document: ProjectDocument) => {
@@ -49,7 +49,7 @@ export function useDocuments(projectId: string) {
       const { error: dbError } = await supabase
         .from("project_documents")
         .delete()
-        .eq("id", document.id);
+        .eq("document_id", document.document_id);
 
       if (dbError) throw dbError;
 

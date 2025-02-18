@@ -1,3 +1,4 @@
+
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,7 @@ interface ProjectDocumentsProps {
 }
 
 export function ProjectDocuments({ project }: ProjectDocumentsProps) {
-  const { documents, handleDelete, handleView } = useDocuments(project.id);
+  const { documents, handleDelete, handleView } = useDocuments(project.project_id);
 
   return (
     <div className="border-t pt-6">
@@ -54,7 +55,7 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
                 </DialogDescription>
               </DialogHeader>
               <DocumentUpload 
-                projectId={project.id}
+                projectId={project.project_id}
                 onSuccess={() => {}}
               />
             </DialogContent>

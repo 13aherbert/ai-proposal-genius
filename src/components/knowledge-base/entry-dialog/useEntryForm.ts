@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,7 +60,7 @@ export const useEntryForm = (onSuccess: () => void) => {
         file_path: filePath || null,
         user_id: userId,
       })
-      .select('id')
+      .select('entry_id')
       .single();
 
     if (insertError || !insertData) {
@@ -67,7 +68,7 @@ export const useEntryForm = (onSuccess: () => void) => {
       throw new Error('Failed to create entry');
     }
 
-    return insertData.id;
+    return insertData.entry_id;
   };
 
   const handleSubmit = async (userId: string) => {

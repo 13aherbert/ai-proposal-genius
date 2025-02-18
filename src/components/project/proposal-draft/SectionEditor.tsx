@@ -27,7 +27,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const { session } = useAuth();
 
   const handleSave = () => {
-    updateSection(section.id, content, title);
+    updateSection(section.section_id, content, title);
     setIsEditing(false);
   };
 

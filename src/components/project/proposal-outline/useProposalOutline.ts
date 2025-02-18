@@ -1,6 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface ProjectData {
+  proposal_outline: string | null;
+}
 
 export function useProposalOutline(projectId: string, analysis: string | null) {
   const [outline, setOutline] = useState<string | null>(null);
@@ -14,8 +19,8 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       try {
         const { data, error: fetchError } = await supabase
           .from('projects')
-          .select('proposal_outline')
-          .eq('id', projectId)
+          .select<'projects', ProjectData>('proposal_outline')
+          .eq('project_id', projectId)
           .single();
 
         if (fetchError) throw fetchError;
@@ -36,7 +41,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       const { error: updateError } = await supabase
         .from('projects')
         .update({ proposal_outline: null })
-        .eq('id', projectId);
+        .eq('project_id', projectId);
 
       if (updateError) throw updateError;
 
@@ -73,7 +78,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       }, 1000);
 
       // Generate outline using edge function
-      const { data: generatedData, error: functionError } = await supabase.functions.invoke('generate-proposal-outline', {
+      const { data: generatedData, error: functionError } = await supabase.functions.invoke<{ outline: string }>('generate-proposal-outline', {
         body: { projectId, analysis }
       });
 
@@ -89,7 +94,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
           proposal_outline: generatedData.outline,
           updated_at: new Date().toISOString()
         })
-        .eq('id', projectId)
+        .eq('project_id', projectId)
         .select()
         .single();
 

@@ -1,15 +1,19 @@
+
 import { useAuth } from "@/components/AuthProvider";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectsHeader } from "@/components/projects/ProjectsHeader";
 import { ProjectsTable } from "@/components/projects/ProjectsTable";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const RecentProjects = () => {
   const { session } = useAuth();
   const { projects, isLoading, error, refetch, deleteProject } = useProjects(session?.user);
 
   if (error) {
+    console.error("Projects error:", error);
+    toast.error("Failed to load projects");
     return (
       <div className="container mx-auto px-4 py-8">
         <ProjectsHeader />

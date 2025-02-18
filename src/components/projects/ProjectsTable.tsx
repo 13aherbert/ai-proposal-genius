@@ -40,6 +40,7 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
             <TableHead>Project</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
+            <TableHead>Deadline</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -73,6 +74,14 @@ export function ProjectsTable({ projects, onDelete }: ProjectsTableProps) {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   {format(new Date(project.created_at), "MMM d, yyyy")}
                 </div>
+              </TableCell>
+              <TableCell>
+                {project.deadline && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    {format(new Date(project.deadline), "MMM d, yyyy")}
+                  </div>
+                )}
               </TableCell>
               <TableCell>
                 <div

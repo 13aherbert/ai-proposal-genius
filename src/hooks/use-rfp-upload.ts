@@ -42,7 +42,7 @@ export function useRFPUpload() {
           deadline: deadline?.toISOString(),
         })
         .select("id, title, rfp_file_path, deadline, created_at, status")
-        .maybeSingle();
+        .single();
 
       if (insertError) throw insertError;
       if (!insertedProject) throw new Error("Failed to create project");

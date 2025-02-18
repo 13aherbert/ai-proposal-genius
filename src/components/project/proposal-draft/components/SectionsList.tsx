@@ -73,4 +73,17 @@ export function SectionsList({
         items={sections.map(section => ({ id: section.section_id }))} 
         strategy={verticalListSortingStrategy}
       >
-        <div className="space
+        <div className="space-y-4">
+          {sections.map((section) => (
+            <SortableSection
+              key={section.section_id}
+              section={section}
+              isSelected={selectedSection === section.section_id}
+              onSelect={() => onSelectSection(section.section_id)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}

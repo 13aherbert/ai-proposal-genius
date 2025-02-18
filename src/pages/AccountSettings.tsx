@@ -64,21 +64,14 @@ export default function AccountSettings() {
         throw new Error("Passwords do not match");
       }
 
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      toast.success("Profile updated successfully");
 
       // Clear password fields after successful update
       setPassword("");
       setConfirmPassword("");
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update profile",
-      });
+      toast.error(error.message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -89,11 +82,7 @@ export default function AccountSettings() {
       await supabase.auth.signOut();
       navigate("/");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to log out",
-      });
+      toast.error("Failed to log out");
     }
   };
 
@@ -104,17 +93,10 @@ export default function AccountSettings() {
       
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Your subscription has been cancelled successfully",
-      });
+      toast.success("Your subscription has been cancelled successfully");
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to cancel subscription",
-      });
+      toast.error(error.message || "Failed to cancel subscription");
     } finally {
       setIsCancelling(false);
     }

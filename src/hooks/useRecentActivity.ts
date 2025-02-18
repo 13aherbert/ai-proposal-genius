@@ -17,7 +17,7 @@ export const useRecentActivity = (user: User | null) => {
       try {
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, title, created_at, last_update_at')
+          .select('project_id, title, created_at, last_update_at')
           .eq('user_id', user.id)
           .order('last_update_at', { ascending: false })
           .limit(5);
@@ -26,7 +26,7 @@ export const useRecentActivity = (user: User | null) => {
 
         const { data: entries, error: entriesError } = await supabase
           .from('knowledge_entries')
-          .select('id, title, created_at')
+          .select('entry_id, title, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -40,7 +40,7 @@ export const useRecentActivity = (user: User | null) => {
               type: 'project' as const,
               title: p.title,
               date: isUpdate ? p.last_update_at : p.created_at,
-              id: p.id,
+              id: p.project_id,
               isUpdate
             };
           }) || []),
@@ -48,7 +48,7 @@ export const useRecentActivity = (user: User | null) => {
             type: 'knowledge' as const,
             title: e.title,
             date: e.created_at,
-            id: e.id
+            id: e.entry_id
           })) || [])
         ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 5);

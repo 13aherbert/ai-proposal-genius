@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid';
 
 export interface SubscriptionPlan {
-  id: string;
+  subscription_id: string;
   status: SubscriptionStatus;
   plan_type: string;
   current_period_end: string | null;
@@ -63,7 +63,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       const { data, error: subError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id')
+        .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
@@ -79,7 +79,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         setSubscription(subscriptionData);
       } else {
         const newSubscription: SubscriptionPlan = {
-          id: crypto.randomUUID(),
+          subscription_id: crypto.randomUUID(),
           user_id: session.user.id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

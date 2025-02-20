@@ -19,8 +19,8 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       try {
         const { data, error: fetchError } = await supabase
           .from('projects')
-          .select('projects.proposal_outline')
-          .eq('projects.project_id', projectId)
+          .select('proposal_outline')
+          .eq('project_id', projectId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -41,7 +41,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       const { error: updateError } = await supabase
         .from('projects')
         .update({ proposal_outline: null })
-        .eq('projects.project_id', projectId);
+        .eq('project_id', projectId);
 
       if (updateError) throw updateError;
 
@@ -94,7 +94,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
           proposal_outline: generatedData.outline,
           updated_at: new Date().toISOString()
         })
-        .eq('projects.project_id', projectId);
+        .eq('project_id', projectId);
 
       if (updateError) throw updateError;
 

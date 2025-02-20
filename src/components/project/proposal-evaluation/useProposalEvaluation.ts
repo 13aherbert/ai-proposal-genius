@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,8 +18,8 @@ export function useProposalEvaluation(projectId: string) {
         const { data, error } = await supabase
           .from('projects')
           .select('evaluation')
-          .eq('id', projectId)
-          .single();
+          .eq('project_id', projectId)
+          .maybeSingle();
 
         if (error) throw error;
         if (data?.evaluation) {
@@ -63,18 +64,18 @@ export function useProposalEvaluation(projectId: string) {
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('analysis')
-        .eq('id', projectId)
-        .single();
+        .eq('project_id', projectId)
+        .maybeSingle();
 
       if (projectError) throw projectError;
 
-      console.log('Calling evaluation function with sections:', sections.length);
+      console.log('Calling evaluation function with sections:', sections?.length);
       
       const { data, error: evaluationError } = await supabase.functions.invoke('evaluate-proposal', {
         body: { 
           projectId,
           sections,
-          analysis: project.analysis
+          analysis: project?.analysis
         }
       });
 
@@ -87,7 +88,7 @@ export function useProposalEvaluation(projectId: string) {
       const { error: saveError } = await supabase
         .from('projects')
         .update({ evaluation: data.evaluation })
-        .eq('id', projectId);
+        .eq('project_id', projectId);
 
       if (saveError) throw saveError;
 

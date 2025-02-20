@@ -27,7 +27,7 @@ export function useProposalEvaluation(projectId: string) {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select<'projects', Project>('evaluation')
+          .select<string, Project>('evaluation')
           .eq('project_id', projectId)
           .maybeSingle();
 
@@ -65,7 +65,7 @@ export function useProposalEvaluation(projectId: string) {
       // First, fetch all proposal sections
       const { data: sections, error: sectionsError } = await supabase
         .from('proposal_sections')
-        .select<'proposal_sections', ProposalSection>('section_title, content')
+        .select<string, ProposalSection>('section_title, content')
         .eq('project_id', projectId);
 
       if (sectionsError) throw sectionsError;
@@ -73,7 +73,7 @@ export function useProposalEvaluation(projectId: string) {
       // Get the project details including RFP analysis
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select<'projects', Project>('analysis')
+        .select<string, Project>('analysis')
         .eq('project_id', projectId)
         .maybeSingle();
 

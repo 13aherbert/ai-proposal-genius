@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +18,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       try {
         const { data, error: fetchError } = await supabase
           .from('projects')
-          .select<'projects', Project>('proposal_outline')
+          .select<string, Project>('proposal_outline')
           .eq('project_id', projectId)
           .maybeSingle();
 

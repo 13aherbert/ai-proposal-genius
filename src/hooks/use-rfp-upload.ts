@@ -35,16 +35,17 @@ export function useRFPUpload() {
       // Insert project with proper column names and schema
       const { data: insertedProject, error: insertError } = await supabase
         .from("projects")
-        .insert({
+        .insert([{
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
           deadline: deadline?.toISOString(),
           status: 'draft',
-          user_id: session.user.id,
-          created_at: new Date().toISOString(),
-          last_update_at: new Date().toISOString()
-        })
-        .select('project_id, title')
+          user_id: session.user.id
+        }])
+        .select(`
+          project_id,
+          title
+        `)
         .single();
 
       if (insertError) throw insertError;
@@ -77,8 +78,7 @@ export function useRFPUpload() {
           title,
           deadline: deadline?.toISOString(),
           client_name: clientName,
-          business_name: businessName,
-          last_update_at: new Date().toISOString()
+          business_name: businessName
         })
         .eq("project_id", projectId);
 

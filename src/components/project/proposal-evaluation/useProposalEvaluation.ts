@@ -3,6 +3,16 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface Project {
+  evaluation: string | null;
+  analysis: string | null;
+}
+
+interface ProposalSection {
+  section_title: string;
+  content: string | null;
+}
+
 export function useProposalEvaluation(projectId: string) {
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -17,7 +27,7 @@ export function useProposalEvaluation(projectId: string) {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('evaluation')
+          .select<'projects', Project>('evaluation')
           .eq('project_id', projectId)
           .maybeSingle();
 
@@ -55,7 +65,7 @@ export function useProposalEvaluation(projectId: string) {
       // First, fetch all proposal sections
       const { data: sections, error: sectionsError } = await supabase
         .from('proposal_sections')
-        .select('section_title, content')
+        .select<'proposal_sections', ProposalSection>('section_title, content')
         .eq('project_id', projectId);
 
       if (sectionsError) throw sectionsError;
@@ -63,7 +73,7 @@ export function useProposalEvaluation(projectId: string) {
       // Get the project details including RFP analysis
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('analysis')
+        .select<'projects', Project>('analysis')
         .eq('project_id', projectId)
         .maybeSingle();
 
@@ -71,7 +81,7 @@ export function useProposalEvaluation(projectId: string) {
 
       console.log('Calling evaluation function with sections:', sections?.length);
       
-      const { data, error: evaluationError } = await supabase.functions.invoke('evaluate-proposal', {
+      const { data, error: evaluationError } = await supabase.functions.invoke<{ evaluation: string }>('evaluate-proposal', {
         body: { 
           projectId,
           sections,

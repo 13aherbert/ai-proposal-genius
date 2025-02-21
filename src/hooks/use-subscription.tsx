@@ -65,6 +65,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .from('subscriptions')
         .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id')
         .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (subError) throw subError;
@@ -78,6 +80,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         };
         setSubscription(subscriptionData);
       } else {
+        // Create new trial subscription
         const newSubscription: SubscriptionPlan = {
           subscription_id: crypto.randomUUID(),
           user_id: session.user.id,

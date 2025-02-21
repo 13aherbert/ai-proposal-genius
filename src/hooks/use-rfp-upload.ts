@@ -32,27 +32,41 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Insert project with proper column names and schema
-      const { data: insertedProject, error: insertError } = await supabase
+      // Insert project with explicit table reference for user_id
+      const insertQuery = await supabase
         .from("projects")
-        .insert([{
+        .insert({
           title: file.name.replace(`.${fileExt}`, ""),
           rfp_file_path: fileName,
           deadline: deadline?.toISOString(),
           status: 'draft',
           user_id: session.user.id
-        }])
-        .select(`
-          project_id,
-          title
-        `)
+        })
+        .select('projects.project_id, projects.title')
         .single();
 
-      if (insertError) throw insertError;
-      if (!insertedProject) throw new Error("Failed to create project");
+      if (insertQuery.error) throw insertQuery.error;
+      if (!insertQuery.data) throw new Error("Failed to create project");
 
-      setProjectId(insertedProject.project_id);
-      setProjectTitle(insertedProject.title);
+      setProjectId(insertQuery.data.project_id);
+      setProjectTitle(insertQuery.data.title);
+      
+      // Create initial project document
+      const { error: docError } = await supabase
+        .from("project_documents")
+        .insert({
+          project_id: insertQuery.data.project_id,
+          file_name: file.name,
+          file_path: fileName,
+          document_type: 'rfp',
+          user_id: session.user.id
+        });
+
+      if (docError) {
+        console.error("Document creation error:", docError);
+        // Don't throw here to avoid interrupting the flow, just log the error
+      }
+
       toast.success("File uploaded successfully");
     } catch (error) {
       console.error("Upload error:", error);
@@ -80,7 +94,8 @@ export function useRFPUpload() {
           client_name: clientName,
           business_name: businessName
         })
-        .eq("project_id", projectId);
+        .eq("project_id", projectId)
+        .eq("user_id", session?.user?.id);
 
       if (error) throw error;
       toast.success("Project updated successfully");

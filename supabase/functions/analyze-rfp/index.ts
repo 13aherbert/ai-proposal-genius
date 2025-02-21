@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
@@ -66,16 +67,21 @@ serve(async (req) => {
 
     console.log('Text extracted successfully, length:', extractedText.length);
 
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     // Call OpenAI API for analysis
     console.log('Calling OpenAI API for analysis');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -103,7 +109,7 @@ serve(async (req) => {
     const { error: updateError } = await supabaseAdmin
       .from('projects')
       .update({ analysis })
-      .eq('id', requestData.projectId);
+      .eq('project_id', requestData.projectId);
 
     if (updateError) {
       console.error('Error saving analysis:', updateError);
@@ -122,7 +128,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to analyze RFP', 
-        details: error.message 
+        details: error instanceof Error ? error.message : String(error)
       }),
       { 
         status: 500,

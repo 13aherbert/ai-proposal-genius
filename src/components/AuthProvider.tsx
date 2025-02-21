@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
@@ -32,31 +33,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
       console.log('Auth state changed:', event);
-      setSession(currentSession);
+      
+      // Only update session if it's actually different
+      if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
+        setSession(currentSession);
+      }
       setLoading(false);
 
+      // Handle specific auth events that require navigation
       switch (event) {
         case 'SIGNED_IN':
-          // Check if this is a new signup by checking created_at timestamp
-          if (currentSession?.user) {
+          if (currentSession?.user && location.pathname === '/') {
+            // Check if this is a new signup
             const createdAt = new Date(currentSession.user.created_at);
             const now = new Date();
             const isNewUser = (now.getTime() - createdAt.getTime()) < 10000; // Within 10 seconds
 
             if (isNewUser) {
               console.log('New user detected, redirecting to subscription page');
-              navigate("/subscription");
+              navigate("/subscription", { replace: true });
               toast.success("Welcome! Please choose your subscription plan");
             } else {
               console.log('Existing user detected, redirecting to dashboard');
-              navigate("/dashboard");
+              navigate("/dashboard", { replace: true });
               toast.success("Successfully signed in");
             }
           }
           break;
         case 'SIGNED_OUT':
-          toast.info("Signed out");
-          navigate("/");
+          if (location.pathname !== '/') {
+            toast.info("Signed out");
+            navigate("/", { replace: true });
+          }
           break;
         case 'TOKEN_REFRESHED':
           console.log('Token refreshed successfully');
@@ -72,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]); // Added location.pathname to dependencies
 
   return (
     <AuthContext.Provider value={{ session, loading }}>

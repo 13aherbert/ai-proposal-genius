@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useRFPUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -10,6 +11,7 @@ export function useRFPUpload() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("");
   const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleFileUpload = async (file: File, deadline?: Date) => {
     if (!session?.user) {
@@ -118,6 +120,11 @@ export function useRFPUpload() {
         .eq("user_id", session.user.id);
 
       if (error) throw error;
+      
+      // Invalidate both the project details and projects list queries
+      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      
       toast.success("Project updated successfully");
     } catch (error) {
       console.error("Update error:", error);

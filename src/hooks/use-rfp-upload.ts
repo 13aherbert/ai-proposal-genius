@@ -32,8 +32,8 @@ export function useRFPUpload() {
 
       if (uploadError) throw uploadError;
 
-      // Insert project with explicit table reference for user_id
-      const insertQuery = await supabase
+      // Insert project without table prefix in select
+      const { data: insertedProject, error: insertError } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
@@ -42,20 +42,20 @@ export function useRFPUpload() {
           status: 'draft',
           user_id: session.user.id
         })
-        .select('projects.project_id, projects.title')
+        .select('project_id, title')
         .single();
 
-      if (insertQuery.error) throw insertQuery.error;
-      if (!insertQuery.data) throw new Error("Failed to create project");
+      if (insertError) throw insertError;
+      if (!insertedProject) throw new Error("Failed to create project");
 
-      setProjectId(insertQuery.data.project_id);
-      setProjectTitle(insertQuery.data.title);
+      setProjectId(insertedProject.project_id);
+      setProjectTitle(insertedProject.title);
       
       // Create initial project document
       const { error: docError } = await supabase
         .from("project_documents")
         .insert({
-          project_id: insertQuery.data.project_id,
+          project_id: insertedProject.project_id,
           file_name: file.name,
           file_path: fileName,
           document_type: 'rfp',

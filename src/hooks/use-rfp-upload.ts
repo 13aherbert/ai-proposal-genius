@@ -44,7 +44,7 @@ export function useRFPUpload() {
 
       console.log("File uploaded successfully, creating project...");
 
-      // Create the project
+      // Create the project with specific column selection
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
@@ -54,7 +54,7 @@ export function useRFPUpload() {
           status: 'draft',
           user_id: session.user.id
         })
-        .select()
+        .select('project_id, title, user_id')
         .single();
 
       if (projectError) {

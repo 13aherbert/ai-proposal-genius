@@ -19,21 +19,33 @@ export function useRFPUpload() {
 
     try {
       setIsUploading(true);
+      
+      // Sanitize the file name and create a unique path
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, ""); // Remove non-ASCII characters
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const fileName = `${uniqueId}-${sanitizedFileName}`;
+
+      console.log("Attempting to upload file:", fileName);
 
       // Upload file to storage
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("rfp-files")
         .upload(fileName, file, {
           cacheControl: "3600",
+          contentType: file.type,
           upsert: false
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
 
-      // Insert project without table prefix in select
-      const { data: insertedProject, error: insertError } = await supabase
+      console.log("File uploaded successfully, creating project...");
+
+      // Create the project
+      const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
           title: file.name.replace(`.${fileExt}`, ""),
@@ -45,17 +57,25 @@ export function useRFPUpload() {
         .select('project_id, title')
         .single();
 
-      if (insertError) throw insertError;
-      if (!insertedProject) throw new Error("Failed to create project");
+      if (projectError) {
+        console.error("Project creation error:", projectError);
+        throw new Error(`Project creation failed: ${projectError.message}`);
+      }
 
-      setProjectId(insertedProject.project_id);
-      setProjectTitle(insertedProject.title);
-      
-      // Create initial project document
+      if (!project) {
+        throw new Error("No project data returned after creation");
+      }
+
+      console.log("Project created successfully:", project);
+
+      setProjectId(project.project_id);
+      setProjectTitle(project.title);
+
+      // Create project document
       const { error: docError } = await supabase
         .from("project_documents")
         .insert({
-          project_id: insertedProject.project_id,
+          project_id: project.project_id,
           file_name: file.name,
           file_path: fileName,
           document_type: 'rfp',
@@ -64,13 +84,13 @@ export function useRFPUpload() {
 
       if (docError) {
         console.error("Document creation error:", docError);
-        // Don't throw here to avoid interrupting the flow, just log the error
+        // Log but don't throw, as the main project was created successfully
       }
 
       toast.success("File uploaded successfully");
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload file");
+      console.error("Upload process error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to upload file");
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -83,7 +103,7 @@ export function useRFPUpload() {
     clientName?: string,
     businessName?: string
   ) => {
-    if (!projectId) return;
+    if (!projectId || !session?.user?.id) return;
 
     try {
       const { error } = await supabase
@@ -95,7 +115,7 @@ export function useRFPUpload() {
           business_name: businessName
         })
         .eq("project_id", projectId)
-        .eq("user_id", session?.user?.id);
+        .eq("user_id", session.user.id);
 
       if (error) throw error;
       toast.success("Project updated successfully");

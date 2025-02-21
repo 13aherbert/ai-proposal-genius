@@ -54,7 +54,7 @@ export function useRFPUpload() {
           status: 'draft',
           user_id: session.user.id
         })
-        .select('project_id, title')
+        .select()
         .single();
 
       if (projectError) {

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { AnalysisSection } from "./types";
@@ -19,7 +18,7 @@ export function AnalysisContent({ sections, onReset }: AnalysisContentProps) {
             {section.title}
           </div>
           {section.content.length > 0 ? (
-            <div className="space-y-1 text-sm text-brand-green pl-6">
+            <div className="space-y-1 text-sm text-muted-foreground pl-6">
               {section.content.map((item, itemIndex) => (
                 <div key={itemIndex} className="prose prose-sm max-w-none">
                   <ReactMarkdown>{item}</ReactMarkdown>

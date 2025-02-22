@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useProposalSections } from "./useProposalSections";
 import { AddSectionButton } from "./components/AddSectionButton";
@@ -28,39 +28,6 @@ export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDr
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const { sections, isLoading, error, addSection, reorderSections, deleteAllSections } = useProposalSections(projectId);
-
-  // Extract headers from the outline markdown
-  const extractHeaders = (markdown: string): string[] => {
-    const headers: string[] = [];
-    const lines = markdown.split('\n');
-    
-    for (const line of lines) {
-      // Match lines starting with one or more # followed by a space and text
-      const match = line.match(/^#{1,2}\s+(.+)$/);
-      if (match) {
-        headers.push(match[1].trim());
-      }
-    }
-    
-    return headers;
-  };
-
-  // Create sections from outline when component mounts
-  useEffect(() => {
-    const createSectionsFromOutline = async () => {
-      // Only create sections if there's an outline and no existing sections
-      if (outline && sections.length === 0) {
-        const headers = extractHeaders(outline);
-        
-        // Create sections for each header sequentially
-        for (const header of headers) {
-          await addSection(header);
-        }
-      }
-    };
-
-    createSectionsFromOutline();
-  }, [outline, sections.length, addSection]);
 
   const handleAddSection = (title: string) => {
     addSection(title);

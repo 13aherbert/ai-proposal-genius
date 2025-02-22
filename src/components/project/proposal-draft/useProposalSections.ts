@@ -62,6 +62,27 @@ export function useProposalSections(projectId: string) {
     },
   });
 
+  const deleteSectionMutation = useMutation({
+    mutationFn: async (sectionId: string) => {
+      const { error } = await supabase
+        .from("proposal_sections")
+        .delete()
+        .eq("section_id", sectionId);
+
+      if (error) throw error;
+      return sectionId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
+      toast.success("Section deleted successfully");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting section:", error);
+      toast.error("Failed to delete section");
+      setError(error);
+    },
+  });
+
   const updateSectionMutation = useMutation({
     mutationFn: async ({
       sectionId,
@@ -113,6 +134,7 @@ export function useProposalSections(projectId: string) {
     isLoading,
     error,
     addSection: (title: string) => addSectionMutation.mutate(title),
+    deleteSection: (sectionId: string) => deleteSectionMutation.mutate(sectionId),
     updateSection: (sectionId: string, content: string, title: string) =>
       updateSectionMutation.mutate({ sectionId, content, title }),
     reorderSections: (sections: ProposalSection[]) =>

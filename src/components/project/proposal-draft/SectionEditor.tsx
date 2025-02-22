@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Save, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, Trash2, Wand2 } from "lucide-react";
 import { useProposalSections, ProposalSection } from "./useProposalSections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,12 +23,18 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const { updateSection } = useProposalSections(section.project_id);
+  const { updateSection, deleteSection } = useProposalSections(section.project_id);
   const { session } = useAuth();
 
   const handleSave = () => {
     updateSection(section.section_id, content, title);
     setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
+      deleteSection(section.section_id);
+    }
   };
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -102,18 +108,31 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               </CardTitle>
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="hover:bg-brand-green hover:text-white"
-            onClick={handleToggle}
-          >
-            {isSelected ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-red-500 hover:text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hover:bg-brand-green hover:text-white"
+              onClick={handleToggle}
+            >
+              {isSelected ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       {isSelected && (

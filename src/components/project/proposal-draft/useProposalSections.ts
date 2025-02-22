@@ -156,15 +156,7 @@ export function useProposalSections(projectId: string) {
       updateSectionMutation.mutate({ sectionId, content, title }),
     reorderSections: (sections: ProposalSection[]) =>
       reorderSectionsMutation.mutate(sections),
-    deleteAllSections: () => {
-      if (window.confirm("Are you sure you want to delete all sections? This action cannot be undone.")) {
-        deleteAllSectionsMutation.mutate();
-      }
-    },
-    deleteSection: (sectionId: string) => {
-      if (window.confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
-        deleteSectionMutation.mutate(sectionId);
-      }
-    },
+    deleteSection: (sectionId: string) => deleteSectionMutation.mutate(sectionId),
+    deleteAllSections: () => deleteAllSectionsMutation.mutate(),
   };
 }

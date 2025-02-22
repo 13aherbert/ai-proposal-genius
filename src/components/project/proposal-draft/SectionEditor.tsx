@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { AIProgress } from "@/components/shared/AIProgress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SectionEditorProps {
   section: ProposalSection;
@@ -23,6 +32,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { updateSection, deleteSection } = useProposalSections(section.project_id);
   const { session } = useAuth();
 
@@ -38,7 +48,12 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
     deleteSection(section.section_id);
+    setIsDeleteDialogOpen(false);
   };
 
   const generateContent = async () => {
@@ -82,85 +97,108 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   };
 
   return (
-    <Card>
-      <CardHeader className="cursor-pointer" onClick={onSelect}>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            {isEditing ? (
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                className="text-lg font-semibold"
-                autoFocus
-              />
-            ) : (
-              <CardTitle 
-                className="text-lg hover:bg-brand-green hover:text-white p-2 rounded-md cursor-text"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                }}
-              >
-                {title}
-              </CardTitle>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              className="hover:bg-destructive/90"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="hover:bg-brand-green hover:text-white"
-              onClick={handleToggle}
-            >
-              {isSelected ? (
-                <ChevronUp className="h-4 w-4" />
+    <>
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={onSelect}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              {isEditing ? (
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-lg font-semibold"
+                  autoFocus
+                />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <CardTitle 
+                  className="text-lg hover:bg-brand-green hover:text-white p-2 rounded-md cursor-text"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                >
+                  {title}
+                </CardTitle>
               )}
-            </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                className="hover:bg-destructive/90"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="hover:bg-brand-green hover:text-white"
+                onClick={handleToggle}
+              >
+                {isSelected ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      {isSelected && (
-        <CardContent className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={generateContent}
-              disabled={isGenerating}
-              variant="outline"
-              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
+        </CardHeader>
+        {isSelected && (
+          <CardContent className="space-y-4">
+            <div className="flex justify-end">
+              <Button
+                onClick={generateContent}
+                disabled={isGenerating}
+                variant="outline"
+                className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
+              >
+                <Wand2 className="h-4 w-4" />
+                {isGenerating ? "Generating..." : "Generate with AI"}
+              </Button>
+            </div>
+            {isGenerating && (
+              <AIProgress progress={progress} label="Generating content" />
+            )}
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write your content here..."
+              className="min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
+            />
+            <Button 
+              onClick={handleSave} 
+              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
             >
-              <Wand2 className="h-4 w-4" />
-              {isGenerating ? "Generating..." : "Generate with AI"}
+              <Save className="h-4 w-4" />
+              Save Changes
             </Button>
-          </div>
-          {isGenerating && (
-            <AIProgress progress={progress} label="Generating content" />
-          )}
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your content here..."
-            className="min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
-          />
-          <Button 
-            onClick={handleSave} 
-            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
-          >
-            <Save className="h-4 w-4" />
-            Save Changes
-          </Button>
-        </CardContent>
-      )}
-    </Card>
+          </CardContent>
+        )}
+      </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this section
+              and its content.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

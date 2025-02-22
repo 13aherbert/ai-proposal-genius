@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useProposalSections } from "./useProposalSections";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { CompiledView } from "./components/CompiledView";
-import { toast } from "sonner";
 
 interface ProposalDraftProps {
   projectId: string;
@@ -17,36 +16,11 @@ export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDr
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const { sections, isLoading, error, addSection, reorderSections } = useProposalSections(projectId);
 
-  // Parse outline and create sections
-  useEffect(() => {
-    const createSectionsFromOutline = async () => {
-      if (!outline || sections.length > 0) return; // Skip if no outline or sections already exist
-
-      try {
-        // Split the outline into lines and filter out empty lines
-        const lines = outline.split('\n').filter(line => line.trim());
-        
-        // Find all main headings (lines starting with single #)
-        const mainHeadings = lines.filter(line => line.trim().startsWith('# '));
-        
-        // Create sections for each main heading
-        for (const heading of mainHeadings) {
-          const title = heading.replace(/^#\s+/, '').trim();
-          await addSection(title);
-        }
-        
-        toast.success("Sections created from outline");
-      } catch (error) {
-        console.error('Error creating sections from outline:', error);
-        toast.error("Failed to create sections from outline");
-      }
-    };
-
-    createSectionsFromOutline();
-  }, [outline, sections.length, addSection]);
-
-  const handleAddSection = (title: string) => {
-    addSection(title);
+  const handleAddSection = () => {
+    const title = prompt("Enter section title:");
+    if (title) {
+      addSection(title);
+    }
   };
 
   const handleSelectSection = (sectionId: string) => {

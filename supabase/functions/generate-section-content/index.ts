@@ -8,7 +8,7 @@ import { formatKnowledgeBaseContext } from "./knowledge-base.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -45,37 +45,36 @@ serve(async (req) => {
 
     // Generate the prompt with project and knowledge base context
     const prompt = generatePrompt(sectionTitle, project as Project, knowledgeBaseContext);
-    console.log('Prompt generated, calling OpenAI API');
+    console.log('Prompt generated, calling Claude API');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-3-opus-20240229',
+        max_tokens: 4000,
         messages: [{
-          role: 'system',
-          content: 'You are a professional proposal writer that creates high-quality proposal content based on the provided context and requirements.'
-        }, {
           role: 'user',
           content: prompt
-        }],
-      }),
+        }]
+      })
     });
 
-    if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
-      throw new Error('Failed to generate content');
-    }
-
     const result = await response.json();
-    console.log('OpenAI API response received');
+    console.log('Claude API response received');
+
+    if (!response.ok) {
+      console.error('Claude API error:', result);
+      throw new Error(`Claude API error: ${result.error?.message || 'Unknown error'}`);
+    }
 
     return new Response(
       JSON.stringify({
-        content: result.choices[0].message.content
+        content: result.content[0].text
       }),
       {
         headers: {

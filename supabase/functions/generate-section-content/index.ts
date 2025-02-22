@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -7,10 +8,12 @@ import { formatKnowledgeBaseContext } from "./knowledge-base.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -21,7 +24,7 @@ serve(async (req) => {
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
-      .eq('id', projectId)
+      .eq('project_id', projectId)
       .single();
 
     if (projectError) throw projectError;
@@ -42,38 +45,37 @@ serve(async (req) => {
 
     // Generate the prompt with project and knowledge base context
     const prompt = generatePrompt(sectionTitle, project as Project, knowledgeBaseContext);
-    console.log('Prompt generated, calling Claude API');
+    console.log('Prompt generated, calling OpenAI API');
 
-    // Call Anthropic's Claude API
-    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
-        max_tokens: 4000,
+        model: 'gpt-4o-mini',
         messages: [{
+          role: 'system',
+          content: 'You are a professional proposal writer that creates high-quality proposal content based on the provided context and requirements.'
+        }, {
           role: 'user',
           content: prompt
-        }]
-      })
+        }],
+      }),
     });
 
-    const result = await response.json();
-    console.log('Claude API response received');
-
     if (!response.ok) {
-      console.error('Claude API error:', result);
-      throw new Error(`Claude API error: ${result.error?.message || 'Unknown error'}`);
+      console.error('OpenAI API error:', await response.text());
+      throw new Error('Failed to generate content');
     }
+
+    const result = await response.json();
+    console.log('OpenAI API response received');
 
     return new Response(
       JSON.stringify({
-        content: result.content[0].text
+        content: result.choices[0].message.content
       }),
       {
         headers: {

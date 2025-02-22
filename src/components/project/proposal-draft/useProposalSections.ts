@@ -31,6 +31,26 @@ export function useProposalSections(projectId: string) {
     },
   });
 
+  const deleteAllSectionsMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("proposal_sections")
+        .delete()
+        .eq("project_id", projectId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
+      toast.success("All sections deleted successfully");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting sections:", error);
+      toast.error("Failed to delete sections");
+      setError(error);
+    },
+  });
+
   const addSectionMutation = useMutation({
     mutationFn: async (title: string) => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -117,5 +137,10 @@ export function useProposalSections(projectId: string) {
       updateSectionMutation.mutate({ sectionId, content, title }),
     reorderSections: (sections: ProposalSection[]) =>
       reorderSectionsMutation.mutate(sections),
+    deleteAllSections: () => {
+      if (window.confirm("Are you sure you want to delete all sections? This action cannot be undone.")) {
+        deleteAllSectionsMutation.mutate();
+      }
+    },
   };
 }

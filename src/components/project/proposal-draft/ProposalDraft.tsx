@@ -27,37 +27,37 @@ export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDr
     setSelectedSection(selectedSection === sectionId ? null : sectionId);
   };
 
+  if (mode === 'compiled') {
+    return <CompiledView sections={sections} />;
+  }
+
   return (
     <div className="space-y-4">
-      {mode === 'draft' ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-start flex-1">
-                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                  Proposal Draft
-                </CardTitle>
-                <CardDescription className="pt-2">
-                  Create and manage your proposal sections
-                </CardDescription>
-              </div>
-              <AddSectionButton onAdd={handleAddSection} />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-start flex-1">
+              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                Proposal Draft
+              </CardTitle>
+              <CardDescription className="pt-2">
+                Create and manage your proposal sections
+              </CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <SectionsList
-              sections={sections}
-              selectedSection={selectedSection}
-              onSelectSection={handleSelectSection}
-              onReorderSections={reorderSections}
-              isLoading={isLoading}
-              error={error}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <CompiledView sections={sections} />
-      )}
+            <AddSectionButton onAdd={handleAddSection} />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SectionsList
+            sections={sections}
+            selectedSection={selectedSection}
+            onSelectSection={handleSelectSection}
+            onReorderSections={reorderSections}
+            isLoading={isLoading}
+            error={error}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

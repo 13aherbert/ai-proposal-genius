@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +27,26 @@ export function useProposalSections(projectId: string) {
 
       if (error) throw error;
       return data as ProposalSection[];
+    },
+  });
+
+  const deleteSectionMutation = useMutation({
+    mutationFn: async (sectionId: string) => {
+      const { error } = await supabase
+        .from("proposal_sections")
+        .delete()
+        .eq("section_id", sectionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
+      toast.success("Section deleted successfully");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting section:", error);
+      toast.error("Failed to delete section");
+      setError(error);
     },
   });
 
@@ -140,6 +159,11 @@ export function useProposalSections(projectId: string) {
     deleteAllSections: () => {
       if (window.confirm("Are you sure you want to delete all sections? This action cannot be undone.")) {
         deleteAllSectionsMutation.mutate();
+      }
+    },
+    deleteSection: (sectionId: string) => {
+      if (window.confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
+        deleteSectionMutation.mutate(sectionId);
       }
     },
   };

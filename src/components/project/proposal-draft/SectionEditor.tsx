@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Save, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, Wand2, Trash2 } from "lucide-react";
 import { useProposalSections, ProposalSection } from "./useProposalSections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const { updateSection } = useProposalSections(section.project_id);
+  const { updateSection, deleteSection } = useProposalSections(section.project_id);
   const { session } = useAuth();
 
   const handleSave = () => {
@@ -34,6 +34,11 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSelect();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteSection(section.section_id);
   };
 
   const generateContent = async () => {
@@ -53,7 +58,6 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
     }, 1000);
 
     try {
-      console.log('Generating content for project:', section.project_id);
       const { data, error } = await supabase.functions.invoke('generate-section-content', {
         body: { 
           sectionTitle: title,
@@ -102,18 +106,28 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               </CardTitle>
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="hover:bg-brand-green hover:text-white"
-            onClick={handleToggle}
-          >
-            {isSelected ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              className="hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hover:bg-brand-green hover:text-white"
+              onClick={handleToggle}
+            >
+              {isSelected ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       {isSelected && (

@@ -18,11 +18,8 @@ export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDr
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const { sections, isLoading, error, addSection, reorderSections, deleteAllSections } = useProposalSections(projectId);
 
-  const handleAddSection = () => {
-    const title = prompt("Enter section title:");
-    if (title) {
-      addSection(title);
-    }
+  const handleAddSection = (title: string) => {
+    addSection(title);
   };
 
   const handleSelectSection = (sectionId: string) => {

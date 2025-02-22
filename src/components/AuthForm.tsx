@@ -1,3 +1,4 @@
+
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,13 +86,20 @@ export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
                 brand: '#34D399',
                 brandAccent: '#059669',
                 brandButtonText: 'white',
+                inputText: 'white',
+                inputBackground: 'transparent',
+                inputPlaceholder: 'rgba(255, 255, 255, 0.5)',
               },
             },
+          },
+          className: {
+            input: 'text-white placeholder:text-white/50',
+            button: 'text-white',
           },
         }}
         view={defaultView}
         providers={[]}
-        theme="light"
+        theme="dark"
       />
     </div>
   );

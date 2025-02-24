@@ -1,7 +1,11 @@
+
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthError } from "@supabase/supabase-js";
@@ -12,6 +16,13 @@ interface AuthFormProps {
 
 export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
   const [error, setError] = useState<string>("");
+  const [isSignUp, setIsSignUp] = useState(defaultView === 'sign_up');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,36 +33,24 @@ export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
       }
     });
 
-    // Listen for auth changes and handle errors
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         navigate("/dashboard");
-        setError(""); // Clear any errors on successful sign in
+        setError("");
       }
       if (event === "SIGNED_OUT") {
         navigate("/");
       }
       if (event === "PASSWORD_RECOVERY") {
-        setError(""); // Clear errors during password recovery
-      }
-    });
-
-    // Listen specifically for auth errors
-    const authListener = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" && !session) {
-        const lastError = localStorage.getItem("auth_error");
-        if (lastError) {
-          setError(lastError);
-          localStorage.removeItem("auth_error");
-        }
+        setError("");
       }
     });
 
     return () => {
       subscription.unsubscribe();
-      authListener.data.subscription.unsubscribe();
     };
   }, [navigate]);
 
@@ -68,31 +67,129 @@ export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              company_name: companyName || null,
+              birthday: birthday || null,
+            }
+          }
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(getErrorMessage(error as AuthError));
+      }
+    }
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full max-w-md">
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <Auth
-        supabaseClient={supabase}
-        appearance={{
-          theme: ThemeSupa,
-          variables: {
-            default: {
-              colors: {
-                brand: '#34D399',
-                brandAccent: '#059669',
-                brandButtonText: 'white',
-              },
-            },
-          },
-        }}
-        view={defaultView}
-        providers={[]}
-        theme="light"
-      />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        {isSignUp && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name (Optional)</Label>
+              <Input
+                id="companyName"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="birthday">Birthday (Optional)</Label>
+              <Input
+                id="birthday"
+                type="date"
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        <Button type="submit" className="w-full">
+          {isSignUp ? "Sign Up" : "Sign In"}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          onClick={() => setIsSignUp(!isSignUp)}
+        >
+          {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
+        </Button>
+      </form>
     </div>
   );
 };

@@ -16,9 +16,9 @@ serve(async (req) => {
 
   try {
     // Verify Stripe API key is set
-    const stripeApiKey = Deno.env.get('STRIPE_API_KEY');
+    const stripeApiKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeApiKey) {
-      console.error('STRIPE_API_KEY is not set');
+      console.error('STRIPE_SECRET_KEY is not set');
       throw new Error('Stripe API key is not configured');
     }
 
@@ -71,9 +71,10 @@ serve(async (req) => {
 
     console.log('Processing checkout for user:', user.id);
 
-    // Initialize Stripe with more detailed error logging
+    // Initialize Stripe
     const stripe = new Stripe(stripeApiKey, {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(), // Ensure we're using Fetch
     });
 
     try {
@@ -85,7 +86,7 @@ serve(async (req) => {
       throw new Error('Invalid price ID');
     }
 
-    // Get or create customer with error handling
+    // Get or create customer
     let customer;
     try {
       const customers = await stripe.customers.list({
@@ -110,7 +111,7 @@ serve(async (req) => {
       throw new Error('Failed to manage customer');
     }
 
-    // Create checkout session with error handling
+    // Create checkout session
     try {
       console.log('Creating checkout session...');
       const session = await stripe.checkout.sessions.create({

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,11 +5,11 @@ import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/hooks/use-subscription";
 
 const PRICE_IDS = {
-  trial: 'price_1OtVd8CcQ0GhLgJo7zFkWQ0Y',
-  starterMonthly: 'price_1OtVd8CcQ0GhLgJoQZcIR7V9',
-  starterAnnual: 'price_1OtVd8CcQ0GhLgJoH2K9L3M5',
-  proMonthly: 'price_1OtVd9CcQ0GhLgJoXYWNP4Q8',
-  proAnnual: 'price_1OtVd9CcQ0GhLgJoK8M5B2R1'
+  trial: 'price_1QlhL0CcQ0GhLgJoeSDq6zEY',
+  starterMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
+  starterAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
+  proMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
+  proAnnual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa'
 };
 
 interface UpgradeButtonProps {

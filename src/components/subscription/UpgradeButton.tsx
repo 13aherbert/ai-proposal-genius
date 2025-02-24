@@ -33,25 +33,45 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const handleUpgrade = async () => {
     try {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        throw new Error('Session error: ' + sessionError.message);
+      }
+
       if (!session) {
         toast.error("Please log in to upgrade your subscription");
         return;
       }
 
+      // Call the create-checkout-session function with appropriate headers
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { priceId: getPriceId() }
+        body: { 
+          priceId: getPriceId() 
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
-      if (error) throw error;
+      console.log('Checkout session response:', data);
 
-      if (data?.url) {
-        window.location.href = data.url;
+      if (error) {
+        console.error('Error creating checkout session:', error);
+        throw error;
       }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL returned');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error("Failed to start upgrade process");
+      console.error('Error in upgrade process:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to start upgrade process");
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +85,9 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       onClick={handleUpgrade} 
       disabled={isUpgradeDisabled}
       className="w-full"
+      variant={isCurrentPlan ? "outline" : "default"}
     >
-      {isLoading ? "Loading..." : isCurrentPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
+      {isLoading ? "Processing..." : isCurrentPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
     </Button>
   );
 }

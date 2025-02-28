@@ -33,6 +33,7 @@ interface SubscriptionContextType {
   isPastGracePeriod: () => boolean;
   isInGracePeriod: () => boolean;
   isActive: () => boolean;
+  hasFailedPayment: () => boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
@@ -46,6 +47,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   isPastGracePeriod: () => false,
   isInGracePeriod: () => false,
   isActive: () => false,
+  hasFailedPayment: () => false,
 });
 
 const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
@@ -181,6 +183,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     );
   };
 
+  // Check if subscription has failed payment
+  const hasFailedPayment = () => {
+    return subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+  };
+
   useEffect(() => {
     checkSubscription();
   }, [session]);
@@ -197,7 +204,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         renewSubscription,
         isPastGracePeriod,
         isInGracePeriod,
-        isActive
+        isActive,
+        hasFailedPayment
       }}
     >
       {children}

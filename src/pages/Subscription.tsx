@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 export default function Subscription() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: subscription, loading, isInGracePeriod, hasFailedPayment, renewSubscription } = useSubscription();
+  const { data: subscription, loading, isInGracePeriod, renewSubscription } = useSubscription();
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
   
   // Check if user is coming from a payment failure redirect
@@ -31,14 +31,15 @@ export default function Subscription() {
     
     // Handle subscription renewal/update cases
     const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
-    const needsRenewal = isInGracePeriod() || hasFailedPayment || subscription?.status === 'past_due';
+    const hasFailedSubscriptionPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+    const needsRenewal = isInGracePeriod() || hasFailedSubscriptionPayment;
     
     if (hasActiveSubscription && !needsRenewal) {
       navigate('/dashboard');
     } else if (needsRenewal) {
       setShowRenewalPrompt(true);
     }
-  }, [subscription, navigate, location.search, isInGracePeriod, hasFailedPayment]);
+  }, [subscription, navigate, location.search, isInGracePeriod]);
 
   if (loading) {
     return (

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { addDays, format, isPast, differenceInDays } from 'date-fns';
 
 export function useSubscriptionNotifications() {
-  const { data: subscription, loading } = useSubscription();
+  const { data: subscription, loading, hasFailedPayment, isInGracePeriod } = useSubscription();
   const [hasShownGracePeriodNotice, setHasShownGracePeriodNotice] = useState(false);
   const [hasShownExpirationNotice, setHasShownExpirationNotice] = useState(false);
   const [hasShownRenewalNotice, setHasShownRenewalNotice] = useState(false);
@@ -16,7 +16,7 @@ export function useSubscriptionNotifications() {
     if (loading || !subscription) return;
 
     // Check for failed payment status
-    if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+    if (hasFailedPayment()) {
       toast.error("Payment failed", {
         description: "We couldn't process your last payment. Please update your payment method.",
         duration: 10000,
@@ -87,21 +87,13 @@ export function useSubscriptionNotifications() {
     navigate, 
     hasShownGracePeriodNotice, 
     hasShownExpirationNotice, 
-    hasShownRenewalNotice
+    hasShownRenewalNotice,
+    hasFailedPayment,
+    isInGracePeriod
   ]);
-
-  // Function to check if user is in grace period
-  const isInGracePeriod = () => {
-    if (!subscription?.current_period_end) return false;
-    
-    const endDate = new Date(subscription.current_period_end);
-    const gracePeriodEnd = addDays(endDate, 3);
-    
-    return isPast(endDate) && !isPast(gracePeriodEnd);
-  };
 
   return { 
     isInGracePeriod,
-    hasFailedPayment: subscription?.status === 'past_due' || subscription?.status === 'unpaid'
+    hasFailedPayment
   };
 }

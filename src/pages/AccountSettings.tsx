@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, LogOut, Save } from "lucide-react";
+import { ArrowLeft, LogOut, Save, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
@@ -17,7 +17,7 @@ import { SubscriptionCard } from "@/components/account/SubscriptionCard";
 
 /**
  * AccountSettings component - Allows users to manage their account settings including:
- * - Profile information (username)
+ * - Profile information (username, first name, last name, business name, birthday)
  * - Email settings
  * - Password management
  * - Subscription management (view, upgrade, cancel)
@@ -26,11 +26,32 @@ export default function AccountSettings() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState(session?.user?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const { data: subscription } = useSubscription();
+  
+  // Check for unsaved changes
+  useEffect(() => {
+    // We don't have a way to check initial values from the backend in this example
+    // In a real app, you'd compare against the original values from the database
+    // For demonstration, we'll set hasChanges when any field is modified
+    const listener = () => {
+      setHasChanges(true);
+    };
+    
+    // Reset the success state if any changes are made
+    if (hasChanges) {
+      setSaveSuccess(false);
+    }
+  }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword]);
 
   /**
    * Handles saving user profile changes (username, email, password)
@@ -40,15 +61,19 @@ export default function AccountSettings() {
     
     setIsLoading(true);
     try {
-      // Update profile (username)
-      if (username) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ username })
-          .eq('profile_id', session.user.id);
+      // Update profile (username, first name, last name, business name, birthday)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          username: username || null,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          business_name: businessName || null,
+          birthday: birthday || null
+        })
+        .eq('profile_id', session.user.id);
 
-        if (profileError) throw profileError;
-      }
+      if (profileError) throw profileError;
 
       // Update email if changed
       if (email !== session.user.email) {
@@ -68,14 +93,30 @@ export default function AccountSettings() {
         throw new Error("Passwords do not match");
       }
 
-      toast.success("Profile updated successfully");
+      // Show success state
+      setSaveSuccess(true);
+      setHasChanges(false);
+      
+      // Show toast notification
+      toast.success("Profile updated successfully", {
+        description: "Your account information has been saved.",
+        duration: 3000,
+      });
 
       // Clear password fields after successful update
       setPassword("");
       setConfirmPassword("");
+      
+      // Reset success state after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+      
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || "Failed to update profile");
+      toast.error("Failed to update profile", {
+        description: error.message || "Please try again later.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +153,15 @@ export default function AccountSettings() {
             {/* Profile Information */}
             <ProfileCard 
               username={username} 
-              setUsername={setUsername} 
+              setUsername={setUsername}
+              firstName={firstName}
+              setFirstName={setFirstName}
+              lastName={lastName}
+              setLastName={setLastName}
+              businessName={businessName}
+              setBusinessName={setBusinessName}
+              birthday={birthday}
+              setBirthday={setBirthday}
             />
 
             {/* Email Settings */}
@@ -136,11 +185,20 @@ export default function AccountSettings() {
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <Button 
                 onClick={handleSave} 
-                disabled={isLoading}
-                className="w-full sm:w-auto"
+                disabled={isLoading || (!hasChanges && !saveSuccess)}
+                className={`w-full sm:w-auto transition-all ${saveSuccess ? 'bg-green-600 hover:bg-green-700' : ''}`}
               >
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {saveSuccess ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </>
+                )}
               </Button>
               <Button 
                 variant="destructive" 

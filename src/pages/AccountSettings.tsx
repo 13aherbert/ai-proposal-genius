@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, User, Mail, Lock, LogOut, Save, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import {
@@ -64,14 +65,22 @@ export default function AccountSettings() {
         throw new Error("Passwords do not match");
       }
 
-      toast.success("Profile updated successfully");
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+        variant: "default",
+      });
 
       // Clear password fields after successful update
       setPassword("");
       setConfirmPassword("");
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || "Failed to update profile");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +91,11 @@ export default function AccountSettings() {
       await supabase.auth.signOut();
       navigate("/");
     } catch (error: any) {
-      toast.error("Failed to log out");
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
     }
   };
 
@@ -93,10 +106,18 @@ export default function AccountSettings() {
       
       if (error) throw error;
 
-      toast.success("Your subscription has been cancelled successfully");
+      toast({
+        title: "Success",
+        description: "Your subscription has been cancelled successfully",
+        variant: "default",
+      });
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast.error(error.message || "Failed to cancel subscription");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel subscription",
+        variant: "destructive",
+      });
     } finally {
       setIsCancelling(false);
     }

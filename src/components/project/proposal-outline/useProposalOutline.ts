@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Project {
   proposal_outline: string | null;
@@ -28,7 +29,11 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
         }
       } catch (error) {
         console.error('Error loading saved outline:', error);
-        toast.error("Failed to load saved outline");
+        toast({
+          title: "Error",
+          description: "Failed to load saved outline",
+          variant: "destructive",
+        });
       }
     };
 
@@ -47,16 +52,28 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       setOutline(null);
       setError(null);
       setProgress(0);
-      toast.success("Outline cleared successfully");
+      toast({
+        title: "Success",
+        description: "Outline cleared successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Error clearing outline:', error);
-      toast.error("Failed to clear outline");
+      toast({
+        title: "Error",
+        description: "Failed to clear outline",
+        variant: "destructive",
+      });
     }
   };
 
   const handleGenerateOutline = async () => {
     if (!analysis) {
-      toast.error("Please analyze the RFP first");
+      toast({
+        title: "Error",
+        description: "Please analyze the RFP first",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -99,11 +116,19 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
       setProgress(100);
       setOutline(generatedData.outline);
-      toast.success("Outline generated and saved successfully!");
+      toast({
+        title: "Success",
+        description: "Outline generated and saved successfully!",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Error generating outline:', error);
       setError("Failed to generate outline. Please try again.");
-      toast.error("Failed to generate outline");
+      toast({
+        title: "Error",
+        description: "Failed to generate outline",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }

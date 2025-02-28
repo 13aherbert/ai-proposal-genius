@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface Project {
   evaluation: string | null;
@@ -37,7 +37,11 @@ export function useProposalEvaluation(projectId: string) {
         }
       } catch (error) {
         console.error('Error loading evaluation:', error);
-        toast.error("Failed to load saved evaluation");
+        toast({
+          title: "Error",
+          description: "Failed to load saved evaluation",
+          variant: "destructive",
+        });
       }
     };
 
@@ -103,11 +107,19 @@ export function useProposalEvaluation(projectId: string) {
       if (saveError) throw saveError;
 
       setEvaluation(data.evaluation);
-      toast.success('Proposal evaluated and saved successfully');
+      toast({
+        title: "Success",
+        description: "Proposal evaluated and saved successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Error evaluating proposal:', error);
       setError('Failed to evaluate proposal. Please try again.');
-      toast.error('Failed to evaluate proposal');
+      toast({
+        title: "Error",
+        description: "Failed to evaluate proposal",
+        variant: "destructive",
+      });
       setProgress(0);
     } finally {
       setIsEvaluating(false);

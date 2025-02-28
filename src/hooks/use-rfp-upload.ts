@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function useRFPUpload() {
@@ -15,7 +15,11 @@ export function useRFPUpload() {
 
   const handleFileUpload = async (file: File, deadline?: Date) => {
     if (!session?.user) {
-      toast.error("You must be logged in to upload files");
+      toast({
+        title: "Error",
+        description: "You must be logged in to upload files",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -89,10 +93,18 @@ export function useRFPUpload() {
         // Log but don't throw, as the main project was created successfully
       }
 
-      toast.success("File uploaded successfully");
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error("Upload process error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to upload file");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload file",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -125,10 +137,18 @@ export function useRFPUpload() {
       await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
       
-      toast.success("Project updated successfully");
+      toast({
+        title: "Success",
+        description: "Project updated successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error("Update error:", error);
-      toast.error("Failed to update project");
+      toast({
+        title: "Error",
+        description: "Failed to update project",
+        variant: "destructive",
+      });
     }
   };
 

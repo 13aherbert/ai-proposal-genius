@@ -40,53 +40,87 @@ export default function AccountSettings() {
   
   // Fetch user profile data on component mount
   useEffect(() => {
-    async function fetchProfile() {
-      if (!session?.user?.id) return;
-      
-      try {
-        setIsLoadingProfile(true);
-        // Query only the columns that exist in our table now
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('username, first_name, last_name, business_name, birthday')
-          .eq('profile_id', session.user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
-        
-        if (data) {
-          // Set state with the values, using empty string as fallback
-          setUsername(data.username || "");
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-          setBusinessName(data.business_name || "");
-          setBirthday(data.birthday || "");
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    }
-    
     fetchProfile();
   }, [session]);
-  
-  // Check for unsaved changes
-  useEffect(() => {
-    // Only track changes after initial profile is loaded
-    if (!isLoadingProfile) {
-      setHasChanges(true);
-    }
+
+  // Function to fetch profile data - allows reuse after saving
+  const fetchProfile = async () => {
+    if (!session?.user?.id) return;
     
-    // Reset the success state if any changes are made
-    if (hasChanges) {
-      setSaveSuccess(false);
+    try {
+      setIsLoadingProfile(true);
+      // Query only the columns that exist in our table now
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, first_name, last_name, business_name, birthday')
+        .eq('profile_id', session.user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+      
+      if (data) {
+        // Set state with the values, using empty string as fallback
+        setUsername(data.username || "");
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        setBusinessName(data.business_name || "");
+        setBirthday(data.birthday || "");
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoadingProfile(false);
     }
-  }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword, isLoadingProfile]);
+  };
+  
+  // Track initial form values to detect changes
+  const [initialValues, setInitialValues] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    businessName: "",
+    birthday: "",
+    email: ""
+  });
+  
+  // Set initial values after profile loads
+  useEffect(() => {
+    if (!isLoadingProfile) {
+      setInitialValues({
+        username,
+        firstName,
+        lastName,
+        businessName,
+        birthday,
+        email
+      });
+      setHasChanges(false);
+    }
+  }, [isLoadingProfile]);
+  
+  // Check for unsaved changes by comparing current values with initial values
+  useEffect(() => {
+    if (!isLoadingProfile) {
+      const hasChanges = 
+        username !== initialValues.username ||
+        firstName !== initialValues.firstName ||
+        lastName !== initialValues.lastName ||
+        businessName !== initialValues.businessName ||
+        birthday !== initialValues.birthday ||
+        email !== initialValues.email ||
+        password.length > 0;
+      
+      setHasChanges(hasChanges);
+      
+      // Reset the success state if any changes are made
+      if (hasChanges) {
+        setSaveSuccess(false);
+      }
+    }
+  }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword, isLoadingProfile, initialValues]);
 
   /**
    * Handles saving user profile changes (username, email, password)
@@ -139,6 +173,16 @@ export default function AccountSettings() {
         throw new Error("Passwords do not match");
       }
 
+      // After successful save, update the initial values to match current values
+      setInitialValues({
+        username,
+        firstName,
+        lastName,
+        businessName,
+        birthday,
+        email
+      });
+      
       // Show success state
       setSaveSuccess(true);
       setHasChanges(false);

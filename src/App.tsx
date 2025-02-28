@@ -1,7 +1,7 @@
 
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import UploadRFP from "./pages/UploadRFP";

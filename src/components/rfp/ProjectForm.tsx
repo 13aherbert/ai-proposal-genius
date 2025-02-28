@@ -1,12 +1,13 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ValidatedInput, FormValidationGroup, ValidationRules } from "@/components/form/FormValidation";
 
 interface ProjectFormProps {
   projectId: string | null;
@@ -33,6 +34,8 @@ export const ProjectForm = ({
   onDeadlineChange,
   onSubmit,
 }: ProjectFormProps) => {
+  const [isFormValid, setIsFormValid] = React.useState(false);
+
   return (
     <Card className="col-span-1">
       <CardHeader>
@@ -40,34 +43,42 @@ export const ProjectForm = ({
       </CardHeader>
       <CardContent>
         {projectId ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="projectTitle">Project Title</Label>
-              <Input
-                id="projectTitle"
-                value={projectTitle}
-                onChange={(e) => onTitleChange(e.target.value)}
-                placeholder="Enter project title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name</Label>
-              <Input
-                id="clientName"
-                value={clientName}
-                onChange={(e) => onClientNameChange(e.target.value)}
-                placeholder="Enter client name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="businessName">Business Name</Label>
-              <Input
-                id="businessName"
-                value={businessName}
-                onChange={(e) => onBusinessNameChange(e.target.value)}
-                placeholder="Enter business name"
-              />
-            </div>
+          <FormValidationGroup onValidationChange={setIsFormValid}>
+            <ValidatedInput
+              id="projectTitle"
+              value={projectTitle}
+              onChange={onTitleChange}
+              label="Project Title"
+              placeholder="Enter project title"
+              required={true}
+              minLength={3}
+              maxLength={100}
+              validationRules={[
+                {
+                  test: (val) => val.trim().length > 0,
+                  message: "Project title cannot be only whitespace"
+                }
+              ]}
+            />
+            
+            <ValidatedInput
+              id="clientName"
+              value={clientName}
+              onChange={onClientNameChange}
+              label="Client Name"
+              placeholder="Enter client name"
+              maxLength={100}
+            />
+            
+            <ValidatedInput
+              id="businessName"
+              value={businessName}
+              onChange={onBusinessNameChange}
+              label="Business Name"
+              placeholder="Enter business name"
+              maxLength={100}
+            />
+            
             <div className="space-y-2">
               <Label>Deadline</Label>
               <Popover>
@@ -89,12 +100,14 @@ export const ProjectForm = ({
                     selected={deadline}
                     onSelect={onDeadlineChange}
                     initialFocus
+                    disabled={(date) => date < new Date()}
                   />
                 </PopoverContent>
               </Popover>
             </div>
-            <Button onClick={onSubmit}>Update Project</Button>
-          </div>
+            
+            <Button onClick={onSubmit} disabled={!isFormValid}>Update Project</Button>
+          </FormValidationGroup>
         ) : (
           <div className="space-y-4">
             <p className="text-muted-foreground">
@@ -122,6 +135,7 @@ export const ProjectForm = ({
                     selected={deadline}
                     onSelect={onDeadlineChange}
                     initialFocus
+                    disabled={(date) => date < new Date()}
                   />
                 </PopoverContent>
               </Popover>

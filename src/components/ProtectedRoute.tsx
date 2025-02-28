@@ -5,6 +5,17 @@ import { useAuth } from "./AuthProvider";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+/**
+ * ProtectedRoute component
+ * 
+ * A wrapper component that provides authentication protection for routes.
+ * It handles:
+ * - Redirecting unauthenticated users to the login page
+ * - Displaying loading state while checking authentication
+ * - Handling authentication errors
+ * - Saving the attempted route for redirect after login
+ * - Providing detailed error feedback
+ */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading, error } = useAuth();
   const navigate = useNavigate();
@@ -19,7 +30,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       sessionStorage.setItem('redirectAfterLogin', location.pathname);
       
       toast.info("Authentication required", {
-        description: "Please log in to access this page"
+        description: "Please log in to access this page",
+        duration: 5000,
       });
       
       navigate("/");
@@ -29,10 +41,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (error) {
       console.error("Auth error in protected route:", error);
       
-      // If there's a specific auth error that we want to handle differently
+      // Handle different types of auth errors specifically
       if (error.message.includes('expired')) {
         toast.warning("Your session has expired", {
-          description: "Please log in again"
+          description: "Please log in again",
+          duration: 5000,
+        });
+      } else if (error.message.includes('network')) {
+        toast.error("Network error", {
+          description: "Please check your internet connection",
+          duration: 5000,
+        });
+      } else if (error.message.includes('not found')) {
+        toast.error("User not found", {
+          description: "Please check your credentials",
+          duration: 5000,
         });
       }
     }

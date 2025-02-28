@@ -1,148 +1,122 @@
 
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ValidatedInput, FormValidationGroup, ValidationRules } from "@/components/form/FormValidation";
+import { ValidatedInput, ValidationRules } from "@/components/form/FormValidation";
 
 interface ProjectFormProps {
-  projectId: string | null;
   projectTitle: string;
-  clientName?: string;
-  businessName?: string;
-  deadline?: Date;
-  onTitleChange: (title: string) => void;
-  onClientNameChange: (name: string) => void;
-  onBusinessNameChange: (name: string) => void;
-  onDeadlineChange: (date?: Date) => void;
+  setProjectTitle: (title: string) => void;
+  deadline: Date | undefined;
+  setDeadline: (date: Date | undefined) => void;
+  clientName: string;
+  setClientName: (name: string) => void;
+  businessName: string;
+  setBusinessName: (name: string) => void;
   onSubmit: () => void;
+  isProcessing: boolean;
 }
 
-export const ProjectForm = ({
-  projectId,
+export function ProjectForm({
   projectTitle,
-  clientName = "",
-  businessName = "",
+  setProjectTitle,
   deadline,
-  onTitleChange,
-  onClientNameChange,
-  onBusinessNameChange,
-  onDeadlineChange,
+  setDeadline,
+  clientName,
+  setClientName,
+  businessName,
+  setBusinessName,
   onSubmit,
-}: ProjectFormProps) => {
-  const [isFormValid, setIsFormValid] = React.useState(false);
+  isProcessing,
+}: ProjectFormProps) {
+  const [isTitleValid, setIsTitleValid] = useState(false);
+  
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProjectTitle(e.target.value);
+  };
+
+  const handleClientNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setClientName(e.target.value);
+  };
+
+  const handleBusinessNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBusinessName(e.target.value);
+  };
 
   return (
-    <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle>Project Information</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {projectId ? (
-          <FormValidationGroup onValidationChange={setIsFormValid}>
-            <ValidatedInput
-              id="projectTitle"
-              value={projectTitle}
-              onChange={onTitleChange}
-              label="Project Title"
-              placeholder="Enter project title"
-              required={true}
-              minLength={3}
-              maxLength={100}
-              validationRules={[
-                {
-                  test: (val) => val.trim().length > 0,
-                  message: "Project title cannot be only whitespace"
-                }
-              ]}
-            />
-            
-            <ValidatedInput
-              id="clientName"
-              value={clientName}
-              onChange={onClientNameChange}
-              label="Client Name"
-              placeholder="Enter client name"
-              maxLength={100}
-            />
-            
-            <ValidatedInput
-              id="businessName"
-              value={businessName}
-              onChange={onBusinessNameChange}
-              label="Business Name"
-              placeholder="Enter business name"
-              maxLength={100}
-            />
-            
-            <div className="space-y-2">
-              <Label>Deadline</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !deadline && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={deadline}
-                    onSelect={onDeadlineChange}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <Button onClick={onSubmit} disabled={!isFormValid}>Update Project</Button>
-          </FormValidationGroup>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-muted-foreground">
-              Upload an RFP document to begin. Once uploaded, you'll be able to
-              enter project details and start the AI analysis.
-            </p>
-            <div className="space-y-2">
-              <Label>Due Date (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !deadline && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={deadline}
-                    onSelect={onDeadlineChange}
-                    initialFocus
-                    disabled={(date) => date < new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <ValidatedInput
+          id="project-title"
+          label="Project Title *"
+          value={projectTitle}
+          onChange={handleTitleChange}
+          placeholder="Enter a descriptive title for your project"
+          rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
+          onValidation={setIsTitleValid}
+          required
+        />
+
+        <div className="space-y-2">
+          <Label htmlFor="deadline">Deadline (Optional)</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="deadline"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !deadline && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {deadline ? format(deadline, "PPP") : "Select a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={deadline}
+                onSelect={setDeadline}
+                initialFocus
+                disabled={(date) => date < new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <ValidatedInput
+          id="client-name"
+          label="Client Name (Optional)"
+          value={clientName}
+          onChange={handleClientNameChange}
+          placeholder="Enter the client or organization name"
+          rules={[ValidationRules.maxLength(100)]}
+        />
+
+        <ValidatedInput
+          id="business-name"
+          label="Your Business Name (Optional)"
+          value={businessName}
+          onChange={handleBusinessNameChange}
+          placeholder="Enter your business or organization name"
+          rules={[ValidationRules.maxLength(100)]}
+        />
+      </div>
+
+      <Button 
+        onClick={onSubmit} 
+        className="w-full" 
+        disabled={isProcessing || !isTitleValid}
+      >
+        {isProcessing ? "Saving..." : "Save Project Details"}
+      </Button>
+    </div>
   );
-};
+}

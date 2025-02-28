@@ -128,7 +128,6 @@ export function DocumentUpload({ projectId, onSuccess }: DocumentUploadProps) {
       <FileUpload 
         onFileSelect={handleFileSelect}
         selectedFile={selectedFile}
-        acceptedFileTypes=".pdf,.doc,.docx,.txt"
       />
       
       <div className="flex justify-end">

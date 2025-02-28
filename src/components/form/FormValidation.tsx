@@ -1,323 +1,342 @@
 
-import { ReactNode, useState } from "react";
+import React, { useState, useEffect, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
-export interface ValidationRule {
-  test: (value: string) => boolean;
+// Validation types
+export type ValidationRule = {
+  validator: (value: string) => boolean;
   message: string;
-}
+};
 
-interface ValidatedInputProps {
+export type ValidationRules = {
+  [key: string]: ValidationRule[];
+};
+
+// Common validation rules that can be reused
+export const ValidationRules = {
+  required: {
+    validator: (value: string) => value.trim().length > 0,
+    message: "This field is required"
+  },
+  email: {
+    validator: (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+    message: "Please enter a valid email address"
+  },
+  minLength: (length: number) => ({
+    validator: (value: string) => value.length >= length,
+    message: `Must be at least ${length} characters`
+  }),
+  maxLength: (length: number) => ({
+    validator: (value: string) => value.length <= length,
+    message: `Cannot exceed ${length} characters`
+  }),
+  numeric: {
+    validator: (value: string) => /^\d+$/.test(value),
+    message: "Must contain only numbers"
+  },
+  alphanumeric: {
+    validator: (value: string) => /^[a-zA-Z0-9]+$/.test(value),
+    message: "Must contain only letters and numbers"
+  },
+  phone: {
+    validator: (value: string) => /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/.test(value),
+    message: "Please enter a valid phone number"
+  },
+  password: {
+    validator: (value: string) => 
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value),
+    message: "Password must contain at least 8 characters, including uppercase, lowercase, number and special character"
+  },
+  url: {
+    validator: (value: string) => 
+      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)*\/?$/.test(value),
+    message: "Please enter a valid URL"
+  },
+  date: {
+    validator: (value: string) => !isNaN(Date.parse(value)),
+    message: "Please enter a valid date"
+  },
+  fileSize: (maxSizeMB: number) => ({
+    validator: (file: any) => {
+      if (!file || typeof file !== 'object' || !file.size) return true;
+      return file.size <= maxSizeMB * 1024 * 1024;
+    },
+    message: `File size must be less than ${maxSizeMB}MB`
+  }),
+  fileType: (allowedTypes: string[]) => ({
+    validator: (file: any) => {
+      if (!file || typeof file !== 'object' || !file.type) return true;
+      return allowedTypes.includes(file.type);
+    },
+    message: `File must be one of the following types: ${allowedTypes.join(', ')}`
+  }),
+};
+
+// Base components with validation
+interface ValidatedFieldProps {
   id: string;
-  name?: string;
-  value: string;
-  onChange: (value: string) => void;
   label?: string;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  rules?: ValidationRule[];
   className?: string;
-  disabled?: boolean;
-  autoComplete?: string;
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-  validationRules?: ValidationRule[];
-  onValidationChange?: (isValid: boolean) => void;
+  showValidationIcon?: boolean;
+  onValidation?: (isValid: boolean) => void;
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
 }
 
-export const ValidatedInput = ({
+// ValidatedInput component
+interface ValidatedInputProps extends ValidatedFieldProps, Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'onChange'> {}
+
+export const ValidatedInput: React.FC<ValidatedInputProps> = ({
   id,
-  name,
+  label,
   value,
   onChange,
-  label,
-  placeholder,
-  type = "text",
-  required = false,
+  rules = [],
   className,
-  disabled = false,
-  autoComplete,
-  minLength,
-  maxLength,
-  pattern,
-  validationRules = [],
-  onValidationChange,
-}: ValidatedInputProps) => {
+  showValidationIcon = true,
+  onValidation,
+  validateOnChange = true,
+  validateOnBlur = true,
+  ...props
+}) => {
+  const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [validated, setValidated] = useState(false);
 
-  const validate = (val: string) => {
-    const newErrors: string[] = [];
-
-    if (required && !val) {
-      newErrors.push("This field is required");
+  useEffect(() => {
+    if ((touched && validateOnBlur) || (value !== '' && validateOnChange)) {
+      validateInput();
     }
+  }, [value, touched]);
 
-    if (minLength && val.length < minLength) {
-      newErrors.push(`Minimum length is ${minLength} characters`);
-    }
-
-    if (maxLength && val.length > maxLength) {
-      newErrors.push(`Maximum length is ${maxLength} characters`);
-    }
-
-    if (pattern && val && !new RegExp(pattern).test(val)) {
-      newErrors.push("Invalid format");
-    }
-
-    validationRules.forEach((rule) => {
-      if (!rule.test(val)) {
-        newErrors.push(rule.message);
+  const validateInput = () => {
+    for (const rule of rules) {
+      if (!rule.validator(value)) {
+        setError(rule.message);
+        setValidated(false);
+        if (onValidation) onValidation(false);
+        return;
       }
-    });
-
-    setErrors(newErrors);
-    if (onValidationChange) {
-      onValidationChange(newErrors.length === 0);
     }
-    return newErrors.length === 0;
+    setError(null);
+    setValidated(true);
+    if (onValidation) onValidation(true);
+  };
+
+  const handleBlur = () => {
+    setTouched(true);
+    if (validateOnBlur) {
+      validateInput();
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-    if (touched) {
-      validate(newValue);
+    onChange(e);
+    if (validateOnChange && touched) {
+      validateInput();
     }
   };
 
-  const handleBlur = () => {
-    setTouched(true);
-    validate(value);
-  };
-
   return (
-    <div className="space-y-2">
-      {label && (
-        <label htmlFor={id} className="text-sm font-medium flex items-center gap-1">
-          {label}
-          {required && <span className="text-destructive">*</span>}
-        </label>
-      )}
-      <Input
-        id={id}
-        name={name}
-        type={type}
-        value={value}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        className={cn(
-          errors.length > 0 && touched ? "border-destructive" : "",
-          className
+    <div className="w-full space-y-2">
+      {label && <Label htmlFor={id}>{label}</Label>}
+      <div className="relative">
+        <Input
+          id={id}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={cn(
+            error ? "border-destructive pr-10" : 
+            validated && showValidationIcon ? "border-green-500 pr-10" : "",
+            className
+          )}
+          {...props}
+        />
+        {showValidationIcon && (
+          <>
+            {error && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-destructive">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+            )}
+            {validated && !error && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            )}
+          </>
         )}
-        required={required}
-        disabled={disabled}
-        autoComplete={autoComplete}
-        minLength={minLength}
-        maxLength={maxLength}
-        pattern={pattern}
-        aria-invalid={errors.length > 0 && touched}
-        aria-describedby={errors.length > 0 ? `${id}-error` : undefined}
-      />
-      {touched && errors.length > 0 && (
-        <div id={`${id}-error`} className="text-destructive text-sm">
-          {errors.map((error, index) => (
-            <div key={index}>{error}</div>
-          ))}
-        </div>
+      </div>
+      {error && (
+        <p className="text-sm text-destructive mt-1">{error}</p>
       )}
     </div>
   );
 };
 
-interface ValidatedTextareaProps {
-  id: string;
-  name?: string;
-  value: string;
-  onChange: (value: string) => void;
-  label?: string;
-  placeholder?: string;
-  required?: boolean;
-  className?: string;
-  disabled?: boolean;
-  minLength?: number;
-  maxLength?: number;
-  validationRules?: ValidationRule[];
-  onValidationChange?: (isValid: boolean) => void;
-  rows?: number;
-}
+// ValidatedTextarea component
+interface ValidatedTextareaProps extends ValidatedFieldProps, Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'onChange'> {}
 
-export const ValidatedTextarea = ({
+export const ValidatedTextarea: React.FC<ValidatedTextareaProps> = ({
   id,
-  name,
+  label,
   value,
   onChange,
-  label,
-  placeholder,
-  required = false,
+  rules = [],
   className,
-  disabled = false,
-  minLength,
-  maxLength,
-  validationRules = [],
-  onValidationChange,
-  rows,
-}: ValidatedTextareaProps) => {
+  showValidationIcon = true,
+  onValidation,
+  validateOnChange = true,
+  validateOnBlur = true,
+  ...props
+}) => {
+  const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [validated, setValidated] = useState(false);
 
-  const validate = (val: string) => {
-    const newErrors: string[] = [];
-
-    if (required && !val) {
-      newErrors.push("This field is required");
+  useEffect(() => {
+    if ((touched && validateOnBlur) || (value !== '' && validateOnChange)) {
+      validateTextarea();
     }
+  }, [value, touched]);
 
-    if (minLength && val.length < minLength) {
-      newErrors.push(`Minimum length is ${minLength} characters`);
-    }
-
-    if (maxLength && val.length > maxLength) {
-      newErrors.push(`Maximum length is ${maxLength} characters`);
-    }
-
-    validationRules.forEach((rule) => {
-      if (!rule.test(val)) {
-        newErrors.push(rule.message);
+  const validateTextarea = () => {
+    for (const rule of rules) {
+      if (!rule.validator(value)) {
+        setError(rule.message);
+        setValidated(false);
+        if (onValidation) onValidation(false);
+        return;
       }
-    });
-
-    setErrors(newErrors);
-    if (onValidationChange) {
-      onValidationChange(newErrors.length === 0);
     }
-    return newErrors.length === 0;
+    setError(null);
+    setValidated(true);
+    if (onValidation) onValidation(true);
+  };
+
+  const handleBlur = () => {
+    setTouched(true);
+    if (validateOnBlur) {
+      validateTextarea();
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-    if (touched) {
-      validate(newValue);
+    onChange(e);
+    if (validateOnChange && touched) {
+      validateTextarea();
     }
   };
 
-  const handleBlur = () => {
-    setTouched(true);
-    validate(value);
-  };
-
   return (
-    <div className="space-y-2">
-      {label && (
-        <label htmlFor={id} className="text-sm font-medium flex items-center gap-1">
-          {label}
-          {required && <span className="text-destructive">*</span>}
-        </label>
-      )}
-      <Textarea
-        id={id}
-        name={name}
-        value={value}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        className={cn(
-          errors.length > 0 && touched ? "border-destructive" : "",
-          className
+    <div className="w-full space-y-2">
+      {label && <Label htmlFor={id}>{label}</Label>}
+      <div className="relative">
+        <Textarea
+          id={id}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={cn(
+            error ? "border-destructive" : 
+            validated && showValidationIcon ? "border-green-500" : "",
+            className
+          )}
+          {...props}
+        />
+        {showValidationIcon && (
+          <>
+            {error && (
+              <div className="absolute right-3 top-3 text-destructive">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+            )}
+            {validated && !error && (
+              <div className="absolute right-3 top-3 text-green-500">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+            )}
+          </>
         )}
-        required={required}
-        disabled={disabled}
-        minLength={minLength}
-        maxLength={maxLength}
-        rows={rows}
-        aria-invalid={errors.length > 0 && touched}
-        aria-describedby={errors.length > 0 ? `${id}-error` : undefined}
-      />
-      {touched && errors.length > 0 && (
-        <div id={`${id}-error`} className="text-destructive text-sm">
-          {errors.map((error, index) => (
-            <div key={index}>{error}</div>
-          ))}
-        </div>
+      </div>
+      {error && (
+        <p className="text-sm text-destructive mt-1">{error}</p>
       )}
     </div>
   );
 };
 
-export interface FormValidationContextProps {
-  children: ReactNode;
-  onValidationChange?: (isValid: boolean) => void;
+// FormValidationGroup component for managing form-level validation
+export interface FormField {
+  id: string;
+  value: string;
+  rules: ValidationRule[];
+  isValid?: boolean;
 }
 
-export const FormValidationGroup = ({
-  children,
-  onValidationChange,
-}: FormValidationContextProps) => {
-  const [validationState, setValidationState] = useState<Record<string, boolean>>({});
+interface FormValidationGroupProps {
+  fields: FormField[];
+  onValidation?: (isValid: boolean, validFields: string[]) => void;
+  children: React.ReactNode;
+}
 
-  const handleFieldValidationChange = (fieldId: string, isValid: boolean) => {
-    setValidationState((prev) => {
-      const newState = { ...prev, [fieldId]: isValid };
-      
-      // Check if all fields are valid
-      const allValid = Object.values(newState).every(Boolean);
-      
-      if (onValidationChange) {
-        onValidationChange(allValid);
-      }
-      
-      return newState;
+export const FormValidationGroup: React.FC<FormValidationGroupProps> = ({
+  fields,
+  onValidation,
+  children
+}) => {
+  const [fieldStatus, setFieldStatus] = useState<Record<string, boolean>>({});
+  
+  useEffect(() => {
+    // Initialize field status
+    const initialStatus: Record<string, boolean> = {};
+    fields.forEach(field => {
+      initialStatus[field.id] = field.isValid || false;
     });
+    setFieldStatus(initialStatus);
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(fieldStatus).length) {
+      const isFormValid = Object.values(fieldStatus).every(Boolean) && 
+                          Object.keys(fieldStatus).length === fields.length;
+      const validFields = Object.entries(fieldStatus)
+        .filter(([_, isValid]) => isValid)
+        .map(([id]) => id);
+      
+      if (onValidation) {
+        onValidation(isFormValid, validFields);
+      }
+    }
+  }, [fieldStatus, fields]);
+
+  const handleFieldValidation = (id: string, isValid: boolean) => {
+    setFieldStatus(prev => ({
+      ...prev,
+      [id]: isValid
+    }));
   };
 
-  return (
-    <div className="space-y-4">
-      {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
-            onValidationChange: (isValid: boolean) =>
-              handleFieldValidationChange(child.props.id, isValid),
-          });
-        }
-        return child;
-      })}
-    </div>
-  );
-};
+  // Add validation props to child components
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      const fieldId = (child.props as any).id;
+      if (fieldId && fields.some(f => f.id === fieldId)) {
+        return React.cloneElement(child, {
+          onValidation: (isValid: boolean) => handleFieldValidation(fieldId, isValid)
+        });
+      }
+    }
+    return child;
+  });
 
-// Common validation rules that can be reused across the application
-export const ValidationRules = {
-  email: {
-    test: (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-    message: "Please enter a valid email address",
-  },
-  password: {
-    test: (value: string) => 
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value),
-    message: 
-      "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
-  },
-  url: {
-    test: (value: string) => 
-      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(value),
-    message: "Please enter a valid URL",
-  },
-  phone: {
-    test: (value: string) => 
-      /^(\+\d{1,3}[- ]?)?\d{10,14}$/.test(value),
-    message: "Please enter a valid phone number",
-  },
-  numeric: {
-    test: (value: string) => /^\d+$/.test(value),
-    message: "Please enter numbers only",
-  },
-  alphanumeric: {
-    test: (value: string) => /^[a-zA-Z0-9]+$/.test(value),
-    message: "Please enter letters and numbers only",
-  },
+  return <>{childrenWithProps}</>;
 };

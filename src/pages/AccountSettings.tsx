@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 
-// Import our new components
+// Import our components
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { EmailCard } from "@/components/account/EmailCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
@@ -45,6 +45,7 @@ export default function AccountSettings() {
       
       try {
         setIsLoadingProfile(true);
+        // Query only the columns that exist in our table now
         const { data, error } = await supabase
           .from('profiles')
           .select('username, first_name, last_name, business_name, birthday')
@@ -57,6 +58,7 @@ export default function AccountSettings() {
         }
         
         if (data) {
+          // Set state with the values, using empty string as fallback
           setUsername(data.username || "");
           setFirstName(data.first_name || "");
           setLastName(data.last_name || "");

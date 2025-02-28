@@ -11,7 +11,7 @@ import ProjectDetails from "./pages/ProjectDetails";
 import AccountSettings from "./pages/AccountSettings";
 import Subscription from "./pages/Subscription";
 import "./App.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 
 function App() {
   return (
@@ -75,7 +75,7 @@ function App() {
           }
         />
       </Routes>
-      <Toaster />
+      <Toaster position="top-right" />
     </AuthProvider>
   );
 }

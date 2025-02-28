@@ -1,9 +1,10 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2 } from "lucide-react";
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -12,6 +13,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       navigate("/");
     }
   }, [session, loading, navigate]);
+
+  console.log("ProtectedRoute - session:", !!session, "loading:", loading); // Debug log
 
   if (loading) {
     return (
@@ -23,5 +26,3 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return session ? <>{children}</> : null;
 };
-
-export { ProtectedRoute };

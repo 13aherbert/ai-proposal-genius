@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,8 @@ const UploadRFP = () => {
   const handleUpdateProject = () => {
     updateProject(projectTitle, deadline, clientName, businessName);
   };
+
+  console.log("Rendering UploadRFP component"); // Debug log
 
   return (
     <div className="min-h-screen w-full bg-background">

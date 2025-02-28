@@ -19,15 +19,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    console.log("AuthProvider initializing"); // Debug log
-    
     // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
       if (error) {
         console.error('Error getting session:', error);
         toast.error("Error initializing session");
       }
-      console.log("Initial session:", !!initialSession); // Debug log
       setSession(initialSession);
       setLoading(false);
     });

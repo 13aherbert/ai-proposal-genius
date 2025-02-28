@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export interface ProposalSection {
   section_id: string;
@@ -42,19 +41,11 @@ export function useProposalSections(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
-      toast({
-        title: "Success",
-        description: "Section deleted successfully",
-        variant: "default",
-      });
+      toast.success("Section deleted successfully");
     },
     onError: (error: Error) => {
       console.error("Error deleting section:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete section",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete section");
       setError(error);
     },
   });
@@ -70,19 +61,11 @@ export function useProposalSections(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
-      toast({
-        title: "Success",
-        description: "All sections deleted successfully",
-        variant: "default",
-      });
+      toast.success("All sections deleted successfully");
     },
     onError: (error: Error) => {
       console.error("Error deleting sections:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete sections",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete sections");
       setError(error);
     },
   });
@@ -109,19 +92,11 @@ export function useProposalSections(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
-      toast({
-        title: "Success",
-        description: "Section added successfully",
-        variant: "default",
-      });
+      toast.success("Section added successfully");
     },
     onError: (error: Error) => {
       console.error("Error adding section:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add section",
-        variant: "destructive",
-      });
+      toast.error("Failed to add section");
       setError(error);
     },
   });
@@ -148,19 +123,11 @@ export function useProposalSections(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
-      toast({
-        title: "Success",
-        description: "Section updated successfully",
-        variant: "default",
-      });
+      toast.success("Section updated successfully");
     },
     onError: (error: Error) => {
       console.error("Error updating section:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update section",
-        variant: "destructive",
-      });
+      toast.error("Failed to update section");
       setError(error);
     },
   });
@@ -171,19 +138,11 @@ export function useProposalSections(projectId: string) {
     },
     onSuccess: (newSections) => {
       queryClient.setQueryData(["proposal-sections", projectId], newSections);
-      toast({
-        title: "Success",
-        description: "Sections reordered successfully",
-        variant: "default",
-      });
+      toast.success("Sections reordered successfully");
     },
     onError: (error: Error) => {
       console.error("Error reordering sections:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reorder sections",
-        variant: "destructive",
-      });
+      toast.error("Failed to reorder sections");
       setError(error);
     },
   });

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { toast } from "sonner"; // Using sonner for consistent toast implementation
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function useRFPUpload() {

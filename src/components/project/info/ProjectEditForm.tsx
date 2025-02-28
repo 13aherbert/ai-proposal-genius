@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -49,20 +49,11 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Project details updated successfully",
-        variant: "default",
-      });
-      
+      toast.success("Project details updated successfully");
       onSuccess();
     } catch (error) {
       console.error("Error updating project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update project details",
-        variant: "destructive", 
-      });
+      toast.error("Failed to update project details");
     }
   };
 

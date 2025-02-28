@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -66,11 +66,7 @@ export function useProjectDetails(projectId: string | undefined, user: User | nu
         return await fetchProjectWithRetry(projectId, user.id);
       } catch (error) {
         console.error("Failed to fetch project details:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load project details",
-          variant: "destructive",
-        });
+        toast.error("Failed to load project details");
         throw error;
       }
     },

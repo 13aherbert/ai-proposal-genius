@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ArrowLeft, LogOut, Save, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,22 +35,56 @@ export default function AccountSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const { data: subscription } = useSubscription();
+  
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!session?.user?.id) return;
+      
+      try {
+        setIsLoadingProfile(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username, first_name, last_name, business_name, birthday')
+          .eq('profile_id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setUsername(data.username || "");
+          setFirstName(data.first_name || "");
+          setLastName(data.last_name || "");
+          setBusinessName(data.business_name || "");
+          setBirthday(data.birthday || "");
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    
+    fetchProfile();
+  }, [session]);
   
   // Check for unsaved changes
   useEffect(() => {
-    // We don't have a way to check initial values from the backend in this example
-    // In a real app, you'd compare against the original values from the database
-    // For demonstration, we'll set hasChanges when any field is modified
-    const listener = () => {
+    // Only track changes after initial profile is loaded
+    if (!isLoadingProfile) {
       setHasChanges(true);
-    };
+    }
     
     // Reset the success state if any changes are made
     if (hasChanges) {
       setSaveSuccess(false);
     }
-  }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword]);
+  }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword, isLoadingProfile]);
 
   /**
    * Handles saving user profile changes (username, email, password)
@@ -61,6 +94,14 @@ export default function AccountSettings() {
     
     setIsLoading(true);
     try {
+      console.log("Updating profile with:", {
+        username,
+        first_name: firstName,
+        last_name: lastName,
+        business_name: businessName,
+        birthday
+      });
+      
       // Update profile (username, first name, last name, business name, birthday)
       const { error: profileError } = await supabase
         .from('profiles')
@@ -73,7 +114,10 @@ export default function AccountSettings() {
         })
         .eq('profile_id', session.user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        throw profileError;
+      }
 
       // Update email if changed
       if (email !== session.user.email) {
@@ -185,7 +229,7 @@ export default function AccountSettings() {
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <Button 
                 onClick={handleSave} 
-                disabled={isLoading || (!hasChanges && !saveSuccess)}
+                disabled={isLoading || isLoadingProfile || (!hasChanges && !saveSuccess)}
                 className={`w-full sm:w-auto transition-all ${saveSuccess ? 'bg-green-600 hover:bg-green-700' : ''}`}
               >
                 {saveSuccess ? (

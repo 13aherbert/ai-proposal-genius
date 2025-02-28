@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -20,7 +18,7 @@ interface ProjectFormProps {
   businessName: string;
   setBusinessName: (name: string) => void;
   onSubmit: () => void;
-  isProcessing: boolean;
+  isProcessing?: boolean;
 }
 
 export function ProjectForm({
@@ -33,7 +31,7 @@ export function ProjectForm({
   businessName,
   setBusinessName,
   onSubmit,
-  isProcessing,
+  isProcessing = false,
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
   
@@ -64,7 +62,9 @@ export function ProjectForm({
         />
 
         <div className="space-y-2">
-          <Label htmlFor="deadline">Deadline (Optional)</Label>
+          <label htmlFor="deadline" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Deadline (Optional)
+          </label>
           <Popover>
             <PopoverTrigger asChild>
               <Button

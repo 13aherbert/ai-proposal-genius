@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -54,16 +55,16 @@ const UploadRFP = () => {
               uploadProgress={uploadProgress}
             />
             <ProjectForm
-              projectId={projectId}
               projectTitle={projectTitle}
-              clientName={clientName}
-              businessName={businessName}
+              setProjectTitle={setProjectTitle}
               deadline={deadline}
-              onTitleChange={setProjectTitle}
-              onClientNameChange={setClientName}
-              onBusinessNameChange={setBusinessName}
-              onDeadlineChange={setDeadline}
+              setDeadline={setDeadline}
+              clientName={clientName}
+              setClientName={setClientName}
+              businessName={businessName}
+              setBusinessName={setBusinessName}
               onSubmit={handleUpdateProject}
+              isProcessing={isUploading}
             />
           </div>
         </div>

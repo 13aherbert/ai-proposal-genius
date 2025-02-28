@@ -80,18 +80,21 @@ export const ValidationRules = {
 interface ValidatedFieldProps {
   id: string;
   label?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   rules?: ValidationRule[];
   className?: string;
   showValidationIcon?: boolean;
   onValidation?: (isValid: boolean) => void;
   validateOnChange?: boolean;
   validateOnBlur?: boolean;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
 // ValidatedInput component
-interface ValidatedInputProps extends ValidatedFieldProps, Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'onChange'> {}
+interface ValidatedInputProps extends Omit<ValidatedFieldProps, 'value' | 'onChange'>, Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
 
 export const ValidatedInput: React.FC<ValidatedInputProps> = ({
   id,
@@ -183,7 +186,10 @@ export const ValidatedInput: React.FC<ValidatedInputProps> = ({
 };
 
 // ValidatedTextarea component
-interface ValidatedTextareaProps extends ValidatedFieldProps, Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'onChange'> {}
+interface ValidatedTextareaProps extends Omit<ValidatedFieldProps, 'value' | 'onChange'>, Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+}
 
 export const ValidatedTextarea: React.FC<ValidatedTextareaProps> = ({
   id,
@@ -325,14 +331,15 @@ export const FormValidationGroup: React.FC<FormValidationGroupProps> = ({
     }));
   };
 
-  // Add validation props to child components
+  // We need to modify how we add props to children
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      const fieldId = (child.props as any).id;
+      const fieldId = child.props.id;
       if (fieldId && fields.some(f => f.id === fieldId)) {
+        // Clone with a properly typed onValidation prop
         return React.cloneElement(child, {
           onValidation: (isValid: boolean) => handleFieldValidation(fieldId, isValid)
-        });
+        } as any);
       }
     }
     return child;

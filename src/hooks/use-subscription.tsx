@@ -84,13 +84,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (subError) throw subError;
       
       if (data) {
+        // Safely type-cast the data object with proper validation
         const subscriptionData: SubscriptionPlan = {
-          ...data,
-          status: data.status as SubscriptionStatus,
-          features: (data.features || {}) as Record<string, any>,
+          subscription_id: data.subscription_id,
+          user_id: data.user_id,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          status: (data.status || 'trialing') as SubscriptionStatus,
           plan_type: data.plan_type || 'trial',
-          cancel_at_period_end: data.cancel_at_period_end || false,
+          project_limit: data.project_limit || 3,
+          features: data.features || {},
+          current_period_end: data.current_period_end,
+          stripe_customer_id: data.stripe_customer_id,
+          stripe_subscription_id: data.stripe_subscription_id,
+          cancel_at_period_end: data.cancel_at_period_end || false
         };
+        
         setSubscription(subscriptionData);
       } else {
         // Create new trial subscription

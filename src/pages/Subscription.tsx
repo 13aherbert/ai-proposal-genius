@@ -1,19 +1,114 @@
 
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
 import { useSubscription } from "@/hooks/use-subscription";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export default function Subscription() {
   const navigate = useNavigate();
-  const { data: subscription } = useSubscription();
+  const location = useLocation();
+  const { data: subscription, loading, isInGracePeriod, hasFailedPayment, renewSubscription } = useSubscription();
+  const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
+  
+  // Check if user is coming from a payment failure redirect
+  const [paymentFailed, setPaymentFailed] = useState(false);
 
   useEffect(() => {
-    const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
-    if (hasActiveSubscription) {
-      navigate('/dashboard');
+    // Check URL parameters for payment status
+    const queryParams = new URLSearchParams(location.search);
+    const paymentStatus = queryParams.get('payment_status');
+    const paymentIntent = queryParams.get('payment_intent');
+    
+    if (paymentStatus === 'failed' && paymentIntent) {
+      setPaymentFailed(true);
+      toast.error("Payment failed", {
+        description: "We couldn't process your payment. Please try again with a different payment method."
+      });
     }
-  }, [subscription, navigate]);
+    
+    // Handle subscription renewal/update cases
+    const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
+    const needsRenewal = isInGracePeriod() || hasFailedPayment || subscription?.status === 'past_due';
+    
+    if (hasActiveSubscription && !needsRenewal) {
+      navigate('/dashboard');
+    } else if (needsRenewal) {
+      setShowRenewalPrompt(true);
+    }
+  }, [subscription, navigate, location.search, isInGracePeriod, hasFailedPayment]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
+        <p className="text-muted-foreground">Loading your subscription...</p>
+      </div>
+    );
+  }
+  
+  if (showRenewalPrompt) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card p-6 rounded-lg shadow-lg">
+          <div className="flex items-center text-amber-600 mb-4">
+            <AlertTriangle className="h-6 w-6 mr-2" />
+            <h2 className="text-xl font-bold">Subscription Needs Attention</h2>
+          </div>
+          
+          <p className="mb-4 text-muted-foreground">
+            {isInGracePeriod() 
+              ? "Your subscription has expired but is in the grace period. Renew now to avoid losing access."
+              : "We couldn't process your last payment. Please update your payment method to continue your subscription."}
+          </p>
+          
+          <div className="space-y-3">
+            <Button 
+              onClick={() => renewSubscription()} 
+              className="w-full"
+            >
+              Update Payment Method
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRenewalPrompt(false)}
+              className="w-full"
+            >
+              View Subscription Options
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard')}
+              className="w-full"
+            >
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (paymentFailed) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto pt-8 px-4">
+          <div className="bg-destructive/10 p-4 rounded-lg mb-8 flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+            <div>
+              <h3 className="font-medium text-destructive">Payment Failed</h3>
+              <p className="text-sm">We couldn't process your payment. Please try again with a different payment method.</p>
+            </div>
+          </div>
+          <SubscriptionPlans />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

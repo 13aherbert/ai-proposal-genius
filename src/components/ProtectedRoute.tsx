@@ -2,8 +2,9 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useSubscriptionNotifications } from "@/hooks/use-subscription-notifications";
 
 /**
  * ProtectedRoute component
@@ -15,9 +16,11 @@ import { toast } from "sonner";
  * - Handling authentication errors
  * - Saving the attempted route for redirect after login
  * - Providing detailed error feedback
+ * - Supporting grace period for expired subscriptions
  */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading, error } = useAuth();
+  const { isInGracePeriod, hasFailedPayment } = useSubscriptionNotifications();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -90,6 +93,48 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             Return to Login
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // Show warning for failed payments, but still allow access
+  if (hasFailedPayment && session) {
+    return (
+      <div className="relative">
+        <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">
+          <AlertTriangle className="h-5 w-5 mr-2" />
+          <p className="text-sm font-medium">
+            We couldn't process your payment. Please update your payment method to avoid service interruption.
+            <button 
+              onClick={() => navigate('/account-settings')} 
+              className="ml-2 underline"
+            >
+              Update now
+            </button>
+          </p>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
+  // Show grace period banner but still allow access
+  if (isInGracePeriod() && session) {
+    return (
+      <div className="relative">
+        <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">
+          <AlertTriangle className="h-5 w-5 mr-2" />
+          <p className="text-sm font-medium">
+            Your subscription has expired but is in the grace period. Renew now to avoid losing access.
+            <button 
+              onClick={() => navigate('/subscription')} 
+              className="ml-2 underline"
+            >
+              Renew now
+            </button>
+          </p>
+        </div>
+        {children}
       </div>
     );
   }

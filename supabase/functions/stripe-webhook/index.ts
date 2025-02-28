@@ -1,77 +1,191 @@
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
+import Stripe from 'https://esm.sh/stripe@12.5.0';
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY') || '', {
+const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || '';
+const stripe = new Stripe(stripeKey, {
   apiVersion: '2023-10-16',
 });
 
-const supabaseClient = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-);
+const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
 
 serve(async (req) => {
   const signature = req.headers.get('stripe-signature');
+
   if (!signature) {
-    return new Response('No signature', { status: 400 });
+    return new Response('Missing stripe-signature header', { status: 400 });
   }
 
   try {
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      Deno.env.get('STRIPE_WEBHOOK_SECRET') || '',
-    );
+    let event;
 
-    console.log('Processing event:', event.type);
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+    } catch (err) {
+      console.error(`Webhook signature verification failed:`, err.message);
+      return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
+    }
+
+    console.log(`Processing stripe webhook event: ${event.type}`);
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        console.log('Checkout session completed:', session.id);
         
-        const { error } = await supabaseClient
-          .from('subscriptions')
-          .upsert({
-            user_id: subscription.metadata.user_id,
-            stripe_customer_id: subscription.customer as string,
-            stripe_subscription_id: subscription.id,
-            plan_type: subscription.items.data[0].price.product as string,
-            status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          });
-
-        if (error) throw error;
+        if (session.payment_status === 'paid') {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription);
+          
+          const customer = await stripe.customers.retrieve(session.customer);
+          
+          const { error } = await supabase
+            .from('subscriptions')
+            .upsert({
+              user_id: session.client_reference_id,
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription,
+              status: subscription.status,
+              plan_type: subscription.items.data[0].plan.nickname?.toLowerCase() || 'starter',
+              project_limit: subscription.items.data[0].plan.nickname?.toLowerCase() === 'pro' ? 30 : 10,
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            }, {
+              onConflict: 'user_id',
+            });
+          
+          if (error) {
+            console.error('Error storing subscription:', error);
+          }
+        }
         break;
       }
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
+      
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        console.log('Invoice payment failed:', invoice.id);
         
-        const { error } = await supabaseClient
+        const subscriptionId = invoice.subscription;
+        
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          
+          const { data: userData, error: userError } = await supabase
+            .from('subscriptions')
+            .select('user_id')
+            .eq('stripe_subscription_id', subscriptionId)
+            .single();
+            
+          if (userError) {
+            console.error('Error finding user for subscription:', userError);
+            break;
+          }
+          
+          const { error } = await supabase
+            .from('subscriptions')
+            .update({
+              status: subscription.status,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', subscriptionId);
+            
+          if (error) {
+            console.error('Error updating subscription status:', error);
+          }
+        }
+        break;
+      }
+      
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        console.log('Subscription updated:', subscription.id);
+        
+        const { data: userData, error: userError } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+          
+        if (userError) {
+          console.error('Error finding user for subscription:', userError);
+          break;
+        }
+        
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
+        
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             status: subscription.status,
+            cancel_at_period_end: cancelAtPeriodEnd,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
           })
           .eq('stripe_subscription_id', subscription.id);
-
-        if (error) throw error;
+          
+        if (error) {
+          console.error('Error updating subscription:', error);
+        }
         break;
       }
+      
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        console.log('Subscription deleted:', subscription.id);
+        
+        const { data: userData, error: userError } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+          
+        if (userError) {
+          console.error('Error finding user for subscription:', userError);
+          break;
+        }
+        
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id);
+          
+        if (error) {
+          console.error('Error updating subscription to canceled:', error);
+        } else {
+          const { error: trialError } = await supabase
+            .from('subscriptions')
+            .update({
+              plan_type: 'trial',
+              project_limit: 3,
+              stripe_subscription_id: null,
+              current_period_end: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_subscription_id', subscription.id);
+            
+          if (trialError) {
+            console.error('Error downgrading to trial:', trialError);
+          }
+        }
+        break;
+      }
+      
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { 'Content-Type': 'application/json' },
+      status: 200,
     });
   } catch (err) {
-    console.error('Error:', err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    console.error(`Error processing webhook:`, err);
+    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 });

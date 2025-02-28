@@ -1,89 +1,182 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type AuthContextType = {
   session: Session | null;
   loading: boolean;
+  error: AuthError | null;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
 };
 
-const AuthContext = createContext<AuthContextType>({ session: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ 
+  session: null, 
+  loading: true, 
+  error: null,
+  signOut: async () => {},
+  resetPassword: async () => ({ error: null })
+});
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<AuthError | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        toast.error("Error initializing session");
-      }
-      setSession(initialSession);
-      setLoading(false);
-    });
+  // Helper functions for authentication
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/");
+      toast.success("Successfully signed out");
+    } catch (err: any) {
+      console.error("Error signing out:", err);
+      toast.error("Failed to sign out", {
+        description: err.message || "Please try again"
+      });
+    }
+  };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      
+      toast.success("Password reset email sent", {
+        description: "Check your email for the reset link"
+      });
+      return { error: null };
+    } catch (err: any) {
+      console.error("Error resetting password:", err);
+      toast.error("Failed to send reset email", {
+        description: err.message || "Please try again"
+      });
+      return { error: err };
+    }
+  };
+
+  useEffect(() => {
+    // Network error handling for initial session fetch
+    const fetchSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          setError(error);
+          console.error('Error getting session:', error);
+          
+          // Only show toast for real errors, not just empty sessions
+          if (error.message !== "Not authenticated") {
+            toast.error("Authentication error", {
+              description: "There was a problem connecting to the authentication service"
+            });
+          }
+        }
+        setSession(data.session);
+      } catch (e) {
+        console.error('Network error getting session:', e);
+        toast.error("Network error", {
+          description: "Could not connect to authentication service. Please check your internet connection."
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+
+    // Auth state change subscriptions with error handling
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
       console.log('Auth state changed:', event);
       
-      // Only update session if it's actually different
-      if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
-        setSession(currentSession);
-      }
-      setLoading(false);
+      try {
+        // Only update session if it's actually different
+        if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
+          setSession(currentSession);
+        }
+        setLoading(false);
 
-      // Handle specific auth events that require navigation
-      switch (event) {
-        case 'SIGNED_IN':
-          if (currentSession?.user && location.pathname === '/') {
-            // Check if this is a new signup
-            const createdAt = new Date(currentSession.user.created_at);
-            const now = new Date();
-            const isNewUser = (now.getTime() - createdAt.getTime()) < 10000; // Within 10 seconds
+        // Handle specific auth events that require navigation
+        switch (event) {
+          case 'SIGNED_IN':
+            if (currentSession?.user && location.pathname === '/') {
+              // Check if this is a new signup
+              const createdAt = new Date(currentSession.user.created_at);
+              const now = new Date();
+              const isNewUser = (now.getTime() - createdAt.getTime()) < 10000; // Within 10 seconds
 
-            if (isNewUser) {
-              console.log('New user detected, redirecting to subscription page');
-              navigate("/subscription", { replace: true });
-              toast.success("Welcome! Please choose your subscription plan");
-            } else {
-              console.log('Existing user detected, redirecting to dashboard');
-              navigate("/dashboard", { replace: true });
-              toast.success("Successfully signed in");
+              if (isNewUser) {
+                console.log('New user detected, redirecting to subscription page');
+                navigate("/subscription", { replace: true });
+                toast.success("Welcome! Please choose your subscription plan");
+              } else {
+                console.log('Existing user detected, redirecting to dashboard');
+                navigate("/dashboard", { replace: true });
+                toast.success("Successfully signed in");
+              }
             }
-          }
-          break;
-        case 'SIGNED_OUT':
-          if (location.pathname !== '/') {
-            toast.info("Signed out");
-            navigate("/", { replace: true });
-          }
-          break;
-        case 'TOKEN_REFRESHED':
-          console.log('Token refreshed successfully');
-          break;
-        case 'USER_UPDATED':
-          toast.success("Profile updated");
-          break;
-        default:
-          break;
+            break;
+          case 'SIGNED_OUT':
+            if (location.pathname !== '/') {
+              toast.info("Signed out");
+              navigate("/", { replace: true });
+            }
+            break;
+          case 'TOKEN_REFRESHED':
+            console.log('Token refreshed successfully');
+            break;
+          case 'USER_UPDATED':
+            toast.success("Profile updated");
+            break;
+          case 'PASSWORD_RECOVERY':
+            navigate("/reset-password", { replace: true });
+            toast.info("Please enter your new password");
+            break;
+          default:
+            break;
+        }
+      } catch (err) {
+        console.error("Error handling auth state change:", err);
+        toast.error("Authentication error", {
+          description: "There was a problem updating your authentication state"
+        });
       }
     });
 
+    // Session timeout detection with periodic check
+    const sessionTimeoutCheck = setInterval(() => {
+      if (session && new Date(session.expires_at * 1000) < new Date()) {
+        toast.warning("Your session has expired", {
+          description: "Please sign in again",
+          duration: 5000,
+        });
+        signOut();
+      }
+    }, 60000); // Check every minute
+
     return () => {
       subscription.unsubscribe();
+      clearInterval(sessionTimeoutCheck);
     };
-  }, [navigate, location.pathname]); // Added location.pathname to dependencies
+  }, [navigate, location.pathname, session]); 
 
   return (
-    <AuthContext.Provider value={{ session, loading }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      loading, 
+      error,
+      signOut,
+      resetPassword
+    }}>
       {children}
     </AuthContext.Provider>
   );

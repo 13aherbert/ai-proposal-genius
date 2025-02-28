@@ -14,6 +14,8 @@ import ProjectDetails from "@/pages/ProjectDetails";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import AccountSettings from "@/pages/AccountSettings";
 import Subscription from "@/pages/Subscription";
+import ResetPassword from "@/pages/ResetPassword";
+import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Create a client
@@ -22,6 +24,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 1,
+      // Add better error handling for all queries
+      onError: (error) => {
+        console.error("Query error:", error);
+      }
     },
   },
 });
@@ -35,6 +41,7 @@ function App() {
             <SubscriptionProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route
                   path="/dashboard"
                   element={
@@ -91,6 +98,8 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* 404 page - this must be the last route */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster />
             </SubscriptionProvider>

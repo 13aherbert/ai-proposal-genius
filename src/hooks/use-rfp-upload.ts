@@ -13,24 +13,71 @@ export function useRFPUpload() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
+  const validateFile = (file: File): boolean => {
+    // Check file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type", {
+        description: "Please upload a PDF, Word, or text document."
+      });
+      return false;
+    }
+    
+    // Check file size (20MB max)
+    const maxSize = 20 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("File too large", {
+        description: "Maximum file size is 20MB."
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const sanitizeFileName = (fileName: string): string => {
+    // Remove any potentially problematic characters and normalize spaces
+    return fileName
+      .replace(/[^\x00-\x7F]/g, "")  // Remove non-ASCII characters
+      .replace(/[^\w\s.-]/g, '')     // Remove special chars except .-_
+      .replace(/\s+/g, '-')         // Replace spaces with hyphens
+      .toLowerCase();
+  };
+
   const handleFileUpload = async (file: File, deadline?: Date) => {
     if (!session?.user) {
       toast.error("You must be logged in to upload files");
       return;
     }
 
+    // Validate the file first
+    if (!validateFile(file)) {
+      return;
+    }
+
     try {
       setIsUploading(true);
       
+      // Show initial progress
+      setUploadProgress(10);
+
       // Sanitize the file name and create a unique path
-      const fileExt = file.name.split(".").pop();
-      const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, ""); // Remove non-ASCII characters
+      const fileExt = file.name.split(".").pop() || "";
+      const sanitizedFileName = sanitizeFileName(file.name.replace(`.${fileExt}`, ""));
       const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const fileName = `${uniqueId}-${sanitizedFileName}`;
+      const fileName = `${uniqueId}-${sanitizedFileName}.${fileExt}`;
 
       console.log("Attempting to upload file:", fileName);
+      
+      setUploadProgress(30);
 
-      // Upload file to storage
+      // Upload file to storage with proper content type
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from("rfp-files")
         .upload(fileName, file, {
@@ -44,6 +91,7 @@ export function useRFPUpload() {
         throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
 
+      setUploadProgress(60);
       console.log("File uploaded successfully, creating project...");
 
       // Create the project with specific column selection
@@ -68,6 +116,7 @@ export function useRFPUpload() {
         throw new Error("No project data returned after creation");
       }
 
+      setUploadProgress(80);
       console.log("Project created successfully:", project);
 
       setProjectId(project.project_id);
@@ -89,13 +138,15 @@ export function useRFPUpload() {
         // Log but don't throw, as the main project was created successfully
       }
 
+      setUploadProgress(100);
       toast.success("File uploaded successfully");
     } catch (error) {
       console.error("Upload process error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to upload file");
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      // Reset progress after a delay to show completion
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
@@ -106,6 +157,17 @@ export function useRFPUpload() {
     businessName?: string
   ) => {
     if (!projectId || !session?.user?.id) return;
+
+    // Validate inputs
+    if (!title.trim()) {
+      toast.error("Project title is required");
+      return;
+    }
+
+    if (title.length > 100) {
+      toast.error("Project title must be less than 100 characters");
+      return;
+    }
 
     try {
       const { error } = await supabase

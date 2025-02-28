@@ -57,6 +57,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           description: "Please check your credentials",
           duration: 5000,
         });
+      } else {
+        toast.error("Authentication error", {
+          description: error.message || "Please try logging in again",
+          duration: 5000,
+        });
       }
     }
   }, [session, loading, error, navigate, location]);
@@ -89,6 +94,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Add a security check - don't render anything if no session
   return session ? <>{children}</> : null;
 };
 

@@ -48,9 +48,22 @@ export function DocumentUpload({ projectId, onSuccess }: DocumentUploadProps) {
     return true;
   };
 
+  // Validate file name
+  const validateFileName = (file: File): boolean => {
+    const maxLength = 255;
+    if (file.name.length > maxLength) {
+      toast.error("File name too long", {
+        description: `Maximum file name length is ${maxLength} characters.`
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleFileSelect = (file: File | null) => {
     if (file) {
-      if (validateFileType(file) && validateFileSize(file)) {
+      if (validateFileType(file) && validateFileSize(file) && validateFileName(file)) {
         setSelectedFile(file);
       } else {
         setSelectedFile(null);
@@ -58,6 +71,14 @@ export function DocumentUpload({ projectId, onSuccess }: DocumentUploadProps) {
     } else {
       setSelectedFile(null);
     }
+  };
+
+  const sanitizeFileName = (fileName: string): string => {
+    // Remove any potentially problematic characters
+    return fileName
+      .replace(/[^\w\s.-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
   };
 
   const handleUpload = async () => {
@@ -70,12 +91,18 @@ export function DocumentUpload({ projectId, onSuccess }: DocumentUploadProps) {
       setIsUploading(true);
       
       // Create a sanitized file name
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileExt = selectedFile.name.split(".").pop() || "";
+      const sanitizedName = sanitizeFileName(selectedFile.name.replace(`.${fileExt}`, ""));
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const fileName = `${projectId}/${uniqueId}-${sanitizedName}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("rfp-files")
-        .upload(fileName, selectedFile);
+        .upload(fileName, selectedFile, {
+          cacheControl: "3600",
+          contentType: selectedFile.type,
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 

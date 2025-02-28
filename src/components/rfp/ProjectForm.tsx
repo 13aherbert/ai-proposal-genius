@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ValidatedInput, ValidationRules } from "@/components/form/FormValidation";
+import { ValidatedInput, ValidationRules, FormValidationGroup } from "@/components/form/FormValidation";
 
 interface ProjectFormProps {
   projectTitle: string;
@@ -34,7 +34,26 @@ export function ProjectForm({
   isProcessing = false,
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
+  const [formFields, setFormFields] = useState([
+    { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: false },
+    { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
+    { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
+  ]);
   
+  // Update form fields when props change
+  useEffect(() => {
+    setFormFields([
+      { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
+      { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
+      { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
+    ]);
+  }, [projectTitle, clientName, businessName, isTitleValid]);
+
+  const handleFormValidation = (isValid: boolean, validFields: string[]) => {
+    // Form validation logic can be expanded here if needed
+    console.log("Form validation status:", isValid, "Valid fields:", validFields);
+  };
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProjectTitle(e.target.value);
   };
@@ -49,66 +68,68 @@ export function ProjectForm({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <ValidatedInput
-          id="project-title"
-          label="Project Title *"
-          value={projectTitle}
-          onChange={handleTitleChange}
-          placeholder="Enter a descriptive title for your project"
-          rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
-          onValidation={setIsTitleValid}
-          required
-        />
+      <FormValidationGroup fields={formFields} onValidation={handleFormValidation}>
+        <div className="space-y-4">
+          <ValidatedInput
+            id="project-title"
+            label="Project Title *"
+            value={projectTitle}
+            onChange={handleTitleChange}
+            placeholder="Enter a descriptive title for your project"
+            rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
+            onValidation={setIsTitleValid}
+            required
+          />
 
-        <div className="space-y-2">
-          <label htmlFor="deadline" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Deadline (Optional)
-          </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="deadline"
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !deadline && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {deadline ? format(deadline, "PPP") : "Select a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={deadline}
-                onSelect={setDeadline}
-                initialFocus
-                disabled={(date) => date < new Date()}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="space-y-2">
+            <label htmlFor="deadline" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Deadline (Optional)
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="deadline"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !deadline && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {deadline ? format(deadline, "PPP") : "Select a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={deadline}
+                  onSelect={setDeadline}
+                  initialFocus
+                  disabled={(date) => date < new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <ValidatedInput
+            id="client-name"
+            label="Client Name (Optional)"
+            value={clientName}
+            onChange={handleClientNameChange}
+            placeholder="Enter the client or organization name"
+            rules={[ValidationRules.maxLength(100)]}
+          />
+
+          <ValidatedInput
+            id="business-name"
+            label="Your Business Name (Optional)"
+            value={businessName}
+            onChange={handleBusinessNameChange}
+            placeholder="Enter your business or organization name"
+            rules={[ValidationRules.maxLength(100)]}
+          />
         </div>
-
-        <ValidatedInput
-          id="client-name"
-          label="Client Name (Optional)"
-          value={clientName}
-          onChange={handleClientNameChange}
-          placeholder="Enter the client or organization name"
-          rules={[ValidationRules.maxLength(100)]}
-        />
-
-        <ValidatedInput
-          id="business-name"
-          label="Your Business Name (Optional)"
-          value={businessName}
-          onChange={handleBusinessNameChange}
-          placeholder="Enter your business or organization name"
-          rules={[ValidationRules.maxLength(100)]}
-        />
-      </div>
+      </FormValidationGroup>
 
       <Button 
         onClick={onSubmit} 

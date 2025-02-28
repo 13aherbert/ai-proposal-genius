@@ -1,3 +1,4 @@
+
 import { FileUp, FolderOpen, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -6,6 +7,7 @@ import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { Card, CardContent } from "@/components/ui/card";
+import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -45,6 +47,7 @@ const Dashboard = () => {
     <div className="min-h-screen w-full bg-gradient-to-b from-brand-green to-[#1a1a1a]">
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="flex flex-col gap-4 md:gap-8">
+          <UpgradeBanner />
           <DashboardHeader />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">

@@ -2,40 +2,24 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { toast } from 'sonner';
-import { isPast, addDays } from 'date-fns';
+import { 
+  SubscriptionPlan, 
+  SubscriptionContextType, 
+  SubscriptionStatus,
+  DEFAULT_TRIAL_SUBSCRIPTION
+} from '@/types/subscription';
+import { 
+  isPastGracePeriod, 
+  isInGracePeriod, 
+  isActive, 
+  hasFailedPayment 
+} from './subscription/use-subscription-helpers';
+import { 
+  createTrialSubscription, 
+  renewSubscription as renewUserSubscription 
+} from './subscription/use-subscription-actions';
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid';
-
-export interface SubscriptionPlan {
-  subscription_id: string;
-  status: SubscriptionStatus;
-  plan_type: string;
-  current_period_end: string | null;
-  project_limit: number;
-  features: Record<string, any>;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  cancel_at_period_end?: boolean;
-}
-
-interface SubscriptionContextType {
-  data: SubscriptionPlan | null;
-  subscription: SubscriptionPlan | null;
-  loading: boolean;
-  isLoading: boolean;
-  error: Error | null;
-  checkSubscription: () => Promise<void>;
-  renewSubscription: () => Promise<void>;
-  isPastGracePeriod: () => boolean;
-  isInGracePeriod: () => boolean;
-  isActive: () => boolean;
-  hasFailedPayment: () => boolean;
-}
-
+// Create context with default values
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
   subscription: null,
@@ -50,22 +34,18 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   hasFailedPayment: () => false,
 });
 
-const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
-  status: 'trialing',
-  plan_type: 'trial',
-  project_limit: 3,
-  features: {},
-  current_period_end: null,
-  stripe_customer_id: null,
-  stripe_subscription_id: null,
-};
-
+/**
+ * Provider component for subscription data and functionality
+ */
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { session } = useAuth();
 
+  /**
+   * Fetches the user's subscription data from the database
+   */
   const checkSubscription = async () => {
     try {
       if (!session?.user) {
@@ -106,24 +86,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         setSubscription(subscriptionData);
       } else {
         // Create new trial subscription
-        const newSubscription: SubscriptionPlan = {
-          subscription_id: crypto.randomUUID(),
-          user_id: session.user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          ...DEFAULT_TRIAL_SUBSCRIPTION
-        } as SubscriptionPlan;
-
-        const { error: insertError } = await supabase
-          .from('subscriptions')
-          .insert([newSubscription]);
-
-        if (insertError) {
-          console.error('Error creating trial subscription:', insertError);
-          setSubscription(newSubscription);
-        } else {
-          setSubscription(newSubscription);
-        }
+        const newSubscription = await createTrialSubscription(session.user.id);
+        setSubscription(newSubscription);
       }
     } catch (e) {
       console.error('Error fetching subscription:', e);
@@ -133,73 +97,27 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Function to renew a failed or expired subscription
+  /**
+   * Renews a failed or expired subscription
+   */
   const renewSubscription = async () => {
-    try {
-      if (!session?.user || !subscription?.stripe_subscription_id) {
-        toast.error("Cannot renew subscription", { 
-          description: "No active subscription found" 
-        });
-        return;
-      }
-
-      // Call the renew-subscription edge function
-      const { error } = await supabase.functions.invoke('renew-subscription', {
-        body: { 
-          subscriptionId: subscription.stripe_subscription_id
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success("Renewal initiated", {
-        description: "Your subscription renewal has been initiated. Please check your email for payment details."
-      });
-
-      // Refresh subscription data
+    if (!subscription?.stripe_subscription_id) return;
+    
+    const result = await renewUserSubscription(subscription.stripe_subscription_id);
+    
+    if (result.success) {
+      // Refresh subscription data after successful renewal
       await checkSubscription();
-    } catch (error: any) {
-      console.error('Error renewing subscription:', error);
-      toast.error("Failed to renew subscription", {
-        description: error.message || "Please try again or contact support"
-      });
     }
   };
 
-  // Check if subscription is past grace period
-  const isPastGracePeriod = () => {
-    if (!subscription?.current_period_end) return false;
-    
-    const endDate = new Date(subscription.current_period_end);
-    const gracePeriodEnd = addDays(endDate, 3);
-    
-    return isPast(endDate) && isPast(gracePeriodEnd);
-  };
+  // Local wrapper functions for the helper functions
+  const checkIsPastGracePeriod = () => isPastGracePeriod(subscription);
+  const checkIsInGracePeriod = () => isInGracePeriod(subscription);
+  const checkIsActive = () => isActive(subscription);
+  const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Check if subscription is in grace period
-  const isInGracePeriod = () => {
-    if (!subscription?.current_period_end) return false;
-    
-    const endDate = new Date(subscription.current_period_end);
-    const gracePeriodEnd = addDays(endDate, 3);
-    
-    return isPast(endDate) && !isPast(gracePeriodEnd);
-  };
-
-  // Check if subscription is active (either actually active or in grace period)
-  const isActive = () => {
-    return (
-      subscription?.status === 'active' || 
-      subscription?.status === 'trialing' || 
-      isInGracePeriod()
-    );
-  };
-
-  // Check if subscription has failed payment
-  const hasFailedPayment = () => {
-    return subscription?.status === 'past_due' || subscription?.status === 'unpaid';
-  };
-
+  // Fetch subscription data when session changes
   useEffect(() => {
     checkSubscription();
   }, [session]);
@@ -214,10 +132,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         error,
         checkSubscription,
         renewSubscription,
-        isPastGracePeriod,
-        isInGracePeriod,
-        isActive,
-        hasFailedPayment
+        isPastGracePeriod: checkIsPastGracePeriod,
+        isInGracePeriod: checkIsInGracePeriod,
+        isActive: checkIsActive,
+        hasFailedPayment: checkHasFailedPayment
       }}
     >
       {children}
@@ -225,6 +143,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   );
 }
 
+/**
+ * Hook to access subscription data and functions
+ * @returns Subscription context values
+ */
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {

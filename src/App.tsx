@@ -19,8 +19,8 @@ import AccountSettings from "@/pages/AccountSettings";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Create a client
 const queryClient = new QueryClient({

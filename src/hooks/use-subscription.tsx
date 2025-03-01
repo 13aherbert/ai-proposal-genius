@@ -93,7 +93,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           status: (data.status || 'trialing') as SubscriptionStatus,
           plan_type: data.plan_type || 'trial',
           project_limit: data.project_limit || 3,
-          features: data.features || {},
+          // Ensure features is an object, not a string or other type
+          features: typeof data.features === 'object' && data.features !== null 
+            ? data.features as Record<string, any>
+            : {},
           current_period_end: data.current_period_end,
           stripe_customer_id: data.stripe_customer_id,
           stripe_subscription_id: data.stripe_subscription_id,

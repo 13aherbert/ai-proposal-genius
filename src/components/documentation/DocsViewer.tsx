@@ -112,9 +112,9 @@ export function DocsViewer() {
         </TabsList>
 
         {docTypes.map(doc => <TabsContent key={doc.id} value={doc.id} className="mt-0">
-            <div className="bg-muted dark:bg-secondary rounded-lg shadow p-6 border border-muted dark:border-gray-800">
+            <div className="bg-muted dark:bg-zinc-800 rounded-lg shadow p-6 border border-muted dark:border-gray-700">
               <ScrollArea className="h-[calc(100vh-250px)] pr-4">
-                <div className="prose dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-4 prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-6 prose-h2:text-2xl prose-h2:font-semibold prose-h3:text-xl prose-h3:font-medium prose-p:my-4 prose-p:leading-relaxed prose-p:text-slate-800 dark:prose-p:text-slate-100 prose-li:my-2 prose-li:ml-4 prose-ul:my-4 prose-ol:my-4 prose-a:text-brand-green dark:prose-a:text-brand-green-dark prose-a:font-medium prose-strong:font-semibold prose-strong:text-B dark:prose-strong:text-white text-[16px] leading-relaxed">
+                <div className="prose dark:prose-invert max-w-none prose-headings:mt-6 prose-headings:mb-4 prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-6 prose-h2:text-2xl prose-h2:font-semibold prose-h3:text-xl prose-h3:font-medium prose-p:my-4 prose-p:leading-relaxed prose-p:text-slate-800 dark:prose-p:text-slate-200 prose-li:my-2 prose-li:ml-4 prose-ul:my-4 prose-ol:my-4 prose-a:text-brand-green dark:prose-a:text-brand-green-dark prose-a:font-medium prose-code:bg-slate-100 dark:prose-code:bg-slate-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-strong:font-semibold prose-strong:text-B dark:prose-strong:text-white text-[16px] leading-relaxed">
                   <ReactMarkdown>{content}</ReactMarkdown>
                 </div>
               </ScrollArea>

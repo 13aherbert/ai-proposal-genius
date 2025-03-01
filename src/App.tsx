@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Pages
 import Index from "@/pages/Index";
@@ -35,76 +36,78 @@ function App() {
   const isDev = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_FEATURES === 'true';
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/account"
-              element={
-                <ProtectedRoute>
-                  <AccountSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/knowledge-base"
-              element={
-                <ProtectedRoute>
-                  <KnowledgeBase />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <RecentProjects />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/upload-rfp"
-              element={
-                <ProtectedRoute>
-                  <UploadRFP />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects/:projectId"
-              element={
-                <ProtectedRoute>
-                  <ProjectDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/subscription"
-              element={
-                <ProtectedRoute>
-                  <Subscription />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/docs/:docId?" element={<Documentation />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          {isDev && <TestingPanel />}
-          <Toaster position="top-right" />
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <AccountSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-base"
+                element={
+                  <ProtectedRoute>
+                    <KnowledgeBase />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <RecentProjects />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload-rfp"
+                element={
+                  <ProtectedRoute>
+                    <UploadRFP />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/:projectId"
+                element={
+                  <ProtectedRoute>
+                    <ProjectDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/subscription"
+                element={
+                  <ProtectedRoute>
+                    <Subscription />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/docs/:docId?" element={<Documentation />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            {isDev && <TestingPanel />}
+            <Toaster position="top-right" />
+          </AuthProvider>
+        </QueryClientProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

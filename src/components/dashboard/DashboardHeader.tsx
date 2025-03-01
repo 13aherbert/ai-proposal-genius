@@ -13,20 +13,14 @@ export function DashboardHeader() {
       <div className="flex h-16 items-center px-4">
         <Link to="/dashboard" className="flex items-center gap-2">
           <img src="/favicon-32x32.png" alt="Logo" className="w-8 h-8" />
-          <span className="font-semibold">RFP Generator</span>
+          <span className="font-semibold">OptiRFP</span>
         </Link>
-        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 hidden md:block">
-          <Button asChild variant="ghost">
-            <Link to="/dashboard">Dashboard</Link>
-          </Button>
-          <Button asChild variant="ghost">
-            <Link to="/projects">Projects</Link>
-          </Button>
-          <Button asChild variant="ghost">
-            <Link to="/knowledge-base">Knowledge Base</Link>
-          </Button>
-        </nav>
-        <div className="ml-auto flex items-center space-x-4">
+        
+        <div className="ml-6 mr-auto">
+          <h1 className="text-lg font-medium">Welcome to OptiRFP</h1>
+        </div>
+        
+        <div className="flex items-center space-x-4">
           <Button asChild variant="ghost" size="icon">
             <Link to="/docs">
               <Book className="h-5 w-5" />

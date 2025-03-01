@@ -18,6 +18,7 @@ export function useProposalEvaluation(projectId: string) {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load saved evaluation when component mounts
   useEffect(() => {
@@ -25,6 +26,8 @@ export function useProposalEvaluation(projectId: string) {
     
     const loadEvaluation = async () => {
       try {
+        setIsLoading(true);
+        
         const { data, error } = await supabase
           .from('projects')
           .select<string, Project>('evaluation')
@@ -37,7 +40,11 @@ export function useProposalEvaluation(projectId: string) {
         }
       } catch (error) {
         console.error('Error loading evaluation:', error);
-        toast.error("Failed to load saved evaluation");
+        toast.error("Failed to load saved evaluation", {
+          description: "We couldn't retrieve your saved evaluation. Please try refreshing the page."
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -45,11 +52,17 @@ export function useProposalEvaluation(projectId: string) {
   }, [projectId]);
 
   const handleEvaluate = async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      toast.error("Invalid project", {
+        description: "Cannot find project to evaluate."
+      });
+      return;
+    }
     
     setIsEvaluating(true);
     setError(null);
     setProgress(0);
+    toast.loading("Evaluating your proposal...");
 
     try {
       // Simulate progress updates during evaluation
@@ -69,6 +82,10 @@ export function useProposalEvaluation(projectId: string) {
         .eq('project_id', projectId);
 
       if (sectionsError) throw sectionsError;
+      
+      if (!sections || sections.length === 0) {
+        throw new Error("No proposal sections found to evaluate");
+      }
 
       // Get the project details including RFP analysis
       const { data: project, error: projectError } = await supabase
@@ -78,6 +95,10 @@ export function useProposalEvaluation(projectId: string) {
         .maybeSingle();
 
       if (projectError) throw projectError;
+      
+      if (!project?.analysis) {
+        throw new Error("RFP analysis not found. Please analyze your RFP first.");
+      }
 
       console.log('Calling evaluation function with sections:', sections?.length);
       
@@ -103,11 +124,19 @@ export function useProposalEvaluation(projectId: string) {
       if (saveError) throw saveError;
 
       setEvaluation(data.evaluation);
-      toast.success('Proposal evaluated and saved successfully');
+      
+      toast.dismiss();
+      toast.success('Proposal evaluated successfully', {
+        description: 'Your proposal has been analyzed and feedback is ready to review.'
+      });
     } catch (error) {
       console.error('Error evaluating proposal:', error);
       setError('Failed to evaluate proposal. Please try again.');
-      toast.error('Failed to evaluate proposal');
+      
+      toast.dismiss();
+      toast.error('Failed to evaluate proposal', {
+        description: error instanceof Error ? error.message : "Please ensure you have added content to your proposal sections."
+      });
       setProgress(0);
     } finally {
       setIsEvaluating(false);
@@ -117,6 +146,7 @@ export function useProposalEvaluation(projectId: string) {
   return {
     evaluation,
     isEvaluating,
+    isLoading,
     error,
     progress,
     handleEvaluate

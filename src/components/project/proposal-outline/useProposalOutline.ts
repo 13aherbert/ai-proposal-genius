@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,11 +12,14 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Initialize outline from project data
   useEffect(() => {
     const loadSavedOutline = async () => {
       try {
+        setIsLoading(true);
+        
         const { data, error: fetchError } = await supabase
           .from('projects')
           .select<string, Project>('proposal_outline')
@@ -28,7 +32,11 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
         }
       } catch (error) {
         console.error('Error loading saved outline:', error);
-        toast.error("Failed to load saved outline");
+        toast.error("Failed to load saved outline", {
+          description: "We couldn't retrieve your saved outline. Please try refreshing the page."
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -37,6 +45,9 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
   const handleReset = async () => {
     try {
+      setIsGenerating(true);
+      toast.loading("Resetting outline...");
+      
       const { error: updateError } = await supabase
         .from('projects')
         .update({ proposal_outline: null })
@@ -47,22 +58,34 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
       setOutline(null);
       setError(null);
       setProgress(0);
-      toast.success("Outline cleared successfully");
+      
+      toast.dismiss();
+      toast.success("Outline cleared successfully", {
+        description: "You can now generate a new outline."
+      });
     } catch (error) {
       console.error('Error clearing outline:', error);
-      toast.error("Failed to clear outline");
+      toast.dismiss();
+      toast.error("Failed to clear outline", {
+        description: "Please try again or reload the page."
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   const handleGenerateOutline = async () => {
     if (!analysis) {
-      toast.error("Please analyze the RFP first");
+      toast.error("Analysis required", {
+        description: "Please analyze the RFP first before generating an outline."
+      });
       return;
     }
 
     setIsGenerating(true);
     setError(null);
     setProgress(0);
+    toast.loading("Generating outline...");
 
     try {
       // Simulate progress during generation
@@ -99,11 +122,19 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
 
       setProgress(100);
       setOutline(generatedData.outline);
-      toast.success("Outline generated and saved successfully!");
+      
+      toast.dismiss();
+      toast.success("Outline generated successfully", {
+        description: "Your proposal outline is ready to review and has been saved."
+      });
     } catch (error) {
       console.error('Error generating outline:', error);
       setError("Failed to generate outline. Please try again.");
-      toast.error("Failed to generate outline");
+      
+      toast.dismiss();
+      toast.error("Failed to generate outline", {
+        description: error instanceof Error ? error.message : "Please try again or contact support."
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -112,6 +143,7 @@ export function useProposalOutline(projectId: string, analysis: string | null) {
   return {
     outline,
     isGenerating,
+    isLoading,
     error,
     progress,
     handleGenerateOutline,

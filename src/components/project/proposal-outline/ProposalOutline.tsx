@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -5,6 +6,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIProgress } from "@/components/shared/AIProgress";
 import { useProposalOutline } from "./useProposalOutline";
 import ReactMarkdown from "react-markdown";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ProposalOutlineProps {
   projectId: string;
@@ -46,7 +58,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
             className="w-full bg-brand-green hover:bg-brand-green-dark text-white"
             disabled={!analysis}
           >
-            Generate Proposal Outline
+            {!analysis ? "Analyze RFP first" : "Generate Proposal Outline"}
           </Button>
         )}
 
@@ -68,14 +80,50 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <ReactMarkdown>{outline}</ReactMarkdown>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleReset}
-              size="sm"
-              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
-            >
-              Generate New Outline
-            </Button>
+            <div className="flex space-x-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="border-red-500 hover:bg-red-500/10 text-red-500"
+                  >
+                    Reset Outline
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete the current outline. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>
+                      Yes, reset outline
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateOutline}
+                size="sm"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate New Outline"
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

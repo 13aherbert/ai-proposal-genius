@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, ArrowUpCircle, AlertTriangle } from "lucide-react";
+import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
@@ -30,6 +30,7 @@ interface SubscriptionCardProps {
  */
 export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
   
@@ -67,6 +68,8 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   const handleCancelSubscription = async () => {
     try {
       setIsCancelling(true);
+      toast.loading("Processing cancellation...");
+      
       const { error } = await supabase.functions.invoke('cancel-subscription', {
         body: { 
           reason: cancelReason || 'No reason provided' 
@@ -75,6 +78,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       
       if (error) throw error;
 
+      toast.dismiss();
       toast.success("Your subscription has been cancelled successfully", {
         description: "You'll continue to have access until the end of your current billing period."
       });
@@ -84,7 +88,10 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       setShowCancelReasonInput(false);
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast.error(error.message || "Failed to cancel subscription");
+      toast.dismiss();
+      toast.error("Failed to cancel subscription", {
+        description: error.message || "Please try again or contact support"
+      });
     } finally {
       setIsCancelling(false);
     }
@@ -95,6 +102,9 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
    */
   const handleRenewSubscription = async () => {
     try {
+      setIsRenewing(true);
+      toast.loading("Preparing payment update...");
+      
       // Call the renew-subscription edge function
       const { error } = await supabase.functions.invoke('renew-subscription', {
         body: { 
@@ -104,18 +114,24 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       
       if (error) throw error;
 
+      toast.dismiss();
       toast.success("Payment update initiated", {
         description: "You'll be redirected to update your payment method."
       });
       
       // The edge function should return a URL to redirect the user to update payment
       // For now, we'll just redirect to the subscription page
-      window.location.href = '/subscription';
+      setTimeout(() => {
+        window.location.href = '/subscription';
+      }, 1000);
     } catch (error: any) {
       console.error('Error renewing subscription:', error);
+      toast.dismiss();
       toast.error("Failed to initiate payment update", {
         description: error.message || "Please try again later."
       });
+    } finally {
+      setIsRenewing(false);
     }
   };
 
@@ -161,8 +177,16 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                 size="sm" 
                 className="mt-2" 
                 onClick={handleRenewSubscription}
+                disabled={isRenewing}
               >
-                Update payment
+                {isRenewing ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Update payment"
+                )}
               </Button>
             </div>
           )}
@@ -181,8 +205,16 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                 size="sm" 
                 className="mt-2 bg-amber-600 hover:bg-amber-700" 
                 onClick={handleRenewSubscription}
+                disabled={isRenewing}
               >
-                Renew now
+                {isRenewing ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Renew now"
+                )}
               </Button>
             </div>
           )}
@@ -241,7 +273,14 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                   disabled={isCancelling}
                   className="w-full sm:w-auto"
                 >
-                  {isCancelling ? "Cancelling..." : "Cancel Subscription"}
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    "Cancel Subscription"
+                  )}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -294,7 +333,14 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
                         Go back
                       </AlertDialogCancel>
                       <AlertDialogAction onClick={handleCancelSubscription} disabled={isCancelling}>
-                        {isCancelling ? "Processing..." : "Confirm cancellation"}
+                        {isCancelling ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Confirm cancellation"
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </>

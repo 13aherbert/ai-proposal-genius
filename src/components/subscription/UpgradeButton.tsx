@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
+import { Loader2 } from "lucide-react";
 
 const PRICE_IDS = {
   trial: 'price_1QlhL0CcQ0GhLgJoeSDq6zEY',
@@ -33,6 +34,7 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const handleUpgrade = async () => {
     try {
       setIsLoading(true);
+      toast.loading("Processing your request...");
 
       // Get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -67,11 +69,23 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
         throw new Error('No checkout URL returned');
       }
 
-      // Redirect to Stripe Checkout
-      window.location.href = data.url;
+      // Dismiss loading toast and show success message before redirecting
+      toast.dismiss();
+      toast.success("Redirecting to checkout", {
+        description: "You'll be redirected to the payment page in a moment"
+      });
+
+      // Short delay to allow the success toast to be seen
+      setTimeout(() => {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      }, 1000);
     } catch (error) {
       console.error('Error in upgrade process:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to start upgrade process");
+      toast.dismiss(); // Dismiss loading toast
+      toast.error(error instanceof Error ? error.message : "Failed to start upgrade process", {
+        description: "Please try again or contact support if the issue persists"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +101,16 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       className="w-full"
       variant={isCurrentPlan ? "outline" : "default"}
     >
-      {isLoading ? "Processing..." : isCurrentPlan ? "Current Plan" : `Upgrade to ${targetPlan}`}
+      {isLoading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Processing...
+        </>
+      ) : isCurrentPlan ? (
+        "Current Plan"
+      ) : (
+        `Upgrade to ${targetPlan}`
+      )}
     </Button>
   );
 }

@@ -170,7 +170,7 @@ export function useProjects(user: User | null) {
       // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
-        URL.revoObjectURL(url);
+        URL.revokeObjectURL(url);  // Corrected from revoObjectURL to revokeObjectURL
       }, 100);
       
       toast.success(`Successfully exported ${data.length} projects`);

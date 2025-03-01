@@ -1,12 +1,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Book, FileText, AlertCircle, Settings } from 'lucide-react';
+import { ArrowLeft, Book, FileText, AlertCircle, Settings, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/AuthProvider';
 
 // Import markdown parser
 import ReactMarkdown from 'react-markdown';
@@ -31,7 +32,8 @@ const docTypes = [{
   id: 'environment',
   name: 'Environment Variables',
   icon: <Settings className="h-5 w-5" />,
-  path: 'EnvironmentVariables.md'
+  path: 'EnvironmentVariables.md',
+  developerOnly: true
 }];
 
 // Pre-import documentation content
@@ -58,11 +60,27 @@ export function DocsViewer() {
   const [content, setContent] = useState<string>('Loading documentation...');
   const [activeTab, setActiveTab] = useState<string>(docId);
   const [error, setError] = useState<boolean>(false);
+  const { session } = useAuth();
+  
+  // Check if user is a developer - in a real application, this would be based on actual role data
+  // For this example, we'll assume developers have an email ending with @optirfp.dev
+  const isDeveloper = session?.user?.email?.endsWith('@optirfp.dev') || false;
 
   useEffect(() => {
     try {
       setError(false);
       const selectedDoc = docTypes.find(doc => doc.id === docId) || docTypes[0];
+      
+      // Check if the selected doc is developer-only and user is not a developer
+      if (selectedDoc.developerOnly && !isDeveloper) {
+        setContent('# Access Restricted\n\nSorry, this documentation is only available to developers.');
+        toast({
+          title: "Access Restricted",
+          description: "You don't have permission to view this documentation.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Get content directly from imported files
       if (docContent[docId as keyof typeof docContent]) {
@@ -81,9 +99,20 @@ export function DocsViewer() {
         variant: "destructive"
       });
     }
-  }, [docId]);
+  }, [docId, isDeveloper]);
 
   const handleTabChange = (value: string) => {
+    // Check if the tab is developer-only and user is not a developer
+    const selectedDoc = docTypes.find(doc => doc.id === value);
+    if (selectedDoc?.developerOnly && !isDeveloper) {
+      toast({
+        title: "Access Restricted",
+        description: "You don't have permission to view this documentation.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setActiveTab(value);
     navigate(`/docs/${value}`);
   };
@@ -105,10 +134,13 @@ export function DocsViewer() {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-4 mb-6">
-          {docTypes.map(doc => <TabsTrigger key={doc.id} value={doc.id} className="flex items-center">
+          {docTypes.map(doc => (
+            <TabsTrigger key={doc.id} value={doc.id} className="flex items-center">
               <span className="mr-2">{doc.icon}</span>
               <span className="hidden sm:inline">{doc.name}</span>
-            </TabsTrigger>)}
+              {doc.developerOnly && <Lock className="ml-1 h-3 w-3" />}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {docTypes.map(doc => <TabsContent key={doc.id} value={doc.id} className="mt-0">

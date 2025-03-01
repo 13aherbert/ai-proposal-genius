@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, ArrowUpCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SubscriptionPlan } from "@/hooks/use-subscription";
+import type { SubscriptionPlan } from "@/types/subscription";
 import {
   AlertDialog,
   AlertDialogAction,

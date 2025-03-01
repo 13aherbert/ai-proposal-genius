@@ -1,116 +1,78 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useProposalSections } from "./useProposalSections";
+import { Loader2 } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { CompiledView } from "./components/CompiledView";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useProposalSections } from "./useProposalSections";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BackupManager } from "./BackupManager";
 
 interface ProposalDraftProps {
   projectId: string;
-  outline: string | null;
-  mode?: 'draft' | 'compiled';
 }
 
-export function ProposalDraft({ projectId, outline, mode = 'draft' }: ProposalDraftProps) {
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
-  const { sections, isLoading, error, addSection, reorderSections, deleteAllSections } = useProposalSections(projectId);
-
-  const handleAddSection = (title: string) => {
-    addSection(title);
-  };
-
-  const handleSelectSection = (sectionId: string) => {
-    setSelectedSection(selectedSection === sectionId ? null : sectionId);
-  };
-
-  const handleDeleteAll = () => {
-    setIsDeleteAllDialogOpen(true);
-  };
-
-  const confirmDeleteAll = () => {
-    deleteAllSections();
-    setIsDeleteAllDialogOpen(false);
-  };
-
-  if (mode === 'compiled') {
-    return <CompiledView sections={sections} />;
-  }
+export function ProposalDraft({ projectId }: ProposalDraftProps) {
+  const [activeTab, setActiveTab] = useState<string>("sections");
+  const {
+    sections,
+    isLoading,
+    addSection,
+    updateSection,
+    reorderSections,
+    deleteSection,
+  } = useProposalSections(projectId);
 
   return (
-    <>
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-start flex-1">
-                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-                  Proposal Draft
-                </CardTitle>
-                <CardDescription className="pt-2">
-                  Create and manage your proposal sections
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteAll}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete All
-                </Button>
-                <AddSectionButton onAdd={handleAddSection} />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <SectionsList
-              sections={sections}
-              selectedSection={selectedSection}
-              onSelectSection={handleSelectSection}
-              onReorderSections={reorderSections}
-              isLoading={isLoading}
-              error={error}
-            />
-          </CardContent>
-        </Card>
-      </div>
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle className="text-2xl font-semibold">Proposal Draft</CardTitle>
+          <CardDescription>
+            Create and edit sections for your proposal
+          </CardDescription>
+        </div>
+        <div className="flex items-center space-x-2">
+          <BackupManager sections={sections} projectId={projectId} />
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="px-6 pb-3 border-b">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="sections">Sections</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </TabsList>
+          </div>
 
-      <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete all sections?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all sections
-              and their content.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteAll}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete All
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          <TabsContent value="sections" className="p-6 pt-6">
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <AddSectionButton onAdd={addSection} />
+                
+                <SectionsList
+                  sections={sections}
+                  onUpdate={updateSection}
+                  onReorder={reorderSections}
+                  onDelete={deleteSection}
+                  projectId={projectId}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="preview" className="border-none p-0">
+            <CompiledView sections={sections} />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }
+
+export default ProposalDraft;

@@ -11,10 +11,10 @@ export function DashboardHeader() {
   return (
     <header className="border-b">
       <div className="flex h-16 items-center px-4">
-        <Link to="/dashboard" className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <img src="/favicon-32x32.png" alt="Logo" className="w-8 h-8" />
           <span className="font-semibold">OptiRFP</span>
-        </Link>
+        </div>
         
         <div className="ml-6 mr-auto">
           <h1 className="text-lg font-medium">Welcome to OptiRFP</h1>

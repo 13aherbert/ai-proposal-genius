@@ -1,122 +1,113 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/components/AuthProvider";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeProvider } from "next-themes";
 
 // Pages
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
-import AccountSettings from "@/pages/AccountSettings";
-import KnowledgeBase from "@/pages/KnowledgeBase";
-import RecentProjects from "@/pages/RecentProjects";
 import UploadRFP from "@/pages/UploadRFP";
+import RecentProjects from "@/pages/RecentProjects";
 import ProjectDetails from "@/pages/ProjectDetails";
-import ResetPassword from "@/pages/ResetPassword";
 import Subscription from "@/pages/Subscription";
+import KnowledgeBase from "@/pages/KnowledgeBase";
+import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
+import AccountSettings from "@/pages/AccountSettings";
 
 // Components
-import { TestingPanel } from "@/components/development/TestingPanel";
+import { AuthProvider } from "@/components/AuthProvider";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Create Query Client with defaults
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
       retry: 1,
     },
   },
 });
 
 function App() {
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_FEATURES === 'true';
-
   return (
-    <ErrorBoundary>
-      <Router>
-        <QueryClientProvider client={queryClient}>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <AccountSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/knowledge-base"
-                element={
-                  <ProtectedRoute>
-                    <KnowledgeBase />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/projects"
-                element={
-                  <ProtectedRoute>
-                    <RecentProjects />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Add an alias route for recent-projects */}
-              <Route
-                path="/recent-projects"
-                element={
-                  <ProtectedRoute>
-                    <RecentProjects />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/upload-rfp"
-                element={
-                  <ProtectedRoute>
-                    <UploadRFP />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/projects/:projectId"
-                element={
-                  <ProtectedRoute>
-                    <ProjectDetails />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/subscription"
-                element={
-                  <ProtectedRoute>
-                    <Subscription />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/docs/:docId?" element={<Documentation />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            {isDev && <TestingPanel />}
-            <Toaster position="top-right" />
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/upload-rfp"
+                  element={
+                    <ProtectedRoute>
+                      <UploadRFP />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects"
+                  element={
+                    <ProtectedRoute>
+                      <RecentProjects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/project/:projectId"
+                  element={
+                    <ProtectedRoute>
+                      <ProjectDetails />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscription"
+                  element={
+                    <ProtectedRoute>
+                      <Subscription />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/knowledge-base"
+                  element={
+                    <ProtectedRoute>
+                      <KnowledgeBase />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account-settings"
+                  element={
+                    <ProtectedRoute>
+                      <AccountSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/docs" element={<Documentation />} />
+                <Route path="/docs/:docId" element={<Documentation />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
+            <Toaster position="top-right" richColors closeButton />
           </AuthProvider>
-        </QueryClientProvider>
-      </Router>
-    </ErrorBoundary>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

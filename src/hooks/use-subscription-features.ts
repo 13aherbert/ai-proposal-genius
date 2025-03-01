@@ -19,7 +19,7 @@ export function useSubscriptionFeatures() {
 
   // Clear feature cache when subscription changes
   if (subscription) {
-    const cacheKey = `${subscription.id}-${subscription.plan_type}-${subscription.status}`;
+    const cacheKey = `${subscription.subscription_id}-${subscription.plan_type}-${subscription.status}`;
     if (!featureCache.has(cacheKey)) {
       featureCache.clear();
       projectLimitCache.clear();

@@ -89,7 +89,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
           <div className="space-y-4">
             <AnalysisContent 
               sections={parsedSections} 
-              onReset={() => {}}
+              onReset={handleReset}
             />
             
             <div className="flex space-x-2 pt-2">

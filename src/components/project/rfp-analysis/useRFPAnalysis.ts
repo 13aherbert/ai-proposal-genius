@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { loadSavedAnalysis, clearAnalysis, analyzeRFP } from "./api/rfpAnalysisApi";
@@ -11,6 +12,7 @@ import { retryOperation } from "./utils/retryOperation";
 export function useRFPAnalysis(filePath: string, projectId: string) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
 
@@ -18,6 +20,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   useEffect(() => {
     const initializeAnalysis = async () => {
       try {
+        setIsLoading(true);
         const savedAnalysis = await loadSavedAnalysis(projectId);
         if (savedAnalysis) {
           setAnalysis(savedAnalysis);
@@ -25,6 +28,8 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
       } catch (error) {
         console.error('Error loading saved analysis:', error);
         toast.error("Failed to load saved analysis");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -91,6 +96,7 @@ export function useRFPAnalysis(filePath: string, projectId: string) {
   return {
     analysis,
     isAnalyzing,
+    isLoading,
     error,
     progress,
     handleAnalyze,

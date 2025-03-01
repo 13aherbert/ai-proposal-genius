@@ -9,7 +9,7 @@ export function DashboardHeader() {
   const { signOut } = useAuth();
   
   return (
-    <header className="border-b">
+    <header className="">
       <div className="flex h-16 items-center px-4">
         <div className="ml-0 mr-auto">
           <h1 className="text-lg font-medium">Welcome to OptiRFP</h1>

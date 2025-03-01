@@ -104,8 +104,10 @@ class ErrorTrackingService {
 
         // Monitor navigation timing
         const navigationObserver = new PerformanceObserver((list) => {
-          const navEntry = list.getEntries()[0];
-          if (navEntry) {
+          const entries = list.getEntries();
+          if (entries.length > 0) {
+            // Explicitly cast to PerformanceNavigationTiming
+            const navEntry = entries[0] as PerformanceNavigationTiming;
             this.trackPerformanceMetric({
               name: 'page-load',
               value: navEntry.duration,

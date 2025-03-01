@@ -5,16 +5,17 @@ import { ArrowLeft, Book, FileText, AlertCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Import markdown parser
 import ReactMarkdown from 'react-markdown';
 
 // Define available documentation types
 const docTypes = [
-  { id: 'onboarding', name: 'User Onboarding', icon: <Book className="h-5 w-5" />, path: '/UserOnboardingGuide.md' },
-  { id: 'limitations', name: 'Known Limitations', icon: <AlertCircle className="h-5 w-5" />, path: '/KnownLimitations.md' },
-  { id: 'troubleshooting', name: 'Troubleshooting', icon: <FileText className="h-5 w-5" />, path: '/TroubleshootingGuide.md' },
-  { id: 'environment', name: 'Environment Variables', icon: <Settings className="h-5 w-5" />, path: '/EnvironmentVariables.md' },
+  { id: 'onboarding', name: 'User Onboarding', icon: <Book className="h-5 w-5" />, path: 'UserOnboardingGuide.md' },
+  { id: 'limitations', name: 'Known Limitations', icon: <AlertCircle className="h-5 w-5" />, path: 'KnownLimitations.md' },
+  { id: 'troubleshooting', name: 'Troubleshooting', icon: <FileText className="h-5 w-5" />, path: 'TroubleshootingGuide.md' },
+  { id: 'environment', name: 'Environment Variables', icon: <Settings className="h-5 w-5" />, path: 'EnvironmentVariables.md' },
 ];
 
 export function DocsViewer() {
@@ -22,12 +23,16 @@ export function DocsViewer() {
   const navigate = useNavigate();
   const [content, setContent] = useState<string>('Loading documentation...');
   const [activeTab, setActiveTab] = useState<string>(docId);
+  const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchDocumentation = async () => {
       try {
+        setError(false);
         const selectedDoc = docTypes.find(doc => doc.id === docId) || docTypes[0];
-        const response = await fetch(`/src/docs${selectedDoc.path}`);
+        
+        // Use import.meta.env.BASE_URL to ensure correct path resolution
+        const response = await fetch(`/src/docs/${selectedDoc.path}`);
         
         if (!response.ok) {
           throw new Error('Failed to load documentation');
@@ -38,7 +43,23 @@ export function DocsViewer() {
         setActiveTab(selectedDoc.id);
       } catch (error) {
         console.error('Error loading documentation:', error);
-        setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
+        setError(true);
+        
+        // If we're on the limitations page, we can directly use the content from the file
+        if (docId === 'limitations') {
+          // Import the limitations content directly
+          import('@/docs/KnownLimitations.md?raw')
+            .then(module => {
+              setContent(module.default);
+              setError(false);
+            })
+            .catch(err => {
+              console.error('Error importing limitations markdown:', err);
+              setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
+            });
+        } else {
+          setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
+        }
       }
     };
 
@@ -63,6 +84,14 @@ export function DocsViewer() {
         </Button>
         <h1 className="text-2xl font-bold">Documentation</h1>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>
+            There was an error loading the documentation. The content below might be limited or unavailable.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-4 mb-6">

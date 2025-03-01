@@ -2,10 +2,12 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import ErrorTrackingService, { ErrorSeverity } from "@/services/ErrorTrackingService";
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  name?: string; // Component name for better error tracking
 }
 
 interface State {
@@ -15,6 +17,8 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
+  private errorService = ErrorTrackingService.getInstance();
+  
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -30,8 +34,19 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log the error to an error reporting service
-    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+    // Track the error
+    this.errorService.captureError({
+      message: `Error in ${this.props.name || 'unknown component'}: ${error.message}`,
+      severity: ErrorSeverity.ERROR,
+      context: {
+        componentStack: errorInfo.componentStack,
+        errorStack: error.stack,
+        componentName: this.props.name
+      },
+      timestamp: new Date()
+    });
+    
+    // Update state with error details
     this.setState({
       error,
       errorInfo
@@ -44,6 +59,22 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null
     });
+  };
+
+  handleReportIssue = () => {
+    const { error, errorInfo } = this.state;
+    if (!error) return;
+    
+    // Generate a unique ID for this error
+    const errorId = Date.now().toString(36);
+    
+    // Show user feedback form
+    this.errorService.recordUserFeedback(errorId, {
+      comments: `Auto-reported from ErrorBoundary: ${error.message}`,
+      severity: 'high'
+    });
+    
+    alert("Thank you for reporting this issue. Our team has been notified.");
   };
 
   render() {
@@ -67,14 +98,24 @@ class ErrorBoundary extends Component<Props, State> {
               <p className="font-mono text-destructive">{this.state.error.toString()}</p>
             </div>
           )}
-          <Button 
-            className="mt-6" 
-            onClick={this.handleReset}
-            size="sm"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try again
-          </Button>
+          <div className="mt-6 flex space-x-2">
+            <Button 
+              onClick={this.handleReset}
+              size="sm"
+              className="flex items-center"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+            <Button 
+              onClick={this.handleReportIssue}
+              size="sm"
+              variant="outline"
+              className="flex items-center"
+            >
+              Report issue
+            </Button>
+          </div>
         </div>
       );
     }

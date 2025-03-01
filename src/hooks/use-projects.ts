@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import type { User } from "@supabase/supabase-js";
 import { useSubscriptionFeatures } from "./use-subscription-features";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { debounce } from "lodash";
 
 export type Project = {
   project_id: string;
@@ -26,70 +27,102 @@ export function useProjects(user: User | null) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  // Implement a cached fetching function
+  const fetchProjects = useCallback(async ({ currentPage, pageSize, userId }: { 
+    currentPage: number;
+    pageSize: number;
+    userId: string | undefined;
+  }) => {
+    try {
+      console.log("Fetching projects for user:", userId);
+      console.log("Pagination:", { currentPage, pageSize });
+      
+      // Artificial delay removed for production but kept for development feedback
+      if (process.env.NODE_ENV === 'development') {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // First, get the total count
+      const { count, error: countError } = await supabase
+        .from("projects")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+      if (countError) {
+        console.error("Count error:", countError);
+        throw countError;
+      }
+
+      const totalCount = count || 0;
+
+      // Calculate range for pagination
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      // Then fetch the paginated data
+      const { data, error } = await supabase
+        .from("projects")
+        .select(`
+          project_id,
+          title,
+          status,
+          created_at,
+          rfp_file_path,
+          last_update_at,
+          user_id,
+          deadline
+        `)
+        .eq("user_id", userId)
+        .order("last_update_at", { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Projects fetched:", data);
+      return { data: data as Project[] || [], totalCount };
+    } catch (err) {
+      console.error("Query error:", err);
+      throw err;
+    }
+  }, []);
+
   const {
-    data: projects,
+    data: projectsData,
     isLoading,
     error,
     refetch,
   } = useQuery({
     queryKey: ["projects", user?.id, currentPage, pageSize],
     queryFn: async () => {
-      try {
-        console.log("Fetching projects for user:", user?.id);
-        console.log("Pagination:", { currentPage, pageSize });
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // First, get the total count
-        const { count, error: countError } = await supabase
-          .from("projects")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user?.id);
-
-        if (countError) {
-          console.error("Count error:", countError);
-          throw countError;
-        }
-
-        setTotalCount(count || 0);
-
-        // Calculate range for pagination
-        const from = (currentPage - 1) * pageSize;
-        const to = from + pageSize - 1;
-
-        // Then fetch the paginated data
-        const { data, error } = await supabase
-          .from("projects")
-          .select(`
-            project_id,
-            title,
-            status,
-            created_at,
-            rfp_file_path,
-            last_update_at,
-            user_id,
-            deadline
-          `)
-          .eq("user_id", user?.id)
-          .order("last_update_at", { ascending: false })
-          .range(from, to);
-
-        if (error) {
-          console.error("Supabase error:", error);
-          throw error;
-        }
-
-        console.log("Projects fetched:", data);
-        return data as Project[] || [];
-      } catch (err) {
-        console.error("Query error:", err);
-        throw err;
-      }
+      const result = await fetchProjects({ 
+        currentPage, 
+        pageSize, 
+        userId: user?.id 
+      });
+      setTotalCount(result.totalCount);
+      return result.data;
     },
     enabled: !!user?.id,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
-    staleTime: 30000,
+    staleTime: 60000, // Cache data for 1 minute
+    gcTime: 300000,   // Keep unused data in cache for 5 minutes
   });
+
+  const projects = projectsData || [];
+
+  // Debounced function for page size changes to prevent multiple queries
+  const debouncedSetPageSize = useCallback(
+    debounce((size: number) => {
+      setPageSize(size);
+      // Return to first page when changing page size
+      setCurrentPage(1);
+    }, 300),
+    []
+  );
 
   const deleteProject = async (projectId: string) => {
     try {
@@ -199,7 +232,7 @@ export function useProjects(user: User | null) {
       pageSize,
       totalCount,
       setCurrentPage,
-      setPageSize,
+      setPageSize: debouncedSetPageSize, // Use debounced version
     }
   };
 }

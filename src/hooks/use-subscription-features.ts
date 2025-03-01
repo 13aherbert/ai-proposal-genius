@@ -1,5 +1,6 @@
 
 import { useSubscription } from "./use-subscription";
+import { useCallback } from "react";
 
 export type FeatureName = 
   | "rfp_summary" 
@@ -9,51 +10,84 @@ export type FeatureName =
   | "evaluation"
   | "data_export";
 
+// Cache for feature availability to avoid recalculations
+const featureCache = new Map<string, boolean>();
+const projectLimitCache = new Map<string, number>();
+
 export function useSubscriptionFeatures() {
   const { data: subscription, isLoading, error } = useSubscription();
 
-  const hasFeature = (feature: FeatureName): boolean => {
+  // Clear feature cache when subscription changes
+  if (subscription) {
+    const cacheKey = `${subscription.id}-${subscription.plan_type}-${subscription.status}`;
+    if (!featureCache.has(cacheKey)) {
+      featureCache.clear();
+      projectLimitCache.clear();
+    }
+  }
+
+  const hasFeature = useCallback((feature: FeatureName): boolean => {
     if (isLoading || error) return false;
 
-    // Default to trial plan if no subscription data
     const currentPlan = subscription?.plan_type || 'trial';
-
+    
+    // Use cached value if available
+    const cacheKey = `${currentPlan}-${feature}`;
+    if (featureCache.has(cacheKey)) {
+      return featureCache.get(cacheKey) as boolean;
+    }
+    
+    let hasAccess = false;
+    
     // Pro tier has access to all features
-    if (currentPlan === 'pro') return true;
-
+    if (currentPlan === 'pro') {
+      hasAccess = true;
+    }
     // Starter tier has access to basic features
-    if (currentPlan === 'starter') {
-      return ['rfp_summary', 'proposal_outline', 'proposal_draft', 'data_export'].includes(feature);
+    else if (currentPlan === 'starter') {
+      hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft', 'data_export'].includes(feature);
     }
-
     // Trial tier now has access to RFP summary, proposal outline, and proposal draft
-    if (currentPlan === 'trial') {
-      return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
-    }
-
-    return false;
-  };
-
-  const getProjectLimit = (): number => {
-    if (subscription?.project_limit) {
-      return subscription.project_limit;
+    else if (currentPlan === 'trial') {
+      hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
     }
     
+    // Cache the result
+    featureCache.set(cacheKey, hasAccess);
+    return hasAccess;
+  }, [subscription, isLoading, error]);
+
+  const getProjectLimit = useCallback((): number => {
     const currentPlan = subscription?.plan_type || 'trial';
     
-    switch (currentPlan) {
-      case 'pro':
-        return 30;
-      case 'starter':
-        return 10;
-      case 'trial':
-        return 3;
-      default:
-        return 3;
+    // Use cached value if available
+    const cacheKey = `${currentPlan}-limit`;
+    if (projectLimitCache.has(cacheKey)) {
+      return projectLimitCache.get(cacheKey) as number;
     }
-  };
+    
+    let limit: number;
+    
+    if (subscription?.project_limit) {
+      limit = subscription.project_limit;
+    } else {
+      switch (currentPlan) {
+        case 'pro':
+          limit = 30;
+        case 'starter':
+          limit = 10;
+        case 'trial':
+        default:
+          limit = 3;
+      }
+    }
+    
+    // Cache the result
+    projectLimitCache.set(cacheKey, limit);
+    return limit;
+  }, [subscription]);
 
-  const getPlanName = (feature: FeatureName): string => {
+  const getPlanName = useCallback((feature: FeatureName): string => {
     switch (feature) {
       case 'rfp_summary':
         return 'Advanced AI RFP Summary';
@@ -70,7 +104,7 @@ export function useSubscriptionFeatures() {
       default:
         return '';
     }
-  };
+  }, [subscription]);
 
   return {
     hasFeature,

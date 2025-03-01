@@ -1,8 +1,9 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { KnowledgeEntry } from "../types";
+import { debounce } from "lodash";
 
 /**
  * Custom hook to manage knowledge entries data and operations
@@ -16,6 +17,10 @@ export const useEntries = (selectedCategory: string | null) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { toast } = useToast();
+  const [cache, setCache] = useState<Record<string, { data: KnowledgeEntry[], timestamp: number, totalCount: number }>>({});
+  
+  // Cache expiration time (5 minutes)
+  const CACHE_EXPIRY = 5 * 60 * 1000;
 
   const formatCategoryForQuery = (category: string) => {
     return category.toLowerCase().replace(/\s+/g, '-');
@@ -26,10 +31,43 @@ export const useEntries = (selectedCategory: string | null) => {
     setCurrentPage(1);
   }, [selectedCategory]);
 
+  // Debounced page size change
+  const debouncedSetPageSize = useCallback(
+    debounce((size: number) => {
+      setPageSize(size);
+      setCurrentPage(1); // Reset to first page when changing page size
+    }, 300),
+    []
+  );
+
+  const getCacheKey = () => {
+    return `${selectedCategory || 'all'}-${currentPage}-${pageSize}`;
+  };
+
+  const isCacheValid = (cacheKey: string) => {
+    const cacheEntry = cache[cacheKey];
+    if (!cacheEntry) return false;
+    
+    const now = Date.now();
+    return (now - cacheEntry.timestamp) < CACHE_EXPIRY;
+  };
+
   const fetchEntries = async () => {
     try {
       setIsLoading(true);
       console.log('Fetching entries with selected category:', selectedCategory);
+      
+      const cacheKey = getCacheKey();
+      
+      // Check if we have valid cached data
+      if (isCacheValid(cacheKey)) {
+        console.log('Using cached entry data');
+        const cachedData = cache[cacheKey];
+        setEntries(cachedData.data);
+        setTotalCount(cachedData.totalCount);
+        setIsLoading(false);
+        return;
+      }
       
       // Calculate pagination range
       const from = (currentPage - 1) * pageSize;
@@ -49,7 +87,9 @@ export const useEntries = (selectedCategory: string | null) => {
       const { count, error: countError } = await countQuery;
       
       if (countError) throw countError;
-      setTotalCount(count || 0);
+      
+      const totalEntries = count || 0;
+      setTotalCount(totalEntries);
       
       // Data query with pagination
       let query = supabase
@@ -76,6 +116,17 @@ export const useEntries = (selectedCategory: string | null) => {
       }));
 
       console.log('Formatted entries:', formattedEntries);
+      
+      // Update cache
+      setCache(prevCache => ({
+        ...prevCache,
+        [cacheKey]: { 
+          data: formattedEntries, 
+          timestamp: Date.now(),
+          totalCount: totalEntries
+        }
+      }));
+      
       setEntries(formattedEntries);
     } catch (error) {
       console.error('Error fetching entries:', error);
@@ -88,6 +139,11 @@ export const useEntries = (selectedCategory: string | null) => {
       setIsLoading(false);
     }
   };
+
+  // Force cache invalidation when needed
+  const invalidateCache = useCallback(() => {
+    setCache({});
+  }, []);
 
   const exportEntries = async () => {
     try {
@@ -158,8 +214,9 @@ export const useEntries = (selectedCategory: string | null) => {
     currentPage,
     pageSize,
     setCurrentPage,
-    setPageSize,
+    setPageSize: debouncedSetPageSize,
     fetchEntries,
-    exportEntries
+    exportEntries,
+    invalidateCache
   };
 };

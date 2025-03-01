@@ -75,6 +75,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Add an alias route for recent-projects */}
+              <Route
+                path="/recent-projects"
+                element={
+                  <ProtectedRoute>
+                    <RecentProjects />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/upload-rfp"
                 element={

@@ -9,12 +9,14 @@ import { useProposalSections } from "./useProposalSections";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackupManager } from "./BackupManager";
 
-interface ProposalDraftProps {
+export interface ProposalDraftProps {
   projectId: string;
+  mode?: "draft" | "compiled";
 }
 
-export function ProposalDraft({ projectId }: ProposalDraftProps) {
-  const [activeTab, setActiveTab] = useState<string>("sections");
+export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
+  // Set the active tab based on the mode prop
+  const [activeTab, setActiveTab] = useState<string>(mode === "compiled" ? "preview" : "sections");
   const {
     sections,
     isLoading,
@@ -57,10 +59,10 @@ export function ProposalDraft({ projectId }: ProposalDraftProps) {
                 
                 <SectionsList
                   sections={sections}
-                  onUpdate={updateSection}
-                  onReorder={reorderSections}
-                  onDelete={deleteSection}
-                  projectId={projectId}
+                  selectedSection={null}
+                  onSelectSection={() => {}}
+                  onReorderSections={reorderSections}
+                  isLoading={isLoading}
                 />
               </div>
             )}

@@ -6,7 +6,8 @@ export type FeatureName =
   | "proposal_outline" 
   | "proposal_draft" 
   | "compiled_draft" 
-  | "evaluation";
+  | "evaluation"
+  | "data_export";
 
 export function useSubscriptionFeatures() {
   const { data: subscription, isLoading, error } = useSubscription();
@@ -22,7 +23,7 @@ export function useSubscriptionFeatures() {
 
     // Starter tier has access to basic features
     if (currentPlan === 'starter') {
-      return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
+      return ['rfp_summary', 'proposal_outline', 'proposal_draft', 'data_export'].includes(feature);
     }
 
     // Trial tier now has access to RFP summary, proposal outline, and proposal draft
@@ -64,6 +65,8 @@ export function useSubscriptionFeatures() {
         return 'Compiled Draft Preview';
       case 'evaluation':
         return 'AI Proposal Evaluation';
+      case 'data_export':
+        return 'Data Export Feature';
       default:
         return '';
     }

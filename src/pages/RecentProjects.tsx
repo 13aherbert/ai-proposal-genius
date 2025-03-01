@@ -20,10 +20,11 @@ export default function RecentProjects() {
     deleteProject, 
     exportProjects,
     canCreateProject,
-    pagination
+    pagination,
+    refetch
   } = useProjects(session?.user || null);
   const { hasFeature } = useSubscriptionFeatures();
-  const hasExportFeature = hasFeature('data_export');
+  const hasExportFeature = hasFeature("data_export");
 
   useEffect(() => {
     // Reset to first page when component mounts
@@ -47,7 +48,7 @@ export default function RecentProjects() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <ProjectsError />
+        <ProjectsError onRetry={refetch} />
       ) : projects && projects.length > 0 ? (
         <ProjectsTable 
           projects={projects} 

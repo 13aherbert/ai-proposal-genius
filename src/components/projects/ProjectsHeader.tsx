@@ -1,8 +1,13 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export function ProjectsHeader() {
+interface ProjectsHeaderProps {
+  canCreateProject?: boolean;
+}
+
+export function ProjectsHeader({ canCreateProject = true }: ProjectsHeaderProps) {
   const navigate = useNavigate();
   
   return (
@@ -20,6 +25,7 @@ export function ProjectsHeader() {
       <Button 
         onClick={() => navigate("/upload-rfp")}
         className="bg-brand-green hover:bg-brand-green-dark"
+        disabled={!canCreateProject}
       >
         New Project
       </Button>

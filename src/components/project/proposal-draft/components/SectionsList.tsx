@@ -4,7 +4,7 @@ import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSenso
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableSection } from "./SortableSection";
 
-interface SectionsListProps {
+export interface SectionsListProps {
   sections: ProposalSection[];
   selectedSection: string | null;
   onSelectSection: (sectionId: string) => void;

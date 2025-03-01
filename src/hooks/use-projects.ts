@@ -19,7 +19,7 @@ export type Project = {
 };
 
 export function useProjects(user: User | null) {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const { getProjectLimit } = useSubscriptionFeatures();
   const [pageSize, setPageSize] = useState(10);
@@ -120,13 +120,13 @@ export function useProjects(user: User | null) {
 
       queryClient.invalidateQueries({ queryKey: ["projects"] });
 
-      toast({
+      uiToast({
         title: "Project deleted",
         description: "The project has been successfully deleted. A backup was created in case you need to recover it.",
       });
     } catch (error) {
       console.error("Delete error:", error);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Error deleting project",
         description: "Failed to delete the project. Please try again.",
@@ -170,7 +170,7 @@ export function useProjects(user: User | null) {
       // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        URL.revoObjectURL(url);
       }, 100);
       
       toast.success(`Successfully exported ${data.length} projects`);

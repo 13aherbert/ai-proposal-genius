@@ -38,7 +38,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
         return hasFeature("proposal_draft") ? (
           <ProposalDraft 
             projectId={project.project_id} 
-            outline={project.proposal_outline}
             mode="draft"
           />
         ) : (
@@ -47,8 +46,7 @@ export function ProjectContent({ project }: ProjectContentProps) {
       case "compiled":
         return hasFeature("compiled_draft") ? (
           <ProposalDraft 
-            projectId={project.project_id} 
-            outline={project.proposal_outline}
+            projectId={project.project_id}
             mode="compiled"
           />
         ) : (

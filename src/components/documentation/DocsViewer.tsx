@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Book, FileText, AlertCircle, Settings } from 'lucide-react';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from '@/hooks/use-toast';
 
 // Import markdown parser
 import ReactMarkdown from 'react-markdown';
@@ -31,6 +33,21 @@ const docTypes = [{
   icon: <Settings className="h-5 w-5" />,
   path: 'EnvironmentVariables.md'
 }];
+
+// Pre-import documentation content
+import onboardingContent from '@/docs/UserOnboardingGuide.md?raw';
+import limitationsContent from '@/docs/KnownLimitations.md?raw';
+import troubleshootingContent from '@/docs/TroubleshootingGuide.md?raw';
+import environmentContent from '@/docs/EnvironmentVariables.md?raw';
+
+// Map for direct content access
+const docContent = {
+  onboarding: onboardingContent,
+  limitations: limitationsContent,
+  troubleshooting: troubleshootingContent,
+  environment: environmentContent
+};
+
 export function DocsViewer() {
   const {
     docId = 'onboarding'
@@ -41,45 +58,36 @@ export function DocsViewer() {
   const [content, setContent] = useState<string>('Loading documentation...');
   const [activeTab, setActiveTab] = useState<string>(docId);
   const [error, setError] = useState<boolean>(false);
+
   useEffect(() => {
-    const fetchDocumentation = async () => {
-      try {
-        setError(false);
-        const selectedDoc = docTypes.find(doc => doc.id === docId) || docTypes[0];
-
-        // Use import.meta.env.BASE_URL to ensure correct path resolution
-        const response = await fetch(`/src/docs/${selectedDoc.path}`);
-        if (!response.ok) {
-          throw new Error('Failed to load documentation');
-        }
-        const text = await response.text();
-        setContent(text);
+    try {
+      setError(false);
+      const selectedDoc = docTypes.find(doc => doc.id === docId) || docTypes[0];
+      
+      // Get content directly from imported files
+      if (docContent[docId as keyof typeof docContent]) {
+        setContent(docContent[docId as keyof typeof docContent]);
         setActiveTab(selectedDoc.id);
-      } catch (error) {
-        console.error('Error loading documentation:', error);
-        setError(true);
-
-        // If we're on the limitations page, we can directly use the content from the file
-        if (docId === 'limitations') {
-          // Import the limitations content directly
-          import('@/docs/KnownLimitations.md?raw').then(module => {
-            setContent(module.default);
-            setError(false);
-          }).catch(err => {
-            console.error('Error importing limitations markdown:', err);
-            setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
-          });
-        } else {
-          setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
-        }
+      } else {
+        throw new Error('Documentation not found');
       }
-    };
-    fetchDocumentation();
+    } catch (error) {
+      console.error('Error loading documentation:', error);
+      setError(true);
+      setContent('# Error Loading Documentation\n\nSorry, we encountered an error while loading the requested documentation. Please try again later.');
+      toast({
+        title: "Documentation Error",
+        description: "Could not load the requested documentation. Please try another section.",
+        variant: "destructive"
+      });
+    }
   }, [docId]);
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     navigate(`/docs/${value}`);
   };
+
   return <div className="container mx-auto py-6 max-w-4xl">
       <div className="flex items-center mb-6">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mr-4">

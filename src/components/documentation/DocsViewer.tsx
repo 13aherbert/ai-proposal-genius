@@ -122,7 +122,8 @@ export function DocsViewer() {
           </TabsContent>)}
       </Tabs>
 
-      <style jsx global>{`
+      <style>
+        {`
         .env-vars-content .prose code {
           background-color: #0EA5E9 !important;
           color: white !important;
@@ -135,6 +136,7 @@ export function DocsViewer() {
           background-color: #0EA5E9 !important;
           color: white !important;
         }
-      `}</style>
+        `}
+      </style>
     </div>;
 }

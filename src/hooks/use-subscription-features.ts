@@ -1,6 +1,6 @@
 
 import { useSubscription } from "./use-subscription";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type FeatureName = 
   | "rfp_summary" 
@@ -16,6 +16,19 @@ const projectLimitCache = new Map<string, number>();
 
 export function useSubscriptionFeatures() {
   const { data: subscription, isLoading, error } = useSubscription();
+  const [testMode, setTestMode] = useState<boolean>(false);
+  
+  useEffect(() => {
+    // Check if test mode is enabled from localStorage
+    const isTestMode = localStorage.getItem('test_mode') === 'true';
+    setTestMode(isTestMode);
+    
+    // Clear cache when component mounts if test mode changes
+    if (isTestMode !== testMode) {
+      featureCache.clear();
+      projectLimitCache.clear();
+    }
+  }, []);
 
   // Clear feature cache when subscription changes
   if (subscription) {
@@ -27,9 +40,15 @@ export function useSubscriptionFeatures() {
   }
 
   const hasFeature = useCallback((feature: FeatureName): boolean => {
-    if (isLoading || error) return false;
-
-    const currentPlan = subscription?.plan_type || 'trial';
+    // If test mode is enabled, use the test plan from localStorage
+    let currentPlan: string;
+    
+    if (testMode) {
+      currentPlan = localStorage.getItem('test_plan') || 'trial';
+    } else {
+      if (isLoading || error) return false;
+      currentPlan = subscription?.plan_type || 'trial';
+    }
     
     // Use cached value if available
     const cacheKey = `${currentPlan}-${feature}`;
@@ -55,46 +74,59 @@ export function useSubscriptionFeatures() {
     // Cache the result
     featureCache.set(cacheKey, hasAccess);
     return hasAccess;
-  }, [subscription, isLoading, error]);
+  }, [subscription, isLoading, error, testMode]);
 
   const getProjectLimit = useCallback((): number => {
-    const currentPlan = subscription?.plan_type || 'trial';
-    
-    // Use cached value if available
-    const cacheKey = `${currentPlan}-limit`;
-    if (projectLimitCache.has(cacheKey)) {
-      return projectLimitCache.get(cacheKey) as number;
-    }
-    
     let limit: number;
     
-    if (subscription?.project_limit) {
-      limit = subscription.project_limit;
+    // If test mode is enabled, use the test project limit from localStorage
+    if (testMode) {
+      limit = parseInt(localStorage.getItem('test_project_limit') || '3');
     } else {
-      switch (currentPlan) {
-        case 'pro':
-          limit = 30;
-        case 'starter':
-          limit = 10;
-        case 'trial':
-        default:
-          limit = 3;
+      const currentPlan = subscription?.plan_type || 'trial';
+      
+      // Use cached value if available
+      const cacheKey = `${currentPlan}-limit`;
+      if (projectLimitCache.has(cacheKey)) {
+        return projectLimitCache.get(cacheKey) as number;
       }
+      
+      if (subscription?.project_limit) {
+        limit = subscription.project_limit;
+      } else {
+        switch (currentPlan) {
+          case 'pro':
+            limit = 30;
+            break;
+          case 'starter':
+            limit = 10;
+            break;
+          case 'trial':
+          default:
+            limit = 3;
+            break;
+        }
+      }
+      
+      // Cache the result
+      projectLimitCache.set(cacheKey, limit);
     }
     
-    // Cache the result
-    projectLimitCache.set(cacheKey, limit);
     return limit;
-  }, [subscription]);
+  }, [subscription, testMode]);
 
   const getPlanName = useCallback((feature: FeatureName): string => {
+    const currentPlan = testMode 
+      ? localStorage.getItem('test_plan') || 'trial'
+      : subscription?.plan_type || 'trial';
+      
     switch (feature) {
       case 'rfp_summary':
         return 'Advanced AI RFP Summary';
       case 'proposal_outline':
         return 'Enhanced AI Proposal Outline';
       case 'proposal_draft':
-        return subscription?.plan_type === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
+        return currentPlan === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
       case 'compiled_draft':
         return 'Compiled Draft Preview';
       case 'evaluation':
@@ -104,14 +136,15 @@ export function useSubscriptionFeatures() {
       default:
         return '';
     }
-  }, [subscription]);
+  }, [subscription, testMode]);
 
   return {
     hasFeature,
     getProjectLimit,
     getPlanName,
-    isLoading,
-    error,
-    plan: subscription?.plan_type // Use plan_type for backward compatibility
+    isLoading: testMode ? false : isLoading,
+    error: testMode ? null : error,
+    plan: testMode ? localStorage.getItem('test_plan') as string || 'trial' : subscription?.plan_type,
+    isTestMode: testMode
   };
 }

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,8 +9,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/AuthForm";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
 
 interface PricingPlan {
   name: string;
@@ -57,30 +56,31 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         return;
       }
 
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !currentSession) {
-        console.error('Session error:', sessionError);
-        toast.error("Please sign in again");
+      const priceId = isMonthly ? plan.priceId?.monthly : plan.priceId?.annual;
+      
+      if (!priceId) {
+        toast.error("Invalid subscription plan");
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { 
-          priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual 
-        },
-        headers: {
-          Authorization: `Bearer ${currentSession.access_token}`
-        }
-      });
+      toast.loading("Processing your request...");
+      
+      const { url, error } = await createCheckoutSession(priceId);
 
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
+      
+      if (url) {
+        toast.dismiss();
+        toast.success("Redirecting to checkout...");
+        setTimeout(() => {
+          window.location.href = url;
+        }, 1000);
       } else {
         throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Error:', error);
+      toast.dismiss();
       toast.error("Failed to start subscription process. Please try again.");
     }
   };

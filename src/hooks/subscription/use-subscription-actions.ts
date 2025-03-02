@@ -35,6 +35,51 @@ export const createTrialSubscription = async (userId: string): Promise<Subscript
 };
 
 /**
+ * Creates a checkout session for subscription upgrade
+ * @param priceId The Stripe price ID for the selected plan
+ * @returns Promise resolving with checkout URL or error
+ */
+export const createCheckoutSession = async (priceId: string): Promise<{ url?: string; error?: any }> => {
+  try {
+    // Get current session
+    const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error('Authentication error: ' + sessionError.message);
+    }
+
+    if (!authSession) {
+      throw new Error('No active session found. Please log in again.');
+    }
+
+    console.log('Creating checkout session with price ID:', priceId);
+    
+    // Call the create-checkout-session function with appropriate headers
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+      body: { priceId },
+      headers: {
+        Authorization: `Bearer ${authSession.access_token}`
+      }
+    });
+
+    if (error) {
+      console.error('Error creating checkout session:', error);
+      throw new Error(error.message || 'Failed to create checkout session');
+    }
+
+    if (!data?.url) {
+      throw new Error('No checkout URL returned from the server');
+    }
+
+    return { url: data.url };
+  } catch (error: any) {
+    console.error('Error in createCheckoutSession:', error);
+    return { error };
+  }
+};
+
+/**
  * Renews a failed or expired subscription
  * @param userId User ID
  * @param subscriptionId Stripe subscription ID
@@ -51,10 +96,24 @@ export const renewSubscription = async (
       return { success: false, error: "No active subscription found" };
     }
 
+    // Get current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      throw new Error('Authentication error: ' + sessionError.message);
+    }
+
+    if (!session) {
+      throw new Error('No active session found. Please log in again.');
+    }
+
     // Call the renew-subscription edge function
     const { error } = await supabase.functions.invoke('renew-subscription', {
       body: { 
         subscriptionId: subscriptionId
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
       }
     });
 

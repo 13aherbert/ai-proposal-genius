@@ -1,10 +1,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
 import { Loader2 } from "lucide-react";
+import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
 
 const PRICE_IDS = {
   trial: 'price_1QlhL0CcQ0GhLgJoeSDq6zEY',
@@ -36,36 +36,17 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       setIsLoading(true);
       toast.loading("Processing your request...");
 
-      // Get current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const priceId = getPriceId();
+      console.log(`Upgrading to ${targetPlan} (${variant}) with price ID: ${priceId}`);
       
-      if (sessionError) {
-        throw new Error('Session error: ' + sessionError.message);
-      }
-
-      if (!session) {
-        toast.error("Please log in to upgrade your subscription");
-        return;
-      }
-
-      // Call the create-checkout-session function with appropriate headers
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { 
-          priceId: getPriceId() 
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      console.log('Checkout session response:', data);
-
+      // Use the createCheckoutSession function from our actions
+      const { url, error } = await createCheckoutSession(priceId);
+      
       if (error) {
-        console.error('Error creating checkout session:', error);
         throw error;
       }
 
-      if (!data?.url) {
+      if (!url) {
         throw new Error('No checkout URL returned');
       }
 
@@ -78,7 +59,7 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       // Short delay to allow the success toast to be seen
       setTimeout(() => {
         // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        window.location.href = url;
       }, 1000);
     } catch (error) {
       console.error('Error in upgrade process:', error);

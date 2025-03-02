@@ -34,6 +34,7 @@ export function usePaymentUpdate() {
           window.location.href = result.url;
         }, 1000);
       } else {
+        console.error("Invalid renewal result:", result);
         toast.dismiss();
         toast.error("Could not initiate payment update", {
           description: result?.error?.message || "Please try again or contact support."

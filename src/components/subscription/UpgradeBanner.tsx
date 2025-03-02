@@ -4,11 +4,9 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import { toast } from "sonner";
-import { useSubscription } from "@/hooks/use-subscription";
 
 export function UpgradeBanner() {
   const { plan } = useSubscriptionFeatures();
-  const { loading } = useSubscription();
   const navigate = useNavigate();
   
   // Only show for trial or starter plans
@@ -18,7 +16,7 @@ export function UpgradeBanner() {
   
   const handleUpgradeClick = () => {
     toast.info("Redirecting to subscription options");
-    navigate('/subscription');
+    navigate('/subscription', { state: { fromUpgradeButton: true } });
   };
   
   return (
@@ -34,7 +32,6 @@ export function UpgradeBanner() {
       <Button 
         onClick={handleUpgradeClick}
         className="bg-white text-brand-green border border-brand-green hover:bg-brand-green hover:text-white"
-        disabled={loading}
       >
         Upgrade Now
       </Button>

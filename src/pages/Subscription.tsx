@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
 import { useSubscription } from "@/hooks/use-subscription";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -57,6 +57,13 @@ export default function Subscription() {
       }
     }
   }, [subscription, loading, navigate, location.state, isInGracePeriod]);
+
+  const handleUpdatePayment = () => {
+    renewSubscription();
+    toast.info("Payment update initiated", {
+      description: "We're redirecting you to update your payment method"
+    });
+  };
 
   if (loading && !initialLoadComplete) {
     return (
@@ -122,15 +129,40 @@ export default function Subscription() {
               <p className="text-sm">We couldn't process your payment. Please try again with a different payment method.</p>
             </div>
           </div>
+          
+          <div className="mb-8 flex justify-center">
+            <Button 
+              onClick={handleUpdatePayment}
+              className="flex items-center gap-2"
+            >
+              <CreditCard className="h-4 w-4" />
+              Update Payment Method
+            </Button>
+          </div>
+          
           <SubscriptionPlans />
         </div>
       </div>
     );
   }
 
+  // Add the Update Payment Method button to the standard view
   return (
     <div className="min-h-screen bg-background">
-      <SubscriptionPlans />
+      <div className="max-w-4xl mx-auto pt-8 px-4">
+        {subscription && subscription.status !== 'active' && (
+          <div className="mb-8 flex justify-center">
+            <Button 
+              onClick={handleUpdatePayment}
+              className="flex items-center gap-2"
+            >
+              <CreditCard className="h-4 w-4" />
+              Update Payment Method
+            </Button>
+          </div>
+        )}
+        <SubscriptionPlans />
+      </div>
     </div>
   );
 }

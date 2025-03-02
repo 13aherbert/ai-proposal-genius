@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
@@ -13,13 +12,10 @@ export default function Subscription() {
   const { data: subscription, loading, isInGracePeriod, renewSubscription } = useSubscription();
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
-  
-  // Check if user is coming from a payment failure redirect
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    // Check URL parameters for payment status
     const queryParams = new URLSearchParams(location.search);
     const paymentStatus = queryParams.get('payment_status');
     const paymentIntent = queryParams.get('payment_intent');
@@ -31,10 +27,9 @@ export default function Subscription() {
       });
     }
     
-    // Mark initial load as complete after subscription data is loaded or after a timeout
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
-    }, 3000); // Set a reasonable timeout for loading
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [location.search]);
@@ -43,13 +38,11 @@ export default function Subscription() {
     if (!loading && subscription) {
       setInitialLoadComplete(true);
       
-      // Handle subscription renewal/update cases
       const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
       const hasFailedSubscriptionPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
       const needsRenewal = isInGracePeriod() || hasFailedSubscriptionPayment;
       
       if (hasActiveSubscription && !needsRenewal) {
-        // Skip redirection to dashboard if the user explicitly came to the subscription page
         if (!location.state?.fromUpgradeButton) {
           navigate('/dashboard');
         }
@@ -64,24 +57,20 @@ export default function Subscription() {
       setIsUpdatingPayment(true);
       toast.loading("Preparing payment update...");
       
-      // Call the renewal function which should return a URL to redirect to
       const result = await renewSubscription();
       
       console.log("Renewal result:", result);
       
-      // If we have a URL from the result, redirect to it
       if (result && result.url) {
         toast.dismiss();
         toast.success("Redirecting to payment portal", {
           description: "You'll be redirected to update your payment method."
         });
         
-        // Short delay to allow the toast to be seen
         setTimeout(() => {
           window.location.href = result.url;
         }, 1000);
       } else {
-        // If there's no URL, the operation likely failed in some way
         toast.dismiss();
         toast.error("Could not initiate payment update", {
           description: result.error?.message || "Please try again or contact support."

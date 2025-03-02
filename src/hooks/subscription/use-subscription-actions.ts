@@ -113,7 +113,7 @@ export const renewSubscription = async (
     }
 
     // Call the renew-subscription edge function
-    const { data, error } = await supabase.functions.invoke('renew-subscription', {
+    const response = await supabase.functions.invoke('renew-subscription', {
       body: { 
         subscriptionId, 
         customerId 
@@ -122,15 +122,19 @@ export const renewSubscription = async (
         Authorization: `Bearer ${session.access_token}`
       }
     });
-
-    if (error) {
-      console.error("Edge function error:", error);
-      throw error;
+    
+    console.log("Edge function response:", response);
+    
+    if (response.error) {
+      console.error("Edge function error:", response.error);
+      throw new Error(`Edge function error: ${response.error.message || response.error}`);
     }
     
-    if (!data?.url) {
+    const { data } = response;
+    
+    if (!data || !data.url) {
       console.error("No URL returned:", data);
-      throw new Error('No portal URL returned from the server');
+      throw new Error(data?.error || 'No portal URL returned from the server');
     }
 
     console.log('Received portal URL:', data.url);

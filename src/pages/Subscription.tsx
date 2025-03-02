@@ -1,20 +1,36 @@
+
+/**
+ * Subscription Page Component
+ * 
+ * Handles displaying and managing user subscription states:
+ * - Loading state while subscription data is fetched
+ * - Renewal prompt if subscription needs attention
+ * - Payment failed view if a payment attempt failed
+ * - Default subscription plans view
+ * 
+ * Handles routing logic based on subscription status and manages
+ * payment update process.
+ */
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
 import { useSubscription } from "@/hooks/use-subscription";
-import { Loader2, AlertTriangle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/subscription/LoadingState";
+import { RenewalPrompt } from "@/components/subscription/RenewalPrompt";
+import { PaymentFailedView } from "@/components/subscription/PaymentFailedView";
+import { DefaultView } from "@/components/subscription/DefaultView";
+import { usePaymentUpdate } from "@/hooks/subscription/use-payment-update";
 
 export default function Subscription() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: subscription, loading, isInGracePeriod, renewSubscription } = useSubscription();
+  const { data: subscription, loading, isInGracePeriod } = useSubscription();
+  const { handleUpdatePayment, isUpdatingPayment } = usePaymentUpdate();
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
-  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  // Check for payment status in URL params (redirected from payment provider)
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const paymentStatus = queryParams.get('payment_status');
@@ -27,6 +43,7 @@ export default function Subscription() {
       });
     }
     
+    // Set initialLoadComplete after a timeout to prevent flickering
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
     }, 3000);
@@ -34,6 +51,7 @@ export default function Subscription() {
     return () => clearTimeout(timer);
   }, [location.search]);
 
+  // Process subscription data once loaded
   useEffect(() => {
     if (!loading && subscription) {
       setInitialLoadComplete(true);
@@ -52,169 +70,35 @@ export default function Subscription() {
     }
   }, [subscription, loading, navigate, location.state, isInGracePeriod]);
 
-  const handleUpdatePayment = async () => {
-    try {
-      setIsUpdatingPayment(true);
-      toast.loading("Preparing payment update...");
-      
-      const result = await renewSubscription();
-      
-      console.log("Renewal result:", result);
-      
-      if (result && result.url) {
-        toast.dismiss();
-        toast.success("Redirecting to payment portal", {
-          description: "You'll be redirected to update your payment method."
-        });
-        
-        setTimeout(() => {
-          window.location.href = result.url;
-        }, 1000);
-      } else {
-        toast.dismiss();
-        toast.error("Could not initiate payment update", {
-          description: result.error?.message || "Please try again or contact support."
-        });
-      }
-    } catch (error) {
-      console.error("Error updating payment method:", error);
-      toast.dismiss();
-      toast.error("Payment update failed", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred."
-      });
-    } finally {
-      setIsUpdatingPayment(false);
-    }
-  };
-
+  // Render appropriate view based on state
   if (loading && !initialLoadComplete) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
-        <p className="text-muted-foreground">Loading your subscription...</p>
-      </div>
-    );
+    return <LoadingState />;
   }
   
   if (showRenewalPrompt) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card p-6 rounded-lg shadow-lg">
-          <div className="flex items-center text-amber-600 mb-4">
-            <AlertTriangle className="h-6 w-6 mr-2" />
-            <h2 className="text-xl font-bold">Subscription Needs Attention</h2>
-          </div>
-          
-          <p className="mb-4 text-muted-foreground">
-            {isInGracePeriod() 
-              ? "Your subscription has expired but is in the grace period. Renew now to avoid losing access."
-              : "We couldn't process your last payment. Please update your payment method to continue your subscription."}
-          </p>
-          
-          <div className="space-y-3">
-            <Button 
-              onClick={handleUpdatePayment} 
-              className="w-full flex items-center justify-center gap-2"
-              disabled={isUpdatingPayment}
-            >
-              {isUpdatingPayment ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4" />
-                  Update Payment Method
-                </>
-              )}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => setShowRenewalPrompt(false)}
-              className="w-full"
-              disabled={isUpdatingPayment}
-            >
-              View Subscription Options
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/dashboard')}
-              className="w-full"
-              disabled={isUpdatingPayment}
-            >
-              Return to Dashboard
-            </Button>
-          </div>
-        </div>
-      </div>
+      <RenewalPrompt
+        isInGracePeriod={isInGracePeriod}
+        handleUpdatePayment={handleUpdatePayment}
+        isUpdatingPayment={isUpdatingPayment}
+        setShowRenewalPrompt={setShowRenewalPrompt}
+      />
     );
   }
 
   if (paymentFailed) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto pt-8 px-4">
-          <div className="bg-destructive/10 p-4 rounded-lg mb-8 flex items-center gap-3">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-            <div>
-              <h3 className="font-medium text-destructive">Payment Failed</h3>
-              <p className="text-sm">We couldn't process your payment. Please try again with a different payment method.</p>
-            </div>
-          </div>
-          
-          <div className="mb-8 flex justify-center">
-            <Button 
-              onClick={handleUpdatePayment}
-              className="flex items-center gap-2"
-              disabled={isUpdatingPayment}
-            >
-              {isUpdatingPayment ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4" />
-                  Update Payment Method
-                </>
-              )}
-            </Button>
-          </div>
-          
-          <SubscriptionPlans />
-        </div>
-      </div>
+      <PaymentFailedView
+        handleUpdatePayment={handleUpdatePayment}
+        isUpdatingPayment={isUpdatingPayment}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto pt-8 px-4">
-        <div className="mb-8 flex justify-center">
-          <Button 
-            onClick={handleUpdatePayment}
-            className="flex items-center gap-2"
-            disabled={isUpdatingPayment}
-          >
-            {isUpdatingPayment ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <CreditCard className="h-4 w-4" />
-                Update Payment Method
-              </>
-            )}
-          </Button>
-        </div>
-        <SubscriptionPlans />
-      </div>
-    </div>
+    <DefaultView
+      handleUpdatePayment={handleUpdatePayment}
+      isUpdatingPayment={isUpdatingPayment}
+    />
   );
 }

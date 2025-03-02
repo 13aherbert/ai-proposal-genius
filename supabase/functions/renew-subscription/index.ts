@@ -26,7 +26,7 @@ serve(async (req) => {
     if (!authHeader) {
       console.error('Missing Authorization header')
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
+        JSON.stringify({ error: { message: 'Missing Authorization header' } }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -40,7 +40,7 @@ serve(async (req) => {
     if (!subscriptionId && !customerId) {
       console.error('Missing required parameters: need either subscriptionId or customerId')
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ error: { message: 'Missing required parameters' } }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -101,7 +101,7 @@ serve(async (req) => {
   } catch (error) {
     console.error(`Error in renew-subscription function: ${error.message}`)
     return new Response(
-      JSON.stringify({ error: error.message || 'An unknown error occurred' }),
+      JSON.stringify({ error: { message: error.message || 'An unknown error occurred' } }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

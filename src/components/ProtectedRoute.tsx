@@ -106,7 +106,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           <p className="text-sm font-medium">
             We couldn't process your payment. Please update your payment method to avoid service interruption.
             <button 
-              onClick={() => navigate('/account-settings')} 
+              onClick={() => navigate('/subscription')} 
               className="ml-2 underline"
             >
               Update now

@@ -12,7 +12,10 @@ export const useRecentActivity = (user: User | null) => {
 
   useEffect(() => {
     const fetchRecentActivity = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const { data: projects, error: projectsError } = await supabase
@@ -54,13 +57,16 @@ export const useRecentActivity = (user: User | null) => {
         .slice(0, 5);
 
         setRecentActivity(activities);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching recent activity:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load recent activity"
-        });
+        // Don't show toast for "no rows" errors which are expected for new users
+        if (error.message && !error.message.includes('contains 0 rows')) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load recent activity"
+          });
+        }
       } finally {
         setIsLoading(false);
       }

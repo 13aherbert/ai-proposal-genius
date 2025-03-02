@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import type { User } from "@supabase/supabase-js";
 import { useSubscriptionFeatures } from "./use-subscription-features";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
 
@@ -26,6 +26,15 @@ export function useProjects(user: User | null) {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // Ensure user state is properly tracked
+  useEffect(() => {
+    if (user?.id) {
+      console.log("User authenticated:", user.id);
+    } else {
+      console.log("No user authenticated");
+    }
+  }, [user]);
 
   // Implement a cached fetching function
   const fetchProjects = useCallback(async ({ currentPage, pageSize, userId }: { 
@@ -36,6 +45,11 @@ export function useProjects(user: User | null) {
     try {
       console.log("Fetching projects for user:", userId);
       console.log("Pagination:", { currentPage, pageSize });
+      
+      if (!userId) {
+        console.warn("Cannot fetch projects: No user ID provided");
+        return { data: [], totalCount: 0 };
+      }
       
       // Artificial delay removed for production but kept for development feedback
       if (process.env.NODE_ENV === 'development') {
@@ -54,6 +68,7 @@ export function useProjects(user: User | null) {
       }
 
       const totalCount = count || 0;
+      console.log("Total project count:", totalCount);
 
       // Calculate range for pagination
       const from = (currentPage - 1) * pageSize;
@@ -97,6 +112,11 @@ export function useProjects(user: User | null) {
   } = useQuery({
     queryKey: ["projects", user?.id, currentPage, pageSize],
     queryFn: async () => {
+      if (!user?.id) {
+        console.warn("Query execution prevented: No user ID available");
+        return [];
+      }
+      
       const result = await fetchProjects({ 
         currentPage, 
         pageSize, 
@@ -111,6 +131,13 @@ export function useProjects(user: User | null) {
     staleTime: 60000, // Cache data for 1 minute
     gcTime: 300000,   // Keep unused data in cache for 5 minutes
   });
+
+  // Log any errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("Projects query error:", error);
+    }
+  }, [error]);
 
   const projects = projectsData || [];
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
@@ -11,6 +12,7 @@ export default function Subscription() {
   const location = useLocation();
   const { data: subscription, loading, isInGracePeriod, renewSubscription } = useSubscription();
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   
   // Check if user is coming from a payment failure redirect
   const [paymentFailed, setPaymentFailed] = useState(false);
@@ -57,11 +59,41 @@ export default function Subscription() {
     }
   }, [subscription, loading, navigate, location.state, isInGracePeriod]);
 
-  const handleUpdatePayment = () => {
-    renewSubscription();
-    toast.info("Payment update initiated", {
-      description: "We're redirecting you to update your payment method"
-    });
+  const handleUpdatePayment = async () => {
+    try {
+      setIsUpdatingPayment(true);
+      toast.loading("Preparing payment update...");
+      
+      // Call the renewal function which should return a URL to redirect to
+      const result = await renewSubscription();
+      
+      // If we have a URL from the result, redirect to it
+      if (result && result.url) {
+        toast.dismiss();
+        toast.success("Redirecting to payment portal", {
+          description: "You'll be redirected to update your payment method."
+        });
+        
+        // Short delay to allow the toast to be seen
+        setTimeout(() => {
+          window.location.href = result.url;
+        }, 1000);
+      } else {
+        // If there's no URL, the operation likely failed in some way
+        toast.dismiss();
+        toast.error("Could not initiate payment update", {
+          description: "Please try again or contact support."
+        });
+      }
+    } catch (error) {
+      console.error("Error updating payment method:", error);
+      toast.dismiss();
+      toast.error("Payment update failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred."
+      });
+    } finally {
+      setIsUpdatingPayment(false);
+    }
   };
 
   if (loading && !initialLoadComplete) {
@@ -92,15 +124,26 @@ export default function Subscription() {
             <Button 
               onClick={handleUpdatePayment} 
               className="w-full flex items-center justify-center gap-2"
+              disabled={isUpdatingPayment}
             >
-              <CreditCard className="h-4 w-4" />
-              Update Payment Method
+              {isUpdatingPayment ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  Update Payment Method
+                </>
+              )}
             </Button>
             
             <Button 
               variant="outline" 
               onClick={() => setShowRenewalPrompt(false)}
               className="w-full"
+              disabled={isUpdatingPayment}
             >
               View Subscription Options
             </Button>
@@ -109,6 +152,7 @@ export default function Subscription() {
               variant="ghost" 
               onClick={() => navigate('/dashboard')}
               className="w-full"
+              disabled={isUpdatingPayment}
             >
               Return to Dashboard
             </Button>
@@ -134,9 +178,19 @@ export default function Subscription() {
             <Button 
               onClick={handleUpdatePayment}
               className="flex items-center gap-2"
+              disabled={isUpdatingPayment}
             >
-              <CreditCard className="h-4 w-4" />
-              Update Payment Method
+              {isUpdatingPayment ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  Update Payment Method
+                </>
+              )}
             </Button>
           </div>
           
@@ -153,9 +207,19 @@ export default function Subscription() {
           <Button 
             onClick={handleUpdatePayment}
             className="flex items-center gap-2"
+            disabled={isUpdatingPayment}
           >
-            <CreditCard className="h-4 w-4" />
-            Update Payment Method
+            {isUpdatingPayment ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-4 w-4" />
+                Update Payment Method
+              </>
+            )}
           </Button>
         </div>
         <SubscriptionPlans />

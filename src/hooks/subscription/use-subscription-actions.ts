@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionPlan } from '@/types/subscription';
 import { toast } from 'sonner';
@@ -81,19 +82,20 @@ export const createCheckoutSession = async (priceId: string): Promise<{ url?: st
 
 /**
  * Renews a failed or expired subscription
- * @param userId User ID
  * @param subscriptionId Stripe subscription ID
- * @returns Promise resolving with success or error
+ * @param customerId Stripe customer ID
+ * @returns Promise resolving with success status, URL, or error
  */
 export const renewSubscription = async (
-  subscriptionId: string | null
-): Promise<{ success: boolean, error?: any }> => {
+  subscriptionId: string | null,
+  customerId: string | null
+): Promise<{ success: boolean, url?: string, error?: any }> => {
   try {
-    if (!subscriptionId) {
+    if (!subscriptionId && !customerId) {
       toast.error("Cannot renew subscription", { 
-        description: "No active subscription found" 
+        description: "No active subscription or customer found" 
       });
-      return { success: false, error: "No active subscription found" };
+      return { success: false, error: "No active subscription or customer found" };
     }
 
     // Get current session
@@ -108,9 +110,10 @@ export const renewSubscription = async (
     }
 
     // Call the renew-subscription edge function
-    const { error } = await supabase.functions.invoke('renew-subscription', {
+    const { data, error } = await supabase.functions.invoke('renew-subscription', {
       body: { 
-        subscriptionId: subscriptionId
+        subscriptionId: subscriptionId,
+        customerId: customerId
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`
@@ -118,12 +121,14 @@ export const renewSubscription = async (
     });
 
     if (error) throw error;
+    
+    if (!data?.url) {
+      throw new Error('No portal URL returned from the server');
+    }
 
-    toast.success("Renewal initiated", {
-      description: "Your subscription renewal has been initiated. Please check your email for payment details."
-    });
-
-    return { success: true };
+    console.log('Received portal URL:', data.url);
+    
+    return { success: true, url: data.url };
   } catch (error: any) {
     console.error('Error renewing subscription:', error);
     toast.error("Failed to renew subscription", {
@@ -132,3 +137,4 @@ export const renewSubscription = async (
     return { success: false, error };
   }
 };
+

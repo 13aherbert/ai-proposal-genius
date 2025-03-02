@@ -40,30 +40,46 @@ serve(async (req) => {
     }
     
     // Get request data
-    const { subscriptionId } = await req.json();
+    const { subscriptionId, customerId } = await req.json();
     
-    // Validate request data
-    if (!subscriptionId) {
-      throw new Error('Missing subscription ID');
+    // At least one of subscriptionId or customerId must be provided
+    if (!subscriptionId && !customerId) {
+      throw new Error('Missing subscription ID or customer ID');
     }
 
-    // Get the user's subscription
-    const { data: subscriptionData, error: subError } = await supabase
-      .from('subscriptions')
-      .select('stripe_subscription_id, stripe_customer_id')
-      .eq('user_id', user.id)
-      .eq('stripe_subscription_id', subscriptionId)
-      .maybeSingle();
+    let customerIdToUse = customerId;
 
-    if (subError || !subscriptionData) {
-      console.error('Subscription error:', subError);
-      throw new Error('Subscription not found');
+    // If no customer ID was provided but we have a subscription ID, get the customer ID from the subscription
+    if (!customerIdToUse && subscriptionId) {
+      // Get the user's subscription
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('stripe_customer_id')
+        .eq('user_id', user.id)
+        .eq('stripe_subscription_id', subscriptionId)
+        .maybeSingle();
+
+      if (subError) {
+        console.error('Subscription error:', subError);
+        throw new Error('Subscription not found');
+      }
+
+      if (subscriptionData?.stripe_customer_id) {
+        customerIdToUse = subscriptionData.stripe_customer_id;
+      } else {
+        throw new Error('No customer ID found for this subscription');
+      }
+    }
+
+    // Verify the customer exists
+    if (!customerIdToUse) {
+      throw new Error('No customer ID available to create billing portal');
     }
 
     // Create a billing portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: subscriptionData.stripe_customer_id,
-      return_url: `${req.headers.get('origin')}/account-settings`,
+      customer: customerIdToUse,
+      return_url: `${req.headers.get('origin')}/subscription`,
     });
 
     // Return the session URL

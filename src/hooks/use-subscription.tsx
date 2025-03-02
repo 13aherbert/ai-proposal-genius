@@ -27,7 +27,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   isLoading: true,
   error: null,
   checkSubscription: async () => {},
-  renewSubscription: async () => {},
+  renewSubscription: async () => ({}),
   isPastGracePeriod: () => false,
   isInGracePeriod: () => false,
   isActive: () => false,
@@ -99,16 +99,24 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   /**
    * Renews a failed or expired subscription
+   * @returns Promise with URL for the billing portal
    */
   const renewSubscription = async () => {
-    if (!subscription?.stripe_subscription_id) return;
+    if (!subscription?.stripe_subscription_id && !subscription?.stripe_customer_id) {
+      return { error: "No active subscription or customer ID found" };
+    }
     
-    const result = await renewUserSubscription(subscription.stripe_subscription_id);
+    const result = await renewUserSubscription(
+      subscription.stripe_subscription_id,
+      subscription.stripe_customer_id
+    );
     
     if (result.success) {
       // Refresh subscription data after successful renewal
       await checkSubscription();
     }
+    
+    return result;
   };
 
   // Local wrapper functions for the helper functions

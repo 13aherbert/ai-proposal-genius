@@ -102,21 +102,28 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
    * @returns Promise with URL for the billing portal
    */
   const renewSubscription = async () => {
-    if (!subscription?.stripe_subscription_id && !subscription?.stripe_customer_id) {
-      return { error: "No active subscription or customer ID found" };
+    try {
+      console.log("Attempting subscription renewal with data:", subscription);
+      
+      if (!subscription) {
+        return { error: "No subscription data available" };
+      }
+      
+      const result = await renewUserSubscription(
+        subscription.stripe_subscription_id,
+        subscription.stripe_customer_id
+      );
+      
+      if (result.success) {
+        // Refresh subscription data after successful renewal
+        await checkSubscription();
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error in renewSubscription:", error);
+      return { success: false, error };
     }
-    
-    const result = await renewUserSubscription(
-      subscription.stripe_subscription_id,
-      subscription.stripe_customer_id
-    );
-    
-    if (result.success) {
-      // Refresh subscription data after successful renewal
-      await checkSubscription();
-    }
-    
-    return result;
   };
 
   // Local wrapper functions for the helper functions

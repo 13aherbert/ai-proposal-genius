@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionPlan } from '@/types/subscription';
 import { toast } from 'sonner';
@@ -98,31 +97,39 @@ export const renewSubscription = async (
       return { success: false, error: "No active subscription or customer found" };
     }
 
+    console.log("Attempting to renew subscription with:", { subscriptionId, customerId });
+
     // Get current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
+      console.error("Session error:", sessionError);
       throw new Error('Authentication error: ' + sessionError.message);
     }
 
     if (!session) {
+      console.error("No active session found");
       throw new Error('No active session found. Please log in again.');
     }
 
     // Call the renew-subscription edge function
     const { data, error } = await supabase.functions.invoke('renew-subscription', {
       body: { 
-        subscriptionId: subscriptionId,
-        customerId: customerId
+        subscriptionId, 
+        customerId 
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Edge function error:", error);
+      throw error;
+    }
     
     if (!data?.url) {
+      console.error("No URL returned:", data);
       throw new Error('No portal URL returned from the server');
     }
 
@@ -137,4 +144,3 @@ export const renewSubscription = async (
     return { success: false, error };
   }
 };
-

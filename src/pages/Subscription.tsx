@@ -67,6 +67,8 @@ export default function Subscription() {
       // Call the renewal function which should return a URL to redirect to
       const result = await renewSubscription();
       
+      console.log("Renewal result:", result);
+      
       // If we have a URL from the result, redirect to it
       if (result && result.url) {
         toast.dismiss();
@@ -82,7 +84,7 @@ export default function Subscription() {
         // If there's no URL, the operation likely failed in some way
         toast.dismiss();
         toast.error("Could not initiate payment update", {
-          description: "Please try again or contact support."
+          description: result.error?.message || "Please try again or contact support."
         });
       }
     } catch (error) {

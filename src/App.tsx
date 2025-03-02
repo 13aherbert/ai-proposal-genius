@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -58,6 +59,15 @@ function App() {
                 />
                 <Route
                   path="/projects"
+                  element={
+                    <ProtectedRoute>
+                      <RecentProjects />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Add new route for /recent-projects that renders the same component */}
+                <Route
+                  path="/recent-projects"
                   element={
                     <ProtectedRoute>
                       <RecentProjects />

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
@@ -91,9 +90,10 @@ export default function Subscription() {
           
           <div className="space-y-3">
             <Button 
-              onClick={() => renewSubscription()} 
-              className="w-full"
+              onClick={handleUpdatePayment} 
+              className="w-full flex items-center justify-center gap-2"
             >
+              <CreditCard className="h-4 w-4" />
               Update Payment Method
             </Button>
             
@@ -146,21 +146,18 @@ export default function Subscription() {
     );
   }
 
-  // Add the Update Payment Method button to the standard view
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto pt-8 px-4">
-        {subscription && subscription.status !== 'active' && (
-          <div className="mb-8 flex justify-center">
-            <Button 
-              onClick={handleUpdatePayment}
-              className="flex items-center gap-2"
-            >
-              <CreditCard className="h-4 w-4" />
-              Update Payment Method
-            </Button>
-          </div>
-        )}
+        <div className="mb-8 flex justify-center">
+          <Button 
+            onClick={handleUpdatePayment}
+            className="flex items-center gap-2"
+          >
+            <CreditCard className="h-4 w-4" />
+            Update Payment Method
+          </Button>
+        </div>
         <SubscriptionPlans />
       </div>
     </div>

@@ -15,6 +15,7 @@ export default function Subscription() {
   
   // Check if user is coming from a payment failure redirect
   const [paymentFailed, setPaymentFailed] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
     // Check URL parameters for payment status
@@ -29,19 +30,35 @@ export default function Subscription() {
       });
     }
     
-    // Handle subscription renewal/update cases
-    const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
-    const hasFailedSubscriptionPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
-    const needsRenewal = isInGracePeriod() || hasFailedSubscriptionPayment;
-    
-    if (hasActiveSubscription && !needsRenewal) {
-      navigate('/dashboard');
-    } else if (needsRenewal) {
-      setShowRenewalPrompt(true);
-    }
-  }, [subscription, navigate, location.search, isInGracePeriod]);
+    // Mark initial load as complete after subscription data is loaded or after a timeout
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 3000); // Set a reasonable timeout for loading
 
-  if (loading) {
+    return () => clearTimeout(timer);
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!loading && subscription) {
+      setInitialLoadComplete(true);
+      
+      // Handle subscription renewal/update cases
+      const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
+      const hasFailedSubscriptionPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+      const needsRenewal = isInGracePeriod() || hasFailedSubscriptionPayment;
+      
+      if (hasActiveSubscription && !needsRenewal) {
+        // Skip redirection to dashboard if the user explicitly came to the subscription page
+        if (!location.state?.fromUpgradeButton) {
+          navigate('/dashboard');
+        }
+      } else if (needsRenewal) {
+        setShowRenewalPrompt(true);
+      }
+    }
+  }, [subscription, loading, navigate, location.state, isInGracePeriod]);
+
+  if (loading && !initialLoadComplete) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />

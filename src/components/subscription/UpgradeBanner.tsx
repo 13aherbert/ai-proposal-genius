@@ -3,15 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
+import { toast } from "sonner";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export function UpgradeBanner() {
   const { plan } = useSubscriptionFeatures();
+  const { loading } = useSubscription();
   const navigate = useNavigate();
   
   // Only show for trial or starter plans
   if (plan !== 'trial' && plan !== 'starter') {
     return null;
   }
+  
+  const handleUpgradeClick = () => {
+    toast.info("Redirecting to subscription options");
+    navigate('/subscription');
+  };
   
   return (
     <div className="bg-black/30 backdrop-blur-sm border-brand-green border px-4 py-3 mb-4 rounded-lg flex flex-col sm:flex-row items-center justify-between">
@@ -24,8 +32,9 @@ export function UpgradeBanner() {
         </p>
       </div>
       <Button 
-        onClick={() => navigate('/subscription')}
+        onClick={handleUpgradeClick}
         className="bg-white text-brand-green border border-brand-green hover:bg-brand-green hover:text-white"
+        disabled={loading}
       >
         Upgrade Now
       </Button>

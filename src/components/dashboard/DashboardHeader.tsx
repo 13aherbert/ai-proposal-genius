@@ -17,6 +17,8 @@ export default function DashboardHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
+  const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
+  
   const projectLimit = getProjectLimit();
   const isSubscriptionActive = plan && plan !== 'trial';
   
@@ -24,20 +26,27 @@ export default function DashboardHeader() {
     const checkRoles = async () => {
       try {
         setIsCheckingRoles(true);
+        setRoleCheckError(null);
         
         if (session?.user) {
-          // Check admin role
-          const adminCheck = await adminService.isAdmin();
-          setIsAdmin(adminCheck);
-          
-          // Only check beta tester role if not an admin (to avoid unnecessary calls)
-          if (!adminCheck) {
-            const betaCheck = await adminService.checkUserRole('beta_tester');
-            setIsBetaTester(betaCheck);
+          // Check admin role using RPC function
+          try {
+            const adminCheck = await adminService.isAdmin();
+            setIsAdmin(adminCheck);
+            
+            // Only check beta tester role if not an admin (to avoid unnecessary calls)
+            if (!adminCheck) {
+              const betaCheck = await adminService.checkUserRole('beta_tester');
+              setIsBetaTester(betaCheck);
+            }
+          } catch (err) {
+            console.error("Error checking user roles:", err);
+            setRoleCheckError("Could not verify user roles");
           }
         }
       } catch (error) {
-        console.error("Error checking user roles:", error);
+        console.error("Error in role checking process:", error);
+        setRoleCheckError("Failed to check user permissions");
       } finally {
         setIsCheckingRoles(false);
       }
@@ -66,7 +75,7 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {!isCheckingRoles && isAdmin && (
+            {!isCheckingRoles && !roleCheckError && isAdmin && (
               <Button 
                 variant="outline" 
                 className="bg-black/20 border-brand-silver hover:bg-black/40"
@@ -77,10 +86,17 @@ export default function DashboardHeader() {
               </Button>
             )}
             
-            {!isCheckingRoles && isBetaTester && !isAdmin && (
+            {!isCheckingRoles && !roleCheckError && isBetaTester && !isAdmin && (
               <Badge variant="outline" className="py-2 px-3">
                 <Crown className="h-4 w-4 mr-1" />
                 Beta Tester
+              </Badge>
+            )}
+            
+            {roleCheckError && (
+              <Badge variant="destructive" className="py-2 px-3">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {roleCheckError}
               </Badge>
             )}
             

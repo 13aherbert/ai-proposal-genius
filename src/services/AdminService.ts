@@ -42,12 +42,14 @@ export type BetaInvitation = {
 class AdminService {
   /**
    * Check if the current user has a specific role
+   * Uses a direct query to avoid row-level security recursion
    */
   async checkUserRole(role: UserRole): Promise<boolean> {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user || !user.user) return false;
 
+      // Use a direct query without going through the RLS policy
       const { data, error } = await supabase.rpc('has_role', {
         _user_id: user.user.id,
         _role: role
@@ -67,9 +69,11 @@ class AdminService {
 
   /**
    * Check if the current user is an admin
+   * Uses a direct RPC call to avoid row-level security recursion
    */
   async isAdmin(): Promise<boolean> {
     try {
+      // Call the is_admin function defined in SQL
       const { data, error } = await supabase.rpc('is_admin');
       
       if (error) {
@@ -90,7 +94,7 @@ class AdminService {
    */
   async getAllUsers(): Promise<UserProfile[]> {
     try {
-      // First check if user is admin
+      // First check if user is admin through RPC function
       const isAdmin = await this.isAdmin();
       if (!isAdmin) {
         toast.error("Access denied", { description: "You don't have permission to view users" });
@@ -108,10 +112,8 @@ class AdminService {
         throw new Error(profileError.message || 'Failed to fetch user profiles');
       }
 
-      // Get all user roles
-      const { data: roleRecords, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*') as { data: UserRoleRecord[] | null, error: any };
+      // Use a separate query to get user roles to avoid recursion
+      const { data: roleRecords, error: rolesError } = await supabase.rpc('get_all_user_roles');
 
       if (rolesError) {
         console.error('Error fetching roles:', rolesError);
@@ -158,6 +160,7 @@ class AdminService {
    */
   async assignRole(userId: string, role: UserRole): Promise<boolean> {
     try {
+      // Check admin using RPC
       if (!await this.isAdmin()) {
         toast.error("Access denied", { description: "You don't have permission to assign roles" });
         return false;
@@ -210,6 +213,7 @@ class AdminService {
    */
   async removeRole(userId: string, role: UserRole): Promise<boolean> {
     try {
+      // Check admin using RPC
       if (!await this.isAdmin()) {
         toast.error("Access denied", { description: "You don't have permission to remove roles" });
         return false;
@@ -241,7 +245,7 @@ class AdminService {
    */
   async updateSubscriptionPlan(userId: string, plan: string): Promise<boolean> {
     try {
-      // First check if user is admin
+      // Check admin using RPC
       const isAdmin = await this.isAdmin();
       if (!isAdmin) {
         toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
@@ -255,7 +259,7 @@ class AdminService {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
         
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Error fetching subscription:', fetchError);
@@ -319,7 +323,7 @@ class AdminService {
    */
   async createBetaInvitation(email: string, expirationDays = 7): Promise<BetaInvitation | null> {
     try {
-      // First check if user is admin
+      // Check admin using RPC
       const isAdmin = await this.isAdmin();
       if (!isAdmin) {
         toast.error("Access denied", { description: "You don't have permission to create invitations" });
@@ -332,15 +336,12 @@ class AdminService {
         return null;
       }
 
-      // Check if there's already a pending invitation for this email
-      const { data: existingInvite, error: checkError } = await supabase
-        .from('beta_invitations')
-        .select('*')
-        .eq('email', email)
-        .eq('status', 'pending')
-        .single();
+      // Check if there's already a pending invitation for this email - use direct RPC
+      const { data: existingInvite, error: checkError } = await supabase.rpc('get_pending_invitation_by_email', { 
+        email_param: email 
+      });
         
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('Error checking invitations:', checkError);
         return null;
       }
@@ -398,11 +399,8 @@ class AdminService {
         return [];
       }
 
-      // Use direct query instead of checking admin status in the WHERE clause to avoid recursion
-      const { data, error } = await supabase
-        .from('beta_invitations')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use RPC to avoid recursive policy issues
+      const { data, error } = await supabase.rpc('get_all_beta_invitations');
 
       if (error) {
         console.error('Error fetching invitations:', error);

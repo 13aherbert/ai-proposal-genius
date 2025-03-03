@@ -8,7 +8,7 @@ import { useSubscription } from "@/hooks/use-subscription";
  * @returns Functions and state for handling payment updates
  */
 export function usePaymentUpdate() {
-  const { renewSubscription } = useSubscription();
+  const { renewSubscription, subscription } = useSubscription();
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
 
   /**
@@ -18,6 +18,17 @@ export function usePaymentUpdate() {
   const handleUpdatePayment = async () => {
     try {
       setIsUpdatingPayment(true);
+      
+      // Check if we have a subscription with required data
+      if (!subscription) {
+        console.error("No subscription data available");
+        toast.error("Cannot update payment method", {
+          description: "No subscription information found. Please refresh the page and try again."
+        });
+        return;
+      }
+      
+      console.log("Initiating payment update with subscription:", subscription);
       toast.loading("Preparing payment update...");
       
       const result = await renewSubscription();

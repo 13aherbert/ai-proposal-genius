@@ -106,8 +106,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       console.log("Attempting subscription renewal with data:", subscription);
       
       if (!subscription) {
-        return { error: "No subscription data available" };
+        console.error("No subscription data available for renewal");
+        return { success: false, error: { message: "No subscription data available" } };
       }
+      
+      // Log the stripe IDs to help with debugging
+      console.log("Using subscription data for renewal:", {
+        stripeSubscriptionId: subscription.stripe_subscription_id,
+        stripeCustomerId: subscription.stripe_customer_id
+      });
       
       const result = await renewUserSubscription(
         subscription.stripe_subscription_id,

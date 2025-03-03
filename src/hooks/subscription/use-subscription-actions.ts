@@ -114,7 +114,11 @@ export const renewSubscription = async (
     }
 
     // Call the renew-subscription edge function with detailed logging
-    console.log("Invoking renew-subscription edge function");
+    console.log("Invoking renew-subscription edge function with payload:", { 
+      subscriptionId, 
+      customerId 
+    });
+    
     const { data, error } = await supabase.functions.invoke('renew-subscription', {
       body: { 
         subscriptionId, 

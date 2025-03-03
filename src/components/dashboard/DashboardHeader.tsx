@@ -16,17 +16,30 @@ export default function DashboardHeader() {
   const { plan, getProjectLimit, isLoading, error } = useSubscriptionFeatures();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
+  const [isCheckingRoles, setIsCheckingRoles] = useState(true);
   const projectLimit = getProjectLimit();
   const isSubscriptionActive = plan && plan !== 'trial';
   
   useEffect(() => {
     const checkRoles = async () => {
-      if (session?.user) {
-        const adminCheck = await adminService.isAdmin();
-        setIsAdmin(adminCheck);
+      try {
+        setIsCheckingRoles(true);
         
-        const betaCheck = await adminService.checkUserRole('beta_tester');
-        setIsBetaTester(betaCheck);
+        if (session?.user) {
+          // Check admin role
+          const adminCheck = await adminService.isAdmin();
+          setIsAdmin(adminCheck);
+          
+          // Only check beta tester role if not an admin (to avoid unnecessary calls)
+          if (!adminCheck) {
+            const betaCheck = await adminService.checkUserRole('beta_tester');
+            setIsBetaTester(betaCheck);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking user roles:", error);
+      } finally {
+        setIsCheckingRoles(false);
       }
     };
     
@@ -53,7 +66,7 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {isAdmin && (
+            {!isCheckingRoles && isAdmin && (
               <Button 
                 variant="outline" 
                 className="bg-black/20 border-brand-silver hover:bg-black/40"
@@ -64,7 +77,7 @@ export default function DashboardHeader() {
               </Button>
             )}
             
-            {isBetaTester && !isAdmin && (
+            {!isCheckingRoles && isBetaTester && !isAdmin && (
               <Badge variant="outline" className="py-2 px-3">
                 <Crown className="h-4 w-4 mr-1" />
                 Beta Tester

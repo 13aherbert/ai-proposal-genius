@@ -90,7 +90,7 @@ class AdminService {
 
   /**
    * Get all user profiles for admin management
-   * This uses different approach to avoid auth.admin.listUsers issues
+   * Uses Edge Function to avoid auth.admin.listUsers issues and RLS recursion
    */
   async getAllUsers(): Promise<UserProfile[]> {
     try {
@@ -101,8 +101,7 @@ class AdminService {
         return [];
       }
       
-      // Instead of using auth.admin.listUsers which requires special privileges,
-      // we'll get data from the profiles table which has proper RLS policies
+      // Get profiles directly from the profiles table
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*');
@@ -112,8 +111,7 @@ class AdminService {
         throw new Error(profileError.message || 'Failed to fetch user profiles');
       }
 
-      // Use a separate query to get user roles to avoid recursion
-      // We're using a custom function to avoid RLS recursion
+      // Use Edge Function to get user roles to avoid RLS recursion
       const { data: roleRecords, error: rolesError } = await supabase.functions.invoke('get-user-roles', {
         method: 'GET'
       });
@@ -133,6 +131,7 @@ class AdminService {
 
       // Map profiles to UserProfile format
       return profiles?.map(profile => {
+        // For each profile, find its roles in the roleRecords array
         const userRolesArray = roleRecords?.filter(r => r.user_id === profile.profile_id) || [];
         const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
 
@@ -339,7 +338,7 @@ class AdminService {
         return null;
       }
 
-      // Check if there's already a pending invitation for this email - use direct functions
+      // Check if there's already a pending invitation for this email - use edge function
       const { data: existingInvitations, error: checkError } = await supabase.functions.invoke('get-pending-invitation', {
         method: 'POST',
         body: { email }

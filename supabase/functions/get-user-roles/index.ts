@@ -1,80 +1,73 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// Define CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Create a Supabase client with the Admin key
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-)
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
+import { corsHeaders, handleCors, addCorsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  // Check if this is a preflight CORS request
+  const corsResponse = handleCors(req)
+  if (corsResponse) return corsResponse
+
+  // Create Supabase client with admin privileges
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
-    // Get authenticated user
+    // Get authorization header from request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: 'Missing Authorization header' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
-    // First verify the user is an admin
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
-    
+    // Verify the user with the JWT token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
+
     if (userError || !user) {
-      console.error('Error fetching user:', userError)
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: 'Unauthorized user', details: userError }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
-    // Check if user is admin with direct query bypassing RLS
-    const { data: isAdmin, error: adminCheckError } = await supabaseAdmin.rpc('is_admin')
+    // Check if user is admin
+    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
     
-    if (adminCheckError || !isAdmin) {
-      console.error('Admin check failed:', adminCheckError)
-      return new Response(
+    if (adminError || !isAdmin) {
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Unauthorized - admin role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
-    // Get all user roles with admin privileges bypassing RLS
-    const { data, error } = await supabaseAdmin
+    // If user is admin, retrieve all user roles
+    const { data, error } = await supabase
       .from('user_roles')
       .select('*')
     
     if (error) {
-      console.error('Error getting user roles:', error)
-      return new Response(
+      console.error('Error fetching user roles:', error)
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: error.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
-    
+
     // Return the user roles
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify(data),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    ))
+    
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal Server Error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error('Unexpected error in get-user-roles:', error)
+    return addCorsHeaders(new Response(
+      JSON.stringify({ error: 'Internal Server Error', details: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    ))
   }
 })

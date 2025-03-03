@@ -59,3 +59,15 @@ verify_jwt = true
 [[functions]]
 name = "renew-subscription"
 verify_jwt = true
+
+[[functions]]
+name = "get-user-roles"
+verify_jwt = true
+
+[[functions]]
+name = "get-pending-invitation"
+verify_jwt = true
+
+[[functions]]
+name = "get-beta-invitations"
+verify_jwt = true

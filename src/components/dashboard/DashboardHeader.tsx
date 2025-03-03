@@ -1,65 +1,83 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Database, CalendarDays, Milestone, ClipboardEdit, Lock, PanelLeft, Users } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useSubscriptionFeatures } from '@/hooks/use-subscription-features';
-import { adminService } from '@/services/AdminService';
+import { useAuth } from "@/components/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { adminService } from "@/services/AdminService";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Crown, Settings, Users } from "lucide-react";
 
 export default function DashboardHeader() {
+  const { session, user } = useAuth();
   const navigate = useNavigate();
-  const { hasFeature } = useSubscriptionFeatures();
+  const { plan, projectLimit, isSubscriptionActive } = useSubscriptionFeatures();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isBetaTester, setIsBetaTester] = useState(false);
   
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      const adminStatus = await adminService.isAdmin();
-      setIsAdmin(adminStatus);
+    const checkRoles = async () => {
+      if (user) {
+        const adminCheck = await adminService.isAdmin();
+        setIsAdmin(adminCheck);
+        
+        const betaCheck = await adminService.checkUserRole('beta_tester');
+        setIsBetaTester(betaCheck);
+      }
     };
     
-    checkAdminStatus();
-  }, []);
+    checkRoles();
+  }, [user]);
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 gap-4">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back to your project workspace.</p>
-      </div>
-      <div className="flex flex-col md:flex-row items-center gap-2">
-        {isAdmin && (
-          <Button 
-            variant="outline" 
-            className="w-full md:w-auto"
-            onClick={() => navigate('/admin')}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            Admin Dashboard
-          </Button>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="w-full md:w-auto">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create New
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate('/upload-rfp')}>
-              <Database className="mr-2 h-4 w-4" />
-              <span>New Project from RFP</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => navigate('/knowledge-base')}
-              disabled={!hasFeature('data_export')}
+    <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              Welcome{user?.user_metadata?.first_name ? `, ${user.user_metadata.first_name}` : ''}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isSubscriptionActive ? (
+                <>
+                  You're on the <Badge variant="outline" className="ml-1 font-semibold">{plan}</Badge> plan
+                </>
+              ) : (
+                "Start creating AI-powered RFP responses"
+              )}
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                className="bg-black/20 border-brand-silver hover:bg-black/40"
+                onClick={() => navigate('/admin')}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Admin Dashboard
+              </Button>
+            )}
+            
+            {isBetaTester && !isAdmin && (
+              <Badge variant="outline" className="py-2 px-3">
+                <Crown className="h-3 w-3 mr-1" />
+                Beta Tester
+              </Badge>
+            )}
+            
+            <Button 
+              variant="outline" 
+              className="bg-black/20 border-brand-silver hover:bg-black/40"
+              onClick={() => navigate('/settings')}
             >
-              <ClipboardEdit className="mr-2 h-4 w-4" />
-              <span>Add Knowledge Entry</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

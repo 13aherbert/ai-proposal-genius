@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -48,7 +47,6 @@ class AdminService {
       const { data: user } = await supabase.auth.getUser();
       if (!user || !user.user) return false;
 
-      // Use the has_role function instead of direct query
       const { data, error } = await supabase.rpc('has_role', {
         _user_id: user.user.id,
         _role: role
@@ -59,7 +57,7 @@ class AdminService {
         return false;
       }
 
-      return data || false;
+      return !!data;
     } catch (error) {
       console.error('Error in checkUserRole:', error);
       return false;
@@ -71,7 +69,6 @@ class AdminService {
    */
   async isAdmin(): Promise<boolean> {
     try {
-      // Use the is_admin function instead of manually checking
       const { data, error } = await supabase.rpc('is_admin');
       
       if (error) {
@@ -79,7 +76,7 @@ class AdminService {
         return false;
       }
       
-      return data || false;
+      return !!data;
     } catch (error) {
       console.error('Error in isAdmin:', error);
       return false;
@@ -92,8 +89,8 @@ class AdminService {
   async getAllUsers(): Promise<UserProfile[]> {
     try {
       // First check if user is admin
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-      if (!isAdmin || adminError) {
+      const isAdmin = await this.isAdmin();
+      if (!isAdmin) {
         toast.error("Access denied", { description: "You don't have permission to view users" });
         return [];
       }
@@ -109,10 +106,10 @@ class AdminService {
         throw new Error(authError?.message || 'Failed to fetch users');
       }
 
-      // Get all user roles - using custom query since we now have a user_roles table
-      const { data: userRoles, error: rolesError } = await supabase
+      // Get all user roles
+      const { data: roleRecords, error: rolesError } = await supabase
         .from('user_roles')
-        .select('*');
+        .select('*') as { data: UserRoleRecord[] | null, error: any };
 
       if (rolesError) {
         console.error('Error fetching roles:', rolesError);
@@ -138,8 +135,7 @@ class AdminService {
 
       // Map users to UserProfile format
       return authUsers.users.map(user => {
-        // Find roles for this user
-        const userRolesArray = userRoles?.filter(r => r.user_id === user.id) || [];
+        const userRolesArray = roleRecords?.filter(r => r.user_id === user.id) || [];
         const subscription = subscriptions?.find(s => s.user_id === user.id);
         const profile = profiles?.find(p => p.profile_id === user.id);
 
@@ -170,9 +166,7 @@ class AdminService {
    */
   async assignRole(userId: string, role: UserRole): Promise<boolean> {
     try {
-      // First check if user is admin
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-      if (!isAdmin || adminError) {
+      if (!await this.isAdmin()) {
         toast.error("Access denied", { description: "You don't have permission to assign roles" });
         return false;
       }
@@ -186,13 +180,12 @@ class AdminService {
       // Check if user already has the role
       const { data: existingRole } = await supabase
         .from('user_roles')
-        .select('*')
+        .select()
         .eq('user_id', userId)
         .eq('role', role)
-        .single();
+        .maybeSingle();
 
       if (existingRole) {
-        // Role already assigned
         return true;
       }
 
@@ -225,9 +218,7 @@ class AdminService {
    */
   async removeRole(userId: string, role: UserRole): Promise<boolean> {
     try {
-      // First check if user is admin
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-      if (!isAdmin || adminError) {
+      if (!await this.isAdmin()) {
         toast.error("Access denied", { description: "You don't have permission to remove roles" });
         return false;
       }
@@ -273,8 +264,8 @@ class AdminService {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // Not found error is okay
+        
+      if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Error fetching subscription:', fetchError);
         toast.error("Failed to fetch subscription", { description: fetchError.message });
         return false;

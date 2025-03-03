@@ -48,6 +48,7 @@ class AdminService {
       const { data: user } = await supabase.auth.getUser();
       if (!user || !user.user) return false;
 
+      // Use the has_role function instead of direct query
       const { data, error } = await supabase.rpc('has_role', {
         _user_id: user.user.id,
         _role: role
@@ -69,7 +70,20 @@ class AdminService {
    * Check if the current user is an admin
    */
   async isAdmin(): Promise<boolean> {
-    return this.checkUserRole('admin');
+    try {
+      // Use the is_admin function instead of manually checking
+      const { data, error } = await supabase.rpc('is_admin');
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+      }
+      
+      return data || false;
+    } catch (error) {
+      console.error('Error in isAdmin:', error);
+      return false;
+    }
   }
 
   /**
@@ -77,8 +91,9 @@ class AdminService {
    */
   async getAllUsers(): Promise<UserProfile[]> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to view users" });
         return [];
       }
@@ -94,7 +109,7 @@ class AdminService {
         throw new Error(authError?.message || 'Failed to fetch users');
       }
 
-      // Get all user roles
+      // Get all user roles - using custom query since we now have a user_roles table
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
@@ -123,6 +138,7 @@ class AdminService {
 
       // Map users to UserProfile format
       return authUsers.users.map(user => {
+        // Find roles for this user
         const userRolesArray = userRoles?.filter(r => r.user_id === user.id) || [];
         const subscription = subscriptions?.find(s => s.user_id === user.id);
         const profile = profiles?.find(p => p.profile_id === user.id);
@@ -154,8 +170,9 @@ class AdminService {
    */
   async assignRole(userId: string, role: UserRole): Promise<boolean> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to assign roles" });
         return false;
       }
@@ -208,8 +225,9 @@ class AdminService {
    */
   async removeRole(userId: string, role: UserRole): Promise<boolean> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to remove roles" });
         return false;
       }
@@ -240,8 +258,9 @@ class AdminService {
    */
   async updateSubscriptionPlan(userId: string, plan: string): Promise<boolean> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
         return false;
       }
@@ -317,8 +336,9 @@ class AdminService {
    */
   async createBetaInvitation(email: string, expirationDays = 7): Promise<BetaInvitation | null> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to create invitations" });
         return null;
       }
@@ -330,12 +350,17 @@ class AdminService {
       }
 
       // Check if there's already a pending invitation for this email
-      const { data: existingInvite } = await supabase
+      const { data: existingInvite, error: checkError } = await supabase
         .from('beta_invitations')
         .select('*')
         .eq('email', email)
         .eq('status', 'pending')
         .single();
+        
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking invitations:', checkError);
+        return null;
+      }
 
       if (existingInvite) {
         toast.info("Invitation already exists", { description: "This email already has a pending invitation" });
@@ -351,7 +376,7 @@ class AdminService {
       expiresAt.setDate(expiresAt.getDate() + expirationDays);
 
       // Create the invitation
-      const { data: invitation, error } = await supabase
+      const { data: invitation, error: insertError } = await supabase
         .from('beta_invitations')
         .insert({
           email: email,
@@ -363,9 +388,9 @@ class AdminService {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating invitation:', error);
-        toast.error("Failed to create invitation", { description: error.message });
+      if (insertError) {
+        console.error('Error creating invitation:', insertError);
+        toast.error("Failed to create invitation", { description: insertError.message });
         return null;
       }
 
@@ -383,8 +408,9 @@ class AdminService {
    */
   async getBetaInvitations(): Promise<BetaInvitation[]> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to view invitations" });
         return [];
       }
@@ -412,8 +438,9 @@ class AdminService {
    */
   async cancelBetaInvitation(invitationId: string): Promise<boolean> {
     try {
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (!isAdmin) {
+      // First check if user is admin
+      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+      if (!isAdmin || adminError) {
         toast.error("Access denied", { description: "You don't have permission to cancel invitations" });
         return false;
       }

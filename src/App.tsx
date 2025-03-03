@@ -16,6 +16,8 @@ import KnowledgeBase from "@/pages/KnowledgeBase";
 import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
 import AccountSettings from "@/pages/AccountSettings";
+import BetaProgram from "@/pages/BetaProgram";
+import BetaRoadmap from "@/pages/BetaRoadmap";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -114,6 +116,33 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* Beta Testing Routes */}
+                <Route
+                  path="/beta/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <BetaProgram />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/beta/roadmap"
+                  element={
+                    <ProtectedRoute>
+                      <BetaRoadmap />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/beta"
+                  element={
+                    <ProtectedRoute>
+                      <BetaProgram />
+                    </ProtectedRoute>
+                  }
+                />
+                
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/docs" element={<Documentation />} />
                 <Route path="/docs/:docId" element={<Documentation />} />

@@ -5,22 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ErrorSeverity } from '@/services/ErrorTrackingService';
 import { useErrorTracking } from '@/hooks/use-error-tracking';
 import { toast } from '@/components/ui/use-toast';
+import { ValidatedInput, ValidatedTextarea, ValidationRules } from '@/components/form/FormValidation';
+import { Switch } from '@/components/ui/switch';
 
 interface UserFeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   errorMessage?: string;
   errorId?: string;
+  isBetaFeedback?: boolean;
 }
+
+export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general';
 
 export function UserFeedbackDialog({ 
   open, 
   onOpenChange,
   errorMessage,
-  errorId = 'manual-report'
+  errorId = 'manual-report',
+  isBetaFeedback = false
 }: UserFeedbackDialogProps) {
   const { trackError } = useErrorTracking();
   const [name, setName] = useState('');
@@ -28,26 +35,46 @@ export function UserFeedbackDialog({
   const [comments, setComments] = useState('');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
+  const [allowContact, setAllowContact] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({
+    comments: false
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Simple validation
+    if (!comments.trim()) {
+      setValidationErrors(prev => ({ ...prev, comments: true }));
+      toast({
+        title: "Comments Required",
+        description: "Please provide feedback comments before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
-      // Track the user feedback as an error
+      // Track the user feedback as an error or feedback
       trackError({
-        message: `User Feedback: ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
-        severity: ErrorSeverity.INFO,
+        message: `${isBetaFeedback ? 'Beta Feedback' : 'User Feedback'}: ${feedbackType} - ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
+        severity: feedbackType === 'bug' ? ErrorSeverity.ERROR : ErrorSeverity.INFO,
         context: {
           feedback: {
             name,
             email,
             comments,
             severity,
+            feedbackType,
+            allowContact,
             relatedErrorId: errorId,
-            relatedErrorMessage: errorMessage
+            relatedErrorMessage: errorMessage,
+            isBetaFeedback
           },
-          source: 'user-feedback-form'
+          source: isBetaFeedback ? 'beta-feedback-form' : 'user-feedback-form'
         }
       });
 
@@ -56,8 +83,8 @@ export function UserFeedbackDialog({
       
       // Show success message
       toast({
-        title: "Feedback Submitted",
-        description: "Thank you for your feedback. We'll review it as soon as possible.",
+        title: isBetaFeedback ? "Beta Feedback Submitted" : "Feedback Submitted",
+        description: `Thank you for your ${isBetaFeedback ? 'beta feedback' : 'feedback'}. We'll review it as soon as possible.`,
       });
       
       // Close the dialog
@@ -68,6 +95,8 @@ export function UserFeedbackDialog({
       setEmail('');
       setComments('');
       setSeverity('medium');
+      setFeedbackType('general');
+      setAllowContact(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
@@ -84,11 +113,14 @@ export function UserFeedbackDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Send Feedback</DialogTitle>
+          <DialogTitle>{isBetaFeedback ? 'Submit Beta Feedback' : 'Send Feedback'}</DialogTitle>
           <DialogDescription>
-            {errorMessage 
-              ? "Help us understand what went wrong so we can fix it." 
-              : "Share your thoughts, suggestions, or report issues you've encountered."}
+            {isBetaFeedback 
+              ? "Your feedback helps us improve the beta version. Please share any bugs, suggestions, or comments."
+              : errorMessage 
+                ? "Help us understand what went wrong so we can fix it." 
+                : "Share your thoughts, suggestions, or report issues you've encountered."
+            }
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -98,6 +130,30 @@ export function UserFeedbackDialog({
               <p className="text-destructive">{errorMessage}</p>
             </div>
           )}
+          
+          <div className="space-y-2">
+            <Label>Feedback Type</Label>
+            <RadioGroup 
+              defaultValue="general" 
+              value={feedbackType}
+              onValueChange={(value) => setFeedbackType(value as FeedbackType)}
+              className="flex space-x-2"
+            >
+              {[
+                { value: 'bug', label: 'Bug' },
+                { value: 'feature', label: 'Feature Request' },
+                { value: 'improvement', label: 'Improvement' },
+                { value: 'general', label: 'General' }
+              ].map((option) => (
+                <div key={option.value} className="flex items-center space-x-1">
+                  <RadioGroupItem value={option.value} id={`feedback-type-${option.value}`} />
+                  <Label htmlFor={`feedback-type-${option.value}`} className="font-normal cursor-pointer">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -145,17 +201,42 @@ export function UserFeedbackDialog({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="comments">Comments</Label>
+            <Label htmlFor="comments" className={validationErrors.comments ? 'text-destructive' : ''}>
+              Comments {validationErrors.comments && <span className="text-destructive">*</span>}
+            </Label>
             <Textarea
               id="comments"
               value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              placeholder="Please describe what happened or what you'd like to see improved..."
+              onChange={(e) => {
+                setComments(e.target.value);
+                if (e.target.value.trim()) {
+                  setValidationErrors(prev => ({ ...prev, comments: false }));
+                }
+              }}
+              placeholder={feedbackType === 'bug' 
+                ? "Please describe the issue in detail. Include steps to reproduce if possible." 
+                : "Please share your thoughts, ideas, or suggestions..."}
               required
               rows={5}
-              className="resize-none"
+              className={`resize-none ${validationErrors.comments ? 'border-destructive' : ''}`}
             />
+            {validationErrors.comments && (
+              <p className="text-destructive text-sm">Please provide your feedback</p>
+            )}
           </div>
+          
+          {isBetaFeedback && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="allow-contact"
+                checked={allowContact}
+                onCheckedChange={setAllowContact}
+              />
+              <Label htmlFor="allow-contact" className="cursor-pointer">
+                You may contact me about this feedback
+              </Label>
+            </div>
+          )}
           
           <DialogFooter>
             <Button
@@ -166,7 +247,7 @@ export function UserFeedbackDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !comments.trim()}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
             </Button>
           </DialogFooter>

@@ -7,7 +7,8 @@ import { adminService } from "@/services/AdminService";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Settings, Users } from "lucide-react";
+import { AlertCircle, Book, Crown, Settings, Users } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function DashboardHeader() {
   const { session } = useAuth();
@@ -51,7 +52,7 @@ export default function DashboardHeader() {
             </p>
           </div>
           
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3 items-center">
             {isAdmin && (
               <Button 
                 variant="outline" 
@@ -70,14 +71,57 @@ export default function DashboardHeader() {
               </Badge>
             )}
             
-            <Button 
-              variant="outline" 
-              className="bg-black/20 border-brand-silver hover:bg-black/40"
-              onClick={() => navigate('/account-settings')}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => window.open('/some-issue-reporting-url', '_blank')}
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Report an Issue</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => navigate('/docs')}
+                    >
+                      <Book className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Documentation</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => navigate('/account-settings')}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Account Settings</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           </div>
         </div>
       </CardContent>

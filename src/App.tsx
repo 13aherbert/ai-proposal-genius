@@ -18,6 +18,8 @@ import Documentation from "@/pages/Documentation";
 import AccountSettings from "@/pages/AccountSettings";
 import BetaProgram from "@/pages/BetaProgram";
 import BetaRoadmap from "@/pages/BetaRoadmap";
+import AdminDashboard from "@/pages/AdminDashboard";
+import SetInitialAdmin from "@/pages/SetInitialAdmin";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -139,6 +141,24 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <BetaProgram />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                {/* Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/setup"
+                  element={
+                    <ProtectedRoute>
+                      <SetInitialAdmin />
                     </ProtectedRoute>
                   }
                 />

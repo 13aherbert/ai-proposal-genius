@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { adminService } from "./AdminService";
 
 export type BetaFeedbackData = {
   id?: string;
@@ -139,7 +140,12 @@ class BetaTestingService {
    * Check if the user has completed beta onboarding
    */
   async checkBetaOnboardingStatus(userId: string): Promise<boolean> {
-    // In a real implementation, this would check the user's profile
+    // First check if the user is actually a beta tester
+    const isBetaTester = await adminService.checkUserRole('beta_tester');
+    if (!isBetaTester) {
+      return false;
+    }
+    
     // For now, we'll use localStorage for demo purposes
     return localStorage.getItem('betaOnboardingComplete') === 'true';
   }

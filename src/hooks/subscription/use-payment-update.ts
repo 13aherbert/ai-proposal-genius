@@ -36,9 +36,17 @@ export function usePaymentUpdate() {
       } else {
         console.error("Invalid renewal result:", result);
         toast.dismiss();
-        toast.error("Could not initiate payment update", {
-          description: result?.error?.message || "Please try again or contact support."
-        });
+        
+        // More specific error handling based on the result structure
+        if (result && result.error) {
+          toast.error("Payment update failed", {
+            description: result.error.message || "Please try again or contact support."
+          });
+        } else {
+          toast.error("Could not initiate payment update", {
+            description: "No valid response from the server. Please try again or contact support."
+          });
+        }
       }
     } catch (error) {
       console.error("Error updating payment method:", error);

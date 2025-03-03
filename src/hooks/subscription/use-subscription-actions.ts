@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionPlan } from '@/types/subscription';
 import { toast } from 'sonner';
@@ -91,10 +90,11 @@ export const renewSubscription = async (
 ): Promise<{ success: boolean, url?: string, error?: any }> => {
   try {
     if (!subscriptionId && !customerId) {
+      console.error("Missing subscription and customer IDs");
       toast.error("Cannot renew subscription", { 
         description: "No active subscription or customer found" 
       });
-      return { success: false, error: "No active subscription or customer found" };
+      return { success: false, error: { message: "No active subscription or customer found" } };
     }
 
     console.log("Attempting to renew subscription with:", { subscriptionId, customerId });
@@ -112,7 +112,8 @@ export const renewSubscription = async (
       throw new Error('No active session found. Please log in again.');
     }
 
-    // Call the renew-subscription edge function
+    // Call the renew-subscription edge function with detailed logging
+    console.log("Invoking renew-subscription edge function");
     const { data, error } = await supabase.functions.invoke('renew-subscription', {
       body: { 
         subscriptionId, 
@@ -123,7 +124,7 @@ export const renewSubscription = async (
       }
     });
     
-    console.log("Edge function response:", data);
+    console.log("Edge function raw response:", data);
     
     if (error) {
       console.error("Edge function error:", error);
@@ -157,4 +158,3 @@ export const renewSubscription = async (
     return { success: false, error };
   }
 };
-

@@ -1,108 +1,129 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
+
+// Initialize Stripe with the secret key
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Create a Stripe client
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  httpClient: Stripe.createFetchHttpClient(),
-})
+};
 
 serve(async (req) => {
-  console.log('Renew subscription function called')
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the JWT token from the request
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error('Missing Authorization header')
-      return new Response(
-        JSON.stringify({ error: { message: 'Missing Authorization header' } }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Parse the request body
-    const requestData = await req.json()
-    console.log('Request data:', JSON.stringify(requestData))
-
-    const { subscriptionId, customerId } = requestData
-
-    if (!subscriptionId && !customerId) {
-      console.error('Missing required parameters: need either subscriptionId or customerId')
-      return new Response(
-        JSON.stringify({ error: { message: 'Missing required parameters' } }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    let billingPortalUrl
-
-    // Try to create a billing portal session using the customer ID first (preferred)
-    if (customerId) {
-      console.log(`Attempting to create billing portal with customer ID: ${customerId}`)
-      try {
-        const session = await stripe.billingPortal.sessions.create({
-          customer: customerId,
-          return_url: `${req.headers.get('origin')}/subscription`,
-        })
-        
-        billingPortalUrl = session.url
-        console.log(`Successfully created billing portal with URL: ${billingPortalUrl}`)
-      } catch (stripeError) {
-        console.error(`Error creating billing portal with customer ID: ${stripeError.message}`)
-        // If customer ID fails, we'll try subscription ID next
+    // Verify authentication
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_ANON_KEY') || '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization') || '' },
+        },
       }
-    }
+    );
 
-    // If billing portal URL isn't set yet and we have a subscription ID, try to get the customer from the subscription
-    if (!billingPortalUrl && subscriptionId) {
-      console.log(`Attempting to get customer from subscription ID: ${subscriptionId}`)
-      try {
-        // Get the subscription to find the customer
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        
-        if (subscription && subscription.customer) {
-          console.log(`Found customer ${subscription.customer} from subscription`)
-          const session = await stripe.billingPortal.sessions.create({
-            customer: subscription.customer.toString(),
-            return_url: `${req.headers.get('origin')}/subscription`,
-          })
-          
-          billingPortalUrl = session.url
-          console.log(`Successfully created billing portal with URL: ${billingPortalUrl}`)
-        } else {
-          throw new Error('No customer associated with this subscription')
+    // Get the user from the request
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      return new Response(
+        JSON.stringify({ 
+          error: { message: 'Unauthorized - authentication required' } 
+        }),
+        { 
+          status: 401, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
         }
-      } catch (stripeError) {
-        console.error(`Error retrieving subscription or creating portal: ${stripeError.message}`)
-        throw stripeError
+      );
+    }
+
+    // Parse request body
+    const { subscriptionId, customerId } = await req.json();
+    console.log('Handling renewal request:', { subscriptionId, customerId, userId: user.id });
+
+    // Handle missing required parameters
+    if (!customerId && !subscriptionId) {
+      console.error('Missing required parameters');
+      return new Response(
+        JSON.stringify({ error: { message: 'Missing customer ID or subscription ID' } }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
+    }
+
+    // Priority: Use customerId if available, otherwise fall back to subscriptionId
+    let session;
+    let sessionParams = {};
+
+    // Create parameters for the billing portal session
+    if (customerId) {
+      console.log('Creating billing portal session with customer ID:', customerId);
+      sessionParams = {
+        customer: customerId,
+        return_url: `${req.headers.get('origin')}/subscription`,
+      };
+    } else if (subscriptionId) {
+      console.log('Creating billing portal session with subscription ID:', subscriptionId);
+      // First get the subscription to find the customer
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      if (!subscription || !subscription.customer) {
+        return new Response(
+          JSON.stringify({ error: { message: 'Could not find subscription or customer' } }),
+          { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
       }
+      sessionParams = {
+        customer: subscription.customer as string,
+        return_url: `${req.headers.get('origin')}/subscription`,
+      };
     }
 
-    if (!billingPortalUrl) {
-      throw new Error('Could not create billing portal - no valid customer ID found')
+    // Create the billing portal session with Stripe
+    try {
+      session = await stripe.billingPortal.sessions.create(sessionParams);
+      console.log('Billing portal session created successfully:', { sessionId: session.id, url: session.url });
+      
+      // Return the session URL
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { 
+          status: 200, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
+    } catch (stripeError) {
+      console.error('Stripe error creating portal session:', stripeError);
+      return new Response(
+        JSON.stringify({ error: { message: `Stripe error: ${stripeError.message}` } }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
     }
-
-    // Return the URL to the client
-    return new Response(
-      JSON.stringify({ url: billingPortalUrl }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
   } catch (error) {
-    console.error(`Error in renew-subscription function: ${error.message}`)
+    console.error('Server error:', error);
     return new Response(
-      JSON.stringify({ error: { message: error.message || 'An unknown error occurred' } }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({ error: { message: 'Internal server error' } }),
+      { 
+        status: 500, 
+        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+      }
+    );
   }
-})
+});

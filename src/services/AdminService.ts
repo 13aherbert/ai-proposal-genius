@@ -113,7 +113,10 @@ class AdminService {
       }
 
       // Use a separate query to get user roles to avoid recursion
-      const { data: roleRecords, error: rolesError } = await supabase.rpc('get_all_user_roles');
+      // We're using a custom function to avoid RLS recursion
+      const { data: roleRecords, error: rolesError } = await supabase.functions.invoke('get-user-roles', {
+        method: 'GET'
+      });
 
       if (rolesError) {
         console.error('Error fetching roles:', rolesError);
@@ -336,9 +339,10 @@ class AdminService {
         return null;
       }
 
-      // Check if there's already a pending invitation for this email - use direct RPC
-      const { data: existingInvite, error: checkError } = await supabase.rpc('get_pending_invitation_by_email', { 
-        email_param: email 
+      // Check if there's already a pending invitation for this email - use direct functions
+      const { data: existingInvitations, error: checkError } = await supabase.functions.invoke('get-pending-invitation', {
+        method: 'POST',
+        body: { email }
       });
         
       if (checkError) {
@@ -346,9 +350,10 @@ class AdminService {
         return null;
       }
 
-      if (existingInvite) {
+      // If we have existing invitations, return the first one
+      if (existingInvitations && existingInvitations.length > 0) {
         toast.info("Invitation already exists", { description: "This email already has a pending invitation" });
-        return existingInvite as BetaInvitation;
+        return existingInvitations[0] as BetaInvitation;
       }
 
       // Generate a unique invite code
@@ -399,8 +404,10 @@ class AdminService {
         return [];
       }
 
-      // Use RPC to avoid recursive policy issues
-      const { data, error } = await supabase.rpc('get_all_beta_invitations');
+      // Use Edge Function to get all invitations to avoid recursion issues
+      const { data, error } = await supabase.functions.invoke('get-beta-invitations', {
+        method: 'GET'
+      });
 
       if (error) {
         console.error('Error fetching invitations:', error);

@@ -59,14 +59,14 @@ export default function DashboardHeader() {
                 className="bg-black/20 border-brand-silver hover:bg-black/40"
                 onClick={() => navigate('/admin')}
               >
-                <Users className="h-4 w-4 mr-2" />
+                <Users className="h-5 w-5 mr-2" />
                 Admin Dashboard
               </Button>
             )}
             
             {isBetaTester && !isAdmin && (
               <Badge variant="outline" className="py-2 px-3">
-                <Crown className="h-3 w-3 mr-1" />
+                <Crown className="h-4 w-4 mr-1" />
                 Beta Tester
               </Badge>
             )}
@@ -78,10 +78,10 @@ export default function DashboardHeader() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="h-8 w-8 rounded-full"
+                      className="h-9 w-9 rounded-full"
                       onClick={() => window.open('/some-issue-reporting-url', '_blank')}
                     >
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -94,10 +94,10 @@ export default function DashboardHeader() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="h-8 w-8 rounded-full"
+                      className="h-9 w-9 rounded-full"
                       onClick={() => navigate('/docs')}
                     >
-                      <Book className="h-4 w-4" />
+                      <Book className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -110,10 +110,10 @@ export default function DashboardHeader() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="h-8 w-8 rounded-full"
+                      className="h-9 w-9 rounded-full"
                       onClick={() => navigate('/account-settings')}
                     >
-                      <Settings className="h-4 w-4" />
+                      <Settings className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionPlan } from '@/types/subscription';
 import { toast } from 'sonner';
@@ -124,7 +125,7 @@ export const renewSubscription = async (
       }
     });
     
-    console.log("Edge function raw response:", data);
+    console.log("Edge function response:", data);
     
     if (error) {
       console.error("Edge function error:", error);

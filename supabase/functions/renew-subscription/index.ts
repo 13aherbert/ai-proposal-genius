@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Create a Supabase client with the auth context of the request
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') || '',
       Deno.env.get('SUPABASE_ANON_KEY') || '',
@@ -48,8 +48,23 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { subscriptionId, customerId } = await req.json();
-    console.log('Handling renewal request:', { subscriptionId, customerId, userId: user.id });
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body:', body);
+    } catch (e) {
+      console.error('Error parsing request body:', e);
+      return new Response(
+        JSON.stringify({ error: { message: 'Invalid request body' } }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
+    }
+
+    const { subscriptionId, customerId } = body;
+    console.log('Processing renewal for:', { subscriptionId, customerId, userId: user.id });
 
     // Handle missing required parameters
     if (!customerId && !subscriptionId) {

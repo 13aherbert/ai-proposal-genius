@@ -24,7 +24,7 @@ export function usePaymentUpdate() {
       
       console.log("Renewal result:", result);
       
-      if (result && result.url) {
+      if (result && result.success && result.url) {
         toast.dismiss();
         toast.success("Redirecting to payment portal", {
           description: "You'll be redirected to update your payment method."

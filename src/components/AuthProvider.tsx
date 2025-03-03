@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
@@ -11,6 +10,7 @@ type AuthContextType = {
   error: AuthError | null;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -18,7 +18,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true, 
   error: null,
   signOut: async () => {},
-  resetPassword: async () => ({ error: null })
+  resetPassword: async () => ({ error: null }),
+  deleteAccount: async () => {}
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -63,8 +64,92 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      if (!session?.user?.id) {
+        toast.error("You must be logged in to delete your account");
+        return;
+      }
+
+      toast.loading("Deleting your account...");
+
+      const userId = session.user.id;
+      
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (subscriptionError) {
+        throw new Error(`Failed to remove subscription data: ${subscriptionError.message}`);
+      }
+      
+      const { error: documentsError } = await supabase
+        .from('project_documents')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (documentsError) {
+        throw new Error(`Failed to remove document data: ${documentsError.message}`);
+      }
+      
+      const { error: sectionsError } = await supabase
+        .from('proposal_sections')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (sectionsError) {
+        throw new Error(`Failed to remove proposal sections: ${sectionsError.message}`);
+      }
+      
+      const { error: projectsError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (projectsError) {
+        throw new Error(`Failed to remove projects: ${projectsError.message}`);
+      }
+      
+      const { error: entriesError } = await supabase
+        .from('knowledge_entries')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (entriesError) {
+        throw new Error(`Failed to remove knowledge entries: ${entriesError.message}`);
+      }
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('profile_id', userId);
+        
+      if (profileError) {
+        throw new Error(`Failed to remove profile: ${profileError.message}`);
+      }
+
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        userId
+      );
+
+      if (authError) {
+        throw new Error(`Failed to delete user: ${authError.message}`);
+      }
+
+      toast.dismiss();
+      toast.success("Account successfully deleted");
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      toast.dismiss();
+      toast.error("Failed to delete account", {
+        description: error.message || "Please try again or contact support"
+      });
+    }
+  };
+
   useEffect(() => {
-    // Network error handling for initial session fetch
     const fetchSession = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -72,7 +157,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setError(error);
           console.error('Error getting session:', error);
           
-          // Only show toast for real errors, not just empty sessions
           if (error.message !== "Not authenticated") {
             toast.error("Authentication error", {
               description: "There was a problem connecting to the authentication service"
@@ -92,27 +176,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     fetchSession();
 
-    // Auth state change subscriptions with error handling
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, currentSession) => {
       console.log('Auth state changed:', event);
       
       try {
-        // Only update session if it's actually different
         if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
           setSession(currentSession);
         }
         setLoading(false);
 
-        // Handle specific auth events that require navigation
         switch (event) {
           case 'SIGNED_IN':
             if (currentSession?.user && location.pathname === '/') {
-              // Check if this is a new signup
               const createdAt = new Date(currentSession.user.created_at);
               const now = new Date();
-              const isNewUser = (now.getTime() - createdAt.getTime()) < 10000; // Within 10 seconds
+              const isNewUser = (now.getTime() - createdAt.getTime()) < 10000;
 
               if (isNewUser) {
                 console.log('New user detected, redirecting to subscription page');
@@ -152,7 +232,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // Session timeout detection with periodic check
     const sessionTimeoutCheck = setInterval(() => {
       if (session && new Date(session.expires_at * 1000) < new Date()) {
         toast.warning("Your session has expired", {
@@ -161,7 +240,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         signOut();
       }
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => {
       subscription.unsubscribe();
@@ -175,7 +254,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading, 
       error,
       signOut,
-      resetPassword
+      resetPassword,
+      deleteAccount
     }}>
       {children}
     </AuthContext.Provider>

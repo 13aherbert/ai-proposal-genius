@@ -1,12 +1,22 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LogOut, Save, CheckCircle } from "lucide-react";
+import { ArrowLeft, LogOut, Save, CheckCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Import our components
 import { ProfileCard } from "@/components/account/ProfileCard";
@@ -23,7 +33,7 @@ import { SubscriptionCard } from "@/components/account/SubscriptionCard";
  */
 export default function AccountSettings() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, deleteAccount } = useAuth();
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -298,6 +308,42 @@ export default function AccountSettings() {
                 <LogOut className="h-4 w-4 mr-2" />
                 Log Out
               </Button>
+            </div>
+            
+            {/* Delete Account Section */}
+            <div className="mt-8 border border-destructive/20 rounded-lg p-6 bg-destructive/5">
+              <h2 className="text-xl font-semibold text-destructive mb-2">Delete Account</h2>
+              <p className="text-muted-foreground mb-4">
+                Permanently delete your account and all of your data. This action cannot be undone.
+              </p>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full sm:w-auto">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your account
+                      and remove your data from our servers. All your projects, documents, and
+                      subscription information will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={deleteAccount}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Delete Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>

@@ -73,7 +73,7 @@ export default function DashboardHeader() {
             <Button 
               variant="outline" 
               className="bg-black/20 border-brand-silver hover:bg-black/40"
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/account-settings')}
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings

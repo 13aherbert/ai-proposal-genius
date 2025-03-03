@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 import { corsHeaders, handleCors, addCorsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
-  // Check if this is a preflight CORS request
+  // Handle CORS preflight request
   const corsResponse = handleCors(req)
   if (corsResponse) return corsResponse
 
@@ -13,9 +13,12 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey)
 
   try {
+    console.log("Received request to get-user-roles")
+    
     // Get authorization header from request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.log("Missing Authorization header")
       return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Missing Authorization header' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -28,43 +31,57 @@ Deno.serve(async (req) => {
     )
 
     if (userError || !user) {
+      console.log("Unauthorized user:", userError)
       return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Unauthorized user', details: userError }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       ))
     }
 
-    // Check if user is admin
+    // Check if user is admin - the is_admin RPC doesn't need parameters when called with an authenticated user
+    console.log("Checking if user is admin")
     const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
     
-    if (adminError || !isAdmin) {
+    if (adminError) {
+      console.error("Error checking admin status:", adminError)
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: 'Error checking admin status', details: adminError }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      ))
+    }
+    
+    if (!isAdmin) {
+      console.log("User is not an admin")
       return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Unauthorized - admin role required' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       ))
     }
 
-    // If user is admin, retrieve all user roles
+    // Fetch user roles directly using the service role
+    console.log("Fetching user roles")
     const { data, error } = await supabase
       .from('user_roles')
       .select('*')
-    
+
     if (error) {
-      console.error('Error fetching user roles:', error)
+      console.error("Error fetching user roles:", error)
       return addCorsHeaders(new Response(
         JSON.stringify({ error: error.message }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       ))
     }
 
+    console.log(`Successfully fetched ${data?.length || 0} user roles`)
+    
     // Return the user roles
     return addCorsHeaders(new Response(
-      JSON.stringify(data),
+      JSON.stringify(data || []),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     ))
     
   } catch (error) {
-    console.error('Unexpected error in get-user-roles:', error)
+    console.error("Unexpected error in get-user-roles:", error)
     return addCorsHeaders(new Response(
       JSON.stringify({ error: 'Internal Server Error', details: error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -2,29 +2,27 @@
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
 
-export function handleCors(req: Request): Response | null {
+// Handle CORS preflight requests
+export function handleCors(req: Request) {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders,
+      status: 200,
     })
   }
   return null
 }
 
-// Helper to attach CORS headers to any response
-export function addCorsHeaders(response: Response): Response {
-  const newHeaders = new Headers(response.headers)
-  
-  for (const [key, value] of Object.entries(corsHeaders)) {
-    newHeaders.set(key, value)
-  }
-  
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: newHeaders,
+// Add CORS headers to a response
+export function addCorsHeaders(response: Response) {
+  // Add CORS headers to the response
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value)
   })
+  return response
 }

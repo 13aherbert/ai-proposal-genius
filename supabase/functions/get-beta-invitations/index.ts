@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       ))
     }
 
-    // Check if user is admin using RPC function
+    // Check if user is admin - the is_admin RPC doesn't need parameters when called with an authenticated user
     console.log("Checking if user is admin")
     const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
     
@@ -73,11 +73,11 @@ Deno.serve(async (req) => {
       ))
     }
 
-    console.log(`Successfully fetched ${data.length} beta invitations`)
+    console.log(`Successfully fetched ${data?.length || 0} beta invitations`)
     
     // Return the beta invitations
     return addCorsHeaders(new Response(
-      JSON.stringify(data),
+      JSON.stringify(data || []),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     ))
     

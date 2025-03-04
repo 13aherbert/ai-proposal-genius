@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-
-// Import the CORS headers from the shared utility
 import { corsHeaders } from "../_shared/cors.ts";
 
 type UserRole = {
@@ -11,11 +9,6 @@ type UserRole = {
   role: string;
   created_at: string;
   created_by: string | null;
-};
-
-type UserEmailInfo = {
-  id: string;
-  email: string;
 };
 
 serve(async (req) => {
@@ -37,10 +30,20 @@ serve(async (req) => {
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
-    });
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify the user is authorized with their JWT
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (userError || !user) {
+      console.error("Error getting user:", userError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized user", details: userError }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check if the user is an admin using the is_admin RPC
     const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
@@ -73,8 +76,8 @@ serve(async (req) => {
       );
     }
 
-    // Get email information for all users from auth.users table using service role
-    const { data: userEmails, error: emailError } = await supabase.auth.admin.listUsers();
+    // Get email information for all users
+    const { data: userData, error: emailError } = await supabase.auth.admin.listUsers();
     
     if (emailError) {
       console.error("Error fetching user emails:", emailError);
@@ -86,10 +89,10 @@ serve(async (req) => {
 
     // Combine roles with email information
     const enhancedRoleRecords = roleRecords.map((role) => {
-      const user = userEmails.users.find((u) => u.id === role.user_id);
+      const userInfo = userData.users.find((u) => u.id === role.user_id);
       return {
         ...role,
-        email: user?.email || null
+        email: userInfo?.email || null
       };
     });
 

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -113,7 +112,7 @@ class AdminService {
       }
 
       // Get user email data from auth table via our edge function
-      const { data: roleRecords, error: rolesError } = await supabase.functions.invoke('get-user-roles', {
+      const { data: userRolesData, error: rolesError } = await supabase.functions.invoke<{ email: string | null; user_id: string; role: UserRole }[]>('get-user-roles', {
         method: 'GET'
       });
 
@@ -130,48 +129,38 @@ class AdminService {
         console.error('Error fetching subscriptions:', subError);
       }
 
-      // Create a map of user IDs to emails from the role records that now include email
-      const emailMap = new Map();
-      if (roleRecords) {
-        roleRecords.forEach((record: UserRoleRecord) => {
+      // Create a map of user IDs to roles and emails
+      const userMap = new Map<string, { roles: UserRole[]; email: string | null }>();
+      
+      if (userRolesData) {
+        userRolesData.forEach(record => {
+          const existing = userMap.get(record.user_id) || { roles: [], email: null };
+          existing.roles.push(record.role);
           if (record.email) {
-            emailMap.set(record.user_id, record.email);
+            existing.email = record.email;
           }
-        });
-      }
-
-      // Get any users who might not have roles yet but exist in the system
-      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-      if (!userError && userData) {
-        userData.users.forEach(user => {
-          if (user.email && !emailMap.has(user.id)) {
-            emailMap.set(user.id, user.email);
-          }
+          userMap.set(record.user_id, existing);
         });
       }
 
       // Map profiles to UserProfile format
       return profiles?.map(profile => {
-        // For each profile, find its roles in the roleRecords array
-        const userRolesArray = roleRecords?.filter((r: UserRoleRecord) => r.user_id === profile.profile_id) || [];
+        const userData = userMap.get(profile.profile_id) || { roles: [], email: null };
         const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
         
-        // Get email from the map or use username as fallback
-        const email = emailMap.get(profile.profile_id) || profile.username || '';
-
         return {
           userId: profile.profile_id,
-          email: email,
+          email: userData.email || profile.username || '',
           firstName: profile.first_name || null,
           lastName: profile.last_name || null,
           businessName: profile.business_name || null,
-          roles: userRolesArray.map((r: UserRoleRecord) => r.role as UserRole),
+          roles: userData.roles,
           subscription: subscription ? {
             plan: subscription.plan_type,
             status: subscription.status
           } : null,
           createdAt: profile.created_at,
-          lastSignIn: null  // We don't have this info from profiles
+          lastSignIn: null
         };
       }) || [];
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +19,7 @@ export default function DashboardHeader() {
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
+  const [adminButtonVisible, setAdminButtonVisible] = useState(false);
   
   const projectLimit = getProjectLimit();
   const isSubscriptionActive = plan && plan !== 'trial';
@@ -46,6 +46,16 @@ export default function DashboardHeader() {
         
         if (isMounted) {
           setIsAdmin(adminCheck);
+          
+          // Only show/hide admin button when we're confident about the status
+          // This prevents flashing by only changing visibility when we have a confirmed state
+          if (adminCheck) {
+            setAdminButtonVisible(true);
+          } else if (!adminCheckAttempts) {
+            // Only hide the button on the first attempt if not admin
+            // This prevents flickering during retries
+            setAdminButtonVisible(false);
+          }
           
           // Only check beta tester role if not an admin (to avoid unnecessary calls)
           if (!adminCheck) {
@@ -84,6 +94,8 @@ export default function DashboardHeader() {
               }
             }, delay);
           } else {
+            // If we've exceeded retry attempts, keep the current admin button state
+            // rather than changing it based on failed checks
             toast.error("Failed to check admin status", { 
               description: "Please refresh the page or try again later",
               id: "admin-check-error" // Prevent duplicate toasts
@@ -104,8 +116,8 @@ export default function DashboardHeader() {
     };
   }, [session]);
 
-  // Show admin button as soon as the admin check is completed and result is true
-  const showAdminButton = isAdmin && !isCheckingRoles;
+  // Show admin button based on the stable state rather than the checking state
+  const showAdminButton = adminButtonVisible && !isCheckingRoles;
   const showBetaBadge = isBetaTester && !isAdmin && !isCheckingRoles;
 
   return (
@@ -128,7 +140,7 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {isCheckingRoles && (
+            {isCheckingRoles && !adminButtonVisible && (
               <Badge variant="outline" className="py-2 px-3">
                 Checking roles...
               </Badge>
@@ -152,7 +164,7 @@ export default function DashboardHeader() {
               </Badge>
             )}
             
-            {roleCheckError && !isCheckingRoles && (
+            {roleCheckError && !isCheckingRoles && !adminButtonVisible && (
               <Badge variant="destructive" className="py-2 px-3">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 {roleCheckError}

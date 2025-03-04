@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
@@ -48,8 +49,6 @@ export async function isAdmin(): Promise<boolean> {
   // Check cache first to avoid redundant calls
   const now = Date.now();
   if (adminStatusCache.status !== null && (now - adminStatusCache.timestamp) < CACHE_DURATION) {
-    // Only log this when debugging is needed
-    // console.log("Using cached admin status:", adminStatusCache.status);
     return adminStatusCache.status;
   }
   
@@ -92,7 +91,6 @@ export async function isAdmin(): Promise<boolean> {
       // Fallback: If we've had a successful admin check in the past,
       // reuse that value rather than failing completely
       if (adminStatusCache.status !== null) {
-        // console.log("Using last known admin status after failed check:", adminStatusCache.status);
         return adminStatusCache.status;
       }
       
@@ -104,12 +102,11 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+        // Replace direct query with RPC call to avoid RLS recursion
+        const { data: hasRole, error: roleError } = await supabase.rpc('check_user_role', {
+          user_id_param: user.user.id,
+          role_param: 'admin'
+        });
           
         if (roleError) {
           console.error('Error in fallback admin check:', roleError);
@@ -117,7 +114,7 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        const isAdminResult = !!roleData;
+        const isAdminResult = !!hasRole;
         console.log("Fallback admin check result:", isAdminResult);
         
         // Update cache even for fallback results
@@ -152,15 +149,20 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
 
-    // Check if user already has the role
-    const { data: existingRole } = await supabase
-      .from('user_roles')
-      .select()
-      .eq('user_id', userId)
-      .eq('role', role)
-      .maybeSingle();
+    // Check if user already has the role using RPC instead of direct query
+    const { data: hasRole, error: checkError } = await supabase.rpc('check_user_role', {
+      user_id_param: userId,
+      role_param: role
+    });
 
-    if (existingRole) {
+    if (checkError) {
+      console.error('Error checking existing role:', checkError);
+      toast.error("Failed to check existing role", { description: checkError.message });
+      return false;
+    }
+
+    if (hasRole) {
+      toast.info("Role already assigned", { description: `User already has the ${role} role` });
       return true;
     }
 
@@ -229,11 +231,19 @@ export async function ensureUserRole(): Promise<boolean> {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Check if user already has the 'user' role
-    const hasUserRole = await checkUserRole('user');
+    // Check if user already has the 'user' role using RPC
+    const { data: hasRole, error: checkError } = await supabase.rpc('check_user_role', {
+      user_id_param: user.user.id,
+      role_param: 'user'
+    });
+    
+    if (checkError) {
+      console.error('Error checking user role:', checkError);
+      return false;
+    }
     
     // If they already have the role, we're done
-    if (hasUserRole) {
+    if (hasRole) {
       return true;
     }
     

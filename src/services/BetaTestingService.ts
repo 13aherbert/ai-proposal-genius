@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { adminService } from "./AdminService";
+import { adminService } from "./admin";
 
 export type BetaFeedbackData = {
   id?: string;

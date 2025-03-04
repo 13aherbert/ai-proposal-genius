@@ -3,7 +3,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { adminService } from "@/services/AdminService";
+import { adminService } from "@/services/admin";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";

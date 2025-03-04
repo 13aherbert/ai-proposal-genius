@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, UserPlus, Users, Mail, CheckCircle, XCircle, Clock } from "lucide-react";
-import { adminService, UserProfile, UserRole, BetaInvitation } from "@/services/AdminService";
+import { adminService, UserProfile, UserRole, BetaInvitation } from "@/services/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

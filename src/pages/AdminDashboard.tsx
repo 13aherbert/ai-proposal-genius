@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -239,6 +238,7 @@ export default function AdminDashboard() {
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="beta_tester">Beta Tester</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button onClick={handleAssignRole}>Assign</Button>
@@ -382,6 +382,7 @@ export default function AdminDashboard() {
                                         <SelectContent>
                                           <SelectItem value="admin">Admin</SelectItem>
                                           <SelectItem value="beta_tester">Beta Tester</SelectItem>
+                                          <SelectItem value="user">User</SelectItem>
                                         </SelectContent>
                                       </Select>
                                       <Button 

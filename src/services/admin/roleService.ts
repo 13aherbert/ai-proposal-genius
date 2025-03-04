@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
@@ -217,6 +216,44 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
   } catch (error) {
     console.error('Error in removeRole:', error);
     toast.error("Failed to remove role", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+/**
+ * Check if the current user has the basic user role
+ * If not, assigns the role automatically
+ */
+export async function ensureUserRole(): Promise<boolean> {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user || !user.user) return false;
+
+    // Check if user already has the 'user' role
+    const hasUserRole = await checkUserRole('user');
+    
+    // If they already have the role, we're done
+    if (hasUserRole) {
+      return true;
+    }
+    
+    // User doesn't have the role, so let's assign it
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: user.user.id,
+        role: 'user',
+        created_by: user.user.id // Self-assigned
+      });
+
+    if (error) {
+      console.error('Error ensuring user role:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in ensureUserRole:', error);
     return false;
   }
 }

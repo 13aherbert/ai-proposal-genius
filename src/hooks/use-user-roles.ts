@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -8,6 +7,7 @@ export function useUserRoles() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
+  const [isUser, setIsUser] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(false); // Start with false to avoid initial flickering
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
@@ -65,6 +65,12 @@ export function useUserRoles() {
             if (isMounted) {
               setIsBetaTester(betaCheck);
             }
+          }
+          
+          // Add new code to check and ensure user role
+          const userCheck = await adminService.ensureUserRole();
+          if (isMounted) {
+            setIsUser(userCheck);
           }
           
           setIsCheckingRoles(false);
@@ -133,6 +139,7 @@ export function useUserRoles() {
   return {
     isAdmin,
     isBetaTester,
+    isUser,
     isCheckingRoles,
     roleCheckError,
     showAdminButton,

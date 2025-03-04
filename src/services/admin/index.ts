@@ -1,6 +1,6 @@
 
 import { UserRole, UserProfile, UserRoleRecord, BetaInvitation } from './types';
-import { checkUserRole, isAdmin, assignRole, removeRole } from './roleService';
+import { checkUserRole, isAdmin, assignRole, removeRole, ensureUserRole } from './roleService';
 import { getAllUsers, updateSubscriptionPlan } from './userService';
 import { 
   createBetaInvitation, 
@@ -20,6 +20,7 @@ export const adminService = {
   isAdmin,
   assignRole,
   removeRole,
+  ensureUserRole,
   
   // User management
   getAllUsers,

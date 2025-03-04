@@ -102,10 +102,10 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        // Replace direct query with RPC call to avoid RLS recursion
-        const { data: hasRole, error: roleError } = await supabase.rpc('check_user_role', {
-          user_id_param: user.user.id,
-          role_param: 'admin'
+        // Use has_role instead of check_user_role to avoid TypeScript errors
+        const { data: hasRole, error: roleError } = await supabase.rpc('has_role', {
+          _user_id: user.user.id,
+          _role: 'admin'
         });
           
         if (roleError) {
@@ -149,10 +149,10 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
 
-    // Check if user already has the role using RPC instead of direct query
-    const { data: hasRole, error: checkError } = await supabase.rpc('check_user_role', {
-      user_id_param: userId,
-      role_param: role
+    // Use has_role instead of check_user_role to avoid TypeScript errors
+    const { data: hasRole, error: checkError } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: role
     });
 
     if (checkError) {
@@ -231,10 +231,10 @@ export async function ensureUserRole(): Promise<boolean> {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Check if user already has the 'user' role using RPC
-    const { data: hasRole, error: checkError } = await supabase.rpc('check_user_role', {
-      user_id_param: user.user.id,
-      role_param: 'user'
+    // Use has_role instead of check_user_role
+    const { data: hasRole, error: checkError } = await supabase.rpc('has_role', {
+      _user_id: user.user.id,
+      _role: 'user'
     });
     
     if (checkError) {

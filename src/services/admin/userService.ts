@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -60,9 +59,15 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     if (authError) {
       console.error('Error fetching auth users:', authError);
       // Continue without emails instead of failing
-    } else if (authUsers) {
+    } else if (authUsers && authUsers.users) {
+      // Properly type the auth users data
+      type AuthUser = {
+        id: string;
+        email?: string;
+      };
+      
       // Create a map of user IDs to emails
-      authUsers.users.forEach(user => {
+      authUsers.users.forEach((user: AuthUser) => {
         if (user.email) {
           userEmails[user.id] = user.email;
         }

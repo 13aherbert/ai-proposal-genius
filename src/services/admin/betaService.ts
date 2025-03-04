@@ -68,6 +68,13 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Get current user ID for invited_by field
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      toast.error("Authentication error", { description: "Could not verify your identity" });
+      return false;
+    }
+
     // Insert new invitation
     const { error } = await supabase
       .from('beta_invitations')
@@ -75,7 +82,8 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
         email,
         invite_code: inviteCode,
         status: 'pending',
-        expires_at: expiresAt.toISOString()
+        expires_at: expiresAt.toISOString(),
+        invited_by: userData.user.id
       });
 
     if (error) {

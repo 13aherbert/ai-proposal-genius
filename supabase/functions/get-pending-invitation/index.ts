@@ -1,32 +1,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
-import { corsHeaders } from '../_shared/cors.ts'
-
-// Helper to add CORS headers to a response
-const addCorsHeaders = (response: Response) => {
-  const headers = new Headers(response.headers)
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    headers.set(key, value)
-  })
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  })
-}
-
-// Helper to handle CORS preflight requests
-const handleCors = (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-  return null
-}
+import { corsHeaders, addCorsHeaders, handleCors } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request
-  const corsResponse = handleCors(req)
-  if (corsResponse) return corsResponse
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   // Create Supabase client with admin privileges
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''

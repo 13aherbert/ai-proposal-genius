@@ -1,12 +1,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
-import { corsHeaders } from '../_shared/cors.ts'
+import { corsHeaders, addCorsHeaders, handleCors } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   // Create Supabase client with admin privileges
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -22,10 +21,10 @@ Deno.serve(async (req) => {
     
     if (!authHeader) {
       console.log("Missing Authorization header")
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
     // Extract the JWT token from the Authorization header
@@ -36,10 +35,10 @@ Deno.serve(async (req) => {
 
     if (userError || !user) {
       console.log("Unauthorized user:", userError)
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Unauthorized user', details: userError }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
     console.log("Authenticated user ID:", user.id)
@@ -54,10 +53,10 @@ Deno.serve(async (req) => {
     
     if (adminError) {
       console.error("Error checking admin status:", adminError)
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Error checking admin status', details: adminError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
     
     const isAdmin = adminRoles && adminRoles.length > 0
@@ -65,10 +64,10 @@ Deno.serve(async (req) => {
     
     if (!isAdmin) {
       console.log("User is not an admin")
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Unauthorized - admin role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
     // Fetch beta invitations directly using the service role
@@ -80,25 +79,25 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("Error fetching beta invitations:", error)
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: error.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      ))
     }
 
     console.log(`Successfully fetched ${data?.length || 0} beta invitations`)
     
     // Return the beta invitations
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify(data || []),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    ))
     
   } catch (error) {
     console.error("Unexpected error in get-beta-invitations:", error)
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify({ error: 'Internal Server Error', details: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    ))
   }
 })

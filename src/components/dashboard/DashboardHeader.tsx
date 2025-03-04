@@ -26,78 +26,85 @@ export default function DashboardHeader() {
   
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: number | undefined;
     
     const checkRoles = async () => {
-      try {
-        if (!session?.user) {
-          if (isMounted) {
-            setIsCheckingRoles(false);
-          }
-          return;
+      if (!session?.user) {
+        if (isMounted) {
+          setIsCheckingRoles(false);
         }
+        return;
+      }
+      
+      try {
+        setIsCheckingRoles(true);
+        setRoleCheckError(null);
         
-        try {
-          // Check admin role using RPC function
-          const adminCheck = await adminService.isAdmin();
-          console.log("Admin check in DashboardHeader:", adminCheck);
+        // Check admin role using RPC function
+        const adminCheck = await adminService.isAdmin();
+        console.log("Admin check in DashboardHeader:", adminCheck);
+        
+        if (isMounted) {
+          setIsAdmin(adminCheck);
           
-          if (isMounted) {
-            setIsAdmin(adminCheck);
-            
-            // Only check beta tester role if not an admin (to avoid unnecessary calls)
-            if (!adminCheck) {
-              const betaCheck = await adminService.checkUserRole('beta_tester');
+          // Only check beta tester role if not an admin (to avoid unnecessary calls)
+          if (!adminCheck) {
+            const betaCheck = await adminService.checkUserRole('beta_tester');
+            if (isMounted) {
               setIsBetaTester(betaCheck);
             }
           }
-        } catch (err) {
-          console.error("Error checking user roles:", err);
-          if (isMounted) {
-            setRoleCheckError("Could not verify user roles");
+          
+          setIsCheckingRoles(false);
+        }
+      } catch (err) {
+        console.error("Error checking user roles:", err);
+        
+        if (isMounted) {
+          setRoleCheckError("Could not verify user roles");
+          
+          // If there's an error and we haven't tried too many times, retry
+          if (adminCheckAttempts < 2) { // Reduce from 3 to 2 to limit API calls
+            const nextAttempt = adminCheckAttempts + 1;
+            setAdminCheckAttempts(nextAttempt);
+            console.log(`Retrying admin check (attempt ${nextAttempt} of 2)...`);
             
-            // If there's an error and we haven't tried too many times, retry
-            if (adminCheckAttempts < 3) {
-              const nextAttempt = adminCheckAttempts + 1;
-              setAdminCheckAttempts(nextAttempt);
-              console.log(`Retrying admin check (attempt ${nextAttempt} of 3)...`);
-              
-              // Retry with exponential backoff
-              setTimeout(() => {
-                if (isMounted) {
-                  setRoleCheckError(null);
-                  checkRoles();
-                }
-              }, Math.pow(2, nextAttempt) * 300);
-            } else {
-              toast.error("Failed to check admin status", { 
-                description: "Please refresh the page or try again later" 
-              });
+            // Retry with exponential backoff - longer delay: 600ms, then 2400ms
+            const delay = Math.pow(4, nextAttempt) * 150;
+            
+            // Clear any existing timeout to prevent multiple timers
+            if (timeoutId) {
+              window.clearTimeout(timeoutId);
             }
-          }
-        } finally {
-          if (isMounted) {
+            
+            timeoutId = window.setTimeout(() => {
+              if (isMounted) {
+                setRoleCheckError(null);
+                checkRoles();
+              }
+            }, delay);
+          } else {
+            toast.error("Failed to check admin status", { 
+              description: "Please refresh the page or try again later",
+              id: "admin-check-error" // Prevent duplicate toasts
+            });
             setIsCheckingRoles(false);
           }
-        }
-      } catch (error) {
-        console.error("Error in role checking process:", error);
-        if (isMounted) {
-          setRoleCheckError("Failed to check user permissions");
-          setIsCheckingRoles(false);
         }
       }
     };
     
-    setIsCheckingRoles(true);
-    setRoleCheckError(null);
     checkRoles();
     
     return () => {
       isMounted = false;
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, [session]);
 
-  // FIXED: Show admin button as soon as the admin check is completed and result is true
+  // Show admin button as soon as the admin check is completed and result is true
   const showAdminButton = isAdmin && !isCheckingRoles;
   const showBetaBadge = isBetaTester && !isAdmin && !isCheckingRoles;
 
@@ -121,7 +128,6 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {/* Debug labels to help troubleshoot admin button visibility */}
             {isCheckingRoles && (
               <Badge variant="outline" className="py-2 px-3">
                 Checking roles...
@@ -146,7 +152,7 @@ export default function DashboardHeader() {
               </Badge>
             )}
             
-            {roleCheckError && (
+            {roleCheckError && !isCheckingRoles && (
               <Badge variant="destructive" className="py-2 px-3">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 {roleCheckError}

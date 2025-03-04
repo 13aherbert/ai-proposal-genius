@@ -1,6 +1,16 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
+
+// Cache for admin status to avoid repeated calls
+let adminStatusCache: { status: boolean | null; timestamp: number } = { 
+  status: null, 
+  timestamp: 0 
+};
+
+// Cache duration in milliseconds (2 minutes)
+const CACHE_DURATION = 2 * 60 * 1000;
 
 /**
  * Check if the current user has a specific role
@@ -32,10 +42,17 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
 /**
  * Check if the current user is an admin
  * Uses a direct RPC call to avoid row-level security recursion
- * Includes retry logic for reliability
+ * Includes retry logic and caching for reliability
  */
 export async function isAdmin(): Promise<boolean> {
-  const maxRetries = 3;
+  // Check cache first to avoid redundant calls
+  const now = Date.now();
+  if (adminStatusCache.status !== null && (now - adminStatusCache.timestamp) < CACHE_DURATION) {
+    console.log("Using cached admin status:", adminStatusCache.status);
+    return adminStatusCache.status;
+  }
+  
+  const maxRetries = 2; // Reduce from 3 to 2 to limit API calls
   let retryCount = 0;
   
   const attemptAdminCheck = async (): Promise<boolean> => {
@@ -49,23 +66,34 @@ export async function isAdmin(): Promise<boolean> {
         throw error;
       }
       
-      console.log("Is admin check result:", !!data);
-      return !!data;
+      const result = !!data;
+      console.log("Is admin check result:", result);
+      
+      // Update cache
+      adminStatusCache = { status: result, timestamp: Date.now() };
+      
+      return result;
     } catch (error) {
       console.error(`Error in isAdmin (attempt ${retryCount + 1}):`, error);
       
+      // Only retry if we haven't exceeded max retries
       if (retryCount < maxRetries) {
         retryCount++;
         console.log(`Retrying admin check (attempt ${retryCount} of ${maxRetries})...`);
-        // Exponential backoff: 300ms, 900ms, 2700ms
-        await new Promise(resolve => setTimeout(resolve, Math.pow(3, retryCount) * 100));
+        
+        // Exponential backoff with longer delays: 500ms, then 2000ms
+        const delay = Math.pow(4, retryCount) * 125;
+        await new Promise(resolve => setTimeout(resolve, delay));
         return attemptAdminCheck();
       }
       
       // Fallback: Try to check admin role directly if RPC fails
       try {
         const { data: user } = await supabase.auth.getUser();
-        if (!user || !user.user) return false;
+        if (!user || !user.user) {
+          adminStatusCache = { status: false, timestamp: Date.now() };
+          return false;
+        }
         
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
@@ -76,14 +104,20 @@ export async function isAdmin(): Promise<boolean> {
           
         if (roleError) {
           console.error('Error in fallback admin check:', roleError);
+          adminStatusCache = { status: false, timestamp: Date.now() };
           return false;
         }
         
         const isAdminResult = !!roleData;
         console.log("Fallback admin check result:", isAdminResult);
+        
+        // Update cache even for fallback results
+        adminStatusCache = { status: isAdminResult, timestamp: Date.now() };
+        
         return isAdminResult;
       } catch (fallbackError) {
         console.error('Error in fallback admin check:', fallbackError);
+        adminStatusCache = { status: false, timestamp: Date.now() };
         return false;
       }
     }

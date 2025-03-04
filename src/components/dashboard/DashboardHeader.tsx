@@ -20,8 +20,6 @@ export default function DashboardHeader() {
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
-  // Separate stable state for button visibility to prevent flashing
-  const [adminButtonVisible, setAdminButtonVisible] = useState(false);
   
   // Use a ref to store whether we've already determined admin status
   // This helps prevent flashing by ensuring we only update the visibility state once
@@ -46,7 +44,7 @@ export default function DashboardHeader() {
       
       // Don't start checking roles again if we've already determined admin status
       // This prevents unnecessary API calls that could lead to resource exhaustion
-      if (adminStatusDetermined.current && adminButtonVisible) {
+      if (adminStatusDetermined.current) {
         console.log("Admin status already determined, skipping check");
         setIsCheckingRoles(false);
         return;
@@ -63,15 +61,9 @@ export default function DashboardHeader() {
         if (isMounted) {
           setIsAdmin(adminCheck);
           
-          // Only update the admin button visibility once we get a successful response
-          // and never hide it once it's been shown (prevents flashing)
+          // Mark that we've determined the admin status
           if (adminCheck) {
-            setAdminButtonVisible(true);
-            // Mark that we've determined the admin status
             adminStatusDetermined.current = true;
-          } else if (!adminStatusDetermined.current) {
-            // Only set to false if we haven't already determined admin status
-            setAdminButtonVisible(false);
           }
           
           // Only check beta tester role if not an admin (to avoid unnecessary calls)
@@ -114,7 +106,6 @@ export default function DashboardHeader() {
             }, delay);
           } else {
             // If we've exceeded retry attempts, just finish the checking process
-            // without changing the current state of the admin button
             toast.error("Failed to check admin status", { 
               description: "Please refresh the page or try again later",
               id: "admin-check-error" // Prevent duplicate toasts
@@ -137,9 +128,8 @@ export default function DashboardHeader() {
     };
   }, [session]);
 
-  // Use the stable adminButtonVisible state to control button display
-  // Only show when we're not in a checking state to prevent flashing
-  const showAdminButton = adminButtonVisible && !isCheckingRoles;
+  // Only show admin button if user is confirmed as admin and we're not in a checking state
+  const showAdminButton = isAdmin && !isCheckingRoles;
   const showBetaBadge = isBetaTester && !isAdmin && !isCheckingRoles;
 
   return (
@@ -162,7 +152,7 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {isCheckingRoles && !adminButtonVisible && (
+            {isCheckingRoles && (
               <Badge variant="outline" className="py-2 px-3">
                 Checking roles...
               </Badge>
@@ -186,7 +176,7 @@ export default function DashboardHeader() {
               </Badge>
             )}
             
-            {roleCheckError && !isCheckingRoles && !adminButtonVisible && (
+            {roleCheckError && !isCheckingRoles && (
               <Badge variant="destructive" className="py-2 px-3">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 {roleCheckError}

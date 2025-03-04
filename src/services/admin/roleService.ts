@@ -4,13 +4,14 @@ import { toast } from "sonner";
 import { UserRole } from "./types";
 
 // Cache for admin status to avoid repeated calls
+// Increase cache duration to 5 minutes to reduce API calls
 let adminStatusCache: { status: boolean | null; timestamp: number } = { 
   status: null, 
   timestamp: 0 
 };
 
-// Cache duration in milliseconds (2 minutes)
-const CACHE_DURATION = 2 * 60 * 1000;
+// Cache duration in milliseconds (5 minutes)
+const CACHE_DURATION = 5 * 60 * 1000;
 
 /**
  * Check if the current user has a specific role
@@ -52,7 +53,8 @@ export async function isAdmin(): Promise<boolean> {
     return adminStatusCache.status;
   }
   
-  const maxRetries = 2; // Reduce from 3 to 2 to limit API calls
+  // Reduce max retries to 1 to minimize API calls
+  const maxRetries = 1;
   let retryCount = 0;
   
   const attemptAdminCheck = async (): Promise<boolean> => {
@@ -81,10 +83,17 @@ export async function isAdmin(): Promise<boolean> {
         retryCount++;
         console.log(`Retrying admin check (attempt ${retryCount} of ${maxRetries})...`);
         
-        // Exponential backoff with longer delays: 500ms, then 2000ms
-        const delay = Math.pow(4, retryCount) * 125;
+        // Use longer delay for backoff (3 seconds)
+        const delay = 3000;
         await new Promise(resolve => setTimeout(resolve, delay));
         return attemptAdminCheck();
+      }
+      
+      // Fallback: If we've had a successful admin check in the past,
+      // reuse that value rather than failing completely
+      if (adminStatusCache.status !== null) {
+        console.log("Using last known admin status after failed check:", adminStatusCache.status);
+        return adminStatusCache.status;
       }
       
       // Fallback: Try to check admin role directly if RPC fails

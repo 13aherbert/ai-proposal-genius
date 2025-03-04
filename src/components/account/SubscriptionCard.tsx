@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,7 @@ interface SubscriptionCardProps {
  * upgrade or cancel their subscription
  */
 export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+  const navigate = useNavigate();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -135,6 +136,13 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     }
   };
 
+  /**
+   * Navigate to subscription page for more plan options
+   */
+  const handleViewSubscriptionPage = () => {
+    navigate('/subscription');
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -219,6 +227,16 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
             </div>
           )}
         </div>
+        
+        {/* New button to navigate to subscription page */}
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={handleViewSubscriptionPage}
+        >
+          <Tag className="h-4 w-4 mr-2" />
+          View Subscription Plans
+        </Button>
         
         <div className="flex flex-col sm:flex-row gap-4">
           {currentPlanType !== 'pro' && (

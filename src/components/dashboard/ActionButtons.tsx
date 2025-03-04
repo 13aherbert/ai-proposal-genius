@@ -22,7 +22,8 @@ export function ActionButtons({
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
-      {isCheckingRoles && (
+      {/* Only show the "Checking roles..." badge if we're checking AND we've confirmed it's an admin user */}
+      {isCheckingRoles && showAdminButton && (
         <Badge variant="outline" className="py-2 px-3">
           Checking roles...
         </Badge>
@@ -46,7 +47,7 @@ export function ActionButtons({
         </Badge>
       )}
       
-      {roleCheckError && !isCheckingRoles && (
+      {roleCheckError && !isCheckingRoles && showAdminButton && (
         <Badge variant="destructive" className="py-2 px-3">
           <AlertCircle className="h-4 w-4 mr-1" />
           {roleCheckError}

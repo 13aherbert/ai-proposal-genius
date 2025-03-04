@@ -8,7 +8,7 @@ export function useUserRoles() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
-  const [isCheckingRoles, setIsCheckingRoles] = useState(true);
+  const [isCheckingRoles, setIsCheckingRoles] = useState(false); // Start with false to avoid initial flickering
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
   
@@ -39,23 +39,28 @@ export function useUserRoles() {
       }
       
       try {
-        setIsCheckingRoles(true);
+        // Only set isCheckingRoles to true for confirmed admin users
+        // For our first check, we'll do a quick check without showing the loading state
+        // This prevents the loading indicator from showing to non-admin users
+        const quickAdminCheck = await adminService.isAdmin();
+        
+        if (quickAdminCheck) {
+          // Only show loading state for actual admin users
+          setIsCheckingRoles(true);
+        }
+        
         setRoleCheckError(null);
         
-        // Check admin role using RPC function
-        const adminCheck = await adminService.isAdmin();
-        console.log("Admin check in useUserRoles:", adminCheck);
-        
         if (isMounted) {
-          setIsAdmin(adminCheck);
+          setIsAdmin(quickAdminCheck);
           
           // Mark that we've determined the admin status
-          if (adminCheck) {
+          if (quickAdminCheck) {
             adminStatusDetermined.current = true;
           }
           
           // Only check beta tester role if not an admin (to avoid unnecessary calls)
-          if (!adminCheck) {
+          if (!quickAdminCheck) {
             const betaCheck = await adminService.checkUserRole('beta_tester');
             if (isMounted) {
               setIsBetaTester(betaCheck);
@@ -68,7 +73,10 @@ export function useUserRoles() {
         console.error("Error checking user roles:", err);
         
         if (isMounted) {
-          setRoleCheckError("Could not verify user roles");
+          // Only show error for admin users
+          if (isAdmin) {
+            setRoleCheckError("Could not verify user roles");
+          }
           
           // Fewer retry attempts to reduce API load
           if (adminCheckAttempts < 1 && !adminStatusDetermined.current) {
@@ -94,10 +102,12 @@ export function useUserRoles() {
             }, delay);
           } else {
             // If we've exceeded retry attempts, just finish the checking process
-            toast.error("Failed to check admin status", { 
-              description: "Please refresh the page or try again later",
-              id: "admin-check-error" // Prevent duplicate toasts
-            });
+            if (isAdmin) {
+              toast.error("Failed to check admin status", { 
+                description: "Please refresh the page or try again later",
+                id: "admin-check-error" // Prevent duplicate toasts
+              });
+            }
             setIsCheckingRoles(false);
           }
         }

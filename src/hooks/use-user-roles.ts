@@ -9,12 +9,11 @@ export function useUserRoles() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
   const [isUser, setIsUser] = useState(false);
-  const [isCheckingRoles, setIsCheckingRoles] = useState(false); // Start with false to avoid initial flickering
+  const [isCheckingRoles, setIsCheckingRoles] = useState(false); 
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
   
   // Use a ref to store whether we've already determined admin status
-  // This helps prevent flashing by ensuring we only update the visibility state once
   const adminStatusDetermined = useRef(false);
   
   // Use a ref to store timeout IDs to properly clean them up
@@ -31,10 +30,8 @@ export function useUserRoles() {
         return;
       }
       
-      // Don't start checking roles again if we've already determined admin status
-      // This prevents unnecessary API calls that could lead to resource exhaustion
+      // Skip checks if we've already determined admin status
       if (adminStatusDetermined.current) {
-        // console.log("Admin status already determined, skipping check");
         setIsCheckingRoles(false);
         return;
       }
@@ -42,7 +39,6 @@ export function useUserRoles() {
       try {
         // Only set isCheckingRoles to true for confirmed admin users
         // For our first check, we'll do a quick check without showing the loading state
-        // This prevents the loading indicator from showing to non-admin users
         const quickAdminCheck = await adminService.isAdmin();
         
         if (quickAdminCheck) {
@@ -68,7 +64,7 @@ export function useUserRoles() {
             }
           }
           
-          // Add new code to check and ensure user role
+          // Check and ensure user role
           const userCheck = await adminService.ensureUserRole();
           if (isMounted) {
             setIsUser(userCheck);

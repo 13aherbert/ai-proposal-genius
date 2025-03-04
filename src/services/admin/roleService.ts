@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
@@ -41,8 +42,8 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
 
 /**
  * Check if the current user is an admin
- * Uses a direct RPC call to avoid row-level security recursion
- * Includes retry logic and caching for reliability
+ * Uses the new is_admin_direct function to avoid row-level security recursion
+ * Includes caching for reliability and performance
  */
 export async function isAdmin(): Promise<boolean> {
   // Check cache first to avoid redundant calls
@@ -57,8 +58,8 @@ export async function isAdmin(): Promise<boolean> {
   
   const attemptAdminCheck = async (): Promise<boolean> => {
     try {
-      // Call the is_admin function which uses SECURITY DEFINER to bypass RLS
-      const { data, error } = await supabase.rpc('is_admin');
+      // Call the is_admin_direct function which avoids recursion
+      const { data, error } = await supabase.rpc('is_admin_direct');
       
       if (error) {
         console.error('Error checking admin status:', error);
@@ -100,19 +101,20 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        // Use has_role to check admin status directly, bypassing RLS
-        const { data: hasRole, error: roleError } = await supabase.rpc('has_role', {
-          _user_id: user.user.id,
-          _role: 'admin'
-        });
+        // Query the user_roles table directly
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', user.user.id)
+          .eq('role', 'admin');
           
-        if (roleError) {
-          console.error('Error in fallback admin check:', roleError);
+        if (rolesError) {
+          console.error('Error in fallback admin check:', rolesError);
           adminStatusCache = { status: false, timestamp: Date.now() };
           return false;
         }
         
-        const isAdminResult = !!hasRole;
+        const isAdminResult = userRoles && userRoles.length > 0;
         console.log("Fallback admin check result:", isAdminResult);
         
         // Update cache even for fallback results

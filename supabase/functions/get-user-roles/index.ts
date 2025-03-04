@@ -1,90 +1,107 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
-import { corsHeaders, handleCors, addCorsHeaders } from '../_shared/cors.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight request
-  const corsResponse = handleCors(req)
-  if (corsResponse) return corsResponse
+// Import the CORS headers from the shared utility
+import { corsHeaders } from "../_shared/cors.ts";
 
-  // Create Supabase client with admin privileges
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-  const supabase = createClient(supabaseUrl, supabaseKey)
+type UserRole = {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  created_by: string | null;
+};
+
+type UserEmailInfo = {
+  id: string;
+  email: string;
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    console.log("Received request to get-user-roles")
-    
-    // Get authorization header from request
-    const authHeader = req.headers.get('Authorization')
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.log("Missing Authorization header")
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      ))
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Verify the user with the JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
 
-    if (userError || !user) {
-      console.log("Unauthorized user:", userError)
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: 'Unauthorized user', details: userError }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      ))
-    }
-
-    // Check if user is admin - the is_admin RPC doesn't need parameters when called with an authenticated user
-    console.log("Checking if user is admin")
-    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
+    // Check if the user is an admin using the is_admin RPC
+    const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
     
-    if (adminError) {
-      console.error("Error checking admin status:", adminError)
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: 'Error checking admin status', details: adminError }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ))
+    if (adminCheckError) {
+      console.error("Admin check error:", adminCheckError);
+      return new Response(
+        JSON.stringify({ error: "Error checking admin status", details: adminCheckError }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-    
+
     if (!isAdmin) {
-      console.log("User is not an admin")
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: 'Unauthorized - admin role required' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      ))
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Fetch user roles directly using the service role
-    console.log("Fetching user roles")
-    const { data, error } = await supabase
+    // Get all user roles
+    const { data: roleRecords, error: getRolesError } = await supabase
       .from('user_roles')
-      .select('*')
+      .select('*');
 
-    if (error) {
-      console.error("Error fetching user roles:", error)
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ))
+    if (getRolesError) {
+      console.error("Error fetching user roles:", getRolesError);
+      return new Response(
+        JSON.stringify({ error: "Error fetching user roles", details: getRolesError }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`Successfully fetched ${data?.length || 0} user roles`)
+    // Get email information for all users from auth.users table using service role
+    const { data: userEmails, error: emailError } = await supabase.auth.admin.listUsers();
     
-    // Return the user roles
-    return addCorsHeaders(new Response(
-      JSON.stringify(data || []),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    ))
-    
+    if (emailError) {
+      console.error("Error fetching user emails:", emailError);
+      return new Response(
+        JSON.stringify({ error: "Error fetching user emails", details: emailError }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Combine roles with email information
+    const enhancedRoleRecords = roleRecords.map((role) => {
+      const user = userEmails.users.find((u) => u.id === role.user_id);
+      return {
+        ...role,
+        email: user?.email || null
+      };
+    });
+
+    return new Response(
+      JSON.stringify(enhancedRoleRecords),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error("Unexpected error in get-user-roles:", error)
-    return addCorsHeaders(new Response(
-      JSON.stringify({ error: 'Internal Server Error', details: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    ))
+    console.error("Server error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
-})
+});

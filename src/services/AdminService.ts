@@ -10,6 +10,7 @@ export type UserRoleRecord = {
   role: UserRole;
   created_at: string;
   created_by: string | null;
+  email?: string | null;
 };
 
 export type UserProfile = {
@@ -111,7 +112,7 @@ class AdminService {
         throw new Error(profileError.message || 'Failed to fetch user profiles');
       }
 
-      // Use Edge Function to get user roles to avoid RLS recursion
+      // Get user email data from auth table via our edge function
       const { data: roleRecords, error: rolesError } = await supabase.functions.invoke('get-user-roles', {
         method: 'GET'
       });
@@ -129,19 +130,42 @@ class AdminService {
         console.error('Error fetching subscriptions:', subError);
       }
 
+      // Create a map of user IDs to emails from the role records that now include email
+      const emailMap = new Map();
+      if (roleRecords) {
+        roleRecords.forEach((record: UserRoleRecord) => {
+          if (record.email) {
+            emailMap.set(record.user_id, record.email);
+          }
+        });
+      }
+
+      // Get any users who might not have roles yet but exist in the system
+      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+      if (!userError && userData) {
+        userData.users.forEach(user => {
+          if (user.email && !emailMap.has(user.id)) {
+            emailMap.set(user.id, user.email);
+          }
+        });
+      }
+
       // Map profiles to UserProfile format
       return profiles?.map(profile => {
         // For each profile, find its roles in the roleRecords array
-        const userRolesArray = roleRecords?.filter(r => r.user_id === profile.profile_id) || [];
+        const userRolesArray = roleRecords?.filter((r: UserRoleRecord) => r.user_id === profile.profile_id) || [];
         const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
+        
+        // Get email from the map or use username as fallback
+        const email = emailMap.get(profile.profile_id) || profile.username || '';
 
         return {
           userId: profile.profile_id,
-          email: profile.username || '',  // username might store email in some setups
+          email: email,
           firstName: profile.first_name || null,
           lastName: profile.last_name || null,
           businessName: profile.business_name || null,
-          roles: userRolesArray.map(r => r.role as UserRole),
+          roles: userRolesArray.map((r: UserRoleRecord) => r.role as UserRole),
           subscription: subscription ? {
             plan: subscription.plan_type,
             status: subscription.status

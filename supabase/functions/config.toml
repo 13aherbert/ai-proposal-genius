@@ -71,3 +71,4 @@ verify_jwt = true
 [[functions]]
 name = "get-beta-invitations"
 verify_jwt = true
+

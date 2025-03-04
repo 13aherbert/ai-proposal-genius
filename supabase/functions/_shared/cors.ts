@@ -5,23 +5,33 @@ export const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-// Helper to add CORS headers to a response
-export const addCorsHeaders = (response: Response) => {
-  const headers = new Headers(response.headers);
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    headers.set(key, value);
-  });
-  return new Response(response.body, {
+// Add CORS headers to a Response
+export function addCorsHeaders(response: Response): Response {
+  // Create a new response with the same body, status, and statusText
+  const newResponse = new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers
+    headers: response.headers,
   });
-};
 
-// Helper to handle CORS preflight requests
-export const handleCors = (req: Request) => {
+  // Add CORS headers
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    newResponse.headers.set(key, value);
+  });
+
+  return newResponse;
+}
+
+// Handle CORS preflight requests
+export function handleCors(req: Request): Response | null {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
+  
+  // Return null to continue processing the request
   return null;
-};
+}

@@ -5,7 +5,9 @@ import { getAllUsers, updateSubscriptionPlan } from './userService';
 import { 
   createBetaInvitation, 
   getBetaInvitations, 
-  cancelBetaInvitation
+  cancelBetaInvitation,
+  verifyBetaInvitation,
+  acceptBetaInvitation
 } from './betaService';
 
 // Re-export all types
@@ -26,5 +28,7 @@ export const adminService = {
   // Beta invitation management
   createBetaInvitation,
   getBetaInvitations,
-  cancelBetaInvitation
+  cancelBetaInvitation,
+  verifyBetaInvitation,
+  acceptBetaInvitation
 };

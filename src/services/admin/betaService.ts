@@ -127,6 +127,96 @@ export async function cancelBetaInvitation(invitationId: string): Promise<boolea
 }
 
 /**
+ * Verify a beta invitation
+ */
+export async function verifyBetaInvitation(code: string): Promise<BetaInvitation | null> {
+  try {
+    const { data, error } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('invite_code', code)
+      .eq('status', 'pending')
+      .single();
+
+    if (error || !data) {
+      console.error('Error verifying beta invitation:', error);
+      return null;
+    }
+
+    // Check if invitation has expired
+    const expiresAt = new Date(data.expires_at);
+    if (expiresAt < new Date()) {
+      // Mark as expired
+      await supabase
+        .from('beta_invitations')
+        .update({ status: 'expired' })
+        .eq('id', data.id);
+      return null;
+    }
+
+    return data as BetaInvitation;
+  } catch (error) {
+    console.error('Error in verifyBetaInvitation:', error);
+    return null;
+  }
+}
+
+/**
+ * Accept a beta invitation and assign beta_tester role to the user
+ */
+export async function acceptBetaInvitation(code: string): Promise<boolean> {
+  try {
+    // First verify the invitation
+    const invitation = await verifyBetaInvitation(code);
+    if (!invitation) {
+      return false;
+    }
+
+    // Get current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      toast.error("Authentication error", { description: "Could not verify your identity" });
+      return false;
+    }
+
+    // Update invitation status
+    const { error: updateError } = await supabase
+      .from('beta_invitations')
+      .update({
+        status: 'accepted',
+        accepted_at: new Date().toISOString()
+      })
+      .eq('id', invitation.id);
+
+    if (updateError) {
+      console.error('Error updating beta invitation status:', updateError);
+      return false;
+    }
+
+    // Add beta_tester role to user
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userData.user.id,
+        role: 'beta_tester',
+        created_by: invitation.invited_by
+      });
+
+    if (roleError) {
+      console.error('Error assigning beta_tester role:', roleError);
+      return false;
+    }
+
+    toast.success("You have joined the beta program!");
+    return true;
+  } catch (error) {
+    console.error('Error in acceptBetaInvitation:', error);
+    toast.error("Failed to join beta program", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+/**
  * Generate a random invitation code
  */
 function generateInviteCode(): string {

@@ -23,15 +23,22 @@ export default function DashboardHeader() {
   const isSubscriptionActive = plan && plan !== 'trial';
   
   useEffect(() => {
+    let isMounted = true;
+    
     const checkRoles = async () => {
       try {
-        setIsCheckingRoles(true);
-        setRoleCheckError(null);
+        if (!session?.user) {
+          if (isMounted) {
+            setIsCheckingRoles(false);
+          }
+          return;
+        }
         
-        if (session?.user) {
+        try {
           // Check admin role using RPC function
-          try {
-            const adminCheck = await adminService.isAdmin();
+          const adminCheck = await adminService.isAdmin();
+          
+          if (isMounted) {
             setIsAdmin(adminCheck);
             
             // Only check beta tester role if not an admin (to avoid unnecessary calls)
@@ -39,21 +46,38 @@ export default function DashboardHeader() {
               const betaCheck = await adminService.checkUserRole('beta_tester');
               setIsBetaTester(betaCheck);
             }
-          } catch (err) {
-            console.error("Error checking user roles:", err);
+          }
+        } catch (err) {
+          console.error("Error checking user roles:", err);
+          if (isMounted) {
             setRoleCheckError("Could not verify user roles");
+          }
+        } finally {
+          if (isMounted) {
+            setIsCheckingRoles(false);
           }
         }
       } catch (error) {
         console.error("Error in role checking process:", error);
-        setRoleCheckError("Failed to check user permissions");
-      } finally {
-        setIsCheckingRoles(false);
+        if (isMounted) {
+          setRoleCheckError("Failed to check user permissions");
+          setIsCheckingRoles(false);
+        }
       }
     };
     
+    setIsCheckingRoles(true);
+    setRoleCheckError(null);
     checkRoles();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [session]);
+
+  // Don't render the admin button until we've finished checking roles
+  const showAdminButton = !isCheckingRoles && !roleCheckError && isAdmin;
+  const showBetaBadge = !isCheckingRoles && !roleCheckError && isBetaTester && !isAdmin;
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
@@ -75,7 +99,7 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
-            {!isCheckingRoles && !roleCheckError && isAdmin && (
+            {showAdminButton && (
               <Button 
                 variant="outline" 
                 className="bg-black/20 border-brand-silver hover:bg-black/40"
@@ -86,7 +110,7 @@ export default function DashboardHeader() {
               </Button>
             )}
             
-            {!isCheckingRoles && !roleCheckError && isBetaTester && !isAdmin && (
+            {showBetaBadge && (
               <Badge variant="outline" className="py-2 px-3">
                 <Crown className="h-4 w-4 mr-1" />
                 Beta Tester

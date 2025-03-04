@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   try {
     console.log("Received request to get-beta-invitations")
     
-    // Get authorization header from request
+    // Get JWT token from authorization header
     const authHeader = req.headers.get('Authorization')
     console.log("Auth header present:", !!authHeader)
     
@@ -28,10 +28,11 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace('Bearer ', '')
+    
     // Verify the user with the JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (userError || !user) {
       console.log("Unauthorized user:", userError)
@@ -43,13 +44,13 @@ Deno.serve(async (req) => {
 
     console.log("Authenticated user ID:", user.id)
 
-    // Check if user is admin - the is_admin RPC doesn't need parameters when called with an authenticated user
+    // Check if user is admin via direct query to user_roles table
     console.log("Checking if user is admin")
-    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {}, {
-      headers: { 
-        Authorization: authHeader
-      }
-    })
+    const { data: adminRoles, error: adminError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
     
     if (adminError) {
       console.error("Error checking admin status:", adminError)
@@ -59,7 +60,9 @@ Deno.serve(async (req) => {
       )
     }
     
+    const isAdmin = adminRoles && adminRoles.length > 0
     console.log("Is admin check result:", isAdmin)
+    
     if (!isAdmin) {
       console.log("User is not an admin")
       return new Response(

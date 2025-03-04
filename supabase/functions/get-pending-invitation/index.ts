@@ -1,6 +1,27 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
-import { corsHeaders, handleCors, addCorsHeaders } from '../_shared/cors.ts'
+import { corsHeaders } from '../_shared/cors.ts'
+
+// Helper to add CORS headers to a response
+const addCorsHeaders = (response: Response) => {
+  const headers = new Headers(response.headers)
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    headers.set(key, value)
+  })
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  })
+}
+
+// Helper to handle CORS preflight requests
+const handleCors = (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+  return null
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request
@@ -15,7 +36,7 @@ Deno.serve(async (req) => {
   try {
     console.log("Received request to get-pending-invitation")
     
-    // Get authorization header from request
+    // Get JWT token from authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       console.log("Missing Authorization header")
@@ -42,10 +63,11 @@ Deno.serve(async (req) => {
       ))
     }
 
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace('Bearer ', '')
+    
     // Verify the user with the JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (userError || !user) {
       console.log("Unauthorized user:", userError)
@@ -55,9 +77,13 @@ Deno.serve(async (req) => {
       ))
     }
 
-    // Check if user is admin - the is_admin RPC doesn't need parameters when called with an authenticated user
+    // Check if user is admin via direct query to user_roles table
     console.log("Checking if user is admin")
-    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
+    const { data: adminRoles, error: adminError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
     
     if (adminError) {
       console.error("Error checking admin status:", adminError)
@@ -66,6 +92,8 @@ Deno.serve(async (req) => {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       ))
     }
+    
+    const isAdmin = adminRoles && adminRoles.length > 0
     
     if (!isAdmin) {
       console.log("User is not an admin")

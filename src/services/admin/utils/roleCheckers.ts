@@ -5,15 +5,15 @@ import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
 
 /**
  * Check if the current user has a specific role
- * Uses a direct query to avoid row-level security recursion
+ * Uses the check_existing_role RPC function to avoid row-level security recursion
  */
 export async function checkUserRole(role: UserRole): Promise<boolean> {
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Use the has_role function which has SECURITY DEFINER to bypass RLS
-    const { data, error } = await supabase.rpc('has_role', {
+    // Use the check_existing_role function which has SECURITY DEFINER to bypass RLS
+    const { data, error } = await supabase.rpc('check_existing_role', {
       _user_id: user.user.id,
       _role: role
     });
@@ -32,7 +32,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
 
 /**
  * Check if the current user is an admin
- * Uses the new is_admin_direct function to avoid row-level security recursion
+ * Uses the is_admin_direct function to avoid row-level security recursion
  * Includes caching for reliability and performance
  */
 export async function isAdmin(): Promise<boolean> {
@@ -84,7 +84,7 @@ export async function isAdmin(): Promise<boolean> {
         return cachedStatus;
       }
       
-      // Fallback: Try to check admin role directly if RPC fails
+      // Fallback: Try to check admin role directly using our new check_existing_role RPC
       try {
         const { data: user } = await supabase.auth.getUser();
         if (!user || !user.user) {
@@ -92,12 +92,11 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        // Query the user_roles table directly
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', user.user.id)
-          .eq('role', 'admin');
+        // Use check_existing_role RPC to check if user has admin role
+        const { data: isAdminResult, error: rolesError } = await supabase.rpc('check_existing_role', {
+          _user_id: user.user.id,
+          _role: 'admin'
+        });
           
         if (rolesError) {
           console.error('Error in fallback admin check:', rolesError);
@@ -105,7 +104,6 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        const isAdminResult = userRoles && userRoles.length > 0;
         console.log("Fallback admin check result:", isAdminResult);
         
         // Update cache even for fallback results

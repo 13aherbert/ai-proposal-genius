@@ -23,37 +23,23 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
 
-    // Check if user already has this role - using direct query to avoid recursion
-    const { data: existingRoles, error: queryError } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('role', role);
+    // Use the assign_user_role RPC function which avoids RLS recursion
+    const { data, error } = await supabase.rpc('assign_user_role', {
+      _user_id: userId,
+      _role: role,
+      _created_by: currentUser.user.id
+    });
 
-    if (queryError) {
-      console.error('Error checking existing roles:', queryError);
-      toast.error("Failed to check existing role", { description: queryError.message });
+    if (error) {
+      console.error('Error assigning role:', error);
+      toast.error("Failed to assign role", { description: error.message });
       return false;
     }
 
-    if (existingRoles && existingRoles.length > 0) {
+    // If data is null, the role already exists (based on our RPC function logic)
+    if (data === null) {
       toast.info("Role already assigned", { description: `User already has the ${role} role` });
       return true;
-    }
-
-    // Assign role using direct insert
-    const { error: insertError } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: userId,
-        role: role,
-        created_by: currentUser.user.id
-      });
-
-    if (insertError) {
-      console.error('Error assigning role:', insertError);
-      toast.error("Failed to assign role", { description: insertError.message });
-      return false;
     }
 
     toast.success("Role assigned successfully");
@@ -77,12 +63,11 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
 
-    // Use direct query to avoid RLS recursion
-    const { error } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
-      .eq('role', role);
+    // Use the remove_user_role RPC function which avoids RLS recursion
+    const { data, error } = await supabase.rpc('remove_user_role', {
+      _user_id: userId,
+      _role: role
+    });
 
     if (error) {
       console.error('Error removing role:', error);
@@ -90,8 +75,14 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
 
-    toast.success("Role removed successfully");
-    return true;
+    // If data is true, role was successfully removed
+    if (data) {
+      toast.success("Role removed successfully");
+      return true;
+    } else {
+      toast.info("Role not found", { description: `User does not have the ${role} role` });
+      return false;
+    }
   } catch (error) {
     console.error('Error in removeRole:', error);
     toast.error("Failed to remove role", { description: error instanceof Error ? error.message : "Unknown error" });
@@ -111,8 +102,8 @@ export async function ensureUserRole(): Promise<boolean> {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Use has_role to check if user already has the role
-    const { data: hasRole, error: checkError } = await supabase.rpc('has_role', {
+    // Use check_existing_role RPC to check if user already has the role
+    const { data: hasRole, error: checkError } = await supabase.rpc('check_existing_role', {
       _user_id: user.user.id,
       _role: 'user'
     });
@@ -127,15 +118,13 @@ export async function ensureUserRole(): Promise<boolean> {
       return true;
     }
     
-    // User doesn't have the role, so let's assign it
+    // User doesn't have the role, so let's assign it using our RPC function
     console.log('User does not have the user role yet, assigning it now...');
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: user.user.id,
-        role: 'user',
-        created_by: user.user.id // Self-assigned
-      });
+    const { data, error } = await supabase.rpc('assign_user_role', {
+      _user_id: user.user.id,
+      _role: 'user',
+      _created_by: user.user.id // Self-assigned
+    });
 
     if (error) {
       console.error('Error ensuring user role:', error);

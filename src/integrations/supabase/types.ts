@@ -325,6 +325,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_user_role: {
+        Args: {
+          _user_id: string
+          _role: string
+          _created_by: string
+        }
+        Returns: string
+      }
+      check_existing_role: {
+        Args: {
+          _user_id: string
+          _role: string
+        }
+        Returns: boolean
+      }
       check_project_limit: {
         Args: {
           user_id: string
@@ -361,6 +376,13 @@ export type Database = {
       }
       is_admin_direct: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      remove_user_role: {
+        Args: {
+          _user_id: string
+          _role: string
+        }
         Returns: boolean
       }
     }

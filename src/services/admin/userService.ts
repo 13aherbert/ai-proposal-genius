@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -19,6 +18,30 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       return [];
     }
     
+    // Get session for auth header
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
+    if (!accessToken) {
+      console.error('No access token available');
+      throw new Error('Authentication required');
+    }
+    
+    // Call our edge function to get user roles with email info
+    console.log("Calling edge function to get user roles with emails");
+    const { data: userRolesData, error: userRolesError } = await supabase.functions.invoke('get-user-roles', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    if (userRolesError) {
+      console.error('Error fetching user roles from edge function:', userRolesError);
+      throw new Error(userRolesError.message || 'Failed to fetch user roles');
+    }
+    
+    console.log("User roles data from edge function:", userRolesData);
+    
     // Get profiles directly from the profiles table
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
@@ -30,53 +53,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
 
     console.log("Fetched profiles:", profiles);
-
-    // Get all user roles using our security definer function that avoids RLS recursion
-    const { data: userRolesData, error: rolesError } = await supabase
-      .rpc('get_all_user_roles');
-
-    if (rolesError) {
-      console.error('Error fetching roles:', rolesError);
-      throw new Error(rolesError.message || 'Failed to fetch user roles');
-    }
-
-    const userRoles = userRolesData || [];
-    console.log("Fetched user roles:", userRoles);
-
-    // Get session for auth header
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    
-    if (!accessToken) {
-      console.error('No access token available');
-      throw new Error('Authentication required');
-    }
-
-    // Get all auth users for email data
-    // Note: This will need admin access, which might be limited in certain environments
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    let userEmails: Record<string, string> = {};
-    
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
-      // Continue without emails instead of failing
-    } else if (authUsers && authUsers.users) {
-      // Properly type the auth users data
-      type AuthUser = {
-        id: string;
-        email?: string;
-      };
-      
-      // Create a map of user IDs to emails
-      authUsers.users.forEach((user: AuthUser) => {
-        if (user.email) {
-          userEmails[user.id] = user.email;
-        }
-      });
-    }
-
-    console.log("Processed auth users for emails");
 
     // Get all subscriptions
     const { data: subscriptions, error: subError } = await supabase
@@ -91,11 +67,17 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     // Create a map of user IDs to roles
     const userRolesMap = new Map<string, UserRole[]>();
+    const userEmailMap = new Map<string, string>();
     
-    if (userRoles && Array.isArray(userRoles)) {
-      userRoles.forEach((record: UserRoleRecord) => {
+    if (userRolesData && Array.isArray(userRolesData)) {
+      userRolesData.forEach((record: any) => {
+        // Store email information
+        if (record.email) {
+          userEmailMap.set(record.user_id, record.email);
+        }
+        
+        // Store role information
         const existing = userRolesMap.get(record.user_id) || [];
-        // Ensure we're adding a valid UserRole
         if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {
           existing.push(record.role as UserRole);
           userRolesMap.set(record.user_id, existing);
@@ -103,16 +85,20 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       });
     }
 
-    console.log("Processed user roles map");
+    console.log("Processed user roles and emails:", {
+      rolesMap: Object.fromEntries(userRolesMap),
+      emailMap: Object.fromEntries(userEmailMap)
+    });
 
     // Map profiles to UserProfile format
     return profiles?.map(profile => {
       const roles = userRolesMap.get(profile.profile_id) || [];
       const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
+      const email = userEmailMap.get(profile.profile_id) || profile.username || '';
       
       return {
         userId: profile.profile_id,
-        email: userEmails[profile.profile_id] || profile.username || '',
+        email: email,
         firstName: profile.first_name || null,
         lastName: profile.last_name || null,
         businessName: profile.business_name || null,

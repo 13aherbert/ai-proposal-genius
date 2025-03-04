@@ -36,7 +36,8 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
  */
 export async function isAdmin(): Promise<boolean> {
   try {
-    // Call the is_admin function defined in SQL
+    // Call the is_admin function defined in SQL - this function uses SECURITY DEFINER
+    // to bypass RLS and directly checks if the current user has admin role
     const { data, error } = await supabase.rpc('is_admin');
     
     if (error) {
@@ -44,6 +45,7 @@ export async function isAdmin(): Promise<boolean> {
       return false;
     }
     
+    console.log("Is admin check result:", !!data);
     return !!data;
   } catch (error) {
     console.error('Error in isAdmin:', error);

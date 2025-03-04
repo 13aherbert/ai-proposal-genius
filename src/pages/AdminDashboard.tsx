@@ -32,6 +32,8 @@ export default function AdminDashboard() {
       try {
         setIsLoading(true);
         setError(null);
+        
+        console.log("Checking admin access...");
         const isAdminUser = await adminService.isAdmin();
         console.log("Admin check result:", isAdminUser);
         setIsAdmin(isAdminUser);
@@ -57,6 +59,7 @@ export default function AdminDashboard() {
   const loadUsers = async () => {
     try {
       setIsLoadingUsers(true);
+      console.log("Loading users...");
       const usersList = await adminService.getAllUsers();
       console.log("Loaded users:", usersList);
       setUsers(usersList);
@@ -176,6 +179,7 @@ export default function AdminDashboard() {
           <AlertTitle>Access Restricted</AlertTitle>
           <AlertDescription>
             You don't have permission to access the admin dashboard.
+            If you believe this is an error, please ensure your account has the admin role assigned.
           </AlertDescription>
         </Alert>
       </div>

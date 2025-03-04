@@ -22,7 +22,7 @@ serve(async (req: Request) => {
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const adminSecretKey = Deno.env.get("ADMIN_SECRET_KEY") || "changeme123";
 
-  // Create authenticated Supabase client
+  // Create authenticated Supabase client with service role key
   const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
   try {
@@ -31,6 +31,7 @@ serve(async (req: Request) => {
 
     // Validate the secret key
     if (secretKey !== adminSecretKey) {
+      console.log("Invalid secret key provided");
       return new Response(
         JSON.stringify({ 
           error: "Invalid secret key" 
@@ -46,12 +47,14 @@ serve(async (req: Request) => {
     const { data: users, error: fetchError } = await supabase.auth.admin.listUsers();
     
     if (fetchError) {
+      console.error(`Error fetching users: ${fetchError.message}`);
       throw new Error(`Error fetching users: ${fetchError.message}`);
     }
 
     const user = users.users.find(u => u.email === adminEmail);
     
     if (!user) {
+      console.log(`User not found with email: ${adminEmail}`);
       return new Response(
         JSON.stringify({ 
           error: "User not found" 
@@ -63,6 +66,8 @@ serve(async (req: Request) => {
       );
     }
 
+    console.log(`Found user with ID: ${user.id}`);
+
     // Check if user already has admin role
     const { data: existingRoles, error: roleError } = await supabase
       .from("user_roles")
@@ -71,10 +76,12 @@ serve(async (req: Request) => {
       .eq("role", "admin");
 
     if (roleError) {
+      console.error(`Error checking existing roles: ${roleError.message}`);
       throw new Error(`Error checking existing roles: ${roleError.message}`);
     }
 
     if (existingRoles && existingRoles.length > 0) {
+      console.log(`User ${user.id} is already an admin`);
       return new Response(
         JSON.stringify({ 
           message: "User is already an admin",
@@ -99,8 +106,11 @@ serve(async (req: Request) => {
       .single();
 
     if (insertError) {
+      console.error(`Error assigning admin role: ${insertError.message}`);
       throw new Error(`Error assigning admin role: ${insertError.message}`);
     }
+
+    console.log(`Successfully assigned admin role to user ${user.id}`);
 
     return new Response(
       JSON.stringify({ 

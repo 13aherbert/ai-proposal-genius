@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -11,6 +12,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
   try {
     // First check if user is admin through RPC function
     const adminStatus = await isAdmin();
+    console.log("Admin status check result:", adminStatus);
+    
     if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to view users" });
       return [];
@@ -28,6 +31,17 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Fetched profiles:", profiles);
 
+    // Get all user roles using our new function that avoids RLS recursion
+    const { data: userRoles, error: rolesError } = await supabase
+      .rpc('get_all_user_roles');
+
+    if (rolesError) {
+      console.error('Error fetching roles:', rolesError);
+      throw new Error(rolesError.message || 'Failed to fetch user roles');
+    }
+
+    console.log("Fetched user roles:", userRoles);
+
     // Get session for auth header
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
@@ -37,21 +51,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error('Authentication required');
     }
 
-    // Get user roles from the user_roles table directly instead of using edge function
-    const { data: userRoles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('*');
-
-    if (rolesError) {
-      console.error('Error fetching roles:', rolesError);
-      throw new Error(rolesError.message || 'Failed to fetch user roles');
-    }
-
-    console.log("Fetched user roles:", userRoles);
-
     // Get all auth users for email data
-    // Note: This will need to be replaced with edge function in production
-    // but for development with admin access, we can access directly
+    // Note: This will need admin access, which might be limited in certain environments
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
     
     let userEmails: Record<string, string> = {};

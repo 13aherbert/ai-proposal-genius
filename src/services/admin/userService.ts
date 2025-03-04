@@ -27,6 +27,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error(profileError.message || 'Failed to fetch user profiles');
     }
 
+    console.log("Fetched profiles:", profiles);
+
     // Get session for auth header
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
@@ -36,18 +38,38 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error('Authentication required');
     }
 
-    // Get user email data from auth table via our edge function
-    const { data: userRolesData, error: rolesError } = await supabase.functions.invoke<UserRoleRecord[]>('get-user-roles', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
+    // Get user roles from the user_roles table directly instead of using edge function
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('*');
 
     if (rolesError) {
       console.error('Error fetching roles:', rolesError);
       throw new Error(rolesError.message || 'Failed to fetch user roles');
     }
+
+    console.log("Fetched user roles:", userRoles);
+
+    // Get all auth users for email data
+    // Note: This will need to be replaced with edge function in production
+    // but for development with admin access, we can access directly
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    let userEmails: Record<string, string> = {};
+    
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
+      // Continue without emails instead of failing
+    } else if (authUsers) {
+      // Create a map of user IDs to emails
+      authUsers.users.forEach(user => {
+        if (user.email) {
+          userEmails[user.id] = user.email;
+        }
+      });
+    }
+
+    console.log("Processed auth users for emails");
 
     // Get all subscriptions
     const { data: subscriptions, error: subError } = await supabase
@@ -58,32 +80,36 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       console.error('Error fetching subscriptions:', subError);
     }
 
-    // Create a map of user IDs to roles and emails
-    const userMap = new Map<string, { roles: UserRole[]; email: string | null }>();
+    console.log("Fetched subscriptions:", subscriptions);
+
+    // Create a map of user IDs to roles
+    const userRolesMap = new Map<string, UserRole[]>();
     
-    if (userRolesData) {
-      userRolesData.forEach(record => {
-        const existing = userMap.get(record.user_id) || { roles: [], email: null };
-        existing.roles.push(record.role as UserRole);
-        if (record.email) {
-          existing.email = record.email;
+    if (userRoles) {
+      userRoles.forEach(record => {
+        const existing = userRolesMap.get(record.user_id) || [];
+        // Ensure we're adding a valid UserRole
+        if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {
+          existing.push(record.role as UserRole);
+          userRolesMap.set(record.user_id, existing);
         }
-        userMap.set(record.user_id, existing);
       });
     }
 
+    console.log("Processed user roles map");
+
     // Map profiles to UserProfile format
     return profiles?.map(profile => {
-      const userData = userMap.get(profile.profile_id) || { roles: [], email: null };
+      const roles = userRolesMap.get(profile.profile_id) || [];
       const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
       
       return {
         userId: profile.profile_id,
-        email: userData.email || profile.username || '',
+        email: userEmails[profile.profile_id] || profile.username || '',
         firstName: profile.first_name || null,
         lastName: profile.last_name || null,
         businessName: profile.business_name || null,
-        roles: userData.roles,
+        roles: roles,
         subscription: subscription ? {
           plan: subscription.plan_type,
           status: subscription.status

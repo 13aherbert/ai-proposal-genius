@@ -61,23 +61,25 @@ serve(async (req) => {
       );
     }
 
-    // Check if the user is an admin using the is_admin RPC
+    // Check if the user is an admin by accessing user_roles table directly
     console.log("Checking if user is admin");
-    const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin', {}, {
-      headers: {
-        Authorization: authHeader || ""
-      }
-    });
+    const { data: userRoles, error: userRolesError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'admin');
     
-    if (adminCheckError) {
-      console.error("Admin check error:", adminCheckError);
+    if (userRolesError) {
+      console.error("Error checking admin role:", userRolesError);
       return new Response(
-        JSON.stringify({ error: "Error checking admin status", details: adminCheckError }),
+        JSON.stringify({ error: "Error checking admin status", details: userRolesError }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Is admin check result:", isAdmin);
+    const isAdmin = userRoles && userRoles.length > 0;
+    console.log("Is user admin:", isAdmin);
+
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Admin access required" }),
@@ -114,7 +116,9 @@ serve(async (req) => {
     // Create a map of user_id to email for quick lookup
     const userEmailMap = new Map<string, string>();
     usersData.users.forEach(user => {
-      userEmailMap.set(user.id, user.email || '');
+      if (user.email) {
+        userEmailMap.set(user.id, user.email);
+      }
     });
 
     // Add email information to each role record

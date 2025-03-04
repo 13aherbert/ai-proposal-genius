@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -112,12 +113,13 @@ class AdminService {
       }
 
       // Get user email data from auth table via our edge function
-      const { data: userRolesData, error: rolesError } = await supabase.functions.invoke<{ email: string | null; user_id: string; role: UserRole }[]>('get-user-roles', {
+      const { data: userRolesData, error: rolesError } = await supabase.functions.invoke<UserRoleRecord[]>('get-user-roles', {
         method: 'GET'
       });
 
       if (rolesError) {
         console.error('Error fetching roles:', rolesError);
+        throw new Error(rolesError.message || 'Failed to fetch user roles');
       }
 
       // Get all subscriptions
@@ -135,7 +137,7 @@ class AdminService {
       if (userRolesData) {
         userRolesData.forEach(record => {
           const existing = userMap.get(record.user_id) || { roles: [], email: null };
-          existing.roles.push(record.role);
+          existing.roles.push(record.role as UserRole);
           if (record.email) {
             existing.email = record.email;
           }

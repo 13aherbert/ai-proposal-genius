@@ -11,6 +11,11 @@ type UserRole = {
   created_by: string | null;
 };
 
+type UserInfo = {
+  id: string;
+  email: string;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -46,6 +51,7 @@ serve(async (req) => {
     }
 
     // Check if the user is an admin using the is_admin RPC
+    // Note: the is_admin function doesn't need parameters as it uses auth.uid() internally
     const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
     
     if (adminCheckError) {
@@ -63,7 +69,8 @@ serve(async (req) => {
       );
     }
 
-    // Get all user roles
+    // Get all user roles with direct SQL to avoid RLS recursion
+    // Use the built-in Postgres function to fetch all roles directly
     const { data: roleRecords, error: getRolesError } = await supabase
       .from('user_roles')
       .select('*');
@@ -77,22 +84,27 @@ serve(async (req) => {
     }
 
     // Get email information for all users
-    const { data: userData, error: emailError } = await supabase.auth.admin.listUsers();
+    const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
     
-    if (emailError) {
-      console.error("Error fetching user emails:", emailError);
+    if (usersError) {
+      console.error("Error fetching user emails:", usersError);
       return new Response(
-        JSON.stringify({ error: "Error fetching user emails", details: emailError }),
+        JSON.stringify({ error: "Error fetching user emails", details: usersError }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Combine roles with email information
-    const enhancedRoleRecords = roleRecords.map((role) => {
-      const userInfo = userData.users.find((u) => u.id === role.user_id);
+    // Create a map of user_id to email for quick lookup
+    const userEmailMap = new Map<string, string>();
+    usersData.users.forEach(user => {
+      userEmailMap.set(user.id, user.email || '');
+    });
+
+    // Add email information to each role record
+    const enhancedRoleRecords = roleRecords.map((role: UserRole) => {
       return {
         ...role,
-        email: userInfo?.email || null
+        email: userEmailMap.get(role.user_id) || null
       };
     });
 

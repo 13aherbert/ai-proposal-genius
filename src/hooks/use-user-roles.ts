@@ -33,7 +33,7 @@ export function useUserRoles() {
       // Don't start checking roles again if we've already determined admin status
       // This prevents unnecessary API calls that could lead to resource exhaustion
       if (adminStatusDetermined.current) {
-        console.log("Admin status already determined, skipping check");
+        // console.log("Admin status already determined, skipping check");
         setIsCheckingRoles(false);
         return;
       }

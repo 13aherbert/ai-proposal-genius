@@ -49,7 +49,8 @@ export async function isAdmin(): Promise<boolean> {
   // Check cache first to avoid redundant calls
   const now = Date.now();
   if (adminStatusCache.status !== null && (now - adminStatusCache.timestamp) < CACHE_DURATION) {
-    console.log("Using cached admin status:", adminStatusCache.status);
+    // Only log this when debugging is needed
+    // console.log("Using cached admin status:", adminStatusCache.status);
     return adminStatusCache.status;
   }
   
@@ -92,7 +93,7 @@ export async function isAdmin(): Promise<boolean> {
       // Fallback: If we've had a successful admin check in the past,
       // reuse that value rather than failing completely
       if (adminStatusCache.status !== null) {
-        console.log("Using last known admin status after failed check:", adminStatusCache.status);
+        // console.log("Using last known admin status after failed check:", adminStatusCache.status);
         return adminStatusCache.status;
       }
       

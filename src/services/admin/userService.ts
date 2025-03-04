@@ -31,8 +31,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Fetched profiles:", profiles);
 
-    // Get all user roles using our new function that avoids RLS recursion
-    const { data: userRoles, error: rolesError } = await supabase
+    // Get all user roles using our security definer function that avoids RLS recursion
+    const { data: userRolesData, error: rolesError } = await supabase
       .rpc('get_all_user_roles');
 
     if (rolesError) {
@@ -40,6 +40,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error(rolesError.message || 'Failed to fetch user roles');
     }
 
+    const userRoles = userRolesData || [];
     console.log("Fetched user roles:", userRoles);
 
     // Get session for auth header
@@ -91,8 +92,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     // Create a map of user IDs to roles
     const userRolesMap = new Map<string, UserRole[]>();
     
-    if (userRoles) {
-      userRoles.forEach(record => {
+    if (userRoles && Array.isArray(userRoles)) {
+      userRoles.forEach((record: UserRoleRecord) => {
         const existing = userRolesMap.get(record.user_id) || [];
         // Ensure we're adding a valid UserRole
         if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {

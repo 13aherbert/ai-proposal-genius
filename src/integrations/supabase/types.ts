@@ -331,6 +331,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_all_user_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          role: string
+          created_at: string
+          created_by: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string

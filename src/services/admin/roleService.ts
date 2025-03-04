@@ -137,37 +137,40 @@ export async function isAdmin(): Promise<boolean> {
  */
 export async function assignRole(userId: string, role: UserRole): Promise<boolean> {
   try {
-    // Check admin using RPC
-    if (!await isAdmin()) {
+    // Check admin status first
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to assign roles" });
       return false;
     }
 
+    // Get current user information 
     const { data: currentUser } = await supabase.auth.getUser();
     if (!currentUser.user) {
       toast.error("Authentication error", { description: "You need to be logged in" });
       return false;
     }
 
-    // Use has_role instead of check_user_role to avoid TypeScript errors
-    const { data: hasRole, error: checkError } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: role
-    });
+    // Check if user already has this role - using direct query to avoid recursion
+    const { data: existingRoles, error: queryError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', role);
 
-    if (checkError) {
-      console.error('Error checking existing role:', checkError);
-      toast.error("Failed to check existing role", { description: checkError.message });
+    if (queryError) {
+      console.error('Error checking existing roles:', queryError);
+      toast.error("Failed to check existing role", { description: queryError.message });
       return false;
     }
 
-    if (hasRole) {
+    if (existingRoles && existingRoles.length > 0) {
       toast.info("Role already assigned", { description: `User already has the ${role} role` });
       return true;
     }
 
-    // Assign role
-    const { error } = await supabase
+    // Assign role using direct insert
+    const { error: insertError } = await supabase
       .from('user_roles')
       .insert({
         user_id: userId,
@@ -175,9 +178,9 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
         created_by: currentUser.user.id
       });
 
-    if (error) {
-      console.error('Error assigning role:', error);
-      toast.error("Failed to assign role", { description: error.message });
+    if (insertError) {
+      console.error('Error assigning role:', insertError);
+      toast.error("Failed to assign role", { description: insertError.message });
       return false;
     }
 
@@ -195,12 +198,14 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
-    // Check admin using RPC
-    if (!await isAdmin()) {
+    // Check admin status first
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to remove roles" });
       return false;
     }
 
+    // Use direct query to avoid RLS recursion
     const { error } = await supabase
       .from('user_roles')
       .delete()

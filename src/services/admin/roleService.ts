@@ -225,13 +225,16 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
 /**
  * Check if the current user has the basic user role
  * If not, assigns the role automatically
+ * 
+ * Note: This function should now rarely be needed as the handle_new_user trigger
+ * automatically assigns the user role on signup, but we keep it as a fallback
  */
 export async function ensureUserRole(): Promise<boolean> {
   try {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Use has_role instead of check_user_role
+    // Use has_role to check if user already has the role
     const { data: hasRole, error: checkError } = await supabase.rpc('has_role', {
       _user_id: user.user.id,
       _role: 'user'
@@ -248,6 +251,7 @@ export async function ensureUserRole(): Promise<boolean> {
     }
     
     // User doesn't have the role, so let's assign it
+    console.log('User does not have the user role yet, assigning it now...');
     const { error } = await supabase
       .from('user_roles')
       .insert({
@@ -261,6 +265,7 @@ export async function ensureUserRole(): Promise<boolean> {
       return false;
     }
 
+    console.log('Successfully assigned user role');
     return true;
   } catch (error) {
     console.error('Error in ensureUserRole:', error);

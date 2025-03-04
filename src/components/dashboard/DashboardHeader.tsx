@@ -37,6 +37,7 @@ export default function DashboardHeader() {
         try {
           // Check admin role using RPC function
           const adminCheck = await adminService.isAdmin();
+          console.log("Admin check in DashboardHeader:", adminCheck);
           
           if (isMounted) {
             setIsAdmin(adminCheck);
@@ -75,9 +76,9 @@ export default function DashboardHeader() {
     };
   }, [session]);
 
-  // Don't render the admin button until we've finished checking roles
-  const showAdminButton = !isCheckingRoles && !roleCheckError && isAdmin;
-  const showBetaBadge = !isCheckingRoles && !roleCheckError && isBetaTester && !isAdmin;
+  // FIXED: Show admin button as soon as the admin check is completed and result is true
+  const showAdminButton = isAdmin && !isCheckingRoles;
+  const showBetaBadge = isBetaTester && !isAdmin && !isCheckingRoles;
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
@@ -99,6 +100,13 @@ export default function DashboardHeader() {
           </div>
           
           <div className="flex flex-wrap gap-3 items-center">
+            {/* Debug labels to help troubleshoot admin button visibility */}
+            {isCheckingRoles && (
+              <Badge variant="outline" className="py-2 px-3">
+                Checking roles...
+              </Badge>
+            )}
+            
             {showAdminButton && (
               <Button 
                 variant="outline" 

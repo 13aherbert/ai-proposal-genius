@@ -112,9 +112,21 @@ class AdminService {
         throw new Error(profileError.message || 'Failed to fetch user profiles');
       }
 
+      // Get session for auth header
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        console.error('No access token available');
+        throw new Error('Authentication required');
+      }
+
       // Get user email data from auth table via our edge function
       const { data: userRolesData, error: rolesError } = await supabase.functions.invoke<UserRoleRecord[]>('get-user-roles', {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
       });
 
       if (rolesError) {
@@ -418,9 +430,21 @@ class AdminService {
         return [];
       }
 
+      // Get session for auth header
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        console.error('No access token available');
+        throw new Error('Authentication required');
+      }
+
       // Use Edge Function to get all invitations to avoid recursion issues
       const { data, error } = await supabase.functions.invoke('get-beta-invitations', {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
       });
 
       if (error) {

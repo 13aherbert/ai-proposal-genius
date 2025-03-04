@@ -25,34 +25,49 @@ serve(async (req) => {
   try {
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create Supabase client
+    console.log("Auth header present:", !!authHeader);
+    
+    // Create Supabase client with admin privileges
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // If auth header is present, verify the user
+    let userId = null;
+    if (authHeader) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
 
-    // Verify the user is authorized with their JWT
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (userError || !user) {
-      console.error("Error getting user:", userError);
+      if (userError) {
+        console.error("Error getting user:", userError);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized user", details: userError }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (user) {
+        userId = user.id;
+        console.log("Authenticated user ID:", userId);
+      }
+    }
+    
+    if (!userId) {
+      console.error("No authenticated user found");
       return new Response(
-        JSON.stringify({ error: "Unauthorized user", details: userError }),
+        JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Check if the user is an admin using the is_admin RPC
-    // Note: the is_admin function doesn't need parameters as it uses auth.uid() internally
-    const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin');
+    console.log("Checking if user is admin");
+    const { data: isAdmin, error: adminCheckError } = await supabase.rpc('is_admin', {}, {
+      headers: {
+        Authorization: authHeader || ""
+      }
+    });
     
     if (adminCheckError) {
       console.error("Admin check error:", adminCheckError);
@@ -62,6 +77,7 @@ serve(async (req) => {
       );
     }
 
+    console.log("Is admin check result:", isAdmin);
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Admin access required" }),
@@ -70,7 +86,7 @@ serve(async (req) => {
     }
 
     // Get all user roles with direct SQL to avoid RLS recursion
-    // Use the built-in Postgres function to fetch all roles directly
+    console.log("Fetching user roles");
     const { data: roleRecords, error: getRolesError } = await supabase
       .from('user_roles')
       .select('*');
@@ -84,6 +100,7 @@ serve(async (req) => {
     }
 
     // Get email information for all users
+    console.log("Fetching user email information");
     const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
     
     if (usersError) {
@@ -108,6 +125,7 @@ serve(async (req) => {
       };
     });
 
+    console.log(`Successfully fetched ${enhancedRoleRecords.length} user roles`);
     return new Response(
       JSON.stringify(enhancedRoleRecords),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

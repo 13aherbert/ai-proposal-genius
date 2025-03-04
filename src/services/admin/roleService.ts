@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
@@ -22,7 +21,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
     const { data: user } = await supabase.auth.getUser();
     if (!user || !user.user) return false;
 
-    // Use a direct query without going through the RLS policy
+    // Use the has_role function which has SECURITY DEFINER to bypass RLS
     const { data, error } = await supabase.rpc('has_role', {
       _user_id: user.user.id,
       _role: role
@@ -58,8 +57,7 @@ export async function isAdmin(): Promise<boolean> {
   
   const attemptAdminCheck = async (): Promise<boolean> => {
     try {
-      // Call the is_admin function defined in SQL - this function uses SECURITY DEFINER
-      // to bypass RLS and directly checks if the current user has admin role
+      // Call the is_admin function which uses SECURITY DEFINER to bypass RLS
       const { data, error } = await supabase.rpc('is_admin');
       
       if (error) {
@@ -102,7 +100,7 @@ export async function isAdmin(): Promise<boolean> {
           return false;
         }
         
-        // Use has_role instead of check_user_role to avoid TypeScript errors
+        // Use has_role to check admin status directly, bypassing RLS
         const { data: hasRole, error: roleError } = await supabase.rpc('has_role', {
           _user_id: user.user.id,
           _role: 'admin'

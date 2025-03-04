@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "./types";
@@ -33,24 +32,64 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
 /**
  * Check if the current user is an admin
  * Uses a direct RPC call to avoid row-level security recursion
+ * Includes retry logic for reliability
  */
 export async function isAdmin(): Promise<boolean> {
-  try {
-    // Call the is_admin function defined in SQL - this function uses SECURITY DEFINER
-    // to bypass RLS and directly checks if the current user has admin role
-    const { data, error } = await supabase.rpc('is_admin');
-    
-    if (error) {
-      console.error('Error checking admin status:', error);
-      return false;
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  const attemptAdminCheck = async (): Promise<boolean> => {
+    try {
+      // Call the is_admin function defined in SQL - this function uses SECURITY DEFINER
+      // to bypass RLS and directly checks if the current user has admin role
+      const { data, error } = await supabase.rpc('is_admin');
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        throw error;
+      }
+      
+      console.log("Is admin check result:", !!data);
+      return !!data;
+    } catch (error) {
+      console.error(`Error in isAdmin (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`Retrying admin check (attempt ${retryCount} of ${maxRetries})...`);
+        // Exponential backoff: 300ms, 900ms, 2700ms
+        await new Promise(resolve => setTimeout(resolve, Math.pow(3, retryCount) * 100));
+        return attemptAdminCheck();
+      }
+      
+      // Fallback: Try to check admin role directly if RPC fails
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user || !user.user) return false;
+        
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+          
+        if (roleError) {
+          console.error('Error in fallback admin check:', roleError);
+          return false;
+        }
+        
+        const isAdminResult = !!roleData;
+        console.log("Fallback admin check result:", isAdminResult);
+        return isAdminResult;
+      } catch (fallbackError) {
+        console.error('Error in fallback admin check:', fallbackError);
+        return false;
+      }
     }
-    
-    console.log("Is admin check result:", !!data);
-    return !!data;
-  } catch (error) {
-    console.error('Error in isAdmin:', error);
-    return false;
-  }
+  };
+  
+  return attemptAdminCheck();
 }
 
 /**

@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Crown, Settings, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 export default function DashboardHeader() {
   const { session } = useAuth();
@@ -18,6 +19,7 @@ export default function DashboardHeader() {
   const [isBetaTester, setIsBetaTester] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
+  const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
   
   const projectLimit = getProjectLimit();
   const isSubscriptionActive = plan && plan !== 'trial';
@@ -52,6 +54,25 @@ export default function DashboardHeader() {
           console.error("Error checking user roles:", err);
           if (isMounted) {
             setRoleCheckError("Could not verify user roles");
+            
+            // If there's an error and we haven't tried too many times, retry
+            if (adminCheckAttempts < 3) {
+              const nextAttempt = adminCheckAttempts + 1;
+              setAdminCheckAttempts(nextAttempt);
+              console.log(`Retrying admin check (attempt ${nextAttempt} of 3)...`);
+              
+              // Retry with exponential backoff
+              setTimeout(() => {
+                if (isMounted) {
+                  setRoleCheckError(null);
+                  checkRoles();
+                }
+              }, Math.pow(2, nextAttempt) * 300);
+            } else {
+              toast.error("Failed to check admin status", { 
+                description: "Please refresh the page or try again later" 
+              });
+            }
           }
         } finally {
           if (isMounted) {

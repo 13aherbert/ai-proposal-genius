@@ -5,7 +5,7 @@ import { BetaTesterDashboard } from '@/components/beta/BetaTesterDashboard';
 import { BetaTesterOnboarding } from '@/components/beta/BetaTesterOnboarding';
 import { useAuth } from '@/components/AuthProvider';
 import { betaTestingService } from '@/services/BetaTestingService';
-import { adminService } from '@/services/AdminService';
+import { adminService } from '@/services/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';

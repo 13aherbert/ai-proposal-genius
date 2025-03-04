@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserProfile, UserRoleRecord } from "./types";
+import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { isAdmin } from "./roleService";
 
 /**
@@ -59,12 +59,12 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
 
     // Create a map of user IDs to roles and emails
-    const userMap = new Map<string, { roles: string[]; email: string | null }>();
+    const userMap = new Map<string, { roles: UserRole[]; email: string | null }>();
     
     if (userRolesData) {
       userRolesData.forEach(record => {
         const existing = userMap.get(record.user_id) || { roles: [], email: null };
-        existing.roles.push(record.role);
+        existing.roles.push(record.role as UserRole);
         if (record.email) {
           existing.email = record.email;
         }

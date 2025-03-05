@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -208,6 +207,60 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
     return true;
   } catch (error) {
     console.error('Error in updateSubscriptionPlan:', error);
+    toast.error("Failed to update subscription", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+/**
+ * Updates a user's subscription plan (admin only)
+ */
+export async function updateUserSubscription(userId: string, email: string, plan: string): Promise<boolean> {
+  try {
+    // Check admin using RPC
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
+      return false;
+    }
+
+    // Get session for auth header
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
+    if (!accessToken) {
+      console.error('No access token available');
+      throw new Error('Authentication required');
+    }
+    
+    console.log(`Admin updating subscription for user ${userId} to ${plan} plan`);
+    
+    // Call our edge function to update the subscription
+    const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
+      body: { 
+        email,
+        plan
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    
+    if (error) {
+      console.error("Error updating subscription:", error);
+      throw error;
+    }
+    
+    console.log("Subscription update result:", data);
+    
+    if (!data.success) {
+      throw new Error(data.error || "Unknown error");
+    }
+    
+    toast.success(`Subscription updated to ${plan} plan`);
+    return true;
+  } catch (error) {
+    console.error('Error in updateUserSubscription:', error);
     toast.error("Failed to update subscription", { description: error instanceof Error ? error.message : "Unknown error" });
     return false;
   }

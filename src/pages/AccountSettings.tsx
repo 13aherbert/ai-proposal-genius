@@ -22,6 +22,7 @@ import { ProfileCard } from "@/components/account/ProfileCard";
 import { EmailCard } from "@/components/account/EmailCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SubscriptionCard } from "@/components/account/SubscriptionCard";
+import { updateRivalProSubscription } from "../scripts/update-specific-user";
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -243,6 +244,13 @@ export default function AccountSettings() {
       import('../scripts/update-specific-user')
         .then(() => console.log("Admin update script loaded"))
         .catch(err => console.error("Failed to load admin update script:", err));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.updateRivalProSubscription = updateRivalProSubscription;
+      console.log("✅ updateRivalProSubscription function is now available in the console");
     }
   }, []);
 

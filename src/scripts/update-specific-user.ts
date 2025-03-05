@@ -36,11 +36,9 @@ export async function updateRivalProSubscription(): Promise<void> {
   }
 }
 
-// Make the function available globally
+// TypeScript declaration for the global window object
 declare global {
   interface Window {
     updateRivalProSubscription: typeof updateRivalProSubscription;
   }
 }
-
-window.updateRivalProSubscription = updateRivalProSubscription;

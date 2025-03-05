@@ -39,7 +39,13 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
   const { checkSubscription } = useSubscription();
   
+  // Debug logging to help diagnose why subscription data is not displaying correctly
+  useEffect(() => {
+    console.log("Current subscription data:", subscription);
+  }, [subscription]);
+  
   const currentPlanType = subscription?.plan_type || 'trial';
+  const currentStatus = subscription?.status || 'unknown';
   const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
   
   // Check if subscription is in grace period
@@ -190,7 +196,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         <div className="p-4 bg-muted rounded-md">
           <p className="mb-2 font-medium">Current Plan: {getPlanDisplayName(currentPlanType)}</p>
           <p className="text-sm text-muted-foreground">
-            Status: <span className="font-medium">{subscription?.status || 'unknown'}</span>
+            Status: <span className="font-medium">{currentStatus}</span>
           </p>
           {subscription?.current_period_end && (
             <p className="text-sm text-muted-foreground">

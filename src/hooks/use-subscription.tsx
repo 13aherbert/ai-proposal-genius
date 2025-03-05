@@ -18,7 +18,6 @@ import {
   renewSubscription as renewUserSubscription 
 } from './subscription/use-subscription-actions';
 
-// Create context with default values
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
   subscription: null,
@@ -33,9 +32,6 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   hasFailedPayment: () => false,
 });
 
-/**
- * Provider component for subscription data and functionality
- */
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,9 +39,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { session } = useAuth();
   const [lastRefresh, setLastRefresh] = useState(Date.now());
 
-  /**
-   * Fetches the user's subscription data from the database
-   */
   const checkSubscription = async () => {
     try {
       if (!session?.user) {
@@ -69,7 +62,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       
       if (data) {
         console.log("Found subscription data:", data);
-        // Safely type-cast the data object with proper validation
         const subscriptionData: SubscriptionPlan = {
           subscription_id: data.subscription_id,
           user_id: data.user_id,
@@ -78,7 +70,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           status: (data.status || 'trialing') as SubscriptionStatus,
           plan_type: data.plan_type || 'trial',
           project_limit: data.project_limit || 3,
-          // Ensure features is an object, not a string or other type
           features: typeof data.features === 'object' && data.features !== null 
             ? data.features as Record<string, any>
             : {},
@@ -88,10 +79,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           cancel_at_period_end: data.cancel_at_period_end || false
         };
         
+        console.log("Processed subscription data:", subscriptionData);
         setSubscription(subscriptionData);
       } else {
         console.log("No subscription found, creating trial subscription");
-        // Create new trial subscription
         const newSubscription = await createTrialSubscription(session.user.id);
         setSubscription(newSubscription);
       }
@@ -103,10 +94,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  /**
-   * Renews a failed or expired subscription
-   * @returns Promise with URL for the billing portal
-   */
   const renewSubscription = async () => {
     try {
       console.log("Attempting subscription renewal with data:", subscription);
@@ -116,7 +103,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return { success: false, error: { message: "No subscription data available" } };
       }
       
-      // Log the stripe IDs to help with debugging
       console.log("Using subscription data for renewal:", {
         stripeSubscriptionId: subscription.stripe_subscription_id,
         stripeCustomerId: subscription.stripe_customer_id
@@ -128,7 +114,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       );
       
       if (result.success) {
-        // Refresh subscription data after successful renewal
         await checkSubscription();
       }
       
@@ -139,21 +124,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Local wrapper functions for the helper functions
   const checkIsPastGracePeriod = () => isPastGracePeriod(subscription);
   const checkIsInGracePeriod = () => isInGracePeriod(subscription);
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Poll for subscription updates more frequently after payments
   useEffect(() => {
     let pollInterval: number | undefined;
     
     if (session?.user) {
-      // Initial check
       checkSubscription();
       
-      // Set up polling every 15 seconds (reduced from 30) to check for subscription updates faster
       pollInterval = window.setInterval(() => {
         console.log("Polling for subscription updates");
         setLastRefresh(Date.now());
@@ -167,14 +148,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     };
   }, [session]);
 
-  // Refresh when lastRefresh changes
   useEffect(() => {
     if (session?.user) {
       checkSubscription();
     }
   }, [lastRefresh, session]);
 
-  // Manual check when URL has payment_status parameter
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -184,7 +163,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("Payment status detected in URL, refreshing subscription immediately");
         await checkSubscription();
         
-        // Force an additional check after a short delay to ensure data is updated
         setTimeout(() => {
           console.log("Performing follow-up subscription check after payment status detected");
           checkSubscription();
@@ -216,10 +194,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   );
 }
 
-/**
- * Hook to access subscription data and functions
- * @returns Subscription context values
- */
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {

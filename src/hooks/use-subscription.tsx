@@ -42,6 +42,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { session } = useAuth();
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   /**
    * Fetches the user's subscription data from the database
@@ -50,8 +51,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       if (!session?.user) {
         setSubscription(null);
+        setLoading(false);
         return;
       }
+
+      console.log("Checking subscription for user:", session.user.id);
+      setLoading(true);
 
       const { data, error: subError } = await supabase
         .from('subscriptions')
@@ -64,6 +69,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (subError) throw subError;
       
       if (data) {
+        console.log("Found subscription data:", data);
         // Safely type-cast the data object with proper validation
         const subscriptionData: SubscriptionPlan = {
           subscription_id: data.subscription_id,
@@ -85,6 +91,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         
         setSubscription(subscriptionData);
       } else {
+        console.log("No subscription found, creating trial subscription");
         // Create new trial subscription
         const newSubscription = await createTrialSubscription(session.user.id);
         setSubscription(newSubscription);
@@ -139,10 +146,49 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Fetch subscription data when session changes
+  // Poll for subscription updates every 30 seconds when user is authenticated
   useEffect(() => {
-    checkSubscription();
+    let pollInterval: number | undefined;
+    
+    if (session?.user) {
+      // Initial check
+      checkSubscription();
+      
+      // Set up polling every 30 seconds to check for subscription updates
+      pollInterval = window.setInterval(() => {
+        console.log("Polling for subscription updates");
+        setLastRefresh(Date.now());
+      }, 30000);
+    }
+    
+    return () => {
+      if (pollInterval) {
+        window.clearInterval(pollInterval);
+      }
+    };
   }, [session]);
+
+  // Refresh when lastRefresh changes
+  useEffect(() => {
+    if (session?.user) {
+      checkSubscription();
+    }
+  }, [lastRefresh, session]);
+
+  // Manual check when URL has payment_status parameter
+  useEffect(() => {
+    const handlePaymentStatusParams = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment_status');
+      
+      if (paymentStatus) {
+        console.log("Payment status detected in URL, refreshing subscription");
+        await checkSubscription();
+      }
+    };
+    
+    handlePaymentStatusParams();
+  }, [window.location.search]);
 
   return (
     <SubscriptionContext.Provider 

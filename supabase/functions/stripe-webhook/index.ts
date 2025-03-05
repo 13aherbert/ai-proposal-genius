@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
 import Stripe from 'https://esm.sh/stripe@12.5.0';
@@ -39,9 +40,29 @@ serve(async (req) => {
         console.log('Checkout session completed:', session.id);
         
         if (session.payment_status === 'paid') {
+          console.log('Payment was successful, fetching subscription details');
           const subscription = await stripe.subscriptions.retrieve(session.subscription);
+          console.log('Retrieved subscription:', subscription.id, 'with status:', subscription.status);
           
           const customer = await stripe.customers.retrieve(session.customer);
+          console.log('Retrieved customer:', session.customer);
+          
+          // Get the plan_type from the subscription metadata or product
+          let planType = 'starter'; // Default
+          if (subscription.items.data[0]?.plan?.nickname) {
+            planType = subscription.items.data[0].plan.nickname.toLowerCase();
+          }
+          console.log('Plan type determined as:', planType);
+          
+          // Set project limit based on plan
+          const projectLimit = planType.includes('pro') ? 30 : 10;
+          
+          console.log('Updating subscription in database with:', {
+            user_id: session.client_reference_id,
+            status: subscription.status,
+            plan_type: planType,
+            project_limit: projectLimit
+          });
           
           const { error } = await supabase
             .from('subscriptions')
@@ -50,15 +71,18 @@ serve(async (req) => {
               stripe_customer_id: session.customer,
               stripe_subscription_id: session.subscription,
               status: subscription.status,
-              plan_type: subscription.items.data[0].plan.nickname?.toLowerCase() || 'starter',
-              project_limit: subscription.items.data[0].plan.nickname?.toLowerCase() === 'pro' ? 30 : 10,
+              plan_type: planType,
+              project_limit: projectLimit,
               current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id',
             });
           
           if (error) {
             console.error('Error storing subscription:', error);
+          } else {
+            console.log('Successfully updated subscription in database');
           }
         }
         break;
@@ -84,6 +108,7 @@ serve(async (req) => {
             break;
           }
           
+          console.log('Updating subscription status to:', subscription.status);
           const { error } = await supabase
             .from('subscriptions')
             .update({
@@ -94,6 +119,8 @@ serve(async (req) => {
             
           if (error) {
             console.error('Error updating subscription status:', error);
+          } else {
+            console.log('Successfully updated subscription status');
           }
         }
         break;
@@ -101,7 +128,7 @@ serve(async (req) => {
       
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        console.log('Subscription updated:', subscription.id);
+        console.log('Subscription updated:', subscription.id, 'with status:', subscription.status);
         
         const { data: userData, error: userError } = await supabase
           .from('subscriptions')
@@ -116,6 +143,11 @@ serve(async (req) => {
         
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
         
+        console.log('Updating subscription in database with:', {
+          status: subscription.status,
+          cancel_at_period_end: cancelAtPeriodEnd
+        });
+        
         const { error } = await supabase
           .from('subscriptions')
           .update({
@@ -128,6 +160,8 @@ serve(async (req) => {
           
         if (error) {
           console.error('Error updating subscription:', error);
+        } else {
+          console.log('Successfully updated subscription');
         }
         break;
       }

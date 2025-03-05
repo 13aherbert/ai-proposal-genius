@@ -10,6 +10,9 @@ import { SubscriptionPlan } from '@/types/subscription';
 export const isPastGracePeriod = (subscription: SubscriptionPlan | null): boolean => {
   if (!subscription?.current_period_end) return false;
   
+  // If subscription is active, it's not past grace period
+  if (subscription.status === 'active') return false;
+  
   const endDate = new Date(subscription.current_period_end);
   const gracePeriodEnd = addDays(endDate, 3);
   
@@ -24,6 +27,9 @@ export const isPastGracePeriod = (subscription: SubscriptionPlan | null): boolea
 export const isInGracePeriod = (subscription: SubscriptionPlan | null): boolean => {
   if (!subscription?.current_period_end) return false;
   
+  // If subscription is active, it's not in grace period
+  if (subscription.status === 'active') return false;
+  
   const endDate = new Date(subscription.current_period_end);
   const gracePeriodEnd = addDays(endDate, 3);
   
@@ -36,9 +42,11 @@ export const isInGracePeriod = (subscription: SubscriptionPlan | null): boolean 
  * @returns Boolean indicating if subscription is active
  */
 export const isActive = (subscription: SubscriptionPlan | null): boolean => {
+  if (!subscription) return false;
+  
   return (
-    subscription?.status === 'active' || 
-    subscription?.status === 'trialing' || 
+    subscription.status === 'active' || 
+    subscription.status === 'trialing' || 
     isInGracePeriod(subscription)
   );
 };
@@ -49,5 +57,8 @@ export const isActive = (subscription: SubscriptionPlan | null): boolean => {
  * @returns Boolean indicating if subscription has failed payment
  */
 export const hasFailedPayment = (subscription: SubscriptionPlan | null): boolean => {
-  return subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+  if (!subscription) return false;
+  
+  // Specifically check for payment failure states
+  return subscription.status === 'past_due' || subscription.status === 'unpaid';
 };

@@ -1,7 +1,8 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag } from "lucide-react";
+import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UpgradeButton } from "@/components/subscription/UpgradeButton";
 import { format, isPast, addDays } from "date-fns";
+import { useSubscription } from "@/hooks/use-subscription";
 
 interface SubscriptionCardProps {
   subscription: SubscriptionPlan | null;
@@ -32,8 +34,10 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   const navigate = useNavigate();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
+  const { checkSubscription } = useSubscription();
   
   const currentPlanType = subscription?.plan_type || 'trial';
   const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
@@ -41,6 +45,9 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   // Check if subscription is in grace period
   const isInGracePeriod = () => {
     if (!subscription?.current_period_end) return false;
+    
+    // If subscription is active, it's not in grace period
+    if (subscription.status === 'active') return false;
     
     const endDate = new Date(subscription.current_period_end);
     const gracePeriodEnd = addDays(endDate, 3);
@@ -50,6 +57,22 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   
   // Check if subscription has failed payment
   const hasFailedPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
+
+  /**
+   * Manually refresh subscription data
+   */
+  const handleRefreshSubscription = async () => {
+    try {
+      setIsRefreshing(true);
+      await checkSubscription();
+      toast.success("Subscription data refreshed");
+    } catch (error) {
+      console.error("Error refreshing subscription:", error);
+      toast.error("Failed to refresh subscription data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   /**
    * Gets a human-readable plan name based on the plan type
@@ -146,14 +169,29 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Subscription
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Subscription
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleRefreshSubscription}
+            disabled={isRefreshing}
+            className="px-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="sr-only">Refresh</span>
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="p-4 bg-muted rounded-md">
           <p className="mb-2 font-medium">Current Plan: {getPlanDisplayName(currentPlanType)}</p>
+          <p className="text-sm text-muted-foreground">
+            Status: <span className="font-medium">{subscription?.status || 'unknown'}</span>
+          </p>
           {subscription?.current_period_end && (
             <p className="text-sm text-muted-foreground">
               {currentPlanType !== 'trial' 

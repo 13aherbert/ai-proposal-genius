@@ -7,7 +7,6 @@ import { Loader2 } from "lucide-react";
 import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
 
 const PRICE_IDS = {
-  trial: 'price_1QlhL0CcQ0GhLgJoeSDq6zEY',
   starterMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
   starterAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
   proMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
@@ -16,7 +15,7 @@ const PRICE_IDS = {
 
 interface UpgradeButtonProps {
   currentPlan: SubscriptionPlan | null;
-  targetPlan: 'trial' | 'starter' | 'pro';
+  targetPlan: 'starter' | 'pro';
   variant?: 'monthly' | 'annual';
 }
 
@@ -24,7 +23,6 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const [isLoading, setIsLoading] = useState(false);
 
   const getPriceId = () => {
-    if (targetPlan === 'trial') return PRICE_IDS.trial;
     if (targetPlan === 'starter') {
       return variant === 'monthly' ? PRICE_IDS.starterMonthly : PRICE_IDS.starterAnnual;
     }

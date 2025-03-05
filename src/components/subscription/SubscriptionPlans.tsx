@@ -25,29 +25,7 @@ export function SubscriptionPlans() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Trial</CardTitle>
-            <CardDescription>14-day free trial</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold mb-4">$0</div>
-            <ul className="space-y-2">
-              <li>✓ Process up to 3 Projects</li>
-              <li>✓ AI RFP Summary</li>
-              <li>✓ AI Proposal Outline</li>
-              <li>✓ AI Proposal Draft</li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <UpgradeButton
-              currentPlan={subscription}
-              targetPlan="trial"
-            />
-          </CardFooter>
-        </Card>
-
+      <div className="grid md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Starter</CardTitle>

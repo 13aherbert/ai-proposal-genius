@@ -46,6 +46,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkSubscription = async () => {
     try {
       if (!session?.user) {
+        console.log("No active session, clearing subscription data");
         setSubscription(null);
         setLoading(false);
         return;
@@ -56,47 +57,59 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       // Try direct fetch from the edge function first
       try {
-        if (!directFetchAttempted) {
-          console.log("Attempting direct fetch from edge function");
-          setDirectFetchAttempted(true);
-          
-          const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`
-            }
-          });
-          
-          if (!directError && directData?.subscription) {
-            console.log("Direct fetch successful:", directData);
-            const subscriptionData: SubscriptionPlan = {
-              subscription_id: directData.subscription.subscription_id,
-              user_id: directData.subscription.user_id,
-              created_at: directData.subscription.created_at,
-              updated_at: directData.subscription.updated_at,
-              status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
-              plan_type: directData.subscription.plan_type || 'trial',
-              project_limit: directData.subscription.project_limit || 3,
-              features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
-                ? directData.subscription.features as Record<string, any>
-                : {},
-              current_period_end: directData.subscription.current_period_end,
-              stripe_customer_id: directData.subscription.stripe_customer_id,
-              stripe_subscription_id: directData.subscription.stripe_subscription_id,
-              cancel_at_period_end: directData.subscription.cancel_at_period_end || false
-            };
-            
-            setSubscription(subscriptionData);
-            setLoading(false);
-            return;
-          } else {
-            console.log("Direct fetch failed or no subscription data:", directError || "No subscription data");
+        console.log("Attempting direct fetch from edge function with token:", session.access_token?.substring(0, 10) + "...");
+        
+        const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
           }
+        });
+        
+        console.log("Direct fetch response:", directData, directError);
+        
+        if (directError) {
+          console.error("Error from edge function:", directError);
+          throw directError;
+        }
+        
+        if (!directData) {
+          console.error("No data returned from edge function");
+          throw new Error("No data returned from edge function");
+        }
+        
+        if (directData.error) {
+          console.warn("Edge function returned error:", directData.error);
+          // Continue to fallback method instead of throwing
+        } else if (directData.subscription) {
+          console.log("Direct fetch successful:", directData);
+          const subscriptionData: SubscriptionPlan = {
+            subscription_id: directData.subscription.subscription_id,
+            user_id: directData.subscription.user_id,
+            created_at: directData.subscription.created_at,
+            updated_at: directData.subscription.updated_at,
+            status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
+            plan_type: directData.subscription.plan_type || 'trial',
+            project_limit: directData.subscription.project_limit || 3,
+            features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
+              ? directData.subscription.features as Record<string, any>
+              : {},
+            current_period_end: directData.subscription.current_period_end,
+            stripe_customer_id: directData.subscription.stripe_customer_id,
+            stripe_subscription_id: directData.subscription.stripe_subscription_id,
+            cancel_at_period_end: directData.subscription.cancel_at_period_end || false
+          };
+          
+          setSubscription(subscriptionData);
+          setLoading(false);
+          return;
         }
       } catch (directFetchError) {
         console.error("Error during direct fetch:", directFetchError);
+        // Continue to fallback method
       }
 
       // Fall back to database query if direct fetch fails
+      console.log("Falling back to direct database query");
       const { data, error: subError } = await supabase
         .from('subscriptions')
         .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id, cancel_at_period_end')
@@ -105,7 +118,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .limit(1)
         .maybeSingle();
 
-      if (subError) throw subError;
+      if (subError) {
+        console.error("Error in fallback database query:", subError);
+        throw subError;
+      }
       
       if (data) {
         console.log("Found subscription data:", data);
@@ -189,16 +205,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // Initial load of subscription data when session changes
   useEffect(() => {
     if (session?.user) {
+      console.log("Session available, checking subscription");
       checkSubscription();
       
       // Start polling more frequently for subscription updates
       const pollInterval = window.setInterval(() => {
+        console.log("Polling for subscription updates");
         setPollCount(prev => prev + 1);
       }, 3000); // Poll every 3 seconds 
       
       return () => {
         window.clearInterval(pollInterval);
       };
+    } else {
+      console.log("No session available, subscription data cleared");
+      setSubscription(null);
+      setLoading(false);
     }
   }, [session]);
 

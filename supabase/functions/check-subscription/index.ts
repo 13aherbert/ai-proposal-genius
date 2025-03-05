@@ -19,16 +19,38 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const authHeader = req.headers.get('Authorization')!
+    // Extract and validate auth token
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('No Authorization header provided')
+      throw new Error('No authorization header')
+    }
+    
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user } } = await supabaseClient.auth.getUser(token)
-
-    if (!user?.email) {
-      throw new Error('No email found')
+    console.log('Using token for auth:', token.substring(0, 10) + '...')
+    
+    // Get user data from token
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser(token)
+    
+    if (authError) {
+      console.error('Error getting user from token:', authError)
+      throw new Error(`Authentication error: ${authError.message}`)
+    }
+    
+    if (!authData || !authData.user) {
+      console.error('No user data returned from auth')
+      throw new Error('User not found')
+    }
+    
+    const user = authData.user
+    console.log('Found user:', user.id, user.email || 'No email')
+    
+    // If no email is available but we have a user ID, we can still proceed
+    if (!user.email) {
+      console.warn('User has no email, but continuing with user ID:', user.id)
     }
 
-    console.log('Checking subscription for user:', user.id, user.email)
-
+    // Fetch subscription by user_id
     const { data: subscription, error: subscriptionError } = await supabaseClient
       .from('subscriptions')
       .select('*')
@@ -43,7 +65,11 @@ serve(async (req) => {
         JSON.stringify({ 
           subscribed: false,
           plan: 'trial',
-          error: subscriptionError.message
+          error: subscriptionError.message,
+          user: {
+            id: user.id,
+            email: user.email || null
+          }
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -72,7 +98,12 @@ serve(async (req) => {
       // The client-side useSubscription hook should handle creating the trial subscription
     }
 
-    console.log('Subscription check result:', { subscribed: isActive, plan, userEmail: user.email })
+    console.log('Subscription check result:', { 
+      subscribed: isActive, 
+      plan, 
+      userEmail: user.email || 'Not available',
+      userId: user.id 
+    })
 
     return new Response(
       JSON.stringify({ 
@@ -81,7 +112,7 @@ serve(async (req) => {
         subscription: subscription || null,
         user: {
           id: user.id,
-          email: user.email
+          email: user.email || null
         }
       }),
       {
@@ -95,7 +126,11 @@ serve(async (req) => {
       JSON.stringify({ 
         subscribed: false,
         plan: 'trial',
-        error: error.message 
+        error: error.message,
+        debug: {
+          timestamp: new Date().toISOString(),
+          version: '1.1'
+        }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, UserPlus, Users, Mail, CheckCircle, XCircle, Clock } from "lucide-react";
+import { AlertCircle, UserPlus, Users, Mail, CheckCircle, XCircle, Clock, Search } from "lucide-react";
 import { adminService, UserProfile, UserRole, BetaInvitation } from "@/services/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+
 export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +26,8 @@ export default function AdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState('starter');
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     const checkAdminAccess = async () => {
       try {
@@ -35,7 +38,6 @@ export default function AdminDashboard() {
         console.log("Admin check result:", isAdminUser);
         setIsAdmin(isAdminUser);
         if (isAdminUser) {
-          // Load initial data
           await Promise.all([loadUsers(), loadInvitations()]);
         }
       } catch (error) {
@@ -47,6 +49,7 @@ export default function AdminDashboard() {
     };
     checkAdminAccess();
   }, []);
+
   const loadUsers = async () => {
     try {
       setIsLoadingUsers(true);
@@ -61,6 +64,7 @@ export default function AdminDashboard() {
       setIsLoadingUsers(false);
     }
   };
+
   const loadInvitations = async () => {
     try {
       setIsLoadingInvitations(true);
@@ -74,6 +78,7 @@ export default function AdminDashboard() {
       setIsLoadingInvitations(false);
     }
   };
+
   const handleSendInvitation = async () => {
     if (!inviteEmail) {
       toast.error("Please enter an email address");
@@ -89,6 +94,7 @@ export default function AdminDashboard() {
       await loadInvitations();
     }
   };
+
   const handleAssignRole = async () => {
     if (!selectedUserId || !selectedRole) {
       toast.error("Please select a user and role");
@@ -99,12 +105,14 @@ export default function AdminDashboard() {
       await loadUsers();
     }
   };
+
   const handleRemoveRole = async (userId: string, role: UserRole) => {
     const success = await adminService.removeRole(userId, role);
     if (success) {
       await loadUsers();
     }
   };
+
   const handleUpdateSubscription = async () => {
     if (!selectedUserId || !selectedPlan) {
       toast.error("Please select a user and plan");
@@ -112,28 +120,52 @@ export default function AdminDashboard() {
     }
     const success = await adminService.updateSubscriptionPlan(selectedUserId, selectedPlan);
     if (success) {
-      // Ensure the user list is refreshed
       await loadUsers();
     }
   };
+
   const handleCancelInvitation = async (invitationId: string) => {
     const success = await adminService.cancelBetaInvitation(invitationId);
     if (success) {
       await loadInvitations();
     }
   };
+
   const copyInviteLink = (inviteCode: string) => {
     const baseUrl = window.location.origin;
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     navigator.clipboard.writeText(inviteUrl);
     toast.success("Invite link copied to clipboard");
   };
+
   const handleDialogClose = async (refresh: boolean = false) => {
     setDialogOpen(false);
     if (refresh) {
       await loadUsers();
     }
   };
+
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    if (user.email && user.email.toLowerCase().includes(query)) {
+      return true;
+    }
+    
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase().trim();
+    if (fullName && fullName.includes(query)) {
+      return true;
+    }
+    
+    if (user.businessName && user.businessName.toLowerCase().includes(query)) {
+      return true;
+    }
+    
+    return false;
+  });
+
   if (isLoading) {
     return <div className="container mx-auto py-10 flex items-center justify-center">
         <div className="text-center">
@@ -142,6 +174,7 @@ export default function AdminDashboard() {
         </div>
       </div>;
   }
+
   if (error) {
     return <div className="container mx-auto py-10">
         <Alert variant="destructive" className="max-w-xl mx-auto">
@@ -151,6 +184,7 @@ export default function AdminDashboard() {
         </Alert>
       </div>;
   }
+
   if (!isAdmin) {
     return <div className="container mx-auto py-10">
         <Alert variant="destructive" className="max-w-xl mx-auto">
@@ -163,6 +197,7 @@ export default function AdminDashboard() {
         </Alert>
       </div>;
   }
+
   return <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       
@@ -253,8 +288,21 @@ export default function AdminDashboard() {
           
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>User List</CardTitle>
-              <CardDescription>All users and their roles</CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>User List</CardTitle>
+                  <CardDescription>All users and their roles</CardDescription>
+                </div>
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by email, name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoadingUsers ? <div className="flex justify-center py-8">
@@ -271,7 +319,7 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.length > 0 ? users.map(user => <TableRow key={user.userId}>
+                    {filteredUsers.length > 0 ? filteredUsers.map(user => <TableRow key={user.userId}>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
                             {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.businessName || "N/A"}
@@ -346,7 +394,6 @@ export default function AdminDashboard() {
                                       <Button onClick={async () => {
                                 const success = await adminService.updateSubscriptionPlan(user.userId, selectedPlan);
                                 if (success) {
-                                  // Refresh the user list when a subscription is updated inside the dialog
                                   await loadUsers();
                                 }
                               }}>
@@ -366,13 +413,16 @@ export default function AdminDashboard() {
                           </TableCell>
                         </TableRow>) : <TableRow>
                         <TableCell colSpan={6} className="text-center py-6">
-                          No users found
+                          {searchQuery.trim() ? "No users found matching your search" : "No users found"}
                         </TableCell>
                       </TableRow>}
                   </TableBody>
                 </Table>}
             </CardContent>
-            <CardFooter className="flex justify-end">
+            <CardFooter className="flex justify-between">
+              <div className="text-sm text-muted-foreground">
+                {searchQuery.trim() ? `Found ${filteredUsers.length} user(s)` : `Total: ${users.length} user(s)`}
+              </div>
               <Button variant="outline" onClick={loadUsers}>
                 Refresh List
               </Button>

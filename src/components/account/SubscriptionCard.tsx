@@ -44,6 +44,39 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     console.log("Current subscription data in SubscriptionCard:", subscription);
   }, [subscription]);
   
+  // Add additional check to directly fetch from API if subscription is null
+  useEffect(() => {
+    const fetchDirectSubscriptionData = async () => {
+      if (!subscription) {
+        console.log("No subscription data passed to SubscriptionCard, attempting direct fetch");
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          if (!session?.session?.user?.id) {
+            console.log("No authenticated user found");
+            return;
+          }
+          
+          // Call the edge function directly to get subscription status
+          const { data, error } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.session.access_token}`
+            }
+          });
+          
+          if (error) {
+            console.error("Error fetching subscription directly:", error);
+          } else {
+            console.log("Direct subscription fetch result:", data);
+          }
+        } catch (error) {
+          console.error("Exception during direct subscription fetch:", error);
+        }
+      }
+    };
+    
+    fetchDirectSubscriptionData();
+  }, [subscription]);
+  
   const currentPlanType = subscription?.plan_type || 'trial';
   const currentStatus = subscription?.status || 'unknown';
   const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';

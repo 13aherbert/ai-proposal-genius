@@ -27,7 +27,7 @@ serve(async (req) => {
       throw new Error('No email found')
     }
 
-    console.log('Checking subscription for user:', user.id)
+    console.log('Checking subscription for user:', user.id, user.email)
 
     const { data: subscription, error: subscriptionError } = await supabaseClient
       .from('subscriptions')
@@ -64,15 +64,25 @@ serve(async (req) => {
       } else if (subscription.plan_type.includes('pro')) {
         plan = 'pro';
       }
+    } else {
+      // No subscription found, check if we need to create a default trial
+      console.log('No subscription found for user:', user.id);
+      
+      // Here we could create a trial subscription, but for now we'll just return trial status
+      // The client-side useSubscription hook should handle creating the trial subscription
     }
 
-    console.log('Subscription check result:', { subscribed: isActive, plan })
+    console.log('Subscription check result:', { subscribed: isActive, plan, userEmail: user.email })
 
     return new Response(
       JSON.stringify({ 
         subscribed: isActive,
         plan: plan,
-        subscription: subscription || null
+        subscription: subscription || null,
+        user: {
+          id: user.id,
+          email: user.email
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,7 +90,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in check-subscription function:', error)
     return new Response(
       JSON.stringify({ 
         subscribed: false,

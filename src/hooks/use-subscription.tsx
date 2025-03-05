@@ -41,6 +41,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { session } = useAuth();
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [pollCount, setPollCount] = useState(0);
+  const [directFetchAttempted, setDirectFetchAttempted] = useState(false);
 
   const checkSubscription = async () => {
     try {
@@ -50,9 +51,52 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      console.log("Checking subscription for user:", session.user.id);
+      console.log("Checking subscription for user:", session.user.id, session.user.email);
       setLoading(true);
 
+      // Try direct fetch from the edge function first
+      try {
+        if (!directFetchAttempted) {
+          console.log("Attempting direct fetch from edge function");
+          setDirectFetchAttempted(true);
+          
+          const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
+          
+          if (!directError && directData?.subscription) {
+            console.log("Direct fetch successful:", directData);
+            const subscriptionData: SubscriptionPlan = {
+              subscription_id: directData.subscription.subscription_id,
+              user_id: directData.subscription.user_id,
+              created_at: directData.subscription.created_at,
+              updated_at: directData.subscription.updated_at,
+              status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
+              plan_type: directData.subscription.plan_type || 'trial',
+              project_limit: directData.subscription.project_limit || 3,
+              features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
+                ? directData.subscription.features as Record<string, any>
+                : {},
+              current_period_end: directData.subscription.current_period_end,
+              stripe_customer_id: directData.subscription.stripe_customer_id,
+              stripe_subscription_id: directData.subscription.stripe_subscription_id,
+              cancel_at_period_end: directData.subscription.cancel_at_period_end || false
+            };
+            
+            setSubscription(subscriptionData);
+            setLoading(false);
+            return;
+          } else {
+            console.log("Direct fetch failed or no subscription data:", directError || "No subscription data");
+          }
+        }
+      } catch (directFetchError) {
+        console.error("Error during direct fetch:", directFetchError);
+      }
+
+      // Fall back to database query if direct fetch fails
       const { data, error: subError } = await supabase
         .from('subscriptions')
         .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id, cancel_at_period_end')
@@ -150,7 +194,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       // Start polling more frequently for subscription updates
       const pollInterval = window.setInterval(() => {
         setPollCount(prev => prev + 1);
-      }, 5000); // Poll every 5 seconds
+      }, 3000); // Poll every 3 seconds 
       
       return () => {
         window.clearInterval(pollInterval);
@@ -170,8 +214,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const handlePaymentStatusParams = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment_status');
+      const paymentIntent = urlParams.get('payment_intent');
       
-      if (paymentStatus) {
+      if (paymentStatus === 'failed' && paymentIntent) {
         console.log("Payment status detected in URL:", paymentStatus);
         
         // Immediately check subscription
@@ -179,7 +224,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         
         // Set up multiple follow-up checks to ensure we get the latest data
         // Sometimes the DB update can be delayed after a payment
-        const checkTimes = [2000, 5000, 10000];
+        const checkTimes = [1000, 3000, 5000];
         
         checkTimes.forEach(delay => {
           setTimeout(() => {

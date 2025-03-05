@@ -55,11 +55,19 @@ export async function updateUserSubscriptionDirectly(
   }
 }
 
-// Execute the update for the specified user
-// You can run this function from the browser console
-window.updateSubscription = () => {
+// Create a helper function specifically for the werarerivalpro@gmail.com user
+function updateSubscription(): void {
   updateUserSubscriptionDirectly('werarerivalpro@gmail.com', 'starter', 'active');
-};
+}
 
-// Add the function to the window object so it can be called from the console
-(window as any).updateUserSubscriptionDirectly = updateUserSubscriptionDirectly;
+// Extend the Window interface to include our functions
+declare global {
+  interface Window {
+    updateUserSubscriptionDirectly: typeof updateUserSubscriptionDirectly;
+    updateSubscription: typeof updateSubscription;
+  }
+}
+
+// Add the functions to the window object so they can be called from the console
+window.updateUserSubscriptionDirectly = updateUserSubscriptionDirectly;
+window.updateSubscription = updateSubscription;

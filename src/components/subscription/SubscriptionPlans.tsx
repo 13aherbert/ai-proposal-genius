@@ -31,9 +31,9 @@ export function SubscriptionPlans() {
             </div>
             <ul className="space-y-2">
               <li>✓ Up to 10 projects</li>
-              <li>✓ Advanced AI RFP Summary</li>
-              <li>✓ Enhanced AI Proposal Outline</li>
-              <li>✓ Basic AI Proposal Draft</li>
+              <li>✓ AI RFP Summary</li>
+              <li>✓ AI Proposal Outline</li>
+              <li>✓ AI Proposal Draft</li>
               <li>✓ 24-hour support response time</li>
               <li>✓ Email support</li>
             </ul>
@@ -54,12 +54,12 @@ export function SubscriptionPlans() {
             </div>
             <ul className="space-y-2">
               <li>✓ Up to 30 projects</li>
-              <li>✓ Advanced AI RFP Summary</li>
-              <li>✓ Enhanced AI Proposal Outline</li>
-              <li>✓ Advanced AI Proposal Draft</li>
+              <li>✓ AI RFP Summary</li>
+              <li>✓ AI Proposal Outline</li>
+              <li>✓ AI Proposal Draft</li>
               <li>✓ Compiled Draft Preview</li>
               <li>✓ AI Proposal Evaluation</li>
-              <li>✓ 24-hour support response time</li>
+              <li>✓ Priority support response time</li>
               <li>✓ Email support</li>
             </ul>
           </CardContent>

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -17,6 +18,7 @@ import {
   createTrialSubscription, 
   renewSubscription as renewUserSubscription 
 } from './subscription/use-subscription-actions';
+import { toast } from 'sonner';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -81,6 +83,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         
         console.log("Processed subscription data:", subscriptionData);
         setSubscription(subscriptionData);
+        
+        // Show a toast notification when a subscription changes from the previous state
+        if (subscription && 
+            (subscription.status !== subscriptionData.status || 
+             subscription.plan_type !== subscriptionData.plan_type)) {
+          toast.success(`Subscription updated to ${subscriptionData.plan_type} (${subscriptionData.status})`, {
+            id: "subscription-update",
+          });
+        }
       } else {
         console.log("No subscription found, creating trial subscription");
         const newSubscription = await createTrialSubscription(session.user.id);
@@ -135,10 +146,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (session?.user) {
       checkSubscription();
       
+      // Poll more frequently (every 10 seconds) to catch subscription changes
       pollInterval = window.setInterval(() => {
         console.log("Polling for subscription updates");
         setLastRefresh(Date.now());
-      }, 15000);
+      }, 10000);
     }
     
     return () => {
@@ -163,10 +175,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("Payment status detected in URL, refreshing subscription immediately");
         await checkSubscription();
         
+        // Check the subscription again after a short delay to catch backend updates
         setTimeout(() => {
           console.log("Performing follow-up subscription check after payment status detected");
           checkSubscription();
         }, 3000);
+        
+        // And once more to ensure we have the latest data
+        setTimeout(() => {
+          console.log("Final subscription check after payment status detected");
+          checkSubscription();
+        }, 10000);
       }
     };
     

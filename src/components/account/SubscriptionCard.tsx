@@ -41,7 +41,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   
   // Debug logging to help diagnose why subscription data is not displaying correctly
   useEffect(() => {
-    console.log("Current subscription data:", subscription);
+    console.log("Current subscription data in SubscriptionCard:", subscription);
   }, [subscription]);
   
   const currentPlanType = subscription?.plan_type || 'trial';
@@ -91,6 +91,22 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       default: return 'Free Plan';
     }
   };
+  
+  /**
+   * Gets a human-readable status description
+   */
+  const getStatusDescription = (status: string) => {
+    switch(status) {
+      case 'active': return 'Active';
+      case 'trialing': return 'Trial Active';
+      case 'past_due': return 'Payment Failed';
+      case 'unpaid': return 'Unpaid';
+      case 'canceled': return 'Canceled';
+      case 'incomplete': return 'Incomplete';
+      case 'incomplete_expired': return 'Signup Incomplete';
+      default: return 'Unknown';
+    }
+  };
 
   /**
    * Handles the cancellation of a subscription
@@ -116,6 +132,9 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
       // Reset the cancellation dialog state
       setCancelReason("");
       setShowCancelReasonInput(false);
+      
+      // Refresh subscription data to show updated status
+      await checkSubscription();
     } catch (error: any) {
       console.error('Error cancelling subscription:', error);
       toast.dismiss();
@@ -196,7 +215,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         <div className="p-4 bg-muted rounded-md">
           <p className="mb-2 font-medium">Current Plan: {getPlanDisplayName(currentPlanType)}</p>
           <p className="text-sm text-muted-foreground">
-            Status: <span className="font-medium">{currentStatus}</span>
+            Status: <span className="font-medium">{getStatusDescription(currentStatus)}</span>
           </p>
           {subscription?.current_period_end && (
             <p className="text-sm text-muted-foreground">
@@ -272,7 +291,7 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
           )}
         </div>
         
-        {/* New button to navigate to subscription page */}
+        {/* Button to navigate to subscription page */}
         <Button 
           variant="outline" 
           className="w-full"

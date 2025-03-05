@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -59,12 +60,13 @@ export default function AccountSettings() {
     
     try {
       setIsLoadingProfile(true);
-      // Query only the columns that exist in our table now
+      
+      // Use maybeSingle instead of single to handle case where profile doesn't exist
       const { data, error } = await supabase
         .from('profiles')
         .select('username, first_name, last_name, business_name, birthday')
         .eq('profile_id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching profile:', error);
@@ -78,11 +80,46 @@ export default function AccountSettings() {
         setLastName(data.last_name || "");
         setBusinessName(data.business_name || "");
         setBirthday(data.birthday || "");
+      } else {
+        // If no profile exists, create one
+        console.log("No profile found, creating one...");
+        await createProfile();
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  // Function to create a profile if one doesn't exist
+  const createProfile = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
+          profile_id: session.user.id,
+          username: session.user.email,
+          first_name: '',
+          last_name: '',
+          business_name: '',
+          birthday: null
+        });
+      
+      if (error) {
+        console.error('Error creating profile:', error);
+        throw error;
+      }
+      
+      console.log("Profile created successfully");
+      setUsername(session.user.email || "");
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      toast.error("Failed to create profile", {
+        description: "Please try refreshing the page.",
+      });
     }
   };
   

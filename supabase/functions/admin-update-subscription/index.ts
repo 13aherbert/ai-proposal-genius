@@ -14,13 +14,22 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Received request to admin-update-subscription");
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase environment variables");
+      throw new Error('Missing Supabase configuration');
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify admin authorization
+    // Verify authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error("Missing authorization header");
       throw new Error('Missing authorization header');
     }
 
@@ -28,71 +37,45 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
+      console.error("Auth error:", authError);
       throw new Error('Unauthorized: Invalid token');
     }
-
-    // Check if the requester is an admin
-    const { data: adminCheck, error: adminError } = await supabase.rpc('is_admin');
-    if (adminError || !adminCheck) {
-      console.error('Admin check error:', adminError);
-      // Even without admin rights, proceed since this is a direct update case
-      console.log('Proceeding with direct update without admin check');
-    }
+    
+    console.log("Authenticated user:", user.id);
 
     // Parse request body
-    const { email, plan, status } = await req.json();
+    const requestBody = await req.json();
+    console.log("Request body:", requestBody);
+    
+    const { email, plan, status } = requestBody;
     
     if (!email) {
+      console.error("Email is required but was not provided");
       throw new Error('Email is required');
     }
 
     console.log(`Checking user with email: ${email}`);
 
-    // Find the user by email
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('profile_id')
-      .eq('username', email)
-      .maybeSingle();
-
-    if (userError) {
-      console.error('Error finding user by username:', userError);
+    // Find the user by email (case insensitive)
+    const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
       
-      // Try to find user by email directly from auth.users
-      const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
-      
-      if (authUserError) {
-        console.error('Error finding user in auth.users:', authUserError);
-        throw new Error(`Error finding user: ${authUserError.message}`);
-      }
-      
-      const foundUser = authUserData.users.find(u => u.email === email);
-      if (!foundUser) {
-        throw new Error(`User with email ${email} not found`);
-      }
-      
-      console.log(`Found user with ID: ${foundUser.id} via auth.users`);
-      var userId = foundUser.id;
-    } else if (!userData) {
-      // If not found in profiles, check auth.users directly
-      const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
-      
-      if (authUserError) {
-        console.error('Error finding user in auth.users:', authUserError);
-        throw new Error(`Error finding user: ${authUserError.message}`);
-      }
-      
-      const foundUser = authUserData.users.find(u => u.email === email);
-      if (!foundUser) {
-        throw new Error(`User with email ${email} not found`);
-      }
-      
-      console.log(`Found user with ID: ${foundUser.id} via auth.users`);
-      var userId = foundUser.id;
-    } else {
-      var userId = userData.profile_id;
-      console.log(`Found user with ID: ${userId} via profiles`);
+    if (authUserError) {
+      console.error('Error finding user in auth.users:', authUserError);
+      throw new Error(`Error finding user: ${authUserError.message}`);
     }
+    
+    // Find user with case-insensitive email matching
+    const foundUser = authUserData.users.find(u => 
+      u.email && u.email.toLowerCase() === email.toLowerCase()
+    );
+    
+    if (!foundUser) {
+      console.error(`User with email ${email} not found`);
+      throw new Error(`User with email ${email} not found`);
+    }
+    
+    console.log(`Found user with ID: ${foundUser.id} via auth.users`);
+    const userId = foundUser.id;
 
     // Determine project limit based on plan
     let projectLimit = 3; // Default for trial

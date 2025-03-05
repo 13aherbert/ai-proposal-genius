@@ -217,13 +217,6 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
  */
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
   try {
-    // Check admin using RPC
-    const adminStatus = await isAdmin();
-    if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
-      return false;
-    }
-
     // Get session for auth header
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;

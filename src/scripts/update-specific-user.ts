@@ -13,11 +13,13 @@ export async function updateRivalProSubscription(): Promise<void> {
   try {
     console.log("Updating subscription for Wearerivalpro@gmail.com to active starter...");
     
-    const result = await updateUserSubscription(
-      'Wearerivalpro@gmail.com', // Email (case insensitive)
-      'starter',                 // Plan type
-      'active'                   // Status
-    );
+    const email = 'Wearerivalpro@gmail.com'; // Email (case insensitive)
+    const plan = 'starter';                   // Plan type
+    const status = 'active';                  // Status
+    
+    console.log(`Calling updateUserSubscription(${email}, ${plan}, ${status})`);
+    
+    const result = await updateUserSubscription(email, plan, status);
     
     if (result) {
       console.log("✓ Successfully updated Wearerivalpro@gmail.com to active starter subscription");

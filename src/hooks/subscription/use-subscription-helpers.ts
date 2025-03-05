@@ -11,7 +11,7 @@ export const isPastGracePeriod = (subscription: SubscriptionPlan | null): boolea
   if (!subscription?.current_period_end) return false;
   
   // If subscription is active, it's not past grace period
-  if (subscription.status === 'active') return false;
+  if (subscription.status === 'active' || subscription.status === 'trialing') return false;
   
   const endDate = new Date(subscription.current_period_end);
   const gracePeriodEnd = addDays(endDate, 3);
@@ -28,7 +28,7 @@ export const isInGracePeriod = (subscription: SubscriptionPlan | null): boolean 
   if (!subscription?.current_period_end) return false;
   
   // If subscription is active, it's not in grace period
-  if (subscription.status === 'active') return false;
+  if (subscription.status === 'active' || subscription.status === 'trialing') return false;
   
   const endDate = new Date(subscription.current_period_end);
   const gracePeriodEnd = addDays(endDate, 3);

@@ -1,10 +1,10 @@
-
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useSubscriptionNotifications } from "@/hooks/use-subscription-notifications";
+import { useSubscription } from "@/hooks/use-subscription";
 
 /**
  * ProtectedRoute component
@@ -21,6 +21,7 @@ import { useSubscriptionNotifications } from "@/hooks/use-subscription-notificat
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading, error } = useAuth();
   const { isInGracePeriod, hasFailedPayment } = useSubscriptionNotifications();
+  const { data: subscription } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -97,8 +98,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Only show banners if not on the subscription page itself
+  const isSubscriptionPage = location.pathname === '/subscription';
+  
   // Show warning for failed payments, but still allow access
-  if (hasFailedPayment && session) {
+  if (hasFailedPayment() && session && !isSubscriptionPage && 
+      subscription?.plan_type !== 'pro') {
     return (
       <div className="relative">
         <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">
@@ -119,7 +124,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Show grace period banner but still allow access
-  if (isInGracePeriod() && session) {
+  if (isInGracePeriod() && session && !isSubscriptionPage && 
+      subscription?.plan_type !== 'pro') {
     return (
       <div className="relative">
         <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">

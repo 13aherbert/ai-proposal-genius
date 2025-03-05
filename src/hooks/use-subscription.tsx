@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -146,7 +145,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Poll for subscription updates every 30 seconds when user is authenticated
+  // Poll for subscription updates more frequently after payments
   useEffect(() => {
     let pollInterval: number | undefined;
     
@@ -154,11 +153,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       // Initial check
       checkSubscription();
       
-      // Set up polling every 30 seconds to check for subscription updates
+      // Set up polling every 15 seconds (reduced from 30) to check for subscription updates faster
       pollInterval = window.setInterval(() => {
         console.log("Polling for subscription updates");
         setLastRefresh(Date.now());
-      }, 30000);
+      }, 15000);
     }
     
     return () => {
@@ -182,8 +181,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       const paymentStatus = urlParams.get('payment_status');
       
       if (paymentStatus) {
-        console.log("Payment status detected in URL, refreshing subscription");
+        console.log("Payment status detected in URL, refreshing subscription immediately");
         await checkSubscription();
+        
+        // Force an additional check after a short delay to ensure data is updated
+        setTimeout(() => {
+          console.log("Performing follow-up subscription check after payment status detected");
+          checkSubscription();
+        }, 3000);
       }
     };
     

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -215,7 +216,7 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
 /**
  * Updates a user's subscription plan (admin only)
  */
-export async function updateUserSubscription(userId: string, email: string, plan: string): Promise<boolean> {
+export async function updateUserSubscription(email: string, plan: string): Promise<boolean> {
   try {
     // Check admin using RPC
     const adminStatus = await isAdmin();
@@ -233,7 +234,7 @@ export async function updateUserSubscription(userId: string, email: string, plan
       throw new Error('Authentication required');
     }
     
-    console.log(`Admin updating subscription for user ${userId} to ${plan} plan`);
+    console.log(`Admin updating subscription for user ${email} to ${plan} plan`);
     
     // Call our edge function to update the subscription
     const { data, error } = await supabase.functions.invoke('admin-update-subscription', {

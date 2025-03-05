@@ -40,6 +40,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [error, setError] = useState<Error | null>(null);
   const { session } = useAuth();
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [pollCount, setPollCount] = useState(0);
 
   const checkSubscription = async () => {
     try {
@@ -56,7 +57,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .from('subscriptions')
         .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id, cancel_at_period_end')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -82,9 +83,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         };
         
         console.log("Processed subscription data:", subscriptionData);
-        setSubscription(subscriptionData);
         
-        // Show a toast notification when a subscription changes from the previous state
+        // Compare with previous subscription to check for changes
         if (subscription && 
             (subscription.status !== subscriptionData.status || 
              subscription.plan_type !== subscriptionData.plan_type)) {
@@ -92,6 +92,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             id: "subscription-update",
           });
         }
+        
+        setSubscription(subscriptionData);
       } else {
         console.log("No subscription found, creating trial subscription");
         const newSubscription = await createTrialSubscription(session.user.id);
@@ -140,57 +142,61 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
+  // Initial load of subscription data when session changes
   useEffect(() => {
-    let pollInterval: number | undefined;
-    
     if (session?.user) {
       checkSubscription();
       
-      // Poll more frequently (every 10 seconds) to catch subscription changes
-      pollInterval = window.setInterval(() => {
-        console.log("Polling for subscription updates");
-        setLastRefresh(Date.now());
-      }, 10000);
-    }
-    
-    return () => {
-      if (pollInterval) {
+      // Start polling more frequently for subscription updates
+      const pollInterval = window.setInterval(() => {
+        setPollCount(prev => prev + 1);
+      }, 5000); // Poll every 5 seconds
+      
+      return () => {
         window.clearInterval(pollInterval);
-      }
-    };
+      };
+    }
   }, [session]);
 
+  // Update when pollCount changes or lastRefresh is manually triggered
   useEffect(() => {
     if (session?.user) {
       checkSubscription();
     }
-  }, [lastRefresh, session]);
+  }, [pollCount, lastRefresh]);
 
+  // Force refresh when navigating to this component with payment_status in URL
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment_status');
       
       if (paymentStatus) {
-        console.log("Payment status detected in URL, refreshing subscription immediately");
+        console.log("Payment status detected in URL:", paymentStatus);
+        
+        // Immediately check subscription
         await checkSubscription();
         
-        // Check the subscription again after a short delay to catch backend updates
-        setTimeout(() => {
-          console.log("Performing follow-up subscription check after payment status detected");
-          checkSubscription();
-        }, 3000);
+        // Set up multiple follow-up checks to ensure we get the latest data
+        // Sometimes the DB update can be delayed after a payment
+        const checkTimes = [2000, 5000, 10000];
         
-        // And once more to ensure we have the latest data
-        setTimeout(() => {
-          console.log("Final subscription check after payment status detected");
-          checkSubscription();
-        }, 10000);
+        checkTimes.forEach(delay => {
+          setTimeout(() => {
+            console.log(`Follow-up subscription check after ${delay}ms`);
+            setLastRefresh(Date.now());
+          }, delay);
+        });
       }
     };
     
     handlePaymentStatusParams();
   }, [window.location.search]);
+
+  // Force manual refresh of subscription data
+  const forceRefresh = () => {
+    setLastRefresh(Date.now());
+  };
 
   return (
     <SubscriptionContext.Provider 

@@ -49,22 +49,49 @@ serve(async (req) => {
 
     // Find the user by email
     const { data: userData, error: userError } = await supabase
-      .from('auth.users')
-      .select('id')
-      .eq('email', email)
+      .from('profiles')
+      .select('profile_id')
+      .eq('username', email)
       .maybeSingle();
 
     if (userError) {
-      console.error('Error finding user:', userError);
-      throw new Error(`Error finding user: ${userError.message}`);
+      console.error('Error finding user by username:', userError);
+      
+      // Try to find user by email directly from auth.users
+      const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
+      
+      if (authUserError) {
+        console.error('Error finding user in auth.users:', authUserError);
+        throw new Error(`Error finding user: ${authUserError.message}`);
+      }
+      
+      const foundUser = authUserData.users.find(u => u.email === email);
+      if (!foundUser) {
+        throw new Error(`User with email ${email} not found`);
+      }
+      
+      console.log(`Found user with ID: ${foundUser.id} via auth.users`);
+      var userId = foundUser.id;
+    } else if (!userData) {
+      // If not found in profiles, check auth.users directly
+      const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
+      
+      if (authUserError) {
+        console.error('Error finding user in auth.users:', authUserError);
+        throw new Error(`Error finding user: ${authUserError.message}`);
+      }
+      
+      const foundUser = authUserData.users.find(u => u.email === email);
+      if (!foundUser) {
+        throw new Error(`User with email ${email} not found`);
+      }
+      
+      console.log(`Found user with ID: ${foundUser.id} via auth.users`);
+      var userId = foundUser.id;
+    } else {
+      var userId = userData.profile_id;
+      console.log(`Found user with ID: ${userId} via profiles`);
     }
-
-    if (!userData) {
-      throw new Error(`User with email ${email} not found`);
-    }
-
-    const userId = userData.id;
-    console.log(`Found user with ID: ${userId}`);
 
     // Determine project limit based on plan
     let projectLimit = 3; // Default for trial

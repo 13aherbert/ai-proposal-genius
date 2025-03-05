@@ -33,15 +33,17 @@ serve(async (req) => {
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (subscriptionError) {
-      console.log('No active subscription found, defaulting to trial plan')
+      console.log('Error finding subscription:', subscriptionError);
       return new Response(
         JSON.stringify({ 
           subscribed: false,
-          plan: 'trial'
+          plan: 'trial',
+          error: subscriptionError.message
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -51,7 +53,12 @@ serve(async (req) => {
     }
 
     let plan = 'trial';
+    let isActive = false;
+    
     if (subscription) {
+      console.log('Found subscription:', subscription);
+      isActive = subscription.status === 'active';
+      
       if (subscription.plan_type.includes('starter')) {
         plan = 'starter';
       } else if (subscription.plan_type.includes('pro')) {
@@ -59,12 +66,13 @@ serve(async (req) => {
       }
     }
 
-    console.log('Subscription check result:', { subscribed: !!subscription, plan })
+    console.log('Subscription check result:', { subscribed: isActive, plan })
 
     return new Response(
       JSON.stringify({ 
-        subscribed: !!subscription,
-        plan: plan
+        subscribed: isActive,
+        plan: plan,
+        subscription: subscription || null
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

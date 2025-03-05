@@ -1,27 +1,21 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UpgradeButton } from "./UpgradeButton";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
 export function SubscriptionPlans() {
-  const { data: subscription } = useSubscription();
+  const {
+    data: subscription
+  } = useSubscription();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
-
-  return (
-    <div className="container mx-auto px-4 py-8">
+  return <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold mb-4">Subscription Plans</h2>
         <div className="flex items-center justify-center space-x-2">
           <Label htmlFor="billing-interval">Monthly</Label>
-          <Switch
-            id="billing-interval"
-            checked={billingInterval === 'annual'}
-            onCheckedChange={(checked) => setBillingInterval(checked ? 'annual' : 'monthly')}
-          />
-          <Label htmlFor="billing-interval">Annual (Save 20%)</Label>
+          <Switch id="billing-interval" checked={billingInterval === 'annual'} onCheckedChange={checked => setBillingInterval(checked ? 'annual' : 'monthly')} />
+          <Label htmlFor="billing-interval">Annual (Save ~20%)</Label>
         </div>
       </div>
 
@@ -45,11 +39,7 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton
-              currentPlan={subscription}
-              targetPlan="starter"
-              variant={billingInterval}
-            />
+            <UpgradeButton currentPlan={subscription} targetPlan="starter" variant={billingInterval} />
           </CardFooter>
         </Card>
 
@@ -74,14 +64,9 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton
-              currentPlan={subscription}
-              targetPlan="pro"
-              variant={billingInterval}
-            />
+            <UpgradeButton currentPlan={subscription} targetPlan="pro" variant={billingInterval} />
           </CardFooter>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }

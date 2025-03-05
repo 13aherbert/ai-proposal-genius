@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,19 +18,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Import our components
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { EmailCard } from "@/components/account/EmailCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SubscriptionCard } from "@/components/account/SubscriptionCard";
 
-/**
- * AccountSettings component - Allows users to manage their account settings including:
- * - Profile information (username, first name, last name, business name, birthday)
- * - Email settings
- * - Password management
- * - Subscription management (view, upgrade, cancel)
- */
 export default function AccountSettings() {
   const navigate = useNavigate();
   const { session, deleteAccount } = useAuth();
@@ -48,20 +39,17 @@ export default function AccountSettings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const { data: subscription } = useSubscription();
-  
-  // Fetch user profile data on component mount
+
   useEffect(() => {
     fetchProfile();
   }, [session]);
 
-  // Function to fetch profile data - allows reuse after saving
   const fetchProfile = async () => {
     if (!session?.user?.id) return;
     
     try {
       setIsLoadingProfile(true);
       
-      // Use maybeSingle instead of single to handle case where profile doesn't exist
       const { data, error } = await supabase
         .from('profiles')
         .select('username, first_name, last_name, business_name, birthday')
@@ -74,14 +62,12 @@ export default function AccountSettings() {
       }
       
       if (data) {
-        // Set state with the values, using empty string as fallback
         setUsername(data.username || "");
         setFirstName(data.first_name || "");
         setLastName(data.last_name || "");
         setBusinessName(data.business_name || "");
         setBirthday(data.birthday || "");
       } else {
-        // If no profile exists, create one
         console.log("No profile found, creating one...");
         await createProfile();
       }
@@ -92,7 +78,6 @@ export default function AccountSettings() {
     }
   };
 
-  // Function to create a profile if one doesn't exist
   const createProfile = async () => {
     if (!session?.user?.id) return;
     
@@ -122,8 +107,7 @@ export default function AccountSettings() {
       });
     }
   };
-  
-  // Track initial form values to detect changes
+
   const [initialValues, setInitialValues] = useState({
     username: "",
     firstName: "",
@@ -132,8 +116,7 @@ export default function AccountSettings() {
     birthday: "",
     email: ""
   });
-  
-  // Set initial values after profile loads
+
   useEffect(() => {
     if (!isLoadingProfile) {
       setInitialValues({
@@ -147,8 +130,7 @@ export default function AccountSettings() {
       setHasChanges(false);
     }
   }, [isLoadingProfile]);
-  
-  // Check for unsaved changes by comparing current values with initial values
+
   useEffect(() => {
     if (!isLoadingProfile) {
       const hasChanges = 
@@ -162,16 +144,12 @@ export default function AccountSettings() {
       
       setHasChanges(hasChanges);
       
-      // Reset the success state if any changes are made
       if (hasChanges) {
         setSaveSuccess(false);
       }
     }
   }, [username, firstName, lastName, businessName, birthday, email, password, confirmPassword, isLoadingProfile, initialValues]);
 
-  /**
-   * Handles saving user profile changes (username, email, password)
-   */
   const handleSave = async () => {
     if (!session?.user?.id) return;
     
@@ -185,7 +163,6 @@ export default function AccountSettings() {
         birthday
       });
       
-      // Update profile (username, first name, last name, business name, birthday)
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -202,7 +179,6 @@ export default function AccountSettings() {
         throw profileError;
       }
 
-      // Update email if changed
       if (email !== session.user.email) {
         const { error: emailError } = await supabase.auth.updateUser({
           email: email,
@@ -210,7 +186,6 @@ export default function AccountSettings() {
         if (emailError) throw emailError;
       }
 
-      // Update password if provided
       if (password && password === confirmPassword) {
         const { error: passwordError } = await supabase.auth.updateUser({
           password: password,
@@ -220,7 +195,6 @@ export default function AccountSettings() {
         throw new Error("Passwords do not match");
       }
 
-      // After successful save, update the initial values to match current values
       setInitialValues({
         username,
         firstName,
@@ -230,21 +204,17 @@ export default function AccountSettings() {
         email
       });
       
-      // Show success state
       setSaveSuccess(true);
       setHasChanges(false);
       
-      // Show toast notification
       toast.success("Profile updated successfully", {
         description: "Your account information has been saved.",
         duration: 3000,
       });
 
-      // Clear password fields after successful update
       setPassword("");
       setConfirmPassword("");
       
-      // Reset success state after 3 seconds
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
@@ -259,9 +229,6 @@ export default function AccountSettings() {
     }
   };
 
-  /**
-   * Handles user logout
-   */
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -270,6 +237,14 @@ export default function AccountSettings() {
       toast.error("Failed to log out");
     }
   };
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      import('../scripts/update-specific-user')
+        .then(() => console.log("Admin update script loaded"))
+        .catch(err => console.error("Failed to load admin update script:", err));
+    }
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -287,7 +262,6 @@ export default function AccountSettings() {
           </header>
 
           <div className="grid gap-6 max-w-2xl mx-auto w-full">
-            {/* Profile Information */}
             <ProfileCard 
               username={username} 
               setUsername={setUsername}
@@ -301,13 +275,11 @@ export default function AccountSettings() {
               setBirthday={setBirthday}
             />
 
-            {/* Email Settings */}
             <EmailCard 
               email={email} 
               setEmail={setEmail} 
             />
 
-            {/* Password Settings */}
             <PasswordCard 
               password={password}
               setPassword={setPassword}
@@ -315,10 +287,8 @@ export default function AccountSettings() {
               setConfirmPassword={setConfirmPassword}
             />
 
-            {/* Subscription Management */}
             <SubscriptionCard subscription={subscription} />
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <Button 
                 onClick={handleSave} 
@@ -347,7 +317,6 @@ export default function AccountSettings() {
               </Button>
             </div>
             
-            {/* Delete Account Section */}
             <div className="mt-8 border border-destructive/20 rounded-lg p-6 bg-destructive/5">
               <h2 className="text-xl font-semibold text-destructive mb-2">Delete Account</h2>
               <p className="text-muted-foreground mb-4">

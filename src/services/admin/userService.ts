@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -54,16 +55,30 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Fetched profiles:", profiles);
 
-    // Get all subscriptions
+    // Get all subscriptions - make sure we're getting the most up-to-date data
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
-      .select('*');
+      .select('*')
+      .order('updated_at', { ascending: false });
 
     if (subError) {
       console.error('Error fetching subscriptions:', subError);
     }
 
     console.log("Fetched subscriptions:", subscriptions);
+
+    // Create a map of user IDs to their most recent subscription
+    const userSubscriptionMap = new Map();
+    
+    if (subscriptions && Array.isArray(subscriptions)) {
+      subscriptions.forEach(sub => {
+        // Only store the subscription if it's newer than what we already have
+        const existing = userSubscriptionMap.get(sub.user_id);
+        if (!existing || new Date(sub.updated_at) > new Date(existing.updated_at)) {
+          userSubscriptionMap.set(sub.user_id, sub);
+        }
+      });
+    }
 
     // Create a map of user IDs to roles
     const userRolesMap = new Map<string, UserRole[]>();
@@ -85,15 +100,12 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       });
     }
 
-    console.log("Processed user roles and emails:", {
-      rolesMap: Object.fromEntries(userRolesMap),
-      emailMap: Object.fromEntries(userEmailMap)
-    });
+    console.log("Processed user subscriptions:", Object.fromEntries(userSubscriptionMap));
 
     // Map profiles to UserProfile format
     return profiles?.map(profile => {
       const roles = userRolesMap.get(profile.profile_id) || [];
-      const subscription = subscriptions?.find(s => s.user_id === profile.profile_id);
+      const subscription = userSubscriptionMap.get(profile.profile_id);
       const email = userEmailMap.get(profile.profile_id) || profile.username || '';
       
       return {
@@ -130,10 +142,21 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
       return false;
     }
 
-    // Find existing subscription
-    const { data: currentSub, error: fetchError } = await supabase
+    // Determine project limit based on plan
+    let projectLimit = 3; // Default for trial
+    if (plan === 'pro') {
+      projectLimit = 30;
+    } else if (plan === 'starter') {
+      projectLimit = 10;
+    }
+
+    // Get the current timestamp for the updated_at field
+    const now = new Date().toISOString();
+
+    // Fetch the existing subscription to check if it exists
+    const { data: existingSub, error: fetchError } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('subscription_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -145,48 +168,42 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
       return false;
     }
 
-    // Determine project limit based on plan
-    let projectLimit = 3; // Default for trial
-    if (plan === 'pro') {
-      projectLimit = 30;
-    } else if (plan === 'starter') {
-      projectLimit = 10;
-    }
-
-    if (currentSub) {
+    let result;
+    
+    if (existingSub) {
       // Update existing subscription
-      const { error: updateError } = await supabase
+      console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan}`);
+      
+      result = await supabase
         .from('subscriptions')
         .update({
           plan_type: plan,
           project_limit: projectLimit,
-          updated_at: new Date().toISOString()
+          updated_at: now
         })
-        .eq('subscription_id', currentSub.subscription_id);
-
-      if (updateError) {
-        console.error('Error updating subscription:', updateError);
-        toast.error("Failed to update subscription", { description: updateError.message });
-        return false;
-      }
+        .eq('subscription_id', existingSub.subscription_id);
     } else {
       // Create new subscription
-      const { error: insertError } = await supabase
+      console.log(`Creating new subscription for user ${userId} with plan ${plan}`);
+      
+      result = await supabase
         .from('subscriptions')
         .insert({
           user_id: userId,
           plan_type: plan,
           status: 'active',
-          project_limit: projectLimit
+          project_limit: projectLimit,
+          updated_at: now
         });
-
-      if (insertError) {
-        console.error('Error creating subscription:', insertError);
-        toast.error("Failed to create subscription", { description: insertError.message });
-        return false;
-      }
     }
 
+    if (result.error) {
+      console.error('Error updating/creating subscription:', result.error);
+      toast.error("Failed to update subscription", { description: result.error.message });
+      return false;
+    }
+
+    console.log("Subscription updated successfully:", result.data);
     toast.success("Subscription updated successfully");
     return true;
   } catch (error) {

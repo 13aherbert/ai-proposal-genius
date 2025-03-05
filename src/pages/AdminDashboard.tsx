@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('beta_tester');
   const [selectedPlan, setSelectedPlan] = useState('starter');
   const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -129,6 +131,7 @@ export default function AdminDashboard() {
     
     const success = await adminService.updateSubscriptionPlan(selectedUserId, selectedPlan);
     if (success) {
+      // Ensure the user list is refreshed
       await loadUsers();
     }
   };
@@ -145,6 +148,13 @@ export default function AdminDashboard() {
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     navigator.clipboard.writeText(inviteUrl);
     toast.success("Invite link copied to clipboard");
+  };
+
+  const handleDialogClose = async (refresh: boolean = false) => {
+    setDialogOpen(false);
+    if (refresh) {
+      await loadUsers();
+    }
   };
 
   if (isLoading) {
@@ -356,7 +366,7 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <Dialog>
+                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                               <DialogTrigger asChild>
                                 <Button variant="outline" size="sm">Edit</Button>
                               </DialogTrigger>
@@ -386,9 +396,11 @@ export default function AdminDashboard() {
                                         </SelectContent>
                                       </Select>
                                       <Button 
-                                        onClick={() => {
-                                          adminService.assignRole(user.userId, selectedRole)
-                                            .then(() => loadUsers());
+                                        onClick={async () => {
+                                          const success = await adminService.assignRole(user.userId, selectedRole);
+                                          if (success) {
+                                            await loadUsers();
+                                          }
                                         }}
                                       >
                                         Assign
@@ -413,9 +425,12 @@ export default function AdminDashboard() {
                                         </SelectContent>
                                       </Select>
                                       <Button 
-                                        onClick={() => {
-                                          adminService.updateSubscriptionPlan(user.userId, selectedPlan)
-                                            .then(() => loadUsers());
+                                        onClick={async () => {
+                                          const success = await adminService.updateSubscriptionPlan(user.userId, selectedPlan);
+                                          if (success) {
+                                            // Refresh the user list when a subscription is updated inside the dialog
+                                            await loadUsers();
+                                          }
                                         }}
                                       >
                                         Update
@@ -425,7 +440,7 @@ export default function AdminDashboard() {
                                 </div>
                                 
                                 <DialogFooter>
-                                  <Button variant="outline" type="button" onClick={() => loadUsers()}>
+                                  <Button variant="outline" type="button" onClick={() => handleDialogClose(true)}>
                                     Close
                                   </Button>
                                 </DialogFooter>
@@ -445,6 +460,11 @@ export default function AdminDashboard() {
                 </Table>
               )}
             </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button variant="outline" onClick={loadUsers}>
+                Refresh List
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         

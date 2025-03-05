@@ -14,43 +14,43 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
-
-    // Extract and validate auth token
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error('No Authorization header provided')
-      throw new Error('No authorization header')
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase URL or key');
+      throw new Error('Server configuration error');
     }
     
-    const token = authHeader.replace('Bearer ', '')
-    console.log('Using token for auth:', token.substring(0, 10) + '...')
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Get JWT from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No Authorization header provided');
+      throw new Error('No authorization header');
+    }
     
-    // Get user data from token
-    const { data: authData, error: authError } = await supabaseClient.auth.getUser(token)
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Using token for JWT auth:', token.substring(0, 10) + '...');
+    
+    // Verify the JWT and get the user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError) {
-      console.error('Error getting user from token:', authError)
-      throw new Error(`Authentication error: ${authError.message}`)
+      console.error('Auth error:', authError);
+      throw new Error(`Authentication error: ${authError.message}`);
     }
     
-    if (!authData || !authData.user) {
-      console.error('No user data returned from auth')
-      throw new Error('User not found')
+    if (!user) {
+      console.error('No user found after auth');
+      throw new Error('User not found');
     }
     
-    const user = authData.user
-    console.log('Found user:', user.id, user.email || 'No email')
+    console.log('Successfully authenticated user:', user.id);
     
-    // If no email is available but we have a user ID, we can still proceed
-    if (!user.email) {
-      console.warn('User has no email, but continuing with user ID:', user.id)
-    }
-
-    // Fetch subscription by user_id
+    // Continue with subscription check using user ID (which is always available)
     const { data: subscription, error: subscriptionError } = await supabaseClient
       .from('subscriptions')
       .select('*')
@@ -60,7 +60,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (subscriptionError) {
-      console.log('Error finding subscription:', subscriptionError);
+      console.error('Error finding subscription:', subscriptionError);
       return new Response(
         JSON.stringify({ 
           subscribed: false,
@@ -91,11 +91,7 @@ serve(async (req) => {
         plan = 'pro';
       }
     } else {
-      // No subscription found, check if we need to create a default trial
       console.log('No subscription found for user:', user.id);
-      
-      // Here we could create a trial subscription, but for now we'll just return trial status
-      // The client-side useSubscription hook should handle creating the trial subscription
     }
 
     console.log('Subscription check result:', { 
@@ -103,7 +99,7 @@ serve(async (req) => {
       plan, 
       userEmail: user.email || 'Not available',
       userId: user.id 
-    })
+    });
 
     return new Response(
       JSON.stringify({ 
@@ -121,7 +117,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in check-subscription function:', error)
+    console.error('Error in check-subscription function:', error);
     return new Response(
       JSON.stringify({ 
         subscribed: false,

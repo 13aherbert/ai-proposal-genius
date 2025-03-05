@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -57,7 +56,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       // Try direct fetch from the edge function first
       try {
-        console.log("Attempting direct fetch from edge function with token:", session.access_token?.substring(0, 10) + "...");
+        if (!session.access_token) {
+          console.error("No access token available");
+          throw new Error("No access token available");
+        }
+        
+        console.log("Attempting direct fetch from edge function with token:", 
+          session.access_token.substring(0, 10) + "...");
         
         const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
           headers: {
@@ -202,17 +207,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Initial load of subscription data when session changes
   useEffect(() => {
     if (session?.user) {
       console.log("Session available, checking subscription");
       checkSubscription();
       
-      // Start polling more frequently for subscription updates
       const pollInterval = window.setInterval(() => {
         console.log("Polling for subscription updates");
         setPollCount(prev => prev + 1);
-      }, 3000); // Poll every 3 seconds 
+      }, 5000); // Poll every 5 seconds 
       
       return () => {
         window.clearInterval(pollInterval);
@@ -224,14 +227,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session]);
 
-  // Update when pollCount changes or lastRefresh is manually triggered
   useEffect(() => {
     if (session?.user) {
       checkSubscription();
     }
   }, [pollCount, lastRefresh]);
 
-  // Force refresh when navigating to this component with payment_status in URL
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -241,11 +242,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (paymentStatus === 'failed' && paymentIntent) {
         console.log("Payment status detected in URL:", paymentStatus);
         
-        // Immediately check subscription
         await checkSubscription();
         
-        // Set up multiple follow-up checks to ensure we get the latest data
-        // Sometimes the DB update can be delayed after a payment
         const checkTimes = [1000, 3000, 5000];
         
         checkTimes.forEach(delay => {
@@ -260,7 +258,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     handlePaymentStatusParams();
   }, [window.location.search]);
 
-  // Force manual refresh of subscription data
   const forceRefresh = () => {
     setLastRefresh(Date.now());
   };

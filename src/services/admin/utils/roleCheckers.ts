@@ -23,6 +23,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       return false;
     }
 
+    console.log(`Role check for ${role}:`, !!data);
     return !!data;
   } catch (error) {
     console.error('Error in checkUserRole:', error);

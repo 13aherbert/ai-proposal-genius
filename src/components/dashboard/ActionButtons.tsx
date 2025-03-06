@@ -20,6 +20,8 @@ export function ActionButtons({
 }: ActionButtonsProps) {
   const navigate = useNavigate();
 
+  console.log("ActionButtons component - showBetaBadge:", showBetaBadge);
+
   return (
     <div className="flex flex-wrap gap-3 items-center">
       {/* Only show the "Checking roles..." badge if we're checking AND we've confirmed it's an admin user */}

@@ -56,12 +56,12 @@ export function useUserRoles() {
             adminStatusDetermined.current = true;
           }
           
-          // Only check beta tester role if not an admin (to avoid unnecessary calls)
-          if (!quickAdminCheck) {
-            const betaCheck = await adminService.checkUserRole('beta_tester');
-            if (isMounted) {
-              setIsBetaTester(betaCheck);
-            }
+          // Check beta tester role regardless of admin status
+          // Modified: Always check beta tester role, even for admins
+          const betaCheck = await adminService.checkUserRole('beta_tester');
+          if (isMounted) {
+            setIsBetaTester(betaCheck);
+            console.log("Beta tester check result:", betaCheck);
           }
           
           // Check and ensure user role
@@ -129,9 +129,9 @@ export function useUserRoles() {
     };
   }, [session]);
 
-  // Only show admin button if user is confirmed as admin and we're not in a checking state
+  // Fix: Make beta button visible even for admins if they are also beta testers
   const showAdminButton = isAdmin && !isCheckingRoles;
-  const showBetaBadge = isBetaTester && !isAdmin && !isCheckingRoles;
+  const showBetaBadge = isBetaTester && !isCheckingRoles;
 
   return {
     isAdmin,

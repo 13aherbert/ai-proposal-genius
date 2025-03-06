@@ -26,7 +26,8 @@ export function ActionButtons({
       isCheckingRoles, 
       showAdminButton, 
       showBetaBadge, 
-      roleCheckError 
+      roleCheckError,
+      timestamp: new Date().toISOString()
     });
   }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
@@ -57,7 +58,10 @@ export function ActionButtons({
           variant="outline" 
           className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
           onClick={() => {
-            console.log("Navigating to beta dashboard");
+            console.log("Navigating to beta dashboard", {
+              timestamp: new Date().toISOString(),
+              showBetaBadge
+            });
             navigate('/beta');
           }}
         >

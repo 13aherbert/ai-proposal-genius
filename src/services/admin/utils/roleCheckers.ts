@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "../types";
 import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";

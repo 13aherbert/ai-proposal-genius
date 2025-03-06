@@ -1,12 +1,4 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { WelcomeMessage } from "./WelcomeMessage";
-import { ActionButtons } from "./ActionButtons";
-import { useUserRoles } from "@/hooks/use-user-roles";
-import { useEffect } from "react";
-import { toast } from "sonner";
-
 /**
  * DashboardHeader component displays user information, subscription status,
  * and action buttons including admin dashboard access if the user is an admin.
@@ -37,12 +29,17 @@ export default function DashboardHeader() {
       showBetaBadge,
       showAdminButton,
       isCheckingRoles,
-      roleCheckError
+      roleCheckError,
+      timestamp: new Date().toISOString()
     });
     
     // Notify when beta tester role is detected
     if (isBetaTester && !isCheckingRoles) {
-      console.log("Beta tester status confirmed");
+      console.log("Beta tester status confirmed", {
+        timestamp: new Date().toISOString(),
+        isBetaTester,
+        showBetaBadge
+      });
     }
   }, [isAdmin, isBetaTester, showBetaBadge, showAdminButton, isCheckingRoles, roleCheckError]);
 

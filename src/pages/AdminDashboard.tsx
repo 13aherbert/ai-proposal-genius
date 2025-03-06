@@ -2,16 +2,19 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useAdminDashboard } from "./admin/hooks/useAdminDashboard";
 import { UserManagement } from "./admin/UserManagement";
 import { BetaInvitations } from "./admin/BetaInvitations";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 /**
  * AdminDashboard provides an interface for administrators to manage users,
  * their roles, subscriptions, and beta program invitations.
  */
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const {
     isAdmin,
     isLoading,
@@ -84,7 +87,17 @@ export default function AdminDashboard() {
   // Main dashboard
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => navigate('/dashboard')} 
+          className="h-9 w-9"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      </div>
       
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="mb-6">

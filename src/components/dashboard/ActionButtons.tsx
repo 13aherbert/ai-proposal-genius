@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Book, Crown, Settings, Users } from "lucide-react";
+import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +37,18 @@ export function ActionButtons({
         >
           <Users className="h-5 w-5 mr-2" />
           Admin Dashboard
+        </Button>
+      )}
+      
+      {/* Beta Tester Button - Only show for beta testers */}
+      {showBetaBadge && (
+        <Button 
+          variant="outline" 
+          className="bg-black/20 border-brand-silver hover:bg-black/40"
+          onClick={() => navigate('/beta')}
+        >
+          <Beaker className="h-5 w-5 mr-2" />
+          Beta Dashboard
         </Button>
       )}
       

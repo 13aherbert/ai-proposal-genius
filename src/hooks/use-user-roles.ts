@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -20,13 +21,15 @@ export function useUserRoles() {
   
   const timeoutRef = useRef<number | null>(null);
 
+  // Dedicated function to check beta tester role
   const checkBetaTesterRole = useCallback(async () => {
     if (!session?.user || checkingInProgressRef.current) return betaTesterStatusRef.current;
     
     try {
-      checkingInProgressRef.current = true;
-      
+      // Don't set checkingInProgress here as it's also set in the parent function
       const betaCheck = await adminService.checkUserRole('beta_tester');
+      
+      console.log("Beta tester check result:", !!betaCheck);
       
       if (!!betaCheck !== betaTesterStatusRef.current) {
         betaTesterStatusRef.current = !!betaCheck;
@@ -42,8 +45,6 @@ export function useUserRoles() {
       lastNetworkErrorTimeRef.current = Date.now();
       
       return betaTesterStatusRef.current;
-    } finally {
-      checkingInProgressRef.current = false;
     }
   }, [session]);
   
@@ -64,6 +65,7 @@ export function useUserRoles() {
       
       setRoleCheckError(null);
       
+      // Check admin role
       try {
         const adminCheck = await adminService.isAdmin();
         if (adminCheck !== adminStatusRef.current) {
@@ -75,17 +77,19 @@ export function useUserRoles() {
         lastNetworkErrorTimeRef.current = Date.now();
       }
       
+      // Check beta tester role - explicitly await this
       try {
         const isBeta = await checkBetaTesterRole();
-        if (isBeta !== betaTesterStatusRef.current) {
-          betaTesterStatusRef.current = isBeta;
-          setIsBetaTester(isBeta);
-        }
+        console.log("Beta tester check completed in checkRoles:", isBeta);
+        // Always update state even if the value is the same, to ensure reactivity
+        betaTesterStatusRef.current = isBeta;
+        setIsBetaTester(isBeta);
       } catch (betaError) {
         console.error("Error during beta role check:", betaError);
         lastNetworkErrorTimeRef.current = Date.now();
       }
       
+      // Check user role
       try {
         const userCheck = await adminService.ensureUserRole();
         if (userCheck !== userStatusRef.current) {
@@ -150,19 +154,19 @@ export function useUserRoles() {
     };
   }, [session, checkRoles]);
   
+  // Ensure that showBetaBadge is directly tied to isBetaTester
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
 
   useEffect(() => {
-    if (rolesInitializedRef.current) {
-      console.log("useUserRoles final state values:", { 
-        isAdmin, 
-        isBetaTester, 
-        isUser, 
-        showAdminButton, 
-        showBetaBadge 
-      });
-    }
+    console.log("useUserRoles state updated:", { 
+      isAdmin, 
+      isBetaTester, 
+      isUser, 
+      showAdminButton, 
+      showBetaBadge,
+      betaTesterRef: betaTesterStatusRef.current
+    });
   }, [isAdmin, isBetaTester, isUser, showAdminButton, showBetaBadge]);
 
   return {

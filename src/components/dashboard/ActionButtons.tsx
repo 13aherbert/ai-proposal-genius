@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 type ActionButtonsProps = {
   isCheckingRoles: boolean;
@@ -20,19 +20,14 @@ export function ActionButtons({
   roleCheckError 
 }: ActionButtonsProps) {
   const navigate = useNavigate();
-  // Use ref to prevent excessive logging
-  const loggedRef = useRef(false);
 
   useEffect(() => {
-    if (!loggedRef.current) {
-      console.log("ActionButtons component - detailed props:", { 
-        isCheckingRoles, 
-        showAdminButton, 
-        showBetaBadge, 
-        roleCheckError 
-      });
-      loggedRef.current = true;
-    }
+    console.log("ActionButtons rendered with props:", { 
+      isCheckingRoles, 
+      showAdminButton, 
+      showBetaBadge, 
+      roleCheckError 
+    });
   }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
   return (
@@ -44,6 +39,7 @@ export function ActionButtons({
         </Badge>
       )}
       
+      {/* Admin button */}
       {showAdminButton && (
         <Button 
           variant="outline" 
@@ -55,7 +51,7 @@ export function ActionButtons({
         </Button>
       )}
       
-      {/* Beta Tester Button - Only show for beta testers */}
+      {/* Beta Tester Button - Show for beta testers */}
       {showBetaBadge && (
         <Button 
           variant="outline" 
@@ -67,6 +63,7 @@ export function ActionButtons({
         </Button>
       )}
       
+      {/* Beta Tester Badge */}
       {showBetaBadge && (
         <Badge variant="outline" className="py-2 px-3">
           <Crown className="h-4 w-4 mr-1" />

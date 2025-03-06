@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LogOut, Save, CheckCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, LogOut, Save, CheckCircle, AlertTriangle, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
@@ -39,6 +40,7 @@ export default function AccountSettings() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [networkError, setNetworkError] = useState(false);
   const { data: subscription } = useSubscription();
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function AccountSettings() {
     
     try {
       setIsLoadingProfile(true);
+      setNetworkError(false);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -59,6 +62,16 @@ export default function AccountSettings() {
       
       if (error) {
         console.error('Error fetching profile:', error);
+        
+        // Check if it's a network error
+        if (error.message?.includes('Failed to fetch') || 
+            error.details?.includes('Failed to fetch') ||
+            error.code === 'NETWORK_ERROR') {
+          setNetworkError(true);
+          toast.error("Network connection error", {
+            description: "Unable to connect to the server. Please check your internet connection."
+          });
+        }
         return;
       }
       
@@ -74,6 +87,13 @@ export default function AccountSettings() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setNetworkError(true);
+        toast.error("Network connection error", {
+          description: "Unable to connect to the server. Please check your internet connection."
+        });
+      }
     } finally {
       setIsLoadingProfile(false);
     }
@@ -222,12 +242,27 @@ export default function AccountSettings() {
       
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error("Failed to update profile", {
-        description: error.message || "Please try again later.",
-      });
+      
+      // Check if it's a network error
+      if (error.message?.includes('Failed to fetch') || 
+          error instanceof TypeError && error.message.includes('fetch')) {
+        setNetworkError(true);
+        toast.error("Network connection error", {
+          description: "Unable to connect to the server. Please check your internet connection and try again."
+        });
+      } else {
+        toast.error("Failed to update profile", {
+          description: error.message || "Please try again later.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setNetworkError(false);
+    fetchProfile();
   };
 
   const handleLogout = async () => {
@@ -253,6 +288,29 @@ export default function AccountSettings() {
       console.log("✅ updateRivalProSubscription function is now available in the console");
     }
   }, []);
+
+  // Show network error state
+  if (networkError) {
+    return (
+      <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <WifiOff className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <h1 className="text-2xl font-bold mb-2">Connection Error</h1>
+          <p className="text-muted-foreground mb-6">
+            Unable to connect to the server. Please check your internet connection and try again.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button onClick={handleRetry}>
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              Back to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">

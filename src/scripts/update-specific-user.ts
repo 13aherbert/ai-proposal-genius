@@ -34,9 +34,17 @@ export async function updateRivalProSubscription(): Promise<void> {
     }
   } catch (error) {
     console.error("Error updating subscription:", error);
-    toast.error("Error updating subscription", {
-      description: error instanceof Error ? error.message : "Unknown error"
-    });
+    
+    // Check if it's a network error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      toast.error("Network connection error", {
+        description: "Unable to connect to the server. Please check your internet connection."
+      });
+    } else {
+      toast.error("Error updating subscription", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   }
 }
 

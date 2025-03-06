@@ -24,6 +24,7 @@ serve(async (req) => {
       throw new Error('Missing Supabase configuration');
     }
     
+    console.log("Connecting to Supabase with URL:", supabaseUrl);
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify authorization
@@ -34,6 +35,7 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log("Verifying token...");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -63,142 +65,156 @@ serve(async (req) => {
     console.log(`Checking user with email: ${email}`);
 
     // Find the user by email (case insensitive)
-    const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
+    try {
+      const { data: authUserData, error: authUserError } = await supabase.auth.admin.listUsers();
+        
+      if (authUserError) {
+        console.error('Error finding user in auth.users:', authUserError);
+        throw new Error(`Error finding user: ${authUserError.message}`);
+      }
       
-    if (authUserError) {
-      console.error('Error finding user in auth.users:', authUserError);
-      throw new Error(`Error finding user: ${authUserError.message}`);
-    }
-    
-    // Debug: log all emails for comparison
-    console.log("Available emails:", authUserData?.users.map(u => u.email?.toLowerCase()));
-    
-    // Find user with case-insensitive email matching
-    const foundUser = authUserData.users.find(u => 
-      u.email && u.email.toLowerCase() === email.toLowerCase()
-    );
-    
-    if (!foundUser) {
-      console.error(`User with email ${email} not found. Available emails: ${authUserData?.users.map(u => u.email)}`);
-      throw new Error(`User with email ${email} not found`);
-    }
-    
-    console.log(`Found user with ID: ${foundUser.id} via auth.users`);
-    const userId = foundUser.id;
-
-    // Determine project limit based on plan
-    let projectLimit = 3; // Default for trial
-    let planType = plan || 'starter'; // Default to starter if not specified
-    let subscriptionStatus = status || 'active'; // Default to active if not specified
-    
-    if (planType === 'pro') {
-      projectLimit = 30;
-    } else if (planType === 'starter') {
-      projectLimit = 10;
-    }
-
-    // Check if user has an existing subscription
-    const { data: existingSub, error: subError } = await supabase
-      .from('subscriptions')
-      .select('subscription_id, status, plan_type')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    console.log('Existing subscription:', existingSub);
-
-    if (subError && subError.code !== 'PGRST116') {
-      console.error('Error checking subscription:', subError);
-      throw new Error(`Error checking subscription: ${subError.message}`);
-    }
-
-    let result;
-    const now = new Date().toISOString();
-    
-    if (existingSub) {
-      // Update the existing subscription
-      console.log(`Updating subscription ${existingSub.subscription_id} to plan ${planType} with status ${subscriptionStatus}`);
+      if (!authUserData || !authUserData.users || authUserData.users.length === 0) {
+        console.error('No users found in the database');
+        throw new Error('No users found in the database');
+      }
       
-      result = await supabase
+      // Debug: log all emails for comparison
+      console.log("Available emails:", authUserData.users.map(u => ({
+        email: u.email,
+        lowercase: u.email?.toLowerCase(),
+        matches: u.email?.toLowerCase() === email.toLowerCase()
+      })));
+      
+      // Find user with case-insensitive email matching
+      const foundUser = authUserData.users.find(u => 
+        u.email && u.email.toLowerCase() === email.toLowerCase()
+      );
+      
+      if (!foundUser) {
+        console.error(`User with email ${email} not found. Available emails: ${authUserData.users.map(u => u.email)}`);
+        throw new Error(`User with email ${email} not found`);
+      }
+      
+      console.log(`Found user with ID: ${foundUser.id} via auth.users`);
+      const userId = foundUser.id;
+
+      // Determine project limit based on plan
+      let projectLimit = 3; // Default for trial
+      let planType = plan || 'starter'; // Default to starter if not specified
+      let subscriptionStatus = status || 'active'; // Default to active if not specified
+      
+      if (planType === 'pro') {
+        projectLimit = 30;
+      } else if (planType === 'starter') {
+        projectLimit = 10;
+      }
+
+      // Check if user has an existing subscription
+      const { data: existingSub, error: subError } = await supabase
         .from('subscriptions')
-        .update({
-          plan_type: planType,
-          status: subscriptionStatus,
-          project_limit: projectLimit,
-          updated_at: now
-        })
-        .eq('subscription_id', existingSub.subscription_id);
-    } else {
-      // Create a new subscription
-      console.log(`Creating new ${planType} subscription for user ${userId} with status ${subscriptionStatus}`);
+        .select('subscription_id, status, plan_type')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      console.log('Existing subscription:', existingSub);
+
+      if (subError && subError.code !== 'PGRST116') {
+        console.error('Error checking subscription:', subError);
+        throw new Error(`Error checking subscription: ${subError.message}`);
+      }
+
+      let result;
+      const now = new Date().toISOString();
       
-      result = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: userId,
-          plan_type: planType,
-          status: subscriptionStatus,
-          project_limit: projectLimit,
-          updated_at: now,
-          created_at: now
-        });
-    }
-
-    if (result.error) {
-      console.error('Error updating subscription:', result.error);
-      throw new Error(`Error updating subscription: ${result.error.message}`);
-    }
-
-    // Now check if the user has a profile and create one if not
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('profile_id')
-      .eq('profile_id', userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('Error checking profile:', profileError);
-    }
-
-    if (!profileData) {
-      console.log(`No profile found for user ${userId}, creating one`);
-      
-      // Create a profile for the user
-      const { error: createProfileError } = await supabase
-        .from('profiles')
-        .insert({
-          profile_id: userId,
-          username: email,
-          first_name: '',
-          last_name: '',
-          business_name: '',
-          created_at: now,
-          updated_at: now
-        });
-
-      if (createProfileError) {
-        console.error('Error creating profile:', createProfileError);
+      if (existingSub) {
+        // Update the existing subscription
+        console.log(`Updating subscription ${existingSub.subscription_id} to plan ${planType} with status ${subscriptionStatus}`);
+        
+        result = await supabase
+          .from('subscriptions')
+          .update({
+            plan_type: planType,
+            status: subscriptionStatus,
+            project_limit: projectLimit,
+            updated_at: now
+          })
+          .eq('subscription_id', existingSub.subscription_id);
       } else {
-        console.log('Profile created successfully');
+        // Create a new subscription
+        console.log(`Creating new ${planType} subscription for user ${userId} with status ${subscriptionStatus}`);
+        
+        result = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: userId,
+            plan_type: planType,
+            status: subscriptionStatus,
+            project_limit: projectLimit,
+            updated_at: now,
+            created_at: now
+          });
       }
+
+      if (result.error) {
+        console.error('Error updating subscription:', result.error);
+        throw new Error(`Error updating subscription: ${result.error.message}`);
+      }
+
+      // Now check if the user has a profile and create one if not
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('profile_id')
+        .eq('profile_id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error checking profile:', profileError);
+      }
+
+      if (!profileData) {
+        console.log(`No profile found for user ${userId}, creating one`);
+        
+        // Create a profile for the user
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            profile_id: userId,
+            username: email,
+            first_name: '',
+            last_name: '',
+            business_name: '',
+            created_at: now,
+            updated_at: now
+          });
+
+        if (createProfileError) {
+          console.error('Error creating profile:', createProfileError);
+        } else {
+          console.log('Profile created successfully');
+        }
+      }
+
+      console.log('Subscription updated successfully');
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Successfully updated subscription for ${email} to ${planType} plan with status ${subscriptionStatus}`,
+          user: userId,
+          plan: planType,
+          status: subscriptionStatus
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    } catch (err) {
+      console.error('Error in user lookup process:', err);
+      throw new Error(`Error processing user: ${err.message}`);
     }
-
-    console.log('Subscription updated successfully');
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Successfully updated subscription for ${email} to ${planType} plan with status ${subscriptionStatus}`,
-        user: userId,
-        plan: planType,
-        status: subscriptionStatus
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    );
   } catch (error) {
     console.error('Error in admin-update-subscription:', error);
     

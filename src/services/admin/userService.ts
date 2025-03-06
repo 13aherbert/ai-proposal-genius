@@ -218,7 +218,13 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
   try {
     // Get session for auth header
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      throw new Error('Authentication error: ' + sessionError.message);
+    }
+    
     const accessToken = sessionData?.session?.access_token;
     
     if (!accessToken) {
@@ -229,17 +235,30 @@ export async function updateUserSubscription(email: string, plan: string, status
     console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
     
     // Call our edge function to update the subscription
-    const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
-      body: { 
-        email,
-        plan,
-        status
-      },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+    let response;
+    try {
+      response = await supabase.functions.invoke('admin-update-subscription', {
+        body: { 
+          email,
+          plan,
+          status
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      console.error("Network error invoking edge function:", error);
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network connection error. Please check your internet connection.');
       }
-    });
+      
+      throw error;
+    }
+    
+    const { data, error } = response;
     
     if (error) {
       console.error("Error invoking edge function:", error);

@@ -7,8 +7,17 @@
 export function isNetworkError(error: any): boolean {
   if (!error) return false;
   
+  console.log("isNetworkError checking:", error);
+  console.log("Error type:", typeof error);
+  if (error instanceof Error) {
+    console.log("Error name:", error.name);
+  }
+  
+  // Convert error to string for checking
   const errorMessage = error.message || String(error);
-  return (
+  console.log("Error message for network check:", errorMessage);
+  
+  const isNetwork = (
     errorMessage.includes('Failed to fetch') ||
     errorMessage.includes('NetworkError') ||
     errorMessage.includes('Network request failed') ||
@@ -27,13 +36,27 @@ export function isNetworkError(error: any): boolean {
     errorMessage.includes('ECONNREFUSED') ||
     errorMessage.includes('ECONNRESET') ||
     errorMessage.includes('ENOTFOUND') ||
-    // Check for Supabase error codes that might indicate network issues
+    // Supabase specific error codes
     (error.code && (
       error.code === 'PGRST301' || // Supabase timeout
       error.code === 'CONNECTION_ERROR' ||
-      error.code === 'NETWORK_ERROR'
+      error.code === 'NETWORK_ERROR' ||
+      // Additional Supabase/Postgres error codes
+      error.code === '08000' || // connection_exception
+      error.code === '08003' || // connection_does_not_exist
+      error.code === '08006' || // connection_failure
+      error.code === '08001' || // sqlclient_unable_to_establish_sqlconnection
+      error.code === '08004' || // sqlserver_rejected_establishment_of_sqlconnection
+      error.code === '57P01' || // admin_shutdown
+      error.code === '57P02' || // crash_shutdown
+      error.code === '57P03' || // cannot_connect_now
+      error.code === '53300' || // too_many_connections
+      typeof error.code === 'string' && error.code.includes('INTERNAL_ERROR')
     ))
   );
+
+  console.log("Is network error result:", isNetwork);
+  return isNetwork;
 }
 
 /**
@@ -44,7 +67,9 @@ export function isNetworkError(error: any): boolean {
 export function getNetworkErrorMessage(error: any): string {
   if (!error) return 'Unknown error';
   
+  console.log("getNetworkErrorMessage for:", error);
   const errorMessage = error.message || String(error);
+  console.log("Error message for friendly display:", errorMessage);
   
   if (errorMessage.includes('ERR_NAME_NOT_RESOLVED')) {
     return 'DNS resolution error: Unable to connect to the server. Check your internet connection or DNS settings.';
@@ -83,6 +108,18 @@ export function getNetworkErrorMessage(error: any): string {
   
   if (error.code === 'CONNECTION_ERROR' || error.code === 'NETWORK_ERROR') {
     return 'Unable to connect to the database. Please try again later.';
+  }
+  
+  if (typeof error.code === 'string' && (
+    error.code.includes('08') || 
+    error.code.includes('57P') ||
+    error.code.includes('53300')
+  )) {
+    return 'Database connection issue. The server might be overloaded or temporarily unavailable.';
+  }
+  
+  if (typeof error.code === 'string' && error.code.includes('INTERNAL_ERROR')) {
+    return 'Internal server error. Please try again later or contact support if the issue persists.';
   }
   
   return 'Network error: ' + errorMessage;

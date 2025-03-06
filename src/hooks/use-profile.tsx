@@ -3,7 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
-import { withRetry, isNetworkError, getNetworkErrorMessage } from "@/utils/network";
+import { withRetry } from "@/utils/network";
+import { isNetworkError, getNetworkErrorMessage } from "@/utils/network/error-detection";
 
 interface ProfileData {
   username: string;
@@ -84,7 +85,10 @@ export function useProfile(): UseProfileReturn {
 
   useEffect(() => {
     if (session?.user?.id && !isFetchingRef.current) {
+      console.log("Session detected, initiating profile fetch");
       fetchProfile();
+    } else if (!session?.user?.id) {
+      console.log("No session available, skipping profile fetch");
     }
   }, [session]);
 
@@ -118,12 +122,20 @@ export function useProfile(): UseProfileReturn {
       fetchAttemptsRef.current = 0;
       setFetchError(null);
       fetchProfile();
+    } else {
+      console.log("Fetch already in progress, not retrying");
     }
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    if (!session?.user?.id) return;
-    if (isFetchingRef.current) return;
+    if (!session?.user?.id) {
+      console.log("No user session available for profile fetch");
+      return;
+    }
+    if (isFetchingRef.current) {
+      console.log("Profile fetch already in progress, skipping");
+      return;
+    }
     
     if (fetchAttemptsRef.current >= 3) {
       console.log("Maximum retry attempts reached, giving up");
@@ -140,10 +152,11 @@ export function useProfile(): UseProfileReturn {
       isFetchingRef.current = true;
       fetchAttemptsRef.current++;
       
-      console.log(`Fetching profile data (attempt ${fetchAttemptsRef.current})`);
+      console.log(`Fetching profile data (attempt ${fetchAttemptsRef.current}) for user ID: ${session.user.id}`);
       
       const result = await withRetry(
         async () => {
+          console.log("Executing Supabase query to fetch profile");
           return await supabase
             .from('profiles')
             .select('username, first_name, last_name, business_name, birthday')
@@ -154,10 +167,20 @@ export function useProfile(): UseProfileReturn {
         3000 // Increase base delay
       );
       
-      if (!isComponentMountedRef.current) return;
+      if (!isComponentMountedRef.current) {
+        console.log("Component unmounted during fetch, abandoning");
+        return;
+      }
+      
+      console.log("Profile fetch result:", result);
       
       if (result.error) {
         console.error('Error fetching profile:', result.error);
+        console.log('Error code:', result.error.code);
+        console.log('Error message:', result.error.message);
+        console.log('Error details:', result.error.details);
+        console.log('Is network error?', isNetworkError(result.error));
+        
         const errorMessage = isNetworkError(result.error) 
           ? getNetworkErrorMessage(result.error) 
           : result.error.message;
@@ -189,9 +212,22 @@ export function useProfile(): UseProfileReturn {
         await createProfile();
       }
     } catch (error) {
-      if (!isComponentMountedRef.current) return;
+      if (!isComponentMountedRef.current) {
+        console.log("Component unmounted during fetch error handling, abandoning");
+        return;
+      }
       
       console.error('Error fetching profile:', error);
+      console.log('Error type:', typeof error);
+      console.log('Error stringify:', JSON.stringify(error, null, 2));
+      console.log('Error instance of Error?', error instanceof Error);
+      if (error instanceof Error) {
+        console.log('Error name:', error.name);
+        console.log('Error message:', error.message);
+        console.log('Error stack:', error.stack);
+      }
+      console.log('Is network error?', isNetworkError(error));
+      
       const errorMessage = isNetworkError(error) 
         ? getNetworkErrorMessage(error) 
         : "Please try refreshing the page.";
@@ -208,16 +244,20 @@ export function useProfile(): UseProfileReturn {
         setIsLoadingProfile(false);
         setIsFetching(false);
         isFetchingRef.current = false;
+        console.log("Profile fetch operation completed");
       }
     }
   }, [session]);
 
   const createProfile = useCallback(async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      console.log("No user session available for profile creation");
+      return;
+    }
     
     try {
       console.log("Creating new profile for user:", session.user.id);
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('profiles')
         .insert({
           profile_id: session.user.id,
@@ -228,8 +268,13 @@ export function useProfile(): UseProfileReturn {
           birthday: null
         });
       
+      console.log("Profile creation result:", { error, data });
+      
       if (error) {
         console.error('Error creating profile:', error);
+        console.log('Error code:', error.code);
+        console.log('Error message:', error.message);
+        console.log('Error details:', error.details);
         throw error;
       }
       
@@ -237,6 +282,11 @@ export function useProfile(): UseProfileReturn {
       updateProfileData("username", session.user.email || "");
     } catch (error) {
       console.error('Error creating profile:', error);
+      if (error instanceof Error) {
+        console.log('Error name:', error.name);
+        console.log('Error message:', error.message);
+        console.log('Error stack:', error.stack);
+      }
       toast.error("Failed to create profile", {
         description: "Please try refreshing the page.",
       });
@@ -244,13 +294,16 @@ export function useProfile(): UseProfileReturn {
   }, [session, updateProfileData]);
 
   const saveProfile = useCallback(async (): Promise<boolean> => {
-    if (!session?.user?.id) return false;
+    if (!session?.user?.id) {
+      console.log("No user session available for profile save");
+      return false;
+    }
     
     setIsLoading(true);
     try {
       console.log("Updating profile with:", profileData);
       
-      const { error: profileError } = await supabase
+      const { error: profileError, data } = await supabase
         .from('profiles')
         .update({ 
           username: profileData.username || null,
@@ -261,8 +314,13 @@ export function useProfile(): UseProfileReturn {
         })
         .eq('profile_id', session.user.id);
 
+      console.log("Profile update result:", { profileError, data });
+      
       if (profileError) {
         console.error('Error updating profile:', profileError);
+        console.log('Error code:', profileError.code);
+        console.log('Error message:', profileError.message);
+        console.log('Error details:', profileError.details);
         throw profileError;
       }
 
@@ -284,6 +342,11 @@ export function useProfile(): UseProfileReturn {
       return true;
     } catch (error: any) {
       console.error('Error updating profile:', error);
+      if (error instanceof Error) {
+        console.log('Error name:', error.name);
+        console.log('Error message:', error.message);
+        console.log('Error stack:', error.stack);
+      }
       
       const errorMessage = isNetworkError(error)
         ? getNetworkErrorMessage(error)
@@ -296,6 +359,7 @@ export function useProfile(): UseProfileReturn {
     } finally {
       if (isComponentMountedRef.current) {
         setIsLoading(false);
+        console.log("Profile save operation completed");
       }
     }
   }, [profileData, session]);

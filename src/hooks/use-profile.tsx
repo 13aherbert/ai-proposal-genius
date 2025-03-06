@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
@@ -54,6 +54,7 @@ export function useProfile(): UseProfileReturn {
   const isFetchingRef = useRef(false);
   const fetchAttemptsRef = useRef(0);
   const isComponentMountedRef = useRef(true);
+  const lastSuccessfulFetchRef = useRef<Date | null>(null);
 
   // Listen for network reconnection events
   useEffect(() => {
@@ -84,10 +85,12 @@ export function useProfile(): UseProfileReturn {
   }, []);
 
   useEffect(() => {
-    if (session?.user?.id && !isFetchingRef.current) {
+    // Reset fetch attempts on new session
+    if (session?.user?.id) {
       console.log("Session detected, initiating profile fetch");
+      fetchAttemptsRef.current = 0;
       fetchProfile();
-    } else if (!session?.user?.id) {
+    } else {
       console.log("No session available, skipping profile fetch");
     }
   }, [session]);
@@ -137,12 +140,26 @@ export function useProfile(): UseProfileReturn {
       return;
     }
     
+    // If we've had a successful fetch in the last 10 seconds, don't retry too aggressively
+    if (lastSuccessfulFetchRef.current && (new Date().getTime() - lastSuccessfulFetchRef.current.getTime() < 10000)) {
+      console.log("Successful fetch was recent, skipping redundant fetch");
+      setIsLoadingProfile(false);
+      setFetchError(null);
+      return;
+    }
+    
     if (fetchAttemptsRef.current >= 3) {
       console.log("Maximum retry attempts reached, giving up");
-      toast.error("Couldn't load profile after multiple attempts", {
-        description: "Please check your connection and try again later."
-      });
-      setFetchError("Maximum retry attempts reached. Please check your internet connection and try again.");
+      // Don't show the error toast if we already have valid profile data
+      if (!profileData.username) {
+        toast.error("Couldn't load profile after multiple attempts", {
+          description: "Please check your connection and try again later."
+        });
+      } else {
+        console.log("Profile data already loaded, not showing error toast");
+        // Clear the fetch error since we have data
+        setFetchError(null);
+      }
       setIsLoadingProfile(false);
       return;
     }
@@ -207,6 +224,7 @@ export function useProfile(): UseProfileReturn {
         setProfileData(profileData);
         setInitialValues(profileData);
         setFetchError(null);
+        lastSuccessfulFetchRef.current = new Date();
       } else {
         console.log("No profile found, creating one...");
         await createProfile();
@@ -228,16 +246,22 @@ export function useProfile(): UseProfileReturn {
       }
       console.log('Is network error?', isNetworkError(error));
       
-      const errorMessage = isNetworkError(error) 
-        ? getNetworkErrorMessage(error) 
-        : "Please try refreshing the page.";
-      
-      setFetchError(errorMessage);
-      
-      if (!isLoadingProfile) {
-        toast.error("Failed to load profile", {
-          description: errorMessage
-        });
+      // Only set error state if we don't already have valid profile data
+      if (!profileData.username) {
+        const errorMessage = isNetworkError(error) 
+          ? getNetworkErrorMessage(error) 
+          : "Please try refreshing the page.";
+        
+        setFetchError(errorMessage);
+        
+        if (!isLoadingProfile) {
+          toast.error("Failed to load profile", {
+            description: errorMessage
+          });
+        }
+      } else {
+        console.log("Profile data already loaded, suppressing error");
+        setFetchError(null);
       }
     } finally {
       if (isComponentMountedRef.current) {
@@ -247,7 +271,7 @@ export function useProfile(): UseProfileReturn {
         console.log("Profile fetch operation completed");
       }
     }
-  }, [session]);
+  }, [session, profileData.username]);
 
   const createProfile = useCallback(async () => {
     if (!session?.user?.id) {
@@ -280,6 +304,7 @@ export function useProfile(): UseProfileReturn {
       
       console.log("Profile created successfully");
       updateProfileData("username", session.user.email || "");
+      lastSuccessfulFetchRef.current = new Date();
     } catch (error) {
       console.error('Error creating profile:', error);
       if (error instanceof Error) {
@@ -327,6 +352,7 @@ export function useProfile(): UseProfileReturn {
       setInitialValues({...profileData});
       setSaveSuccess(true);
       setHasChanges(false);
+      lastSuccessfulFetchRef.current = new Date();
       
       toast.success("Profile updated successfully", {
         description: "Your account information has been saved.",

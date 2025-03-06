@@ -76,6 +76,11 @@ export default function AccountSettings() {
     }
   }, []);
 
+  // Log profile data every render if it has changed to help with debugging
+  useEffect(() => {
+    console.log("Current profile data:", profileData);
+  }, [profileData]);
+
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -93,13 +98,14 @@ export default function AccountSettings() {
 
           <div className="grid gap-6 max-w-2xl mx-auto w-full">
             <ProfileLoading 
-              isLoading={isLoadingProfile} 
+              isLoading={isLoadingProfile && !profileData.username} 
               fetchError={fetchError}
               handleRetryFetch={handleRetryFetch}
               isFetching={isFetching}
             />
 
-            {!isLoadingProfile && !fetchError && (
+            {/* Render profile sections even if isLoadingProfile is true, as long as we have profile data */}
+            {(profileData.username || !isLoadingProfile) && !fetchError && (
               <>
                 <ProfileCard 
                   username={profileData.username} 
@@ -126,7 +132,7 @@ export default function AccountSettings() {
                   hasChanges={hasProfileChanges || hasCredentialChanges}
                   saveSuccess={saveSuccess}
                   isLoading={isLoading}
-                  isLoadingProfile={isLoadingProfile}
+                  isLoadingProfile={isLoadingProfile && !profileData.username}
                   handleSave={handleSave}
                 />
               </>

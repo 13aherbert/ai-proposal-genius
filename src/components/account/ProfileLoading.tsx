@@ -1,7 +1,7 @@
 
-import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 
 interface ProfileLoadingProps {
   isLoading: boolean;
@@ -10,81 +10,60 @@ interface ProfileLoadingProps {
   isFetching: boolean;
 }
 
-export function ProfileLoading({ 
-  isLoading, 
-  fetchError, 
+export function ProfileLoading({
+  isLoading,
+  fetchError,
   handleRetryFetch,
   isFetching
 }: ProfileLoadingProps) {
-  const [retryCount, setRetryCount] = useState(0);
-  const [isAutoRetrying, setIsAutoRetrying] = useState(false);
-  
-  useEffect(() => {
-    if (fetchError && retryCount < 2 && !isAutoRetrying) {
-      setIsAutoRetrying(true);
-      const timer = setTimeout(() => {
-        handleRetryFetch();
-        setRetryCount(prev => prev + 1);
-        setIsAutoRetrying(false);
-      }, 3000); // Auto-retry after 3 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [fetchError, retryCount, handleRetryFetch, isAutoRetrying]);
-
-  if (fetchError) {
-    return (
-      <div className="bg-destructive/10 border border-destructive rounded-lg p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <span className="font-medium">Failed to load profile data</span>
-        </div>
-        <p className="text-sm text-muted-foreground">{fetchError}</p>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            className="self-start"
-            onClick={handleRetryFetch}
-            disabled={isFetching || isAutoRetrying}
-          >
-            {isFetching || isAutoRetrying ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                {isAutoRetrying ? "Auto-retrying..." : "Retrying..."}
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
-              </>
-            )}
-          </Button>
-          
-          {isAutoRetrying && (
-            <span className="text-xs text-muted-foreground">
-              Auto-retrying in a few seconds...
-            </span>
-          )}
-        </div>
-      </div>
-    );
+  if (!isLoading && !fetchError) {
+    return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
-        <div className="space-y-2">
-          <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-          <div className="h-10 w-full bg-muted rounded animate-pulse"></div>
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-          <div className="h-10 w-full bg-muted rounded animate-pulse"></div>
-        </div>
-      </div>
-    );
-  }
+  return (
+    <>
+      {isLoading && (
+        <Card className="p-6 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-center text-sm text-muted-foreground">
+              Loading your profile data...
+            </p>
+          </div>
+        </Card>
+      )}
 
-  return null;
+      {fetchError && (
+        <Card className="p-6 border-destructive">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex items-center space-x-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <h3 className="font-medium">Failed to Load Profile Data</h3>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              {fetchError}
+            </p>
+            <Button 
+              variant="outline"
+              onClick={handleRetryFetch}
+              disabled={isFetching}
+              className="mt-2"
+            >
+              {isFetching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+      )}
+    </>
+  );
 }

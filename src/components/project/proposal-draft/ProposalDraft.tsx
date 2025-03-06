@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
@@ -17,6 +17,8 @@ export interface ProposalDraftProps {
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   // Set the active tab based on the mode prop
   const [activeTab, setActiveTab] = useState<string>(mode === "compiled" ? "preview" : "sections");
+  const [previewKey, setPreviewKey] = useState(0); // Add a key to force preview re-render
+  
   const {
     sections,
     isLoading,
@@ -25,6 +27,13 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     reorderSections,
     deleteSection,
   } = useProposalSections(projectId);
+
+  // Force preview to refresh when sections change
+  useEffect(() => {
+    if (sections) {
+      setPreviewKey(prevKey => prevKey + 1);
+    }
+  }, [sections]);
 
   return (
     <Card>
@@ -69,7 +78,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
           </TabsContent>
 
           <TabsContent value="preview" className="border-none p-0">
-            <CompiledView sections={sections} />
+            <CompiledView key={previewKey} sections={sections} />
           </TabsContent>
         </Tabs>
       </CardContent>

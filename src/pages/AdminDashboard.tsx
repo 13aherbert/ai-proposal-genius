@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole>('beta_tester');
   const [selectedPlan, setSelectedPlan] = useState('starter');
+  const [selectedStatus, setSelectedStatus] = useState('active');
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,7 +119,7 @@ export default function AdminDashboard() {
       toast.error("Please select a user and plan");
       return;
     }
-    const success = await adminService.updateSubscriptionPlan(selectedUserId, selectedPlan);
+    const success = await adminService.updateSubscriptionPlan(selectedUserId, selectedPlan, selectedStatus);
     if (success) {
       await loadUsers();
     }
@@ -251,18 +252,36 @@ export default function AdminDashboard() {
                   
                   <div>
                     <Label htmlFor="plan-select">Update Subscription</Label>
-                    <div className="flex space-x-2">
-                      <Select onValueChange={setSelectedPlan} value={selectedPlan}>
-                        <SelectTrigger id="plan-select" className="flex-1">
-                          <SelectValue placeholder="Select a plan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="trial">Trial</SelectItem>
-                          <SelectItem value="starter">Starter</SelectItem>
-                          <SelectItem value="pro">Pro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={handleUpdateSubscription}>Update</Button>
+                    <div className="grid gap-2">
+                      <div className="flex space-x-2">
+                        <Select onValueChange={setSelectedPlan} value={selectedPlan}>
+                          <SelectTrigger id="plan-select" className="flex-1">
+                            <SelectValue placeholder="Select a plan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="trial">Trial</SelectItem>
+                            <SelectItem value="starter">Starter</SelectItem>
+                            <SelectItem value="pro">Pro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Select onValueChange={setSelectedStatus} value={selectedStatus}>
+                          <SelectTrigger id="status-select" className="flex-1">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="trialing">Trialing</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="past_due">Past Due</SelectItem>
+                            <SelectItem value="canceled">Canceled</SelectItem>
+                            <SelectItem value="incomplete">Incomplete</SelectItem>
+                            <SelectItem value="unpaid">Unpaid</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={handleUpdateSubscription}>Update</Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -379,7 +398,7 @@ export default function AdminDashboard() {
                                   </div>
                                   
                                   <div className="space-y-2">
-                                    <Label>Update Subscription</Label>
+                                    <Label>Update Subscription Plan</Label>
                                     <div className="flex space-x-2">
                                       <Select onValueChange={setSelectedPlan} defaultValue={user.subscription?.plan || "trial"}>
                                         <SelectTrigger className="flex-1">
@@ -391,8 +410,27 @@ export default function AdminDashboard() {
                                           <SelectItem value="pro">Pro</SelectItem>
                                         </SelectContent>
                                       </Select>
-                                      <Button onClick={async () => {
-                                const success = await adminService.updateSubscriptionPlan(user.userId, selectedPlan);
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label>Subscription Status</Label>
+                                    <div className="flex space-x-2">
+                                      <Select onValueChange={setSelectedStatus} defaultValue={user.subscription?.status || "active"}>
+                                        <SelectTrigger className="flex-1">
+                                          <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="trialing">Trialing</SelectItem>
+                                          <SelectItem value="active">Active</SelectItem>
+                                          <SelectItem value="past_due">Past Due</SelectItem>
+                                          <SelectItem value="canceled">Canceled</SelectItem>
+                                          <SelectItem value="incomplete">Incomplete</SelectItem>
+                                          <SelectItem value="unpaid">Unpaid</SelectItem>
+                                        </SelectContent>
+                                        </Select>
+                                        <Button onClick={async () => {
+                                const success = await adminService.updateSubscriptionPlan(user.userId, selectedPlan, selectedStatus);
                                 if (success) {
                                   await loadUsers();
                                 }

@@ -147,7 +147,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 /**
  * Update user subscription plan
  */
-export async function updateSubscriptionPlan(userId: string, plan: string): Promise<boolean> {
+export async function updateSubscriptionPlan(userId: string, plan: string, status: string = 'active'): Promise<boolean> {
   try {
     // Check admin using RPC
     const adminStatus = await isAdmin();
@@ -186,26 +186,27 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
     
     if (existingSub) {
       // Update existing subscription
-      console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan}`);
+      console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan} with status ${status}`);
       
       result = await supabase
         .from('subscriptions')
         .update({
           plan_type: plan,
+          status: status,
           project_limit: projectLimit,
           updated_at: now
         })
         .eq('subscription_id', existingSub.subscription_id);
     } else {
       // Create new subscription
-      console.log(`Creating new subscription for user ${userId} with plan ${plan}`);
+      console.log(`Creating new subscription for user ${userId} with plan ${plan} and status ${status}`);
       
       result = await supabase
         .from('subscriptions')
         .insert({
           user_id: userId,
           plan_type: plan,
-          status: 'active',
+          status: status,
           project_limit: projectLimit,
           updated_at: now
         });

@@ -43,7 +43,17 @@ export function BetaRoleDebugger() {
       console.log("Direct query result:", data);
     } catch (err) {
       console.error("Direct query error:", err);
-      setError(err instanceof Error ? err.message : String(err));
+      // Properly format the error message based on type
+      if (typeof err === 'object' && err !== null) {
+        if ('message' in err) {
+          setError((err as Error).message);
+        } else {
+          // For Supabase errors or other structured errors
+          setError(JSON.stringify(err, null, 2));
+        }
+      } else {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -59,7 +69,17 @@ export function BetaRoleDebugger() {
       console.log("Service method result:", result);
     } catch (err) {
       console.error("Service method error:", err);
-      setError(err instanceof Error ? err.message : String(err));
+      // Properly format the error message based on type
+      if (typeof err === 'object' && err !== null) {
+        if ('message' in err) {
+          setError((err as Error).message);
+        } else {
+          // For Supabase errors or other structured errors
+          setError(JSON.stringify(err, null, 2));
+        }
+      } else {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -90,8 +110,9 @@ export function BetaRoleDebugger() {
         {loading && <div className="text-center">Loading...</div>}
         
         {error && (
-          <div className="p-3 bg-red-50 text-red-800 rounded-md">
-            Error: {error}
+          <div className="p-3 bg-red-50 text-red-800 rounded-md overflow-auto">
+            <div className="font-medium mb-1">Error:</div>
+            <pre className="whitespace-pre-wrap break-words text-sm">{error}</pre>
           </div>
         )}
 

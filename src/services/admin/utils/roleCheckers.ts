@@ -28,7 +28,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
     console.log(`Direct table check for role '${role}':`, {
       result: directCheck && directCheck.length > 0,
       count: directCheck?.length || 0,
-      data: directCheck,
+      rawData: directCheck,
       error: directError,
       userId,
       timestamp: new Date().toISOString()

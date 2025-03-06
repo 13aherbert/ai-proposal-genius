@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -37,15 +36,18 @@ export function useUserRoles() {
         return false;
       }
 
+      console.log("Checking beta_tester role for user:", user.user.id);
+
       const { data: directCheck, error: directError } = await supabase
         .from('user_roles')
         .select('*')
         .eq('user_id', user.user.id)
         .eq('role', 'beta_tester');
       
-      console.log("Direct beta tester check:", {
+      console.log("Direct beta tester check results:", {
         result: directCheck && directCheck.length > 0,
         count: directCheck?.length || 0,
+        data: directCheck,
         error: directError
       });
       
@@ -58,6 +60,7 @@ export function useUserRoles() {
       }
       
       // Fallback to RPC
+      console.log("Falling back to RPC for beta tester check");
       const betaCheck = await adminService.checkUserRole('beta_tester');
       
       console.log("Beta tester RPC check result:", !!betaCheck);
@@ -188,7 +191,6 @@ export function useUserRoles() {
   }, [session, checkRoles]);
   
   const showAdminButton = isAdmin;
-  // Ensure that showBetaBadge is directly tied to isBetaTester
   const showBetaBadge = isBetaTester;
 
   useEffect(() => {

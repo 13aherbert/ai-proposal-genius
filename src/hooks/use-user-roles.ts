@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -65,15 +66,16 @@ export function useUserRoles() {
       
       console.log("Beta tester RPC check result:", !!betaCheck);
       
-      if (!!betaCheck !== betaTesterStatusRef.current) {
-        console.log("Updating beta tester status from", betaTesterStatusRef.current, "to", !!betaCheck);
-        betaTesterStatusRef.current = !!betaCheck;
-        setIsBetaTester(!!betaCheck);
-      }
+      // Important fix: Update both the ref and state together to ensure they stay in sync
+      const newBetaStatus = !!betaCheck;
+      betaTesterStatusRef.current = newBetaStatus;
+      setIsBetaTester(newBetaStatus);
+      
+      console.log("After update - ref:", betaTesterStatusRef.current, "state will be set to:", newBetaStatus);
       
       lastNetworkErrorTimeRef.current = null;
       
-      return !!betaCheck;
+      return newBetaStatus;
     } catch (error) {
       console.error("Error in beta role check:", error);
       
@@ -116,9 +118,7 @@ export function useUserRoles() {
       try {
         const isBeta = await checkBetaTesterRole();
         console.log("Beta tester check completed in checkRoles:", isBeta);
-        // Force update the state to ensure reactivity
-        betaTesterStatusRef.current = isBeta;
-        setIsBetaTester(isBeta);
+        // State is already updated in checkBetaTesterRole
       } catch (betaError) {
         console.error("Error during beta role check:", betaError);
         lastNetworkErrorTimeRef.current = Date.now();
@@ -190,6 +190,7 @@ export function useUserRoles() {
     };
   }, [session, checkRoles]);
   
+  // Critical fix: Derive these values directly from the state values, not from refs
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
 

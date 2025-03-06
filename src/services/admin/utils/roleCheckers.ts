@@ -72,7 +72,8 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       timestamp: new Date().toISOString()
     });
     
-    return !!rpcData;
+    // Explicitly convert the RPC result to a boolean
+    return rpcData === true;
   } catch (error) {
     console.error('Error in checkUserRole:', error);
     return false;

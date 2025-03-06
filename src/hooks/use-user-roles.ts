@@ -16,11 +16,12 @@ export function useUserRoles() {
   const betaTesterStatusRef = useRef(false);
   const userStatusRef = useRef(false);
   const checkingInProgressRef = useRef(false);
+  const lastNetworkErrorTimeRef = useRef<number | null>(null);
   
   const timeoutRef = useRef<number | null>(null);
 
   const checkBetaTesterRole = useCallback(async () => {
-    if (!session?.user || checkingInProgressRef.current) return false;
+    if (!session?.user || checkingInProgressRef.current) return betaTesterStatusRef.current;
     
     try {
       checkingInProgressRef.current = true;
@@ -32,10 +33,15 @@ export function useUserRoles() {
         setIsBetaTester(!!betaCheck);
       }
       
+      lastNetworkErrorTimeRef.current = null;
+      
       return !!betaCheck;
     } catch (error) {
       console.error("Error in beta role check:", error);
-      return false;
+      
+      lastNetworkErrorTimeRef.current = Date.now();
+      
+      return betaTesterStatusRef.current;
     } finally {
       checkingInProgressRef.current = false;
     }
@@ -43,6 +49,11 @@ export function useUserRoles() {
   
   const checkRoles = useCallback(async () => {
     if (!session?.user || checkingInProgressRef.current) return;
+    
+    if (lastNetworkErrorTimeRef.current && (Date.now() - lastNetworkErrorTimeRef.current < 5000)) {
+      console.log("Skipping role check due to recent network error");
+      return;
+    }
     
     try {
       checkingInProgressRef.current = true;
@@ -53,16 +64,26 @@ export function useUserRoles() {
       
       setRoleCheckError(null);
       
-      const adminCheck = await adminService.isAdmin();
-      if (adminCheck !== adminStatusRef.current) {
-        adminStatusRef.current = adminCheck;
-        setIsAdmin(adminCheck);
+      try {
+        const adminCheck = await adminService.isAdmin();
+        if (adminCheck !== adminStatusRef.current) {
+          adminStatusRef.current = adminCheck;
+          setIsAdmin(adminCheck);
+        }
+      } catch (adminError) {
+        console.error("Error during admin role check:", adminError);
+        lastNetworkErrorTimeRef.current = Date.now();
       }
       
-      const isBeta = await checkBetaTesterRole();
-      if (isBeta !== betaTesterStatusRef.current) {
-        betaTesterStatusRef.current = isBeta;
-        setIsBetaTester(isBeta);
+      try {
+        const isBeta = await checkBetaTesterRole();
+        if (isBeta !== betaTesterStatusRef.current) {
+          betaTesterStatusRef.current = isBeta;
+          setIsBetaTester(isBeta);
+        }
+      } catch (betaError) {
+        console.error("Error during beta role check:", betaError);
+        lastNetworkErrorTimeRef.current = Date.now();
       }
       
       try {
@@ -73,6 +94,7 @@ export function useUserRoles() {
         }
       } catch (userError) {
         console.error("Error during user role check:", userError);
+        lastNetworkErrorTimeRef.current = Date.now();
       }
       
       rolesInitializedRef.current = true;
@@ -90,6 +112,7 @@ export function useUserRoles() {
       }
       
       setIsCheckingRoles(false);
+      lastNetworkErrorTimeRef.current = Date.now();
     } finally {
       checkingInProgressRef.current = false;
     }
@@ -103,6 +126,7 @@ export function useUserRoles() {
       if (isCheckingRoles) setIsCheckingRoles(false);
       if (roleCheckError) setRoleCheckError(null);
       rolesInitializedRef.current = false;
+      lastNetworkErrorTimeRef.current = null;
       return;
     }
     
@@ -113,9 +137,10 @@ export function useUserRoles() {
     
     checkRoles();
     
+    const checkInterval = lastNetworkErrorTimeRef.current ? 10000 : 5000;
     timeoutRef.current = window.setTimeout(() => {
       checkRoles();
-    }, 5000);
+    }, checkInterval);
     
     return () => {
       if (timeoutRef.current) {

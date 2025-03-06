@@ -1,8 +1,3 @@
-
-import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "../types";
-import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
-
 /**
  * Check if the current user has a specific role
  * Uses the check_existing_role RPC function to avoid row-level security recursion
@@ -147,3 +142,7 @@ export async function isAdmin(): Promise<boolean> {
   
   return attemptAdminCheck();
 }
+
+import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "../types";
+import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";

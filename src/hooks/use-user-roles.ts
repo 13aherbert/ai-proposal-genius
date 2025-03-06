@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { adminService } from "@/services/admin";
+import { adminService, isBetaTester } from "@/services/admin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -27,7 +27,6 @@ export function useUserRoles() {
     if (!session?.user || checkingInProgressRef.current) return betaTesterStatusRef.current;
     
     try {
-      // Don't set checkingInProgress here as it's also set in the parent function
       console.log("Starting beta tester role check");
       
       // First try direct database query for beta_tester role
@@ -55,23 +54,24 @@ export function useUserRoles() {
       // If direct check gives us a clear result, use that
       if (!directError && directCheck && directCheck.length > 0) {
         console.log("Beta tester role confirmed via direct check");
-        betaTesterStatusRef.current = true;
-        setIsBetaTester(true);
+        const newBetaStatus = true;
+        betaTesterStatusRef.current = newBetaStatus;
+        setIsBetaTester(newBetaStatus);
         return true;
       }
       
-      // Fallback to RPC
-      console.log("Falling back to RPC for beta tester check");
-      const betaCheck = await adminService.checkUserRole('beta_tester');
+      // Fallback to the dedicated beta tester check function
+      console.log("Falling back to dedicated isBetaTester check");
+      const betaCheck = await adminService.isBetaTester();
       
-      console.log("Beta tester RPC check result:", !!betaCheck);
+      console.log("Beta tester dedicated check result:", betaCheck);
       
-      // Important fix: Update both the ref and state together to ensure they stay in sync
+      // Update both the ref and state together to ensure they stay in sync
       const newBetaStatus = !!betaCheck;
       betaTesterStatusRef.current = newBetaStatus;
       setIsBetaTester(newBetaStatus);
       
-      console.log("After update - ref:", betaTesterStatusRef.current, "state will be set to:", newBetaStatus);
+      console.log("After update - beta status:", newBetaStatus);
       
       lastNetworkErrorTimeRef.current = null;
       
@@ -190,7 +190,7 @@ export function useUserRoles() {
     };
   }, [session, checkRoles]);
   
-  // Critical fix: Derive these values directly from the state values, not from refs
+  // Derive these values directly from the state values
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
 

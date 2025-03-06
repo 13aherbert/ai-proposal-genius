@@ -1,6 +1,6 @@
 
 import { UserRole, UserProfile, UserRoleRecord, BetaInvitation } from './types';
-import { checkUserRole, isAdmin, assignRole, assignRoleByEmail, removeRole, ensureUserRole } from './roleService';
+import { checkUserRole, isAdmin, assignRole, assignRoleByEmail, removeRole, ensureUserRole, isBetaTester } from './roleService';
 import { getAllUsers, updateSubscriptionPlan } from './userService';
 import { 
   createBetaInvitation, 
@@ -18,6 +18,7 @@ export const adminService = {
   // Role management
   checkUserRole,
   isAdmin,
+  isBetaTester,
   assignRole,
   assignRoleByEmail,
   removeRole,
@@ -33,4 +34,15 @@ export const adminService = {
   cancelBetaInvitation,
   verifyBetaInvitation,
   acceptBetaInvitation
+};
+
+// Also re-export individual functions for direct imports
+export {
+  checkUserRole,
+  isAdmin,
+  isBetaTester,
+  assignRole,
+  assignRoleByEmail,
+  removeRole,
+  ensureUserRole
 };

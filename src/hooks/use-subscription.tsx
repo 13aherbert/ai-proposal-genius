@@ -41,6 +41,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [pollCount, setPollCount] = useState(0);
   const [directFetchAttempted, setDirectFetchAttempted] = useState(false);
+  const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
 
   const checkSubscription = async () => {
     try {
@@ -55,62 +56,66 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setLoading(true);
 
       // Try direct fetch from the edge function first
-      try {
-        if (!session.access_token) {
-          console.error("No access token available");
-          throw new Error("No access token available");
-        }
-        
-        console.log("Attempting direct fetch from edge function with token:", 
-          session.access_token.substring(0, 10) + "...");
-        
-        const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
+      if (!directFetchAttempted) {
+        try {
+          if (!session.access_token) {
+            console.error("No access token available");
+            throw new Error("No access token available");
           }
-        });
-        
-        console.log("Direct fetch response:", directData, directError);
-        
-        if (directError) {
-          console.error("Error from edge function:", directError);
-          throw directError;
-        }
-        
-        if (!directData) {
-          console.error("No data returned from edge function");
-          throw new Error("No data returned from edge function");
-        }
-        
-        if (directData.error) {
-          console.warn("Edge function returned error:", directData.error);
-          // Continue to fallback method instead of throwing
-        } else if (directData.subscription) {
-          console.log("Direct fetch successful:", directData);
-          const subscriptionData: SubscriptionPlan = {
-            subscription_id: directData.subscription.subscription_id,
-            user_id: directData.subscription.user_id,
-            created_at: directData.subscription.created_at,
-            updated_at: directData.subscription.updated_at,
-            status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
-            plan_type: directData.subscription.plan_type || 'trial',
-            project_limit: directData.subscription.project_limit || 3,
-            features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
-              ? directData.subscription.features as Record<string, any>
-              : {},
-            current_period_end: directData.subscription.current_period_end,
-            stripe_customer_id: directData.subscription.stripe_customer_id,
-            stripe_subscription_id: directData.subscription.stripe_subscription_id,
-            cancel_at_period_end: directData.subscription.cancel_at_period_end || false
-          };
           
-          setSubscription(subscriptionData);
-          setLoading(false);
-          return;
+          console.log("Attempting direct fetch from edge function with token:", 
+            session.access_token.substring(0, 10) + "...");
+          
+          const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
+          
+          console.log("Direct fetch response:", directData, directError);
+          setDirectFetchAttempted(true);
+          
+          if (directError) {
+            console.error("Error from edge function:", directError);
+            throw directError;
+          }
+          
+          if (!directData) {
+            console.error("No data returned from edge function");
+            throw new Error("No data returned from edge function");
+          }
+          
+          if (directData.error) {
+            console.warn("Edge function returned error:", directData.error);
+            // Continue to fallback method instead of throwing
+          } else if (directData.subscription) {
+            console.log("Direct fetch successful:", directData);
+            const subscriptionData: SubscriptionPlan = {
+              subscription_id: directData.subscription.subscription_id,
+              user_id: directData.subscription.user_id,
+              created_at: directData.subscription.created_at,
+              updated_at: directData.subscription.updated_at,
+              status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
+              plan_type: directData.subscription.plan_type || 'trial',
+              project_limit: directData.subscription.project_limit || 3,
+              features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
+                ? directData.subscription.features as Record<string, any>
+                : {},
+              current_period_end: directData.subscription.current_period_end,
+              stripe_customer_id: directData.subscription.stripe_customer_id,
+              stripe_subscription_id: directData.subscription.stripe_subscription_id,
+              cancel_at_period_end: directData.subscription.cancel_at_period_end || false
+            };
+            
+            setSubscription(subscriptionData);
+            setLoading(false);
+            setInitialFetchCompleted(true);
+            return;
+          }
+        } catch (directFetchError) {
+          console.error("Error during direct fetch:", directFetchError);
+          // Continue to fallback method
         }
-      } catch (directFetchError) {
-        console.error("Error during direct fetch:", directFetchError);
-        // Continue to fallback method
       }
 
       // Fall back to database query if direct fetch fails
@@ -159,10 +164,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
         
         setSubscription(subscriptionData);
+        setInitialFetchCompleted(true);
       } else {
         console.log("No subscription found, creating trial subscription");
         const newSubscription = await createTrialSubscription(session.user.id);
         setSubscription(newSubscription);
+        setInitialFetchCompleted(true);
       }
     } catch (e) {
       console.error('Error fetching subscription:', e);
@@ -208,30 +215,33 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
+      setDirectFetchAttempted(false); // Reset for fresh fetch
       checkSubscription();
       
       const pollInterval = window.setInterval(() => {
         console.log("Polling for subscription updates");
         setPollCount(prev => prev + 1);
-      }, 5000); // Poll every 5 seconds 
+      }, 30000); // Poll every 30 seconds (increased from 5 seconds)
       
       return () => {
         window.clearInterval(pollInterval);
       };
-    } else {
+    } else if (!session?.user) {
       console.log("No session available, subscription data cleared");
       setSubscription(null);
       setLoading(false);
+      setInitialFetchCompleted(false);
+      setDirectFetchAttempted(false);
     }
-  }, [session]);
+  }, [session, initialFetchCompleted]);
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && initialFetchCompleted) {
       checkSubscription();
     }
-  }, [pollCount, lastRefresh]);
+  }, [pollCount, lastRefresh, session]);
 
   useEffect(() => {
     const handlePaymentStatusParams = async () => {

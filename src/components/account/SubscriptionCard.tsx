@@ -30,25 +30,38 @@ interface SubscriptionCardProps {
  * SubscriptionCard component - Displays subscription information and allows users to
  * upgrade or cancel their subscription
  */
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription: initialSubscription }: SubscriptionCardProps) {
   const navigate = useNavigate();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
-  const { checkSubscription } = useSubscription();
+  const { checkSubscription, data: subscriptionFromContext } = useSubscription();
+  const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription);
+  
+  // Use subscription from either prop or context
+  const subscription = localSubscription || subscriptionFromContext;
   
   // Debug logging to help diagnose why subscription data is not displaying correctly
   useEffect(() => {
-    console.log("Current subscription data in SubscriptionCard:", subscription);
-  }, [subscription]);
+    console.log("Current subscription data in SubscriptionCard:", { 
+      initialSubscription, 
+      subscriptionFromContext,
+      subscription 
+    });
+    
+    // Update local subscription state if context data becomes available
+    if (!localSubscription && subscriptionFromContext) {
+      setLocalSubscription(subscriptionFromContext);
+    }
+  }, [initialSubscription, subscriptionFromContext, localSubscription]);
   
   // Add additional check to directly fetch from API if subscription is null
   useEffect(() => {
     const fetchDirectSubscriptionData = async () => {
       if (!subscription) {
-        console.log("No subscription data passed to SubscriptionCard, attempting direct fetch");
+        console.log("No subscription data available in SubscriptionCard, attempting direct fetch");
         try {
           const { data: session } = await supabase.auth.getSession();
           if (!session?.session?.user?.id) {
@@ -67,6 +80,9 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
             console.error("Error fetching subscription directly:", error);
           } else {
             console.log("Direct subscription fetch result:", data);
+            if (data?.subscription) {
+              setLocalSubscription(data.subscription);
+            }
           }
         } catch (error) {
           console.error("Exception during direct subscription fetch:", error);
@@ -76,6 +92,25 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     
     fetchDirectSubscriptionData();
   }, [subscription]);
+  
+  // Early return for loading state
+  if (!subscription) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   const currentPlanType = subscription?.plan_type || 'trial';
   const currentStatus = subscription?.status || 'unknown';

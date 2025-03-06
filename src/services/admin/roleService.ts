@@ -44,23 +44,19 @@ export const isBetaTester = async (): Promise<boolean> => {
     const userId = userData.user.id;
     console.log(`isBetaTester: Checking for user ID ${userId}`);
     
-    // Direct database query for maximum reliability
-    const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('role', 'beta_tester')
-      .maybeSingle();
+    // Use our dedicated beta tester check function
+    const { data, error } = await supabase.rpc('check_beta_tester_role', {
+      user_id_param: userId
+    });
     
-    if (roleError) {
-      console.error("isBetaTester: Error checking role", roleError);
+    if (error) {
+      console.error("isBetaTester: Error checking role", error);
       return false;
     }
     
-    const isBeta = !!roleData;
-    console.log(`isBetaTester: Check result = ${isBeta}`, roleData);
+    console.log(`isBetaTester: Check result = ${data}`, { data, userId });
     
-    return isBeta;
+    return !!data;
   } catch (error) {
     console.error('Error in isBetaTester check:', error);
     return false;

@@ -333,6 +333,12 @@ export type Database = {
         }
         Returns: string
       }
+      check_beta_tester_role: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: boolean
+      }
       check_existing_role: {
         Args: {
           _user_id: string

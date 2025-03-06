@@ -30,10 +30,9 @@ export function BetaRoleDebugger() {
     setError(null);
     
     try {
-      // Use a direct RPC function call to avoid RLS recursion
-      const { data, error } = await supabase.rpc('check_existing_role', {
-        _user_id: userId,
-        _role: 'beta_tester'
+      // Use our new dedicated beta tester role check function
+      const { data, error } = await supabase.rpc('check_beta_tester_role', {
+        user_id_param: userId
       });
       
       if (error) throw error;
@@ -42,7 +41,7 @@ export function BetaRoleDebugger() {
       const formattedResult = data ? [{ exists: true, role: 'beta_tester' }] : [];
       
       setDirectQueryResult(formattedResult);
-      console.log("Direct RPC query result:", data, formattedResult);
+      console.log("Beta tester check result:", data, formattedResult);
     } catch (err) {
       console.error("Direct query error:", err);
       // Properly format the error message based on type

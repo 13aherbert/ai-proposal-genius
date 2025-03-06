@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
@@ -13,6 +14,7 @@ export function NetworkStatusIndicator() {
   const [lastCheckTime, setLastCheckTime] = useState(0);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkingRef = useRef(false);
+  const networkEventAttachedRef = useRef(false);
 
   const checkConnection = useCallback(async () => {
     // Prevent multiple simultaneous connection checks
@@ -34,6 +36,7 @@ export function NetworkStatusIndicator() {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       // Try to fetch a small resource to see if we have real connectivity
+      console.log("Checking network connection...");
       const response = await fetch('/favicon.ico', {
         method: 'HEAD',
         signal: controller.signal,
@@ -41,19 +44,26 @@ export function NetworkStatusIndicator() {
       });
       
       clearTimeout(timeoutId);
-      setIsOnline(response.ok);
       
       if (response.ok) {
-        toast.success("Network connection restored", {
-          id: "network-status",
-        });
+        if (!isOnline) {
+          console.log("Network connection restored");
+          setIsOnline(true);
+          toast.success("Network connection restored", {
+            id: "network-status",
+          });
+          
+          // Dispatch a custom event that other components can listen for
+          window.dispatchEvent(new CustomEvent('networkReconnected'));
+        }
+      } else {
+        setIsOnline(false);
       }
     } catch (error: any) {
+      console.error("Network check error:", error);
       setIsOnline(false);
       
       if (error.name !== 'AbortError') {
-        console.error("Error checking network:", error);
-        
         if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
           setResourceError(true);
           toast.error("Browser resource limit reached", {
@@ -66,17 +76,17 @@ export function NetworkStatusIndicator() {
       setIsReconnecting(false);
       checkingRef.current = false;
     }
-  }, [isReconnecting, lastCheckTime]);
+  }, [isReconnecting, lastCheckTime, isOnline]);
 
   const handleOnline = useCallback(() => {
-    setIsOnline(true);
-    setResourceError(false);
-    toast.success("Network connection restored", {
-      id: "network-status",
-    });
-  }, []);
+    console.log("Browser reports online status");
+    // Don't immediately trust the browser's online event
+    // Instead, verify with an actual network request
+    checkConnection();
+  }, [checkConnection]);
 
   const handleOffline = useCallback(() => {
+    console.log("Browser reports offline status");
     setIsOnline(false);
     toast.error("Network connection lost", {
       id: "network-status",
@@ -109,19 +119,25 @@ export function NetworkStatusIndicator() {
   }, []);
 
   useEffect(() => {
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    // Check connection status on mount, but only if we're supposedly online
-    if (navigator.onLine) {
-      setTimeout(() => {
-        checkConnection();
-      }, 1000); // Delay initial check to avoid resource contention at load time
+    if (!networkEventAttachedRef.current) {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      networkEventAttachedRef.current = true;
+      
+      // Check connection status on mount, but only if we're supposedly online
+      if (navigator.onLine) {
+        setTimeout(() => {
+          checkConnection();
+        }, 1000); // Delay initial check to avoid resource contention at load time
+      }
     }
     
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      if (networkEventAttachedRef.current) {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        networkEventAttachedRef.current = false;
+      }
       if (checkTimeoutRef.current) {
         clearTimeout(checkTimeoutRef.current);
       }

@@ -16,10 +16,22 @@ export function isNetworkError(error: any): boolean {
     errorMessage.includes('ERR_INTERNET_DISCONNECTED') ||
     errorMessage.includes('ERR_CONNECTION_REFUSED') ||
     errorMessage.includes('ERR_INSUFFICIENT_RESOURCES') ||
+    errorMessage.includes('net::ERR') ||
+    errorMessage.includes('Unable to connect') ||
+    errorMessage.includes('Connection reset') ||
+    errorMessage.includes('Connection closed') ||
+    errorMessage.includes('Connection aborted') ||
+    errorMessage.includes('Could not connect') ||
+    errorMessage.includes('socket hang up') ||
+    errorMessage.includes('ETIMEDOUT') ||
+    errorMessage.includes('ECONNREFUSED') ||
+    errorMessage.includes('ECONNRESET') ||
+    errorMessage.includes('ENOTFOUND') ||
     // Check for Supabase error codes that might indicate network issues
     (error.code && (
       error.code === 'PGRST301' || // Supabase timeout
-      error.code === 'CONNECTION_ERROR'
+      error.code === 'CONNECTION_ERROR' ||
+      error.code === 'NETWORK_ERROR'
     ))
   );
 }
@@ -48,7 +60,8 @@ export function getNetworkErrorMessage(error: any): string {
   
   if (errorMessage.includes('Failed to fetch') || 
       errorMessage.includes('NetworkError') || 
-      errorMessage.includes('Network request failed')) {
+      errorMessage.includes('Network request failed') ||
+      errorMessage.includes('Unable to connect')) {
     return 'Network error: Unable to connect to the server. Please check your internet connection.';
   }
   
@@ -56,13 +69,21 @@ export function getNetworkErrorMessage(error: any): string {
     return 'Your browser has insufficient resources to complete this request. Try refreshing the page or closing some tabs.';
   }
   
-  if (error.code === 'PGRST301') {
+  if (errorMessage.includes('ETIMEDOUT') || 
+      errorMessage.includes('timeout') || 
+      error.code === 'PGRST301') {
     return 'The server took too long to respond. Please try again later.';
   }
   
-  if (error.code === 'CONNECTION_ERROR') {
+  if (errorMessage.includes('ECONNRESET') || 
+      errorMessage.includes('Connection reset') ||
+      errorMessage.includes('socket hang up')) {
+    return 'The connection was reset. This could be due to network instability or a server issue.';
+  }
+  
+  if (error.code === 'CONNECTION_ERROR' || error.code === 'NETWORK_ERROR') {
     return 'Unable to connect to the database. Please try again later.';
   }
   
-  return errorMessage;
+  return 'Network error: ' + errorMessage;
 }

@@ -24,7 +24,9 @@ export async function withRetry<T>(
         await new Promise(resolve => setTimeout(resolve, jitter));
       }
       
-      return await operation();
+      const result = await operation();
+      console.log(`Operation succeeded after ${attempts + 1} attempt(s)`);
+      return result;
     } catch (error) {
       console.warn(`Operation failed (attempt ${attempts + 1}/${maxRetries + 1}):`, error);
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -49,5 +51,6 @@ export async function withRetry<T>(
   }
   
   // If we've exhausted all retries, throw the last error
+  console.error(`All ${maxRetries + 1} attempts failed, giving up:`, lastError);
   throw lastError;
 }

@@ -32,7 +32,8 @@ export default function AccountSettings() {
     handleRetryFetch,
     hasChanges: hasProfileChanges,
     saveSuccess,
-    isLoading
+    isLoading,
+    isFetching
   } = useProfile();
 
   const handleSave = async () => {
@@ -95,7 +96,7 @@ export default function AccountSettings() {
               isLoading={isLoadingProfile} 
               fetchError={fetchError}
               handleRetryFetch={handleRetryFetch}
-              isFetching={false}
+              isFetching={isFetching}
             />
 
             {!isLoadingProfile && !fetchError && (

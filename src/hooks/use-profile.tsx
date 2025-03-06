@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ interface UseProfileReturn {
   hasChanges: boolean;
   saveSuccess: boolean;
   isLoading: boolean;
+  isFetching: boolean;
 }
 
 export function useProfile(): UseProfileReturn {
@@ -43,12 +45,42 @@ export function useProfile(): UseProfileReturn {
   });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   
   const isFetchingRef = useRef(false);
   const fetchAttemptsRef = useRef(0);
+  const isComponentMountedRef = useRef(true);
+
+  // Listen for network reconnection events
+  useEffect(() => {
+    const handleNetworkReconnect = () => {
+      console.log("Network reconnected - retrying profile fetch if needed");
+      if (fetchError) {
+        setTimeout(() => {
+          if (isComponentMountedRef.current) {
+            handleRetryFetch();
+          }
+        }, 1000);
+      }
+    };
+
+    window.addEventListener('networkReconnected', handleNetworkReconnect);
+    
+    return () => {
+      window.removeEventListener('networkReconnected', handleNetworkReconnect);
+    };
+  }, [fetchError]);
+
+  useEffect(() => {
+    isComponentMountedRef.current = true;
+    
+    return () => {
+      isComponentMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (session?.user?.id && !isFetchingRef.current) {
@@ -73,31 +105,42 @@ export function useProfile(): UseProfileReturn {
     }
   }, [profileData, isLoadingProfile, initialValues]);
 
-  const updateProfileData = (field: keyof ProfileData, value: string) => {
+  const updateProfileData = useCallback((field: keyof ProfileData, value: string) => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
-  const fetchProfile = async () => {
+  const handleRetryFetch = useCallback(() => {
+    if (!isFetchingRef.current) {
+      console.log("Manually retrying profile fetch");
+      fetchAttemptsRef.current = 0;
+      setFetchError(null);
+      fetchProfile();
+    }
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
     if (!session?.user?.id) return;
     if (isFetchingRef.current) return;
     
     if (fetchAttemptsRef.current >= 3) {
+      console.log("Maximum retry attempts reached, giving up");
       toast.error("Couldn't load profile after multiple attempts", {
         description: "Please check your connection and try again later."
       });
-      setFetchError("Maximum retry attempts reached");
+      setFetchError("Maximum retry attempts reached. Please check your internet connection and try again.");
       setIsLoadingProfile(false);
       return;
     }
     
     try {
-      setIsLoadingProfile(true);
-      setFetchError(null);
+      setIsFetching(true);
       isFetchingRef.current = true;
       fetchAttemptsRef.current++;
+      
+      console.log(`Fetching profile data (attempt ${fetchAttemptsRef.current})`);
       
       const result = await withRetry(
         async () => {
@@ -107,21 +150,29 @@ export function useProfile(): UseProfileReturn {
             .eq('profile_id', session.user.id)
             .maybeSingle();
         },
-        1,
-        3000
+        2, // Reduce max retries
+        3000 // Increase base delay
       );
+      
+      if (!isComponentMountedRef.current) return;
       
       if (result.error) {
         console.error('Error fetching profile:', result.error);
-        const errorMessage = isNetworkError(result.error) ? getNetworkErrorMessage(result.error) : result.error.message;
+        const errorMessage = isNetworkError(result.error) 
+          ? getNetworkErrorMessage(result.error) 
+          : result.error.message;
         setFetchError(errorMessage);
-        toast.error("Error loading profile", {
-          description: errorMessage
-        });
+        
+        if (!isLoadingProfile) {
+          toast.error("Error loading profile", {
+            description: errorMessage
+          });
+        }
         return;
       }
       
       if (result.data) {
+        console.log("Profile data loaded successfully:", result.data);
         const profileData = {
           username: result.data.username || "",
           first_name: result.data.first_name || "",
@@ -132,33 +183,40 @@ export function useProfile(): UseProfileReturn {
         
         setProfileData(profileData);
         setInitialValues(profileData);
+        setFetchError(null);
       } else {
         console.log("No profile found, creating one...");
         await createProfile();
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      const errorMessage = isNetworkError(error) ? getNetworkErrorMessage(error) : "Please try refreshing the page.";
-      setFetchError(errorMessage);
-      toast.error("Failed to load profile", {
-        description: errorMessage
-      });
-    } finally {
-      setIsLoadingProfile(false);
-      isFetchingRef.current = false;
+      if (!isComponentMountedRef.current) return;
       
-      if (fetchError && fetchError.includes("Network error") && fetchAttemptsRef.current < 3) {
-        setTimeout(() => {
-          if (session?.user?.id) fetchProfile();
-        }, 10000);
+      console.error('Error fetching profile:', error);
+      const errorMessage = isNetworkError(error) 
+        ? getNetworkErrorMessage(error) 
+        : "Please try refreshing the page.";
+      
+      setFetchError(errorMessage);
+      
+      if (!isLoadingProfile) {
+        toast.error("Failed to load profile", {
+          description: errorMessage
+        });
+      }
+    } finally {
+      if (isComponentMountedRef.current) {
+        setIsLoadingProfile(false);
+        setIsFetching(false);
+        isFetchingRef.current = false;
       }
     }
-  };
+  }, [session]);
 
-  const createProfile = async () => {
+  const createProfile = useCallback(async () => {
     if (!session?.user?.id) return;
     
     try {
+      console.log("Creating new profile for user:", session.user.id);
       const { error } = await supabase
         .from('profiles')
         .insert({
@@ -183,9 +241,9 @@ export function useProfile(): UseProfileReturn {
         description: "Please try refreshing the page.",
       });
     }
-  };
+  }, [session, updateProfileData]);
 
-  const saveProfile = async (): Promise<boolean> => {
+  const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!session?.user?.id) return false;
     
     setIsLoading(true);
@@ -218,27 +276,29 @@ export function useProfile(): UseProfileReturn {
       });
       
       setTimeout(() => {
-        setSaveSuccess(false);
+        if (isComponentMountedRef.current) {
+          setSaveSuccess(false);
+        }
       }, 3000);
       
       return true;
     } catch (error: any) {
       console.error('Error updating profile:', error);
+      
+      const errorMessage = isNetworkError(error)
+        ? getNetworkErrorMessage(error)
+        : error.message || "Please try again later.";
+      
       toast.error("Failed to update profile", {
-        description: error.message || "Please try again later.",
+        description: errorMessage,
       });
       return false;
     } finally {
-      setIsLoading(false);
+      if (isComponentMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
-
-  const handleRetryFetch = () => {
-    if (!isFetchingRef.current) {
-      fetchAttemptsRef.current = 0;
-      fetchProfile();
-    }
-  };
+  }, [profileData, session]);
 
   return {
     profileData,
@@ -250,6 +310,7 @@ export function useProfile(): UseProfileReturn {
     initialValues,
     hasChanges,
     saveSuccess,
-    isLoading
+    isLoading,
+    isFetching
   };
 }

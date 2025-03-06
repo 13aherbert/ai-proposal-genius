@@ -13,7 +13,7 @@ export async function updateRivalProSubscription(): Promise<void> {
   try {
     console.log("Updating subscription for Wearerivalpro@gmail.com to active starter...");
     
-    const email = 'Wearerivalpro@gmail.com'; // Email (case insensitive)
+    const email = 'Wearerivalpro@gmail.com'; // Email (case sensitive as stored in auth.users)
     const plan = 'starter';                   // Plan type
     const status = 'active';                  // Status
     
@@ -28,7 +28,9 @@ export async function updateRivalProSubscription(): Promise<void> {
       });
     } else {
       console.error("✗ Failed to update subscription");
-      toast.error("Failed to update subscription");
+      toast.error("Failed to update subscription", {
+        description: "See console for detailed error information"
+      });
     }
   } catch (error) {
     console.error("Error updating subscription:", error);

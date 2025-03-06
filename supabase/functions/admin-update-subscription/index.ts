@@ -44,8 +44,14 @@ serve(async (req) => {
     console.log("Authenticated user:", user.id);
 
     // Parse request body
-    const requestBody = await req.json();
-    console.log("Request body:", requestBody);
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log("Request body:", JSON.stringify(requestBody));
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      throw new Error('Invalid request body: ' + e.message);
+    }
     
     const { email, plan, status } = requestBody;
     
@@ -64,13 +70,16 @@ serve(async (req) => {
       throw new Error(`Error finding user: ${authUserError.message}`);
     }
     
+    // Debug: log all emails for comparison
+    console.log("Available emails:", authUserData?.users.map(u => u.email?.toLowerCase()));
+    
     // Find user with case-insensitive email matching
     const foundUser = authUserData.users.find(u => 
       u.email && u.email.toLowerCase() === email.toLowerCase()
     );
     
     if (!foundUser) {
-      console.error(`User with email ${email} not found`);
+      console.error(`User with email ${email} not found. Available emails: ${authUserData?.users.map(u => u.email)}`);
       throw new Error(`User with email ${email} not found`);
     }
     

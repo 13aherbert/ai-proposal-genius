@@ -236,19 +236,22 @@ export async function updateUserSubscription(email: string, plan: string, status
         status
       },
       headers: {
-        Authorization: `Bearer ${accessToken}`
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
     });
     
     if (error) {
-      console.error("Error updating subscription:", error);
+      console.error("Error invoking edge function:", error);
       throw error;
     }
     
-    console.log("Subscription update result:", data);
+    console.log("Edge function response:", data);
     
-    if (!data.success) {
-      throw new Error(data.error || "Unknown error");
+    if (!data || !data.success) {
+      const errorMsg = data?.error || "Unknown error occurred";
+      console.error("Edge function returned error:", errorMsg);
+      throw new Error(errorMsg);
     }
     
     toast.success(`Subscription updated to ${plan} plan with status ${status}`);

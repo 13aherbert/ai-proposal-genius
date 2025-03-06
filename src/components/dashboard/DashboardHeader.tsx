@@ -1,4 +1,11 @@
 
+import { Card, CardContent } from "@/components/ui/card";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { WelcomeMessage } from "./WelcomeMessage";
+import { ActionButtons } from "./ActionButtons";
+import { useUserRoles } from "@/hooks/use-user-roles";
+import { useEffect } from "react";
+
 /**
  * DashboardHeader component displays user information, subscription status,
  * and action buttons including admin dashboard access if the user is an admin.

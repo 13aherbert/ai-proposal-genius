@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +24,7 @@ import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -36,7 +36,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
@@ -69,7 +69,6 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                {/* Add new route for /recent-projects that renders the same component */}
                 <Route
                   path="/recent-projects"
                   element={
@@ -172,9 +171,8 @@ function App() {
             <Toaster position="top-right" richColors closeButton />
           </AuthProvider>
         </BrowserRouter>
+        <NetworkStatusIndicator />
       </QueryClientProvider>
     </ThemeProvider>
   );
 }
-
-export default App;

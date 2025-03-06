@@ -1,7 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { isAdmin } from "./roleService";
+import { withRetry, isNetworkError, getNetworkErrorMessage } from "@/utils/network-utils";
 
 /**
  * Get all user profiles for admin management
@@ -29,11 +31,15 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     
     // Call our edge function to get user roles with email info
     console.log("Calling edge function to get user roles with emails");
-    const { data: userRolesData, error: userRolesError } = await supabase.functions.invoke('get-user-roles', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
+    const { data: userRolesData, error: userRolesError } = await withRetry(
+      () => supabase.functions.invoke<AnalysisResponse>('get-user-roles', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }),
+      3, // max retries
+      1000 // base delay
+    );
     
     if (userRolesError) {
       console.error('Error fetching user roles from edge function:', userRolesError);
@@ -43,9 +49,13 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.log("User roles data from edge function:", userRolesData);
     
     // Get profiles directly from the profiles table
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('*');
+    const { data: profiles, error: profileError } = await withRetry(
+      () => supabase
+        .from('profiles')
+        .select('*'),
+      3, // max retries
+      1000 // base delay
+    );
 
     if (profileError) {
       console.error('Error fetching profiles:', profileError);
@@ -55,10 +65,14 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.log("Fetched profiles:", profiles);
 
     // Get all subscriptions - make sure we're getting the most up-to-date data
-    const { data: subscriptions, error: subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .order('updated_at', { ascending: false });
+    const { data: subscriptions, error: subError } = await withRetry(
+      () => supabase
+        .from('subscriptions')
+        .select('*')
+        .order('updated_at', { ascending: false }),
+      3, // max retries
+      1000 // base delay
+    );
 
     if (subError) {
       console.error('Error fetching subscriptions:', subError);
@@ -124,7 +138,17 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }) || [];
   } catch (error) {
     console.error('Error in getAllUsers:', error);
-    toast.error("Failed to fetch users", { description: error instanceof Error ? error.message : "Unknown error" });
+    
+    if (isNetworkError(error)) {
+      toast.error("Network error", { 
+        description: getNetworkErrorMessage(error)
+      });
+    } else {
+      toast.error("Failed to fetch users", { 
+        description: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+    
     return [];
   }
 }
@@ -153,13 +177,17 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
     const now = new Date().toISOString();
 
     // Fetch the existing subscription to check if it exists
-    const { data: existingSub, error: fetchError } = await supabase
-      .from('subscriptions')
-      .select('subscription_id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: existingSub, error: fetchError } = await withRetry(
+      () => supabase
+        .from('subscriptions')
+        .select('subscription_id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      3, // max retries
+      1000 // base delay
+    );
       
     if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error fetching subscription:', fetchError);
@@ -173,27 +201,35 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
       // Update existing subscription
       console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan}`);
       
-      result = await supabase
-        .from('subscriptions')
-        .update({
-          plan_type: plan,
-          project_limit: projectLimit,
-          updated_at: now
-        })
-        .eq('subscription_id', existingSub.subscription_id);
+      result = await withRetry(
+        () => supabase
+          .from('subscriptions')
+          .update({
+            plan_type: plan,
+            project_limit: projectLimit,
+            updated_at: now
+          })
+          .eq('subscription_id', existingSub.subscription_id),
+        3, // max retries
+        1000 // base delay
+      );
     } else {
       // Create new subscription
       console.log(`Creating new subscription for user ${userId} with plan ${plan}`);
       
-      result = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: userId,
-          plan_type: plan,
-          status: 'active',
-          project_limit: projectLimit,
-          updated_at: now
-        });
+      result = await withRetry(
+        () => supabase
+          .from('subscriptions')
+          .insert({
+            user_id: userId,
+            plan_type: plan,
+            status: 'active',
+            project_limit: projectLimit,
+            updated_at: now
+          }),
+        3, // max retries
+        1000 // base delay
+      );
     }
 
     if (result.error) {
@@ -207,7 +243,17 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
     return true;
   } catch (error) {
     console.error('Error in updateSubscriptionPlan:', error);
-    toast.error("Failed to update subscription", { description: error instanceof Error ? error.message : "Unknown error" });
+    
+    if (isNetworkError(error)) {
+      toast.error("Network error", { 
+        description: getNetworkErrorMessage(error) 
+      });
+    } else {
+      toast.error("Failed to update subscription", { 
+        description: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+    
     return false;
   }
 }
@@ -228,37 +274,64 @@ export async function updateUserSubscription(email: string, plan: string, status
     
     console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
     
-    // Call our edge function to update the subscription
-    const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
-      body: { 
-        email,
-        plan,
-        status
-      },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+    // Show a loading toast
+    const loadingId = toast.loading(`Updating subscription for ${email}...`);
+    
+    try {
+      // Call our edge function to update the subscription with retry
+      const { data, error } = await withRetry(
+        () => supabase.functions.invoke('admin-update-subscription', {
+          body: { 
+            email,
+            plan,
+            status
+          },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        3, // max retries
+        1000 // base delay
+      );
+      
+      // Dismiss the loading toast
+      toast.dismiss(loadingId);
+      
+      if (error) {
+        console.error("Error invoking edge function:", error);
+        throw error;
       }
-    });
-    
-    if (error) {
-      console.error("Error invoking edge function:", error);
-      throw error;
+      
+      console.log("Edge function response:", data);
+      
+      if (!data || !data.success) {
+        const errorMsg = data?.error || "Unknown error occurred";
+        console.error("Edge function returned error:", errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      toast.success(`Subscription updated to ${plan} plan with status ${status}`);
+      return true;
+    } catch (error) {
+      // Dismiss the loading toast in case of error
+      toast.dismiss(loadingId);
+      throw error; // Re-throw for the outer catch
     }
-    
-    console.log("Edge function response:", data);
-    
-    if (!data || !data.success) {
-      const errorMsg = data?.error || "Unknown error occurred";
-      console.error("Edge function returned error:", errorMsg);
-      throw new Error(errorMsg);
-    }
-    
-    toast.success(`Subscription updated to ${plan} plan with status ${status}`);
-    return true;
   } catch (error) {
     console.error('Error in updateUserSubscription:', error);
-    toast.error("Failed to update subscription", { description: error instanceof Error ? error.message : "Unknown error" });
+    
+    if (isNetworkError(error)) {
+      toast.error("Network connection error", { 
+        description: getNetworkErrorMessage(error),
+        duration: 8000
+      });
+    } else {
+      toast.error("Failed to update subscription", { 
+        description: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+    
     return false;
   }
 }

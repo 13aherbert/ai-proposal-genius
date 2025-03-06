@@ -9,7 +9,7 @@
 
 import { checkUserRole, isAdmin } from './utils/roleCheckers';
 import { assignRole, removeRole, ensureUserRole, assignRoleByEmail } from './utils/roleManagement';
-import { UserRole } from './types';
+import type { UserRole } from './types';
 
 // Re-export all utilities and types
 export {
@@ -19,8 +19,10 @@ export {
   assignRoleByEmail,
   removeRole,
   ensureUserRole,
-  UserRole
 };
+
+// Re-export type
+export type { UserRole };
 
 // Add a specific beta tester check function
 export const isBetaTester = async (): Promise<boolean> => {
@@ -34,3 +36,4 @@ export const isBetaTester = async (): Promise<boolean> => {
     return false;
   }
 };
+

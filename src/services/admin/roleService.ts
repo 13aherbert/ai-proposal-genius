@@ -27,7 +27,7 @@ export type { UserRole };
 
 /**
  * Checks if the current user has the beta_tester role
- * This specific implementation helps avoid RLS recursion issues
+ * This specific implementation uses a direct RPC call to avoid RLS recursion issues
  */
 export const isBetaTester = async (): Promise<boolean> => {
   try {
@@ -44,7 +44,7 @@ export const isBetaTester = async (): Promise<boolean> => {
     const userId = userData.user.id;
     console.log(`isBetaTester: Checking for user ID ${userId}`);
     
-    // Use our dedicated beta tester check function
+    // Use the dedicated beta tester RPC function
     const { data, error } = await supabase.rpc('check_beta_tester_role', {
       user_id_param: userId
     });
@@ -54,7 +54,7 @@ export const isBetaTester = async (): Promise<boolean> => {
       return false;
     }
     
-    console.log(`isBetaTester: Check result = ${data}`, { data, userId });
+    console.log(`isBetaTester: Check result = ${!!data}`, { data, userId });
     
     return !!data;
   } catch (error) {

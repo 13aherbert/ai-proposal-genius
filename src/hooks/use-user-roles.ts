@@ -22,33 +22,43 @@ export function useUserRoles() {
   
   const timeoutRef = useRef<number | null>(null);
 
-  // Dedicated function to check beta tester role
+  // Dedicated function to check beta tester role - uses the direct RPC function
   const checkBetaTesterRole = useCallback(async () => {
     if (!session?.user || checkingInProgressRef.current) return betaTesterStatusRef.current;
     
     try {
-      console.log("Starting beta tester role check");
+      console.log("Starting beta tester role check for user:", session.user.id);
       
-      // Use the dedicated beta tester function that bypasses RLS
-      console.log("Using dedicated isBetaTester check");
-      const betaCheck = await adminService.isBetaTester();
+      // Get current user ID to pass to the RPC function
+      const userId = session.user.id;
       
-      console.log("Beta tester dedicated check result:", betaCheck);
+      // Use the RPC function that directly checks the beta_tester role
+      const { data, error } = await supabase.rpc('check_beta_tester_role', {
+        user_id_param: userId
+      });
       
-      // Update both the ref and state together to ensure they stay in sync
-      betaTesterStatusRef.current = !!betaCheck;
-      setIsBetaTester(!!betaCheck);
+      if (error) {
+        console.error("Beta tester RPC check error:", error);
+        return betaTesterStatusRef.current;
+      }
       
-      console.log("After update - beta status:", betaTesterStatusRef.current, "state:", isBetaTester);
+      console.log("Beta tester RPC check result:", data);
       
-      lastNetworkErrorTimeRef.current = null;
+      // Important: Update beta tester status and force UI update
+      const newStatus = !!data;
+      betaTesterStatusRef.current = newStatus;
+      setIsBetaTester(newStatus);
       
-      return !!betaCheck;
+      console.log("Updated beta status:", {
+        newStatus,
+        ref: betaTesterStatusRef.current,
+        stateAfterUpdate: newStatus,
+        timestamp: new Date().toISOString()
+      });
+      
+      return newStatus;
     } catch (error) {
-      console.error("Error in beta role check:", error);
-      
-      lastNetworkErrorTimeRef.current = Date.now();
-      
+      console.error("Error in direct beta role check:", error);
       return betaTesterStatusRef.current;
     }
   }, [session]);
@@ -82,10 +92,11 @@ export function useUserRoles() {
         lastNetworkErrorTimeRef.current = Date.now();
       }
       
-      // Check beta tester role - explicitly await this
+      // Check beta tester role - directly using our specialized function
+      // This is the most important part - we'll run this check separately
       try {
-        await checkBetaTesterRole();
-        console.log("Beta tester check completed in checkRoles:", betaTesterStatusRef.current);
+        const betaStatus = await checkBetaTesterRole();
+        console.log("Beta role check in checkRoles:", betaStatus);
       } catch (betaError) {
         console.error("Error during beta role check:", betaError);
         lastNetworkErrorTimeRef.current = Date.now();
@@ -133,6 +144,7 @@ export function useUserRoles() {
       if (roleCheckError) setRoleCheckError(null);
       rolesInitializedRef.current = false;
       lastNetworkErrorTimeRef.current = null;
+      betaTesterStatusRef.current = false;
       return;
     }
     
@@ -144,9 +156,12 @@ export function useUserRoles() {
       timeoutRef.current = null;
     }
     
-    // Force an immediate direct beta check to ensure it's updated
+    // CRITICAL: Force an immediate direct beta check
+    // This ensures beta status is properly detected on initial load
     checkBetaTesterRole().then(isBeta => {
-      console.log("Initial beta check result:", isBeta);
+      console.log("Direct beta check completed with result:", isBeta);
+      // Force state update to trigger UI refresh
+      setIsBetaTester(isBeta);
     });
     
     const checkInterval = lastNetworkErrorTimeRef.current ? 10000 : 3000;

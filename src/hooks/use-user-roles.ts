@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function useUserRoles() {

@@ -119,6 +119,7 @@ export function UserManagement({
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="beta_tester">Beta Tester</SelectItem>
+                      <SelectItem value="developer">Developer</SelectItem>
                       <SelectItem value="user">User</SelectItem>
                     </SelectContent>
                   </Select>
@@ -395,6 +396,7 @@ function UserEditDialog({
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="beta_tester">Beta Tester</SelectItem>
+                  <SelectItem value="developer">Developer</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>

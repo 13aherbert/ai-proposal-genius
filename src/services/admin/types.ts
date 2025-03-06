@@ -1,5 +1,5 @@
 
-export type UserRole = 'user' | 'admin' | 'beta_tester';
+export type UserRole = 'user' | 'admin' | 'beta_tester' | 'developer';
 
 export type UserRoleRecord = {
   id: string;

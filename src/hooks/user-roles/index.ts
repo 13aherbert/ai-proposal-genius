@@ -1,7 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { checkBetaTesterRole, updateBetaTesterState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkDeveloperRole, updateDeveloperState } from "./role-check-utils";
 import { useRoleCheckEffect } from "./use-role-check-effect";
 import { UserRoleState, UserRoleRefs } from "./types";
 
@@ -9,6 +9,7 @@ export function useUserRoles() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
+  const [isDeveloper, setIsDeveloper] = useState(false);
   const [isUser, setIsUser] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(false); 
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
@@ -18,6 +19,7 @@ export function useUserRoles() {
     rolesInitialized: false,
     adminStatus: false,
     betaTesterStatus: false,
+    developerStatus: false,
     userStatus: false,
     checkingInProgress: false,
     lastNetworkErrorTime: null,
@@ -31,6 +33,7 @@ export function useUserRoles() {
     setIsAdmin,
     setIsBetaTester,
     setIsUser,
+    setIsDeveloper,
     setIsCheckingRoles,
     setRoleCheckError,
     refs
@@ -42,6 +45,10 @@ export function useUserRoles() {
     if (session?.user) {
       checkBetaTesterRole(session.user.id, refs, true).then(betaStatus => {
         updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
+      });
+      
+      checkDeveloperRole(session.user.id, refs, true).then(developerStatus => {
+        updateDeveloperState(developerStatus, refs.developerStatus, refs, setIsDeveloper, true);
       });
     }
     
@@ -56,12 +63,14 @@ export function useUserRoles() {
     if (!session?.user) {
       if (isAdmin) setIsAdmin(false);
       if (isBetaTester) setIsBetaTester(false);
+      if (isDeveloper) setIsDeveloper(false);
       if (isUser) setIsUser(false);
       if (isCheckingRoles) setIsCheckingRoles(false);
       if (roleCheckError) setRoleCheckError(null);
       refs.rolesInitialized = false;
       refs.lastNetworkErrorTime = null;
       refs.betaTesterStatus = false;
+      refs.developerStatus = false;
       return;
     }
     
@@ -91,6 +100,22 @@ export function useUserRoles() {
       }, 0);
     });
     
+    // Also force a direct developer check
+    checkDeveloperRole(session.user.id, refs, true).then(isDev => {
+      console.log("Direct developer check completed with result:", isDev);
+      
+      // Force state update
+      updateDeveloperState(isDev, refs.developerStatus, refs, setIsDeveloper, true);
+      
+      setTimeout(() => {
+        console.log("Developer state after forced update:", {
+          isDeveloper: isDev,
+          ref: refs.developerStatus,
+          timestamp: new Date().toISOString()
+        });
+      }, 0);
+    });
+    
     const checkInterval = refs.lastNetworkErrorTime ? 10000 : 3000;
     refs.timeout = window.setTimeout(() => {
       checkRoles();
@@ -102,40 +127,51 @@ export function useUserRoles() {
         refs.timeout = null;
       }
     };
-  }, [session, checkRoles, refs, isAdmin, isBetaTester, isUser, isCheckingRoles, roleCheckError]);
+  }, [session, checkRoles, refs, isAdmin, isBetaTester, isDeveloper, isUser, isCheckingRoles, roleCheckError]);
   
-  // KEY FIX: Add an effect specifically for beta tester state changes
+  // KEY FIX: Add effects for role state changes
   useEffect(() => {
     console.log("Beta tester state changed in hook:", isBetaTester, {
       timestamp: new Date().toISOString()
     });
   }, [isBetaTester]);
   
+  useEffect(() => {
+    console.log("Developer state changed in hook:", isDeveloper, {
+      timestamp: new Date().toISOString()
+    });
+  }, [isDeveloper]);
+  
   // Derive these values directly from the state values
-  // KEY FIX: Make showBetaBadge derive directly from state
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
+  const showDeveloperTools = isDeveloper;
 
   useEffect(() => {
     // Log whenever these critical values change
     console.log("useUserRoles state changed:", { 
       isAdmin, 
-      isBetaTester, 
+      isBetaTester,
+      isDeveloper,
       showBetaBadge,
+      showDeveloperTools,
       betaTesterRef: refs.betaTesterStatus,
+      developerRef: refs.developerStatus,
       timestamp: new Date().toISOString() 
     });
-  }, [isAdmin, isBetaTester, showBetaBadge, refs.betaTesterStatus]);
+  }, [isAdmin, isBetaTester, isDeveloper, showBetaBadge, showDeveloperTools, refs.betaTesterStatus, refs.developerStatus]);
 
   return {
     isAdmin,
     isBetaTester,
+    isDeveloper,
     isUser,
     isCheckingRoles,
     roleCheckError,
     showAdminButton,
     showBetaBadge,
-    forceRoleCheck // Export this so components can trigger a check
+    showDeveloperTools,
+    forceRoleCheck
   };
 }
 

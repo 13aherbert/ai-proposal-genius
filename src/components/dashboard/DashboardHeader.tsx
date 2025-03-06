@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
@@ -12,24 +13,28 @@ import { useEffect, useRef } from "react";
  * It handles:
  * - Displaying welcome message with user's name
  * - Showing subscription plan information
- * - Checking user roles (admin, beta tester)
+ * - Checking user roles (admin, beta tester, developer)
  * - Providing quick access buttons (report issue, docs, settings)
  * - Showing admin dashboard button for admins
  * - Showing beta dashboard button for beta testers
+ * - Showing developer tools for developers
  */
 export default function DashboardHeader() {
   const { isLoading, error } = useSubscriptionFeatures();
   const { 
     isCheckingRoles, 
     showAdminButton, 
-    showBetaBadge, 
+    showBetaBadge,
+    showDeveloperTools,
     roleCheckError,
     isBetaTester,
     isAdmin,
+    isDeveloper,
     forceRoleCheck
   } = useUserRoles();
   
   const hasLoggedBetaStatus = useRef(false);
+  const hasLoggedDevStatus = useRef(false);
   
   useEffect(() => {
     forceRoleCheck();
@@ -44,8 +49,10 @@ export default function DashboardHeader() {
     console.log("Dashboard Header - Current role states:", {
       isAdmin,
       isBetaTester,
+      isDeveloper,
       showBetaBadge,
       showAdminButton,
+      showDeveloperTools,
       isCheckingRoles,
       roleCheckError,
       timestamp: new Date().toISOString()
@@ -59,7 +66,16 @@ export default function DashboardHeader() {
       });
       hasLoggedBetaStatus.current = true;
     }
-  }, [isAdmin, isBetaTester, showBetaBadge, showAdminButton, isCheckingRoles, roleCheckError]);
+    
+    if (isDeveloper && !hasLoggedDevStatus.current) {
+      console.log("Developer status confirmed in Header", {
+        timestamp: new Date().toISOString(),
+        isDeveloper,
+        showDeveloperTools
+      });
+      hasLoggedDevStatus.current = true;
+    }
+  }, [isAdmin, isBetaTester, isDeveloper, showBetaBadge, showAdminButton, showDeveloperTools, isCheckingRoles, roleCheckError]);
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
@@ -71,6 +87,7 @@ export default function DashboardHeader() {
             isCheckingRoles={isCheckingRoles}
             showAdminButton={showAdminButton}
             showBetaBadge={showBetaBadge}
+            showDeveloperTools={showDeveloperTools}
             roleCheckError={roleCheckError}
           />
         </div>

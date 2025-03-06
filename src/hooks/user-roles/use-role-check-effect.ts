@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { UserRoleRefs } from "./types";
-import { checkBetaTesterRole, updateBetaTesterState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkDeveloperRole, updateDeveloperState } from "./role-check-utils";
 import { Session } from "@supabase/supabase-js";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ export const useRoleCheckEffect = (
   setIsAdmin: (value: boolean) => void,
   setIsBetaTester: (updater: (prev: boolean) => boolean) => void,
   setIsUser: (value: boolean) => void,
+  setIsDeveloper: (updater: (prev: boolean) => boolean) => void,
   setIsCheckingRoles: (value: boolean) => void,
   setRoleCheckError: (value: string | null) => void,
   refs: UserRoleRefs
@@ -56,6 +57,16 @@ export const useRoleCheckEffect = (
         refs.lastNetworkErrorTime = Date.now();
       }
       
+      // Check developer role
+      try {
+        const developerStatus = await checkDeveloperRole(session.user.id, refs, true);
+        updateDeveloperState(developerStatus, refs.developerStatus, refs, setIsDeveloper, true);
+        console.log("Developer role check in checkRoles:", developerStatus);
+      } catch (developerError) {
+        console.error("Error during developer role check:", developerError);
+        refs.lastNetworkErrorTime = Date.now();
+      }
+      
       // Check user role
       try {
         const userCheck = await adminService.ensureUserRole();
@@ -87,7 +98,7 @@ export const useRoleCheckEffect = (
     } finally {
       refs.checkingInProgress = false;
     }
-  }, [session, setIsAdmin, setIsBetaTester, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
+  }, [session, setIsAdmin, setIsBetaTester, setIsUser, setIsDeveloper, setIsCheckingRoles, setRoleCheckError, refs]);
 
   // Return the checkRoles function for external use
   return { checkRoles };

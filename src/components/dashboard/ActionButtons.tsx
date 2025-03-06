@@ -1,146 +1,159 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  HelpCircle, 
-  MessageSquarePlus, 
-  Settings, 
-  ShieldCheck, 
-  Sparkles, 
-  Code2 
-} from "lucide-react";
+import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { UserFeedbackDialog } from "../feedback/UserFeedbackDialog";
 import { useEffect } from "react";
 
-interface ActionButtonsProps {
+type ActionButtonsProps = {
   isCheckingRoles: boolean;
   showAdminButton: boolean;
   showBetaBadge: boolean;
-  showDeveloperTools: boolean;
   roleCheckError: string | null;
-}
+};
 
-/**
- * ActionButtons component displays various action buttons based on the user's roles.
- * It handles:
- * - Showing admin dashboard button for admins
- * - Showing beta program badge/button for beta testers
- * - Showing developer tools for developers
- * - Displaying feedback button for all users
- */
-export function ActionButtons({
-  isCheckingRoles,
-  showAdminButton,
-  showBetaBadge,
-  showDeveloperTools,
-  roleCheckError
+export function ActionButtons({ 
+  isCheckingRoles, 
+  showAdminButton, 
+  showBetaBadge, 
+  roleCheckError 
 }: ActionButtonsProps) {
   const navigate = useNavigate();
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  
+
   useEffect(() => {
-    console.log("ActionButtons - Received props:", { 
+    console.log("ActionButtons rendered with props:", { 
+      isCheckingRoles, 
       showAdminButton, 
-      showBetaBadge,
-      showDeveloperTools,
+      showBetaBadge, 
+      roleCheckError,
       timestamp: new Date().toISOString()
     });
-  }, [showAdminButton, showBetaBadge, showDeveloperTools]);
+  }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
-  // Render
+  // KEY FIX: Log when beta button should be shown
+  useEffect(() => {
+    if (showBetaBadge) {
+      console.log("🔍 Beta badge should be visible now", {
+        showBetaBadge,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [showBetaBadge]);
+
   return (
-    <div className="flex flex-wrap justify-end items-center gap-2">
-      {/* Display role check error if any */}
-      {roleCheckError && (
-        <Badge variant="destructive" className="animate-pulse">
+    <div className="flex flex-wrap gap-3 items-center">
+      {/* Only show the "Checking roles..." badge if we're checking AND we've confirmed it's an admin user */}
+      {isCheckingRoles && showAdminButton && (
+        <Badge variant="outline" className="py-2 px-3">
+          Checking roles...
+        </Badge>
+      )}
+      
+      {/* Admin button */}
+      {showAdminButton && (
+        <Button 
+          variant="outline" 
+          className="bg-black/20 border-brand-silver hover:bg-black/40"
+          onClick={() => navigate('/admin')}
+        >
+          <Users className="h-5 w-5 mr-2" />
+          Admin Dashboard
+        </Button>
+      )}
+      
+      {/* KEY FIX: Make absolutely sure beta button is visible when showBetaBadge is true */}
+      {/* Beta Tester Button - Show for beta testers */}
+      {showBetaBadge && (
+        <>
+          <Button 
+            variant="outline" 
+            className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
+            onClick={() => {
+              console.log("Navigating to beta dashboard", {
+                timestamp: new Date().toISOString(),
+                showBetaBadge
+              });
+              navigate('/beta');
+            }}
+          >
+            <Beaker className="h-5 w-5 mr-2" />
+            Beta Dashboard
+          </Button>
+          
+          {/* Beta Tester Badge */}
+          <Badge variant="outline" className="py-2 px-3 border-purple-400 bg-purple-900/20">
+            <Crown className="h-4 w-4 mr-1" />
+            Beta Tester
+          </Badge>
+        </>
+      )}
+      
+      {/* Render debugging info for non-production environments */}
+      {import.meta.env.DEV && (
+        <Badge variant="outline" className="py-2 px-3 bg-blue-900/20 border-blue-400">
+          Beta Badge: {showBetaBadge ? 'Yes' : 'No'}
+        </Badge>
+      )}
+      
+      {roleCheckError && !isCheckingRoles && showAdminButton && (
+        <Badge variant="destructive" className="py-2 px-3">
+          <AlertCircle className="h-4 w-4 mr-1" />
           {roleCheckError}
         </Badge>
       )}
       
-      {/* Display loading indicator when checking roles */}
-      {isCheckingRoles && (
-        <Skeleton className="h-9 w-9 rounded-md" />
-      )}
-      
-      {/* Beta Program Button */}
-      {showBetaBadge && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => navigate('/beta-program')}
-        >
-          <Sparkles className="h-4 w-4 text-amber-400" />
-          <span>Beta Program</span>
-          <Badge variant="secondary" className="ml-1 bg-amber-400/20 text-amber-500">Beta</Badge>
-        </Button>
-      )}
-      
-      {/* Developer Tools Button */}
-      {showDeveloperTools && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => navigate('/developer')}
-        >
-          <Code2 className="h-4 w-4 text-green-400" />
-          <span>Developer Tools</span>
-          <Badge variant="secondary" className="ml-1 bg-green-400/20 text-green-500">Dev</Badge>
-        </Button>
-      )}
-      
-      {/* Admin Dashboard Button */}
-      {showAdminButton && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/admin')}
-          className="gap-2"
-        >
-          <ShieldCheck className="h-4 w-4 text-red-500" />
-          <span>Admin Dashboard</span>
-        </Button>
-      )}
-      
-      {/* Documentation Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => navigate('/docs')}
-        title="Documentation"
-      >
-        <HelpCircle className="h-4 w-4" />
-      </Button>
-      
-      {/* Feedback Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setFeedbackOpen(true)}
-        title="Provide Feedback"
-      >
-        <MessageSquarePlus className="h-4 w-4" />
-      </Button>
-      
-      {/* Settings Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => navigate('/account')}
-        title="Account Settings"
-      >
-        <Settings className="h-4 w-4" />
-      </Button>
-      
-      {/* Feedback Dialog */}
-      <UserFeedbackDialog
-        open={feedbackOpen}
-        onOpenChange={setFeedbackOpen}
-      />
+      <TooltipProvider>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={() => window.open('/some-issue-reporting-url', '_blank')}
+              >
+                <AlertCircle className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Report an Issue</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={() => navigate('/docs')}
+              >
+                <Book className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Documentation</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={() => navigate('/account-settings')}
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Account Settings</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
     </div>
   );
 }

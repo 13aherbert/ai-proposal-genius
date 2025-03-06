@@ -28,9 +28,38 @@ export function useUserRoles() {
     try {
       // Don't set checkingInProgress here as it's also set in the parent function
       console.log("Starting beta tester role check");
+      
+      // First try direct database query for beta_tester role
+      const { data: user } = await supabase.auth.getUser();
+      if (!user || !user.user) {
+        console.error("No authenticated user found for beta check");
+        return false;
+      }
+
+      const { data: directCheck, error: directError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', user.user.id)
+        .eq('role', 'beta_tester');
+      
+      console.log("Direct beta tester check:", {
+        result: directCheck && directCheck.length > 0,
+        count: directCheck?.length || 0,
+        error: directError
+      });
+      
+      // If direct check gives us a clear result, use that
+      if (!directError && directCheck && directCheck.length > 0) {
+        console.log("Beta tester role confirmed via direct check");
+        betaTesterStatusRef.current = true;
+        setIsBetaTester(true);
+        return true;
+      }
+      
+      // Fallback to RPC
       const betaCheck = await adminService.checkUserRole('beta_tester');
       
-      console.log("Beta tester check result:", !!betaCheck);
+      console.log("Beta tester RPC check result:", !!betaCheck);
       
       if (!!betaCheck !== betaTesterStatusRef.current) {
         console.log("Updating beta tester status from", betaTesterStatusRef.current, "to", !!betaCheck);

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "../types";
 import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
@@ -14,44 +15,64 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       return false;
     }
 
-    console.log(`Starting role check for '${role}' - User ID: ${user.user.id}`);
+    const userId = user.user.id;
+    console.log(`Starting role check for '${role}' - User ID: ${userId}`);
 
-    // Use the check_existing_role function which has SECURITY DEFINER to bypass RLS
-    const { data, error } = await supabase.rpc('check_existing_role', {
-      _user_id: user.user.id,
+    // First, try a direct query to the user_roles table
+    const { data: directCheck, error: directError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', role);
+
+    console.log(`Direct table check for role '${role}':`, {
+      result: directCheck && directCheck.length > 0,
+      count: directCheck?.length || 0,
+      data: directCheck,
+      error: directError,
+      userId,
+      timestamp: new Date().toISOString()
+    });
+
+    // If direct check succeeds, use that result
+    if (!directError && directCheck && directCheck.length > 0) {
+      console.log(`Role '${role}' confirmed via direct check`);
+      return true;
+    }
+
+    // Fallback to RPC if direct check fails or returns no results
+    console.log(`Attempting RPC check for role '${role}'`);
+    const { data: rpcData, error: rpcError } = await supabase.rpc('check_existing_role', {
+      _user_id: userId,
       _role: role
     });
 
-    if (error) {
-      console.error('Error checking role:', error);
+    if (rpcError) {
+      console.error('Error in RPC role check:', rpcError);
       return false;
     }
     
-    // Log the complete response for debugging
-    console.log(`Role check details for '${role}':`, {
-      result: !!data,
-      rawResponse: data,
-      userId: user.user.id,
-      timestamp: new Date().toISOString()
-    });
-
-    // Make a direct query to the user_roles table to verify the data
-    const { data: directCheck, error: directError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.user.id)
-      .eq('role', role)
-      .single();
-
-    console.log(`Direct table check for role '${role}':`, {
-      result: !!directCheck,
-      data: directCheck,
-      error: directError,
-      userId: user.user.id,
+    // Log the RPC response
+    console.log(`RPC role check for '${role}':`, {
+      result: !!rpcData,
+      rawResponse: rpcData,
+      userId,
       timestamp: new Date().toISOString()
     });
     
-    return !!data;
+    // As a last resort, try fetching all user roles to see what's there
+    const { data: allRoles, error: allRolesError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId);
+      
+    console.log(`All roles for user ${userId}:`, {
+      roles: allRoles,
+      error: allRolesError,
+      timestamp: new Date().toISOString()
+    });
+    
+    return !!rpcData;
   } catch (error) {
     console.error('Error in checkUserRole:', error);
     return false;

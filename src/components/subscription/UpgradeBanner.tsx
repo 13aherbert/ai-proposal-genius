@@ -9,8 +9,8 @@ export function UpgradeBanner() {
   const { plan } = useSubscriptionFeatures();
   const navigate = useNavigate();
   
-  // Only show for trial or starter plans
-  if (plan !== 'trial' && plan !== 'starter') {
+  // Only show for trial plans, not for starter or pro
+  if (plan !== 'trial') {
     return null;
   }
   
@@ -24,9 +24,7 @@ export function UpgradeBanner() {
       <div className="flex items-center mb-2 sm:mb-0">
         <Crown className="h-5 w-5 text-yellow-400 mr-2" />
         <p className="text-white">
-          {plan === 'trial' 
-            ? "You're on a free trial. Upgrade to unlock all features." 
-            : "Upgrade to Pro for advanced features like compiled drafts and AI evaluation."}
+          You're on a free trial. Upgrade to unlock all features.
         </p>
       </div>
       <Button 

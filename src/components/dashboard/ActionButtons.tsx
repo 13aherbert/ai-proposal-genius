@@ -31,6 +31,16 @@ export function ActionButtons({
     });
   }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
+  // KEY FIX: Log when beta button should be shown
+  useEffect(() => {
+    if (showBetaBadge) {
+      console.log("🔍 Beta badge should be visible now", {
+        showBetaBadge,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [showBetaBadge]);
+
   return (
     <div className="flex flex-wrap gap-3 items-center">
       {/* Only show the "Checking roles..." badge if we're checking AND we've confirmed it's an admin user */}
@@ -52,30 +62,31 @@ export function ActionButtons({
         </Button>
       )}
       
+      {/* KEY FIX: Make absolutely sure beta button is visible when showBetaBadge is true */}
       {/* Beta Tester Button - Show for beta testers */}
       {showBetaBadge && (
-        <Button 
-          variant="outline" 
-          className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
-          onClick={() => {
-            console.log("Navigating to beta dashboard", {
-              timestamp: new Date().toISOString(),
-              showBetaBadge
-            });
-            navigate('/beta');
-          }}
-        >
-          <Beaker className="h-5 w-5 mr-2" />
-          Beta Dashboard
-        </Button>
-      )}
-      
-      {/* Beta Tester Badge */}
-      {showBetaBadge && (
-        <Badge variant="outline" className="py-2 px-3 border-purple-400 bg-purple-900/20">
-          <Crown className="h-4 w-4 mr-1" />
-          Beta Tester
-        </Badge>
+        <>
+          <Button 
+            variant="outline" 
+            className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
+            onClick={() => {
+              console.log("Navigating to beta dashboard", {
+                timestamp: new Date().toISOString(),
+                showBetaBadge
+              });
+              navigate('/beta');
+            }}
+          >
+            <Beaker className="h-5 w-5 mr-2" />
+            Beta Dashboard
+          </Button>
+          
+          {/* Beta Tester Badge */}
+          <Badge variant="outline" className="py-2 px-3 border-purple-400 bg-purple-900/20">
+            <Crown className="h-4 w-4 mr-1" />
+            Beta Tester
+          </Badge>
+        </>
       )}
       
       {/* Render debugging info for non-production environments */}

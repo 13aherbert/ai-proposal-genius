@@ -4,7 +4,7 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
 import { ActionButtons } from "./ActionButtons";
 import { useUserRoles } from "@/hooks/use-user-roles";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * DashboardHeader component displays user information, subscription status,
@@ -26,8 +26,25 @@ export default function DashboardHeader() {
     showBetaBadge, 
     roleCheckError,
     isBetaTester,
-    isAdmin
+    isAdmin,
+    forceRoleCheck
   } = useUserRoles();
+  
+  // Use a ref to track whether we've rendered with beta tester status
+  const hasLoggedBetaStatus = useRef(false);
+  
+  // Force a role check on mount
+  useEffect(() => {
+    // Force a role check when the component mounts
+    forceRoleCheck();
+    
+    // Also set up an interval to check regularly
+    const interval = setInterval(() => {
+      forceRoleCheck();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [forceRoleCheck]);
   
   useEffect(() => {
     console.log("Dashboard Header - Current role states:", {
@@ -40,13 +57,14 @@ export default function DashboardHeader() {
       timestamp: new Date().toISOString()
     });
     
-    // Notify when beta tester role is detected
-    if (isBetaTester && !isCheckingRoles) {
-      console.log("Beta tester status confirmed", {
+    // Only log once when beta tester status is first confirmed
+    if (isBetaTester && !hasLoggedBetaStatus.current) {
+      console.log("Beta tester status confirmed in Header", {
         timestamp: new Date().toISOString(),
         isBetaTester,
         showBetaBadge
       });
+      hasLoggedBetaStatus.current = true;
     }
   }, [isAdmin, isBetaTester, showBetaBadge, showAdminButton, isCheckingRoles, roleCheckError]);
 

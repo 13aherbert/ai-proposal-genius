@@ -31,18 +31,18 @@ export type { UserRole };
  */
 export const isBetaTester = async (): Promise<boolean> => {
   try {
-    console.log("isBetaTester: Starting check");
+    console.log("isBetaTester service: Starting check", new Date().toISOString());
     
     // Get current user
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData?.user) {
-      console.error("isBetaTester: No authenticated user", userError);
+      console.error("isBetaTester service: No authenticated user", userError);
       return false;
     }
     
     const userId = userData.user.id;
-    console.log(`isBetaTester: Checking for user ID ${userId}`);
+    console.log(`isBetaTester service: Checking for user ID ${userId}`);
     
     // Use the dedicated beta tester RPC function
     const { data, error } = await supabase.rpc('check_beta_tester_role', {
@@ -50,13 +50,18 @@ export const isBetaTester = async (): Promise<boolean> => {
     });
     
     if (error) {
-      console.error("isBetaTester: Error checking role", error);
+      console.error("isBetaTester service: Error checking role", error);
       return false;
     }
     
-    console.log(`isBetaTester: Check result = ${!!data}`, { data, userId });
+    const result = !!data;
+    console.log(`isBetaTester service: Check result = ${result}`, { 
+      data, 
+      userId,
+      timestamp: new Date().toISOString()
+    });
     
-    return !!data;
+    return result;
   } catch (error) {
     console.error('Error in isBetaTester check:', error);
     return false;

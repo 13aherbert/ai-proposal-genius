@@ -28,7 +28,6 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       return false;
     }
     
-    // Add more detailed debugging to help trace the issue
     console.log(`Role check '${role}' result:`, {
       result: !!data,
       rawData: data,
@@ -99,30 +98,7 @@ export async function isAdmin(): Promise<boolean> {
       
       // Fallback: Try to check admin role directly using our new check_existing_role RPC
       try {
-        const { data: user } = await supabase.auth.getUser();
-        if (!user || !user.user) {
-          setAdminStatusCache(false);
-          return false;
-        }
-        
-        // Use check_existing_role RPC to check if user has admin role
-        const { data: isAdminResult, error: rolesError } = await supabase.rpc('check_existing_role', {
-          _user_id: user.user.id,
-          _role: 'admin'
-        });
-          
-        if (rolesError) {
-          console.error('Error in fallback admin check:', rolesError);
-          setAdminStatusCache(false);
-          return false;
-        }
-        
-        console.log("Fallback admin check result:", isAdminResult);
-        
-        // Update cache even for fallback results
-        setAdminStatusCache(isAdminResult);
-        
-        return isAdminResult;
+        return await checkUserRole('admin');
       } catch (fallbackError) {
         console.error('Error in fallback admin check:', fallbackError);
         setAdminStatusCache(false);

@@ -56,7 +56,10 @@ export function ActionButtons({
         <Button 
           variant="outline" 
           className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
-          onClick={() => navigate('/beta')}
+          onClick={() => {
+            console.log("Navigating to beta dashboard");
+            navigate('/beta');
+          }}
         >
           <Beaker className="h-5 w-5 mr-2" />
           Beta Dashboard

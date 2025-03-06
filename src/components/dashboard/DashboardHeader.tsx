@@ -5,6 +5,7 @@ import { WelcomeMessage } from "./WelcomeMessage";
 import { ActionButtons } from "./ActionButtons";
 import { useUserRoles } from "@/hooks/use-user-roles";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 /**
  * DashboardHeader component displays user information, subscription status,
@@ -16,6 +17,7 @@ import { useEffect } from "react";
  * - Checking user roles (admin, beta tester)
  * - Providing quick access buttons (report issue, docs, settings)
  * - Showing admin dashboard button for admins
+ * - Showing beta dashboard button for beta testers
  */
 export default function DashboardHeader() {
   const { isLoading, error } = useSubscriptionFeatures();
@@ -37,6 +39,11 @@ export default function DashboardHeader() {
       isCheckingRoles,
       roleCheckError
     });
+    
+    // Notify when beta tester role is detected
+    if (isBetaTester && !isCheckingRoles) {
+      console.log("Beta tester status confirmed");
+    }
   }, [isAdmin, isBetaTester, showBetaBadge, showAdminButton, isCheckingRoles, roleCheckError]);
 
   return (

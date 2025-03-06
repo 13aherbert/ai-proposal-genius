@@ -83,7 +83,7 @@ export function useUserRoles() {
       try {
         const isBeta = await checkBetaTesterRole();
         console.log("Beta tester check completed in checkRoles:", isBeta);
-        // Always update state even if the value is the same, to ensure reactivity
+        // Force update the state to ensure reactivity
         betaTesterStatusRef.current = isBeta;
         setIsBetaTester(isBeta);
       } catch (betaError) {
@@ -136,14 +136,15 @@ export function useUserRoles() {
       return;
     }
     
+    // Immediate check when session changes or on initial load
+    checkRoles();
+    
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
     
-    checkRoles();
-    
-    const checkInterval = lastNetworkErrorTimeRef.current ? 10000 : 5000;
+    const checkInterval = lastNetworkErrorTimeRef.current ? 10000 : 3000;
     timeoutRef.current = window.setTimeout(() => {
       checkRoles();
     }, checkInterval);
@@ -156,18 +157,19 @@ export function useUserRoles() {
     };
   }, [session, checkRoles]);
   
-  // Ensure that showBetaBadge is directly tied to isBetaTester
   const showAdminButton = isAdmin;
+  // Ensure that showBetaBadge is directly tied to isBetaTester
   const showBetaBadge = isBetaTester;
 
   useEffect(() => {
-    console.log("useUserRoles state updated:", { 
+    console.log("useUserRoles updated state:", { 
       isAdmin, 
       isBetaTester, 
       isUser, 
       showAdminButton, 
       showBetaBadge,
-      betaTesterRef: betaTesterStatusRef.current
+      betaTesterRef: betaTesterStatusRef.current,
+      initialized: rolesInitializedRef.current
     });
   }, [isAdmin, isBetaTester, isUser, showAdminButton, showBetaBadge]);
 

@@ -27,11 +27,13 @@ export function useUserRoles() {
     
     try {
       // Don't set checkingInProgress here as it's also set in the parent function
+      console.log("Starting beta tester role check");
       const betaCheck = await adminService.checkUserRole('beta_tester');
       
       console.log("Beta tester check result:", !!betaCheck);
       
       if (!!betaCheck !== betaTesterStatusRef.current) {
+        console.log("Updating beta tester status from", betaTesterStatusRef.current, "to", !!betaCheck);
         betaTesterStatusRef.current = !!betaCheck;
         setIsBetaTester(!!betaCheck);
       }

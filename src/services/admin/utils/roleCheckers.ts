@@ -10,7 +10,12 @@ import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
 export async function checkUserRole(role: UserRole): Promise<boolean> {
   try {
     const { data: user } = await supabase.auth.getUser();
-    if (!user || !user.user) return false;
+    if (!user || !user.user) {
+      console.error("checkUserRole: No user found");
+      return false;
+    }
+
+    console.log(`Checking role '${role}' for user ${user.user.id}`);
 
     // Use the check_existing_role function which has SECURITY DEFINER to bypass RLS
     const { data, error } = await supabase.rpc('check_existing_role', {

@@ -133,6 +133,8 @@ export function useUserRoles() {
   const showAdminButton = isAdmin && !isCheckingRoles;
   const showBetaBadge = isBetaTester && !isCheckingRoles;
 
+  console.log("useUserRoles final state values:", { isAdmin, isBetaTester, showAdminButton, showBetaBadge });
+
   return {
     isAdmin,
     isBetaTester,

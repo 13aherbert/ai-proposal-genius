@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut, Save, CheckCircle, AlertTriangle } from "lucide-react";
@@ -41,17 +40,35 @@ export default function AccountSettings() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const { data: subscription } = useSubscription();
+  const isFetchingRef = useRef(false);
+  const fetchAttemptsRef = useRef(0);
 
   useEffect(() => {
-    fetchProfile();
+    if (session?.user?.id && !isFetchingRef.current) {
+      fetchProfile();
+    }
   }, [session]);
 
   const fetchProfile = async () => {
     if (!session?.user?.id) return;
+    if (isFetchingRef.current) return;
+    
+    if (fetchAttemptsRef.current >= 3) {
+      toast.error("Couldn't load profile after multiple attempts", {
+        description: "Please check your connection and try again later."
+      });
+      setFetchError("Maximum retry attempts reached");
+      setIsLoadingProfile(false);
+      return;
+    }
     
     try {
       setIsLoadingProfile(true);
+      setFetchError(null);
+      isFetchingRef.current = true;
+      fetchAttemptsRef.current++;
       
       const result = await withRetry(
         async () => {
@@ -61,14 +78,16 @@ export default function AccountSettings() {
             .eq('profile_id', session.user.id)
             .maybeSingle();
         },
-        2, // Max 2 retries for profile fetch
-        2000 // 2 second base delay
+        1,
+        3000
       );
       
       if (result.error) {
         console.error('Error fetching profile:', result.error);
+        const errorMessage = isNetworkError(result.error) ? getNetworkErrorMessage(result.error) : result.error.message;
+        setFetchError(errorMessage);
         toast.error("Error loading profile", {
-          description: isNetworkError(result.error) ? getNetworkErrorMessage(result.error) : result.error.message
+          description: errorMessage
         });
         return;
       }
@@ -85,11 +104,20 @@ export default function AccountSettings() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      const errorMessage = isNetworkError(error) ? getNetworkErrorMessage(error) : "Please try refreshing the page.";
+      setFetchError(errorMessage);
       toast.error("Failed to load profile", {
-        description: isNetworkError(error) ? getNetworkErrorMessage(error) : "Please try refreshing the page."
+        description: errorMessage
       });
     } finally {
       setIsLoadingProfile(false);
+      isFetchingRef.current = false;
+      
+      if (fetchError && fetchError.includes("Network error") && fetchAttemptsRef.current < 3) {
+        setTimeout(() => {
+          if (session?.user?.id) fetchProfile();
+        }, 10000);
+      }
     }
   };
 
@@ -253,6 +281,13 @@ export default function AccountSettings() {
     }
   };
 
+  const handleRetryFetch = () => {
+    if (!isFetchingRef.current) {
+      fetchAttemptsRef.current = 0;
+      fetchProfile();
+    }
+  };
+
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       import('../scripts/update-specific-user')
@@ -284,60 +319,94 @@ export default function AccountSettings() {
           </header>
 
           <div className="grid gap-6 max-w-2xl mx-auto w-full">
-            <ProfileCard 
-              username={username} 
-              setUsername={setUsername}
-              firstName={firstName}
-              setFirstName={setFirstName}
-              lastName={lastName}
-              setLastName={setLastName}
-              businessName={businessName}
-              setBusinessName={setBusinessName}
-              birthday={birthday}
-              setBirthday={setBirthday}
-            />
+            {fetchError && (
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  <span className="font-medium">Failed to load profile data</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{fetchError}</p>
+                <Button 
+                  variant="outline" 
+                  className="self-start"
+                  onClick={handleRetryFetch}
+                  disabled={isFetchingRef.current}
+                >
+                  {isFetchingRef.current ? "Retrying..." : "Retry"}
+                </Button>
+              </div>
+            )}
 
-            <EmailCard 
-              email={email} 
-              setEmail={setEmail} 
-            />
+            {isLoadingProfile && !fetchError ? (
+              <div className="space-y-4">
+                <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
+                  <div className="h-10 w-full bg-muted rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
+                  <div className="h-10 w-full bg-muted rounded animate-pulse"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ProfileCard 
+                  username={username} 
+                  setUsername={setUsername}
+                  firstName={firstName}
+                  setFirstName={setFirstName}
+                  lastName={lastName}
+                  setLastName={setLastName}
+                  businessName={businessName}
+                  setBusinessName={setBusinessName}
+                  birthday={birthday}
+                  setBirthday={setBirthday}
+                />
 
-            <PasswordCard 
-              password={password}
-              setPassword={setPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-            />
+                <EmailCard 
+                  email={email} 
+                  setEmail={setEmail} 
+                />
 
-            <SubscriptionCard subscription={subscription} />
+                <PasswordCard 
+                  password={password}
+                  setPassword={setPassword}
+                  confirmPassword={confirmPassword}
+                  setConfirmPassword={setConfirmPassword}
+                />
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-              <Button 
-                onClick={handleSave} 
-                disabled={isLoading || isLoadingProfile || (!hasChanges && !saveSuccess)}
-                className={`w-full sm:w-auto transition-all ${saveSuccess ? 'bg-green-600 hover:bg-green-700' : ''}`}
-              >
-                {saveSuccess ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {isLoading ? "Saving..." : "Save Changes"}
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleLogout}
-                className="w-full sm:w-auto"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Log Out
-              </Button>
-            </div>
+                <SubscriptionCard subscription={subscription} />
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={isLoading || isLoadingProfile || (!hasChanges && !saveSuccess)}
+                    className={`w-full sm:w-auto transition-all ${saveSuccess ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                  >
+                    {saveSuccess ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {isLoading ? "Saving..." : "Save Changes"}
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleLogout}
+                    className="w-full sm:w-auto"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </Button>
+                </div>
+              </>
+            )}
             
             <div className="mt-8 border border-destructive/20 rounded-lg p-6 bg-destructive/5">
               <h2 className="text-xl font-semibold text-destructive mb-2">Delete Account</h2>

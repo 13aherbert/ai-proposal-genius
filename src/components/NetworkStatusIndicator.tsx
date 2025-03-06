@@ -11,15 +11,25 @@ export function NetworkStatusIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [resourceError, setResourceError] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const checkingRef = useRef(false);
 
   const checkConnection = useCallback(async () => {
     // Prevent multiple simultaneous connection checks
-    if (isReconnecting) return;
+    if (isReconnecting || checkingRef.current) return;
+    
+    // Rate limit checks to prevent too many requests
+    const now = Date.now();
+    if (now - lastCheckTime < 5000) {
+      return;
+    }
     
     try {
       setIsReconnecting(true);
+      checkingRef.current = true;
       setResourceError(false);
+      setLastCheckTime(now);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -33,7 +43,6 @@ export function NetworkStatusIndicator() {
       
       clearTimeout(timeoutId);
       setIsOnline(response.ok);
-      setIsReconnecting(false);
       
       if (response.ok) {
         toast.success("Network connection restored", {
@@ -42,7 +51,6 @@ export function NetworkStatusIndicator() {
       }
     } catch (error: any) {
       setIsOnline(false);
-      setIsReconnecting(false);
       
       if (error.name !== 'AbortError') {
         console.error("Error checking network:", error);
@@ -55,8 +63,11 @@ export function NetworkStatusIndicator() {
           });
         }
       }
+    } finally {
+      setIsReconnecting(false);
+      checkingRef.current = false;
     }
-  }, [isReconnecting]);
+  }, [isReconnecting, lastCheckTime]);
 
   const handleOnline = useCallback(() => {
     setIsOnline(true);
@@ -102,9 +113,11 @@ export function NetworkStatusIndicator() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Check connection status on mount
+    // Check connection status on mount, but only if we're supposedly online
     if (navigator.onLine) {
-      checkConnection();
+      setTimeout(() => {
+        checkConnection();
+      }, 1000); // Delay initial check to avoid resource contention at load time
     }
     
     return () => {

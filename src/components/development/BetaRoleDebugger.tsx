@@ -30,17 +30,19 @@ export function BetaRoleDebugger() {
     setError(null);
     
     try {
-      // Direct database query
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('role', 'beta_tester');
+      // Use a direct RPC function call to avoid RLS recursion
+      const { data, error } = await supabase.rpc('check_existing_role', {
+        _user_id: userId,
+        _role: 'beta_tester'
+      });
       
       if (error) throw error;
       
-      setDirectQueryResult(data);
-      console.log("Direct query result:", data);
+      // Format the response to match our expected structure
+      const formattedResult = data ? [{ exists: true, role: 'beta_tester' }] : [];
+      
+      setDirectQueryResult(formattedResult);
+      console.log("Direct RPC query result:", data, formattedResult);
     } catch (err) {
       console.error("Direct query error:", err);
       // Properly format the error message based on type

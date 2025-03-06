@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { isAdmin } from "./roleService";
-import { withRetry, isNetworkError, getNetworkErrorMessage } from "@/utils/network-utils";
+import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network-utils";
 
 /**
  * Get all user profiles for admin management
@@ -31,8 +31,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     
     // Call our edge function to get user roles with email info
     console.log("Calling edge function to get user roles with emails");
-    const { data: userRolesData, error: userRolesError } = await withRetry(
-      () => supabase.functions.invoke<AnalysisResponse>('get-user-roles', {
+    const { data: userRolesData, error: userRolesError } = await withRetry<EdgeFunctionResponse>(
+      () => supabase.functions.invoke('get-user-roles', {
         headers: {
           Authorization: `Bearer ${accessToken}`
         }
@@ -49,13 +49,9 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.log("User roles data from edge function:", userRolesData);
     
     // Get profiles directly from the profiles table
-    const { data: profiles, error: profileError } = await withRetry(
-      () => supabase
-        .from('profiles')
-        .select('*'),
-      3, // max retries
-      1000 // base delay
-    );
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('*');
 
     if (profileError) {
       console.error('Error fetching profiles:', profileError);
@@ -65,14 +61,10 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.log("Fetched profiles:", profiles);
 
     // Get all subscriptions - make sure we're getting the most up-to-date data
-    const { data: subscriptions, error: subError } = await withRetry(
-      () => supabase
-        .from('subscriptions')
-        .select('*')
-        .order('updated_at', { ascending: false }),
-      3, // max retries
-      1000 // base delay
-    );
+    const { data: subscriptions, error: subError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .order('updated_at', { ascending: false });
 
     if (subError) {
       console.error('Error fetching subscriptions:', subError);
@@ -177,17 +169,13 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
     const now = new Date().toISOString();
 
     // Fetch the existing subscription to check if it exists
-    const { data: existingSub, error: fetchError } = await withRetry(
-      () => supabase
-        .from('subscriptions')
-        .select('subscription_id')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      3, // max retries
-      1000 // base delay
-    );
+    const { data: existingSub, error: fetchError } = await supabase
+      .from('subscriptions')
+      .select('subscription_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
       
     if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error fetching subscription:', fetchError);
@@ -201,35 +189,27 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
       // Update existing subscription
       console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan}`);
       
-      result = await withRetry(
-        () => supabase
-          .from('subscriptions')
-          .update({
-            plan_type: plan,
-            project_limit: projectLimit,
-            updated_at: now
-          })
-          .eq('subscription_id', existingSub.subscription_id),
-        3, // max retries
-        1000 // base delay
-      );
+      result = await supabase
+        .from('subscriptions')
+        .update({
+          plan_type: plan,
+          project_limit: projectLimit,
+          updated_at: now
+        })
+        .eq('subscription_id', existingSub.subscription_id);
     } else {
       // Create new subscription
       console.log(`Creating new subscription for user ${userId} with plan ${plan}`);
       
-      result = await withRetry(
-        () => supabase
-          .from('subscriptions')
-          .insert({
-            user_id: userId,
-            plan_type: plan,
-            status: 'active',
-            project_limit: projectLimit,
-            updated_at: now
-          }),
-        3, // max retries
-        1000 // base delay
-      );
+      result = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: userId,
+          plan_type: plan,
+          status: 'active',
+          project_limit: projectLimit,
+          updated_at: now
+        });
     }
 
     if (result.error) {
@@ -262,76 +242,78 @@ export async function updateSubscriptionPlan(userId: string, plan: string): Prom
  * Updates a user's subscription plan (admin only)
  */
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
-  try {
-    // Get session for auth header
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    
-    if (!accessToken) {
-      console.error('No access token available');
-      throw new Error('Authentication required');
-    }
-    
-    console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
-    
-    // Show a loading toast
-    const loadingId = toast.loading(`Updating subscription for ${email}...`);
-    
+  return withRateLimit(`update-subscription-${email}`, async () => {
     try {
-      // Call our edge function to update the subscription with retry
-      const { data, error } = await withRetry(
-        () => supabase.functions.invoke('admin-update-subscription', {
-          body: { 
-            email,
-            plan,
-            status
-          },
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }),
-        3, // max retries
-        1000 // base delay
-      );
+      // Get session for auth header
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
       
-      // Dismiss the loading toast
-      toast.dismiss(loadingId);
-      
-      if (error) {
-        console.error("Error invoking edge function:", error);
-        throw error;
+      if (!accessToken) {
+        console.error('No access token available');
+        throw new Error('Authentication required');
       }
       
-      console.log("Edge function response:", data);
+      console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
       
-      if (!data || !data.success) {
-        const errorMsg = data?.error || "Unknown error occurred";
-        console.error("Edge function returned error:", errorMsg);
-        throw new Error(errorMsg);
+      // Show a loading toast
+      const loadingId = toast.loading(`Updating subscription for ${email}...`);
+      
+      try {
+        // Call our edge function to update the subscription with retry
+        const { data, error } = await withRetry<EdgeFunctionResponse>(
+          () => supabase.functions.invoke('admin-update-subscription', {
+            body: { 
+              email,
+              plan,
+              status
+            },
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }),
+          2, // Reduce max retries to prevent resource exhaustion
+          2000 // Increase base delay to give more time between retries
+        );
+        
+        // Dismiss the loading toast
+        toast.dismiss(loadingId);
+        
+        if (error) {
+          console.error("Error invoking edge function:", error);
+          throw error;
+        }
+        
+        console.log("Edge function response:", data);
+        
+        if (!data || !data.success) {
+          const errorMsg = data?.error || "Unknown error occurred";
+          console.error("Edge function returned error:", errorMsg);
+          throw new Error(errorMsg);
+        }
+        
+        toast.success(`Subscription updated to ${plan} plan with status ${status}`);
+        return true;
+      } catch (error) {
+        // Dismiss the loading toast in case of error
+        toast.dismiss(loadingId);
+        throw error; // Re-throw for the outer catch
       }
-      
-      toast.success(`Subscription updated to ${plan} plan with status ${status}`);
-      return true;
     } catch (error) {
-      // Dismiss the loading toast in case of error
-      toast.dismiss(loadingId);
-      throw error; // Re-throw for the outer catch
+      console.error('Error in updateUserSubscription:', error);
+      
+      if (isNetworkError(error)) {
+        toast.error("Network connection error", { 
+          description: getNetworkErrorMessage(error),
+          duration: 8000
+        });
+      } else {
+        toast.error("Failed to update subscription", { 
+          description: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
+      
+      return false;
     }
-  } catch (error) {
-    console.error('Error in updateUserSubscription:', error);
-    
-    if (isNetworkError(error)) {
-      toast.error("Network connection error", { 
-        description: getNetworkErrorMessage(error),
-        duration: 8000
-      });
-    } else {
-      toast.error("Failed to update subscription", { 
-        description: error instanceof Error ? error.message : "Unknown error" 
-      });
-    }
-    
-    return false;
-  }
+  });
 }

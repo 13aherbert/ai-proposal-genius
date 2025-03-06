@@ -169,9 +169,9 @@ export default function App() {
               </Routes>
             </ErrorBoundary>
             <Toaster position="top-right" richColors closeButton />
+            <NetworkStatusIndicator />
           </AuthProvider>
         </BrowserRouter>
-        <NetworkStatusIndicator />
       </QueryClientProvider>
     </ThemeProvider>
   );

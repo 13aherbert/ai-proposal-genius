@@ -5,17 +5,26 @@
  */
 import { updateUserSubscription } from '../services/admin/userService';
 import { toast } from 'sonner';
-import { withRetry } from '@/utils/network-utils';
+import { withRetry, isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
+
+// Flag to prevent multiple executions at once
+let isUpdating = false;
 
 /**
  * Changes the subscription for Wearerivalpro@gmail.com to an active starter plan
  * Includes retry logic for network resilience
  */
 export async function updateRivalProSubscription(): Promise<void> {
+  // Prevent multiple simultaneous executions
+  if (isUpdating) {
+    toast.info("Update already in progress, please wait");
+    return;
+  }
+  
+  isUpdating = true;
+  const loadingId = toast.loading("Updating subscription for Wearerivalpro@gmail.com...");
+  
   try {
-    // Show a loading toast
-    const loadingId = toast.loading("Updating subscription for Wearerivalpro@gmail.com...");
-    
     console.log("Updating subscription for Wearerivalpro@gmail.com to active starter...");
     
     const email = 'Wearerivalpro@gmail.com'; // Email (case sensitive as stored in auth.users)
@@ -24,7 +33,6 @@ export async function updateRivalProSubscription(): Promise<void> {
     
     console.log(`Calling updateUserSubscription(${email}, ${plan}, ${status})`);
     
-    // Use the retry utility for the update operation
     const result = await updateUserSubscription(email, plan, status);
     
     // Dismiss the loading toast
@@ -45,10 +53,22 @@ export async function updateRivalProSubscription(): Promise<void> {
     }
   } catch (error) {
     console.error("Error updating subscription:", error);
-    toast.error("Error updating subscription", {
-      description: error instanceof Error ? error.message : "Unknown error",
-      duration: 8000
-    });
+    
+    toast.dismiss(loadingId);
+    
+    if (isNetworkError(error)) {
+      toast.error("Network error", {
+        description: getNetworkErrorMessage(error),
+        duration: 8000
+      });
+    } else {
+      toast.error("Error updating subscription", {
+        description: error instanceof Error ? error.message : "Unknown error",
+        duration: 8000
+      });
+    }
+  } finally {
+    isUpdating = false;
   }
 }
 

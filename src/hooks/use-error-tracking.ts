@@ -2,6 +2,7 @@
 import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import ErrorTrackingService, { ErrorData, ErrorSeverity, PerformanceMetric } from '@/services/ErrorTrackingService';
+import { isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
 
 export function useErrorTracking() {
   const { session } = useAuth();
@@ -27,10 +28,21 @@ export function useErrorTracking() {
   const trackError = useCallback((
     error: Omit<ErrorData, 'timestamp' | 'userId'> & { timestamp?: Date }
   ) => {
-    errorService.captureError({
-      ...error,
-      userId: session?.user?.id,
-    });
+    // Check if it's a network error and categorize it accordingly
+    if (error.originalError && isNetworkError(error.originalError)) {
+      errorService.captureError({
+        ...error,
+        userId: session?.user?.id,
+        category: 'network',
+        message: getNetworkErrorMessage(error.originalError),
+        severity: ErrorSeverity.WARNING // Downgrade to warning for most network errors
+      });
+    } else {
+      errorService.captureError({
+        ...error,
+        userId: session?.user?.id,
+      });
+    }
   }, [errorService, session]);
 
   // Track a performance metric

@@ -1,7 +1,8 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
 
 /**
  * Component that monitors network status and displays a visual indicator
@@ -9,10 +10,17 @@ import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 export function NetworkStatusIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [resourceError, setResourceError] = useState(false);
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkConnection = useCallback(async () => {
+    // Prevent multiple simultaneous connection checks
+    if (isReconnecting) return;
+    
     try {
       setIsReconnecting(true);
+      setResourceError(false);
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
@@ -32,18 +40,27 @@ export function NetworkStatusIndicator() {
           id: "network-status",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       setIsOnline(false);
       setIsReconnecting(false);
       
       if (error.name !== 'AbortError') {
         console.error("Error checking network:", error);
+        
+        if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          setResourceError(true);
+          toast.error("Browser resource limit reached", {
+            id: "resource-error",
+            description: "Try refreshing the page or closing unused tabs"
+          });
+        }
       }
     }
-  }, []);
+  }, [isReconnecting]);
 
   const handleOnline = useCallback(() => {
     setIsOnline(true);
+    setResourceError(false);
     toast.success("Network connection restored", {
       id: "network-status",
     });
@@ -55,6 +72,30 @@ export function NetworkStatusIndicator() {
       id: "network-status",
       description: "Some features may not work properly until connection is restored"
     });
+  }, []);
+
+  // Monitor for ERR_INSUFFICIENT_RESOURCES errors
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    
+    window.fetch = async function(...args) {
+      try {
+        return await originalFetch.apply(this, args);
+      } catch (error: any) {
+        if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          setResourceError(true);
+          toast.error("Browser resource limit reached", {
+            id: "resource-error",
+            description: "Try refreshing the page or closing unused tabs"
+          });
+        }
+        throw error;
+      }
+    };
+    
+    return () => {
+      window.fetch = originalFetch;
+    };
   }, []);
 
   useEffect(() => {
@@ -69,22 +110,46 @@ export function NetworkStatusIndicator() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
     };
   }, [handleOnline, handleOffline, checkConnection]);
 
-  if (isOnline) {
+  const handleRetry = () => {
+    // Clear any existing timeout
+    if (checkTimeoutRef.current) {
+      clearTimeout(checkTimeoutRef.current);
+    }
+    
+    // If there was a resource error, wait a bit longer before retrying
+    if (resourceError) {
+      toast.info("Waiting for browser resources to free up...", {
+        duration: 5000
+      });
+      checkTimeoutRef.current = setTimeout(() => {
+        checkConnection();
+      }, 5000);
+    } else {
+      checkConnection();
+    }
+  };
+
+  if (isOnline && !resourceError) {
     return null; // Don't show anything when online
   }
 
   return (
     <div className="fixed bottom-4 right-4 bg-destructive/90 text-white p-2 rounded-md shadow-lg z-50 flex items-center space-x-2">
       <WifiOff className="h-4 w-4" />
-      <span className="text-sm">Offline</span>
+      <span className="text-sm">
+        {resourceError ? "Resource Limit" : "Offline"}
+      </span>
       {isReconnecting ? (
         <RefreshCw className="h-4 w-4 animate-spin" />
       ) : (
         <button 
-          onClick={checkConnection}
+          onClick={handleRetry}
           className="ml-2 bg-white/20 p-1 rounded hover:bg-white/30 transition-colors"
           aria-label="Retry connection"
         >

@@ -12,21 +12,30 @@ export async function withRetry<T>(
   baseDelay: number = 1000
 ): Promise<T> {
   let lastError: Error | null = null;
+  let attempts = 0;
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  while (attempts <= maxRetries) {
     try {
+      // Add a small random delay before each attempt to avoid resource contention
+      if (attempts > 0) {
+        const jitter = Math.random() * 200;
+        await new Promise(resolve => setTimeout(resolve, jitter));
+      }
+      
       return await operation();
     } catch (error) {
-      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
+      console.warn(`Operation failed (attempt ${attempts + 1}/${maxRetries + 1}):`, error);
       lastError = error instanceof Error ? error : new Error(String(error));
       
       // Don't wait after the last attempt
-      if (attempt < maxRetries) {
+      if (attempts < maxRetries) {
         // Calculate exponential backoff delay with jitter
-        const delay = baseDelay * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
+        const delay = baseDelay * Math.pow(2, attempts) * (0.5 + Math.random() * 0.5);
         console.log(`Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+      
+      attempts++;
     }
   }
   
@@ -49,7 +58,8 @@ export function isNetworkError(error: any): boolean {
     errorMessage.includes('Network request failed') ||
     errorMessage.includes('ERR_NAME_NOT_RESOLVED') ||
     errorMessage.includes('ERR_INTERNET_DISCONNECTED') ||
-    errorMessage.includes('ERR_CONNECTION_REFUSED')
+    errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+    errorMessage.includes('ERR_INSUFFICIENT_RESOURCES')
   );
 }
 
@@ -79,5 +89,54 @@ export function getNetworkErrorMessage(error: any): string {
     return 'Network error: Unable to connect to the server. Please check your internet connection.';
   }
   
+  if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES')) {
+    return 'Your browser has insufficient resources to complete this request. Try refreshing the page or closing some tabs.';
+  }
+  
   return errorMessage;
+}
+
+// Type definition for API responses from Edge Functions
+export interface EdgeFunctionResponse<T = any> {
+  data?: T;
+  error?: {
+    message: string;
+    details?: string;
+    statusCode?: number;
+  };
+  success?: boolean;
+}
+
+// Rate limiting utility to prevent too many concurrent requests
+const activeRequests = new Map<string, number>();
+const MAX_CONCURRENT_REQUESTS = 3;
+
+/**
+ * Limits the number of concurrent requests to the same endpoint
+ * @param key - Unique key to identify the request type
+ * @param operation - The operation to perform
+ * @returns Result of the operation
+ */
+export async function withRateLimit<T>(
+  key: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  const currentCount = activeRequests.get(key) || 0;
+  
+  if (currentCount >= MAX_CONCURRENT_REQUESTS) {
+    throw new Error(`Too many concurrent requests to ${key}. Please try again later.`);
+  }
+  
+  activeRequests.set(key, currentCount + 1);
+  
+  try {
+    return await operation();
+  } finally {
+    const newCount = (activeRequests.get(key) || 1) - 1;
+    if (newCount <= 0) {
+      activeRequests.delete(key);
+    } else {
+      activeRequests.set(key, newCount);
+    }
+  }
 }

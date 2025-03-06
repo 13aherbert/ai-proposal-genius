@@ -51,14 +51,21 @@ export default function AccountSettings() {
     try {
       setIsLoadingProfile(true);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, first_name, last_name, business_name, birthday')
-        .eq('profile_id', session.user.id)
-        .maybeSingle();
+      const { data, error } = await withRetry(
+        () => supabase
+          .from('profiles')
+          .select('username, first_name, last_name, business_name, birthday')
+          .eq('profile_id', session.user.id)
+          .maybeSingle(),
+        2, // Max 2 retries for profile fetch
+        2000 // 2 second base delay
+      );
       
       if (error) {
         console.error('Error fetching profile:', error);
+        toast.error("Error loading profile", {
+          description: isNetworkError(error) ? getNetworkErrorMessage(error) : error.message
+        });
         return;
       }
       
@@ -74,6 +81,9 @@ export default function AccountSettings() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      toast.error("Failed to load profile", {
+        description: isNetworkError(error) ? getNetworkErrorMessage(error) : "Please try refreshing the page."
+      });
     } finally {
       setIsLoadingProfile(false);
     }

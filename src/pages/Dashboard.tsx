@@ -8,6 +8,7 @@ import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { Card, CardContent } from "@/components/ui/card";
 import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
+import { BetaRoleDebugger } from "@/components/development/BetaRoleDebugger";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -74,6 +75,14 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Only show the beta role debugger in development mode */}
+          {import.meta.env.DEV && (
+            <div className="mt-4 md:mt-8">
+              <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Developer Tools</h2>
+              <BetaRoleDebugger />
+            </div>
+          )}
         </div>
       </div>
     </div>

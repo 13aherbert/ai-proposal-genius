@@ -7,7 +7,7 @@
  * @returns The result of the operation
  */
 export async function withRetry<T>(
-  operation: () => Promise<T>,
+  operation: () => Promise<T> | T,
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> {

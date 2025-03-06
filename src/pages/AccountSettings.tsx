@@ -53,30 +53,32 @@ export default function AccountSettings() {
     try {
       setIsLoadingProfile(true);
       
-      const { data, error } = await withRetry(
-        () => supabase
-          .from('profiles')
-          .select('username, first_name, last_name, business_name, birthday')
-          .eq('profile_id', session.user.id)
-          .maybeSingle(),
+      const result = await withRetry(
+        async () => {
+          return await supabase
+            .from('profiles')
+            .select('username, first_name, last_name, business_name, birthday')
+            .eq('profile_id', session.user.id)
+            .maybeSingle();
+        },
         2, // Max 2 retries for profile fetch
         2000 // 2 second base delay
       );
       
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (result.error) {
+        console.error('Error fetching profile:', result.error);
         toast.error("Error loading profile", {
-          description: isNetworkError(error) ? getNetworkErrorMessage(error) : error.message
+          description: isNetworkError(result.error) ? getNetworkErrorMessage(result.error) : result.error.message
         });
         return;
       }
       
-      if (data) {
-        setUsername(data.username || "");
-        setFirstName(data.first_name || "");
-        setLastName(data.last_name || "");
-        setBusinessName(data.business_name || "");
-        setBirthday(data.birthday || "");
+      if (result.data) {
+        setUsername(result.data.username || "");
+        setFirstName(result.data.first_name || "");
+        setLastName(result.data.last_name || "");
+        setBusinessName(result.data.business_name || "");
+        setBirthday(result.data.birthday || "");
       } else {
         console.log("No profile found, creating one...");
         await createProfile();

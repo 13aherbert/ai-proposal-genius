@@ -14,7 +14,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       return false;
     }
 
-    console.log(`Checking role '${role}' for user ${user.user.id}`);
+    console.log(`Starting role check for '${role}' - User ID: ${user.user.id}`);
 
     // Use the check_existing_role function which has SECURITY DEFINER to bypass RLS
     const { data, error } = await supabase.rpc('check_existing_role', {
@@ -27,9 +27,26 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       return false;
     }
     
-    console.log(`Role check '${role}' result:`, {
+    // Log the complete response for debugging
+    console.log(`Role check details for '${role}':`, {
       result: !!data,
-      rawData: data,
+      rawResponse: data,
+      userId: user.user.id,
+      timestamp: new Date().toISOString()
+    });
+
+    // Make a direct query to the user_roles table to verify the data
+    const { data: directCheck, error: directError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.user.id)
+      .eq('role', role)
+      .single();
+
+    console.log(`Direct table check for role '${role}':`, {
+      result: !!directCheck,
+      data: directCheck,
+      error: directError,
       userId: user.user.id,
       timestamp: new Date().toISOString()
     });

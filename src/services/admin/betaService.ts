@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
+import { emailService } from "../EmailService";
 
 /**
  * Get all beta invitations
@@ -67,6 +68,7 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     // Calculate expiration date (30 days from now)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
+    const expiresAtString = expiresAt.toISOString();
 
     // Get current user ID for invited_by field
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -82,7 +84,7 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
         email,
         invite_code: inviteCode,
         status: 'pending',
-        expires_at: expiresAt.toISOString(),
+        expires_at: expiresAtString,
         invited_by: userData.user.id
       });
 
@@ -90,6 +92,27 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       console.error('Error creating beta invitation:', error);
       toast.error("Failed to create invitation", { description: error.message });
       return false;
+    }
+
+    // Send invitation email
+    const emailResult = await emailService.sendBetaInviteEmail(
+      email,
+      inviteCode,
+      expiresAtString
+    );
+
+    if (!emailResult.success) {
+      console.error('Failed to send invitation email:', emailResult.error);
+      toast.warning("Invitation created but email could not be sent", { 
+        description: "The user will need the invitation link manually" 
+      });
+    } else {
+      // Update invitation to mark email as sent
+      await supabase
+        .from('beta_invitations')
+        .update({ invitation_email_sent: true })
+        .eq('email', email)
+        .eq('invite_code', inviteCode);
     }
 
     toast.success("Invitation created successfully");

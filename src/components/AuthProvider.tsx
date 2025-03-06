@@ -1,8 +1,10 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emailService } from "@/services/EmailService";
 
 type AuthContextType = {
   session: Session | null;
@@ -46,10 +48,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
+      const resetUrl = `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: resetUrl,
       });
       if (error) throw error;
+      
+      // Send custom password reset email
+      await emailService.sendPasswordResetEmail(email, resetUrl);
       
       toast.success("Password reset email sent", {
         description: "Check your email for the reset link"

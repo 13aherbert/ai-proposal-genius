@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { emailService } from "@/services/EmailService";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -43,13 +44,26 @@ export default function ResetPassword() {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error, data } = await supabase.auth.updateUser({ password });
       
       if (error) throw error;
       
       toast.success("Password updated successfully", {
         description: "You can now log in with your new password"
       });
+
+      // Send password changed confirmation email if we have the user's email
+      if (data?.user?.email) {
+        await emailService.sendEmail({
+          to: [data.user.email],
+          subject: "Your OptiRFP password has been changed",
+          html: `
+            <h2>Password Change Confirmation</h2>
+            <p>Your password for OptiRFP has been successfully changed.</p>
+            <p>If you did not initiate this change, please contact support immediately.</p>
+          `
+        });
+      }
       
       // Short delay before redirecting
       setTimeout(() => {

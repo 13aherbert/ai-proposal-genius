@@ -72,3 +72,6 @@ verify_jwt = true
 name = "get-beta-invitations"
 verify_jwt = true
 
+[[functions]]
+name = "send-email"
+verify_jwt = true

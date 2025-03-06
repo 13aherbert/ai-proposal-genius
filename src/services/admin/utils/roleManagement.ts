@@ -9,9 +9,12 @@ import { isAdmin } from "./roleCheckers";
  */
 export async function assignRole(userId: string, role: UserRole): Promise<boolean> {
   try {
+    console.log(`Attempting to assign role '${role}' to user ${userId}`);
+    
     // Check admin status first
     const adminStatus = await isAdmin();
     if (!adminStatus) {
+      console.error("Role assignment failed: Not an admin");
       toast.error("Access denied", { description: "You don't have permission to assign roles" });
       return false;
     }
@@ -19,10 +22,13 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
     // Get current user information 
     const { data: currentUser } = await supabase.auth.getUser();
     if (!currentUser.user) {
+      console.error("Role assignment failed: No current user");
       toast.error("Authentication error", { description: "You need to be logged in" });
       return false;
     }
 
+    console.log(`Calling assign_user_role RPC function with role: ${role}`);
+    
     // Use the assign_user_role RPC function which avoids RLS recursion
     const { data, error } = await supabase.rpc('assign_user_role', {
       _user_id: userId,
@@ -38,10 +44,12 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
 
     // If data is null, the role already exists (based on our RPC function logic)
     if (data === null) {
+      console.log(`User ${userId} already has the ${role} role`);
       toast.info("Role already assigned", { description: `User already has the ${role} role` });
       return true;
     }
 
+    console.log(`Successfully assigned ${role} role to user ${userId}, new role ID: ${data}`);
     toast.success("Role assigned successfully");
     return true;
   } catch (error) {

@@ -55,7 +55,7 @@ export function ActionButtons({
       {showBetaBadge && (
         <Button 
           variant="outline" 
-          className="bg-black/20 border-brand-silver hover:bg-black/40"
+          className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
           onClick={() => navigate('/beta')}
         >
           <Beaker className="h-5 w-5 mr-2" />
@@ -65,7 +65,7 @@ export function ActionButtons({
       
       {/* Beta Tester Badge */}
       {showBetaBadge && (
-        <Badge variant="outline" className="py-2 px-3">
+        <Badge variant="outline" className="py-2 px-3 border-purple-400 bg-purple-900/20">
           <Crown className="h-4 w-4 mr-1" />
           Beta Tester
         </Badge>

@@ -101,7 +101,7 @@ export function BetaRoleDebugger() {
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
               <div className="mb-2">
                 Found: {directQueryResult.length > 0 ? (
-                  <Badge variant="success" className="bg-green-500">Yes</Badge>
+                  <Badge variant="default" className="bg-green-500">Yes</Badge>
                 ) : (
                   <Badge variant="destructive">No</Badge>
                 )}
@@ -119,7 +119,7 @@ export function BetaRoleDebugger() {
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
               <div className="mb-2">
                 Is Beta Tester: {serviceResult ? (
-                  <Badge variant="success" className="bg-green-500">Yes</Badge>
+                  <Badge variant="default" className="bg-green-500">Yes</Badge>
                 ) : (
                   <Badge variant="destructive">No</Badge>
                 )}

@@ -25,6 +25,14 @@ export default function DashboardHeader() {
     roleCheckError 
   } = useUserRoles();
 
+  console.log("Dashboard Header - showBetaBadge:", showBetaBadge);
+  console.log("Dashboard Header - useUserRoles state:", {
+    isCheckingRoles, 
+    showAdminButton, 
+    showBetaBadge, 
+    roleCheckError
+  });
+
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
       <CardContent className="p-4 md:p-6">

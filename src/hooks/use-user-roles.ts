@@ -1,7 +1,6 @@
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { adminService, isBetaTester } from "@/services/admin";
+import { adminService } from "@/services/admin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,39 +28,8 @@ export function useUserRoles() {
     try {
       console.log("Starting beta tester role check");
       
-      // First try direct database query for beta_tester role
-      const { data: user } = await supabase.auth.getUser();
-      if (!user || !user.user) {
-        console.error("No authenticated user found for beta check");
-        return false;
-      }
-
-      console.log("Checking beta_tester role for user:", user.user.id);
-
-      const { data: directCheck, error: directError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user.user.id)
-        .eq('role', 'beta_tester');
-      
-      console.log("Direct beta tester check results:", {
-        result: directCheck && directCheck.length > 0,
-        count: directCheck?.length || 0,
-        data: directCheck,
-        error: directError
-      });
-      
-      // If direct check gives us a clear result, use that
-      if (!directError && directCheck && directCheck.length > 0) {
-        console.log("Beta tester role confirmed via direct check");
-        const newBetaStatus = true;
-        betaTesterStatusRef.current = newBetaStatus;
-        setIsBetaTester(newBetaStatus);
-        return true;
-      }
-      
-      // Fallback to the dedicated beta tester check function
-      console.log("Falling back to dedicated isBetaTester check");
+      // Try the dedicated beta tester function first (most reliable method)
+      console.log("Using dedicated isBetaTester check");
       const betaCheck = await adminService.isBetaTester();
       
       console.log("Beta tester dedicated check result:", betaCheck);

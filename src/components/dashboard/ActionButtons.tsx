@@ -78,6 +78,13 @@ export function ActionButtons({
         </Badge>
       )}
       
+      {/* Render debugging info for non-production environments */}
+      {import.meta.env.DEV && (
+        <Badge variant="outline" className="py-2 px-3 bg-blue-900/20 border-blue-400">
+          Beta Badge: {showBetaBadge ? 'Yes' : 'No'}
+        </Badge>
+      )}
+      
       {roleCheckError && !isCheckingRoles && showAdminButton && (
         <Badge variant="destructive" className="py-2 px-3">
           <AlertCircle className="h-4 w-4 mr-1" />

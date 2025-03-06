@@ -57,17 +57,31 @@ export function useUserRoles() {
           }
           
           // Check beta tester role regardless of admin status
-          // Modified: Always check beta tester role, even for admins
-          const betaCheck = await adminService.checkUserRole('beta_tester');
-          if (isMounted) {
-            setIsBetaTester(betaCheck);
-            console.log("Beta tester check result:", betaCheck);
+          try {
+            // Explicitly log and wait for the beta check
+            console.log("Checking beta tester role...");
+            const betaCheck = await adminService.checkUserRole('beta_tester');
+            console.log("Beta tester check completed with result:", betaCheck);
+            
+            if (isMounted) {
+              // Force state update for beta tester status
+              setIsBetaTester(!!betaCheck);
+              console.log("Setting isBetaTester state to:", !!betaCheck);
+            }
+          } catch (betaError) {
+            console.error("Error during beta tester check:", betaError);
+            // Don't interrupt flow on beta check error
           }
           
           // Check and ensure user role
-          const userCheck = await adminService.ensureUserRole();
-          if (isMounted) {
-            setIsUser(userCheck);
+          try {
+            const userCheck = await adminService.ensureUserRole();
+            if (isMounted) {
+              setIsUser(userCheck);
+            }
+          } catch (userError) {
+            console.error("Error during user role check:", userError);
+            // Don't interrupt flow on user check error
           }
           
           setIsCheckingRoles(false);
@@ -117,7 +131,30 @@ export function useUserRoles() {
       }
     };
     
+    // Run the check immediately
     checkRoles();
+    
+    // Also set up a separate beta role checker that runs more often to ensure beta roles are caught
+    const checkBetaRole = async () => {
+      if (session?.user) {
+        try {
+          console.log("Performing dedicated beta role check...");
+          const betaCheck = await adminService.checkUserRole('beta_tester');
+          console.log("Dedicated beta check result:", betaCheck);
+          
+          if (isMounted) {
+            // Force state update for beta tester status
+            setIsBetaTester(!!betaCheck);
+            console.log("Updated isBetaTester state to:", !!betaCheck);
+          }
+        } catch (error) {
+          console.error("Error in dedicated beta role check:", error);
+        }
+      }
+    };
+    
+    // Run the beta check after a short delay
+    const betaCheckTimer = setTimeout(checkBetaRole, 1500);
     
     return () => {
       isMounted = false;
@@ -126,14 +163,15 @@ export function useUserRoles() {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      clearTimeout(betaCheckTimer);
     };
-  }, [session]);
+  }, [session, adminCheckAttempts]);
 
-  // Fix: Make beta button visible even for admins if they are also beta testers
+  // Calculate derived values outside of useEffect to ensure they're updated when state changes
   const showAdminButton = isAdmin && !isCheckingRoles;
   const showBetaBadge = isBetaTester && !isCheckingRoles;
 
-  console.log("useUserRoles final state values:", { isAdmin, isBetaTester, showAdminButton, showBetaBadge });
+  console.log("useUserRoles final state values:", { isAdmin, isBetaTester, isUser, showAdminButton, showBetaBadge });
 
   return {
     isAdmin,

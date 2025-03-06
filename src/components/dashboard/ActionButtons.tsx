@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 type ActionButtonsProps = {
   isCheckingRoles: boolean;
@@ -20,7 +21,14 @@ export function ActionButtons({
 }: ActionButtonsProps) {
   const navigate = useNavigate();
 
-  console.log("ActionButtons component - showBetaBadge:", showBetaBadge);
+  useEffect(() => {
+    console.log("ActionButtons component - detailed props:", { 
+      isCheckingRoles, 
+      showAdminButton, 
+      showBetaBadge, 
+      roleCheckError 
+    });
+  }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
   return (
     <div className="flex flex-wrap gap-3 items-center">

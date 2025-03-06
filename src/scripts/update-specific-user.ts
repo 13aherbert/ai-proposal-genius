@@ -1,11 +1,10 @@
-
 /**
  * This script updates the specified user to an active starter subscription
  * It can be executed from the browser console
  */
 import { updateUserSubscription } from '../services/admin/userService';
 import { toast } from 'sonner';
-import { withRetry, isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
+import { withRetry, isNetworkError, getNetworkErrorMessage } from '@/utils/network';
 
 // Flag to prevent multiple executions at once
 let isUpdating = false;

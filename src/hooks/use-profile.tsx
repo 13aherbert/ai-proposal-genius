@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
-import { withRetry, isNetworkError, getNetworkErrorMessage } from "@/utils/network-utils";
+import { withRetry, isNetworkError, getNetworkErrorMessage } from "@/utils/network";
 
 interface ProfileData {
   username: string;

@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
+import { isNetworkError, getNetworkErrorMessage } from '@/utils/network';
 
 /**
  * Component that monitors network status and displays a visual indicator

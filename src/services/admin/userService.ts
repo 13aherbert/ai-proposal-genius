@@ -1,9 +1,8 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { isAdmin } from "./roleService";
-import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network-utils";
+import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network";
 
 /**
  * Get all user profiles for admin management

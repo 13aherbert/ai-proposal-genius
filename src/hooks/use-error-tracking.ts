@@ -1,8 +1,7 @@
-
 import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import ErrorTrackingService, { ErrorData, ErrorSeverity, PerformanceMetric } from '@/services/ErrorTrackingService';
-import { isNetworkError, getNetworkErrorMessage } from '@/utils/network-utils';
+import { isNetworkError, getNetworkErrorMessage } from '@/utils/network';
 
 export function useErrorTracking() {
   const { session } = useAuth();

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, XCircle } from "lucide-react";
 import { UserProfile, UserRole } from "@/services/admin/types";
 import { adminService } from "@/services/admin";
@@ -25,13 +25,13 @@ interface UserManagementProps {
   setSelectedStatus: (status: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  dialogOpen: boolean;
-  setDialogOpen: (open: boolean) => void;
+  editingUserId: string | null;
+  startEditingUser: (userId: string) => void;
+  stopEditingUser: (refresh?: boolean) => Promise<void>;
   handleAssignRole: () => Promise<void>;
   handleRemoveRole: (userId: string, role: UserRole) => Promise<void>;
   handleUpdateSubscription: () => Promise<void>;
   loadUsers: () => Promise<void>;
-  handleDialogClose: (refresh?: boolean) => Promise<void>;
 }
 
 /**
@@ -51,13 +51,13 @@ export function UserManagement({
   setSelectedStatus,
   searchQuery,
   setSearchQuery,
-  dialogOpen,
-  setDialogOpen,
+  editingUserId,
+  startEditingUser,
+  stopEditingUser,
   handleAssignRole,
   handleRemoveRole,
   handleUpdateSubscription,
   loadUsers,
-  handleDialogClose
 }: UserManagementProps) {
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
@@ -246,19 +246,13 @@ export function UserManagement({
                       </TableCell>
                       <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <UserEditDialog 
-                          user={user} 
-                          dialogOpen={dialogOpen} 
-                          setDialogOpen={setDialogOpen}
-                          selectedRole={selectedRole}
-                          setSelectedRole={setSelectedRole}
-                          selectedPlan={selectedPlan}
-                          setSelectedPlan={setSelectedPlan}
-                          selectedStatus={selectedStatus}
-                          setSelectedStatus={setSelectedStatus}
-                          handleDialogClose={handleDialogClose}
-                          loadUsers={loadUsers}
-                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => startEditingUser(user.userId)}
+                        >
+                          Edit
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -282,6 +276,23 @@ export function UserManagement({
           </Button>
         </CardFooter>
       </Card>
+      
+      {/* User Edit Dialog */}
+      {users.map(user => (
+        <UserEditDialog
+          key={user.userId}
+          user={user}
+          isOpen={editingUserId === user.userId}
+          onClose={stopEditingUser}
+          selectedRole={selectedRole}
+          setSelectedRole={setSelectedRole}
+          selectedPlan={selectedPlan}
+          setSelectedPlan={setSelectedPlan}
+          selectedStatus={selectedStatus}
+          setSelectedStatus={setSelectedStatus}
+          loadUsers={loadUsers}
+        />
+      ))}
     </>
   );
 }
@@ -334,34 +345,37 @@ function UserInvitationCard() {
  */
 function UserEditDialog({
   user,
-  dialogOpen,
-  setDialogOpen,
+  isOpen,
+  onClose,
   selectedRole,
   setSelectedRole,
   selectedPlan,
   setSelectedPlan,
   selectedStatus,
   setSelectedStatus,
-  handleDialogClose,
   loadUsers,
 }: {
   user: UserProfile;
-  dialogOpen: boolean;
-  setDialogOpen: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: (refresh?: boolean) => Promise<void>;
   selectedRole: UserRole;
   setSelectedRole: (role: UserRole) => void;
   selectedPlan: string;
   setSelectedPlan: (plan: string) => void;
   selectedStatus: string;
   setSelectedStatus: (status: string) => void;
-  handleDialogClose: (refresh?: boolean) => Promise<void>;
   loadUsers: () => Promise<void>;
 }) {
+  // Set initial values when the dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedPlan(user.subscription?.plan || 'starter');
+      setSelectedStatus(user.subscription?.status || 'active');
+    }
+  }, [isOpen, user, setSelectedPlan, setSelectedStatus]);
+
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Edit</Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose(false)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User: {user.email}</DialogTitle>
@@ -398,7 +412,10 @@ function UserEditDialog({
           <div className="space-y-2">
             <Label>Update Subscription Plan</Label>
             <div className="flex space-x-2">
-              <Select onValueChange={setSelectedPlan} defaultValue={user.subscription?.plan || "trial"}>
+              <Select 
+                onValueChange={setSelectedPlan}
+                value={selectedPlan}
+              >
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Select a plan" />
                 </SelectTrigger>
@@ -414,7 +431,10 @@ function UserEditDialog({
           <div className="space-y-2">
             <Label>Subscription Status</Label>
             <div className="flex space-x-2">
-              <Select onValueChange={setSelectedStatus} defaultValue={user.subscription?.status || "active"}>
+              <Select 
+                onValueChange={setSelectedStatus}
+                value={selectedStatus}
+              >
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -440,7 +460,7 @@ function UserEditDialog({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => handleDialogClose(true)}>
+          <Button variant="outline" type="button" onClick={() => onClose(true)}>
             Close
           </Button>
         </DialogFooter>

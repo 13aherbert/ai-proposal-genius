@@ -28,16 +28,16 @@ export default function AdminDashboard() {
     setSelectedStatus,
     searchQuery,
     setSearchQuery,
-    dialogOpen,
-    setDialogOpen,
+    editingUserId,
+    startEditingUser,
+    stopEditingUser,
     handleAssignRole,
     handleRemoveRole,
     handleUpdateSubscription,
     loadUsers,
     invitations,
     isLoadingInvitations,
-    loadInvitations,
-    handleDialogClose
+    loadInvitations
   } = useAdminDashboard();
 
   // Loading state
@@ -106,13 +106,13 @@ export default function AdminDashboard() {
             setSelectedStatus={setSelectedStatus}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            dialogOpen={dialogOpen}
-            setDialogOpen={setDialogOpen}
+            editingUserId={editingUserId}
+            startEditingUser={startEditingUser}
+            stopEditingUser={stopEditingUser}
             handleAssignRole={handleAssignRole}
             handleRemoveRole={handleRemoveRole}
             handleUpdateSubscription={handleUpdateSubscription}
             loadUsers={loadUsers}
-            handleDialogClose={handleDialogClose}
           />
         </TabsContent>
         

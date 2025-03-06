@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { adminService, UserProfile, UserRole, BetaInvitation } from "@/services/admin";
 import { toast } from "sonner";
@@ -20,7 +19,7 @@ export function useAdminDashboard() {
   const [selectedPlan, setSelectedPlan] = useState('starter');
   const [selectedStatus, setSelectedStatus] = useState('active');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
   // Beta invitation states
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
@@ -127,10 +126,24 @@ export function useAdminDashboard() {
   };
 
   /**
-   * Handle dialog close with optional refresh
+   * Start editing a specific user
    */
-  const handleDialogClose = async (refresh: boolean = false) => {
-    setDialogOpen(false);
+  const startEditingUser = (userId: string) => {
+    setEditingUserId(userId);
+    // Find the user to initialize form values
+    const userToEdit = users.find(user => user.userId === userId);
+    if (userToEdit) {
+      setSelectedRole('beta_tester'); // Default role for assignment
+      setSelectedPlan(userToEdit.subscription?.plan || 'starter');
+      setSelectedStatus(userToEdit.subscription?.status || 'active');
+    }
+  };
+
+  /**
+   * Stop editing a user
+   */
+  const stopEditingUser = async (refresh: boolean = false) => {
+    setEditingUserId(null);
     if (refresh) {
       await loadUsers();
     }
@@ -155,8 +168,9 @@ export function useAdminDashboard() {
     setSelectedStatus,
     searchQuery,
     setSearchQuery,
-    dialogOpen,
-    setDialogOpen,
+    editingUserId,
+    startEditingUser,
+    stopEditingUser,
     handleAssignRole,
     handleRemoveRole,
     handleUpdateSubscription,
@@ -168,8 +182,5 @@ export function useAdminDashboard() {
     loadInvitations,
     inviteEmail,
     setInviteEmail,
-    
-    // Dialog handling
-    handleDialogClose
   };
 }

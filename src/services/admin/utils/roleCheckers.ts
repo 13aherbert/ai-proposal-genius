@@ -38,6 +38,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
         userId: user.user.id,
         timestamp: new Date().toISOString()
       });
+      console.log('Beta tester check completed with result:', !!data);
     }
     
     return !!data;

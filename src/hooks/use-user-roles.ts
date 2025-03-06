@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -13,11 +13,32 @@ export function useUserRoles() {
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   const [adminCheckAttempts, setAdminCheckAttempts] = useState(0);
   
-  // Use a ref to store whether we've already determined admin status
+  // Use refs to store whether we've already determined role statuses
   const adminStatusDetermined = useRef(false);
+  const betaStatusDetermined = useRef(false);
   
   // Use a ref to store timeout IDs to properly clean them up
   const timeoutRef = useRef<number | null>(null);
+
+  // Dedicated function to check beta tester role
+  const checkBetaTesterRole = useCallback(async () => {
+    if (!session?.user) return false;
+    
+    console.log("Performing dedicated beta role check...");
+    try {
+      const betaCheck = await adminService.checkUserRole('beta_tester');
+      console.log(`Dedicated beta check result: ${betaCheck}`);
+      
+      // Force state update for beta tester status
+      setIsBetaTester(!!betaCheck);
+      betaStatusDetermined.current = true;
+      
+      return !!betaCheck;
+    } catch (error) {
+      console.error("Error in dedicated beta role check:", error);
+      return false;
+    }
+  }, [session]);
   
   useEffect(() => {
     let isMounted = true;
@@ -26,64 +47,61 @@ export function useUserRoles() {
       if (!session?.user) {
         if (isMounted) {
           setIsCheckingRoles(false);
+          setIsAdmin(false);
+          setIsBetaTester(false);
+          setIsUser(false);
         }
         return;
       }
       
-      // Skip checks if we've already determined admin status
-      if (adminStatusDetermined.current) {
-        setIsCheckingRoles(false);
-        return;
-      }
-      
       try {
-        // Only set isCheckingRoles to true for confirmed admin users
-        // For our first check, we'll do a quick check without showing the loading state
-        const quickAdminCheck = await adminService.isAdmin();
-        
-        if (quickAdminCheck) {
-          // Only show loading state for actual admin users
+        // Only set isCheckingRoles to true for the first check
+        if (!adminStatusDetermined.current && !betaStatusDetermined.current) {
           setIsCheckingRoles(true);
         }
         
         setRoleCheckError(null);
         
-        if (isMounted) {
-          setIsAdmin(quickAdminCheck);
+        // Check admin status if not already determined
+        if (!adminStatusDetermined.current) {
+          const adminCheck = await adminService.isAdmin();
           
-          // Mark that we've determined the admin status
-          if (quickAdminCheck) {
-            adminStatusDetermined.current = true;
-          }
-          
-          // Check beta tester role regardless of admin status
-          try {
-            // Explicitly log and wait for the beta check
-            console.log("Checking beta tester role...");
-            const betaCheck = await adminService.checkUserRole('beta_tester');
-            console.log("Beta tester check completed with result:", betaCheck);
+          if (isMounted) {
+            setIsAdmin(adminCheck);
             
-            if (isMounted) {
-              // Force state update for beta tester status
-              setIsBetaTester(!!betaCheck);
-              console.log("Setting isBetaTester state to:", !!betaCheck);
+            // Mark that we've determined the admin status
+            if (adminCheck) {
+              adminStatusDetermined.current = true;
             }
-          } catch (betaError) {
-            console.error("Error during beta tester check:", betaError);
-            // Don't interrupt flow on beta check error
           }
+        }
+        
+        // Check beta tester role
+        if (!betaStatusDetermined.current) {
+          console.log("Checking beta tester role...");
+          const betaCheck = await checkBetaTesterRole();
           
-          // Check and ensure user role
-          try {
-            const userCheck = await adminService.ensureUserRole();
-            if (isMounted) {
-              setIsUser(userCheck);
+          if (isMounted) {
+            setIsBetaTester(betaCheck);
+            
+            // Mark that we've determined the beta tester status
+            if (betaCheck) {
+              betaStatusDetermined.current = true;
             }
-          } catch (userError) {
-            console.error("Error during user role check:", userError);
-            // Don't interrupt flow on user check error
           }
-          
+        }
+        
+        // Check and ensure user role
+        try {
+          const userCheck = await adminService.ensureUserRole();
+          if (isMounted) {
+            setIsUser(userCheck);
+          }
+        } catch (userError) {
+          console.error("Error during user role check:", userError);
+        }
+        
+        if (isMounted) {
           setIsCheckingRoles(false);
         }
       } catch (err) {
@@ -95,14 +113,14 @@ export function useUserRoles() {
             setRoleCheckError("Could not verify user roles");
           }
           
-          // Fewer retry attempts to reduce API load
+          // Retry once if needed
           if (adminCheckAttempts < 1 && !adminStatusDetermined.current) {
             const nextAttempt = adminCheckAttempts + 1;
             setAdminCheckAttempts(nextAttempt);
-            console.log(`Retrying admin check (attempt ${nextAttempt} of 1)...`);
+            console.log(`Retrying role checks (attempt ${nextAttempt} of 1)...`);
             
-            // Use a longer delay to reduce API pressure (5 seconds)
-            const delay = 5000;
+            // Use a longer delay (3 seconds)
+            const delay = 3000;
             
             // Clear any existing timeout
             if (timeoutRef.current) {
@@ -120,9 +138,9 @@ export function useUserRoles() {
           } else {
             // If we've exceeded retry attempts, just finish the checking process
             if (isAdmin) {
-              toast.error("Failed to check admin status", { 
+              toast.error("Failed to check role status", { 
                 description: "Please refresh the page or try again later",
-                id: "admin-check-error" // Prevent duplicate toasts
+                id: "role-check-error"
               });
             }
             setIsCheckingRoles(false);
@@ -134,27 +152,22 @@ export function useUserRoles() {
     // Run the check immediately
     checkRoles();
     
-    // Also set up a separate beta role checker that runs more often to ensure beta roles are caught
-    const checkBetaRole = async () => {
-      if (session?.user) {
+    // Also set up a separate beta role checker that runs every few seconds
+    // to ensure beta roles are properly detected
+    const betaCheckInterval = setInterval(async () => {
+      if (session?.user && !betaStatusDetermined.current) {
         try {
-          console.log("Performing dedicated beta role check...");
-          const betaCheck = await adminService.checkUserRole('beta_tester');
-          console.log("Dedicated beta check result:", betaCheck);
-          
-          if (isMounted) {
-            // Force state update for beta tester status
-            setIsBetaTester(!!betaCheck);
-            console.log("Updated isBetaTester state to:", !!betaCheck);
+          const betaCheck = await checkBetaTesterRole();
+          if (betaCheck && isMounted) {
+            console.log("Beta role detected in interval check!");
+            setIsBetaTester(true);
+            betaStatusDetermined.current = true;
           }
         } catch (error) {
-          console.error("Error in dedicated beta role check:", error);
+          console.error("Error in beta role interval check:", error);
         }
       }
-    };
-    
-    // Run the beta check after a short delay
-    const betaCheckTimer = setTimeout(checkBetaRole, 1500);
+    }, 3000);
     
     return () => {
       isMounted = false;
@@ -163,9 +176,9 @@ export function useUserRoles() {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      clearTimeout(betaCheckTimer);
+      clearInterval(betaCheckInterval);
     };
-  }, [session, adminCheckAttempts]);
+  }, [session, adminCheckAttempts, checkBetaTesterRole]);
 
   // Calculate derived values outside of useEffect to ensure they're updated when state changes
   const showAdminButton = isAdmin && !isCheckingRoles;

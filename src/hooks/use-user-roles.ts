@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -28,22 +29,21 @@ export function useUserRoles() {
     try {
       console.log("Starting beta tester role check");
       
-      // Try the dedicated beta tester function first (most reliable method)
+      // Use the dedicated beta tester function that bypasses RLS
       console.log("Using dedicated isBetaTester check");
       const betaCheck = await adminService.isBetaTester();
       
       console.log("Beta tester dedicated check result:", betaCheck);
       
       // Update both the ref and state together to ensure they stay in sync
-      const newBetaStatus = !!betaCheck;
-      betaTesterStatusRef.current = newBetaStatus;
-      setIsBetaTester(newBetaStatus);
+      betaTesterStatusRef.current = !!betaCheck;
+      setIsBetaTester(!!betaCheck);
       
-      console.log("After update - beta status:", newBetaStatus);
+      console.log("After update - beta status:", betaTesterStatusRef.current, "state:", isBetaTester);
       
       lastNetworkErrorTimeRef.current = null;
       
-      return newBetaStatus;
+      return !!betaCheck;
     } catch (error) {
       console.error("Error in beta role check:", error);
       
@@ -84,9 +84,8 @@ export function useUserRoles() {
       
       // Check beta tester role - explicitly await this
       try {
-        const isBeta = await checkBetaTesterRole();
-        console.log("Beta tester check completed in checkRoles:", isBeta);
-        // State is already updated in checkBetaTesterRole
+        await checkBetaTesterRole();
+        console.log("Beta tester check completed in checkRoles:", betaTesterStatusRef.current);
       } catch (betaError) {
         console.error("Error during beta role check:", betaError);
         lastNetworkErrorTimeRef.current = Date.now();
@@ -145,6 +144,11 @@ export function useUserRoles() {
       timeoutRef.current = null;
     }
     
+    // Force an immediate direct beta check to ensure it's updated
+    checkBetaTesterRole().then(isBeta => {
+      console.log("Initial beta check result:", isBeta);
+    });
+    
     const checkInterval = lastNetworkErrorTimeRef.current ? 10000 : 3000;
     timeoutRef.current = window.setTimeout(() => {
       checkRoles();
@@ -156,23 +160,22 @@ export function useUserRoles() {
         timeoutRef.current = null;
       }
     };
-  }, [session, checkRoles]);
+  }, [session, checkRoles, checkBetaTesterRole]);
   
   // Derive these values directly from the state values
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
 
   useEffect(() => {
-    console.log("useUserRoles updated state:", { 
+    // Log whenever these critical values change
+    console.log("useUserRoles state changed:", { 
       isAdmin, 
       isBetaTester, 
-      isUser, 
-      showAdminButton, 
       showBetaBadge,
       betaTesterRef: betaTesterStatusRef.current,
-      initialized: rolesInitializedRef.current
+      timestamp: new Date().toISOString() 
     });
-  }, [isAdmin, isBetaTester, isUser, showAdminButton, showBetaBadge]);
+  }, [isAdmin, isBetaTester, showBetaBadge]);
 
   return {
     isAdmin,

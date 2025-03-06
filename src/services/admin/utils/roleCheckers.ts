@@ -27,8 +27,6 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
       console.error('Error checking role:', error);
       return false;
     }
-
-    console.log(`Role check for ${role}:`, !!data);
     
     // Add more debugging to help trace the issue
     if (role === 'beta_tester') {

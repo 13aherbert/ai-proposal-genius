@@ -4,6 +4,7 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
 import { ActionButtons } from "./ActionButtons";
 import { useUserRoles } from "@/hooks/use-user-roles";
+import { useEffect, useRef } from "react";
 
 /**
  * DashboardHeader component displays user information, subscription status,
@@ -24,14 +25,22 @@ export default function DashboardHeader() {
     showBetaBadge, 
     roleCheckError 
   } = useUserRoles();
+  
+  // Use ref to prevent excessive logging
+  const loggedRef = useRef(false);
 
-  console.log("Dashboard Header - showBetaBadge:", showBetaBadge);
-  console.log("Dashboard Header - useUserRoles state:", {
-    isCheckingRoles, 
-    showAdminButton, 
-    showBetaBadge, 
-    roleCheckError
-  });
+  useEffect(() => {
+    if (!loggedRef.current) {
+      console.log("Dashboard Header - showBetaBadge:", showBetaBadge);
+      console.log("Dashboard Header - useUserRoles state:", {
+        isCheckingRoles, 
+        showAdminButton, 
+        showBetaBadge, 
+        roleCheckError
+      });
+      loggedRef.current = true;
+    }
+  }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">

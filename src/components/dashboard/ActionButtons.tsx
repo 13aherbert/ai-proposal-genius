@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 type ActionButtonsProps = {
   isCheckingRoles: boolean;
@@ -20,14 +20,19 @@ export function ActionButtons({
   roleCheckError 
 }: ActionButtonsProps) {
   const navigate = useNavigate();
+  // Use ref to prevent excessive logging
+  const loggedRef = useRef(false);
 
   useEffect(() => {
-    console.log("ActionButtons component - detailed props:", { 
-      isCheckingRoles, 
-      showAdminButton, 
-      showBetaBadge, 
-      roleCheckError 
-    });
+    if (!loggedRef.current) {
+      console.log("ActionButtons component - detailed props:", { 
+        isCheckingRoles, 
+        showAdminButton, 
+        showBetaBadge, 
+        roleCheckError 
+      });
+      loggedRef.current = true;
+    }
   }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
   return (

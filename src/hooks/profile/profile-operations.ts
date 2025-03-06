@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ProfileData } from "./types";
 import { 
@@ -70,6 +71,8 @@ export const useProfileOperations = (
       console.log("No user session available for profile fetch");
       return;
     }
+    
+    // Check if we're already fetching and return early if so
     if (isFetchingRef.current) {
       console.log("Profile fetch already in progress, skipping");
       return;
@@ -97,6 +100,7 @@ export const useProfileOperations = (
     }
     
     try {
+      // Set all fetching flags before starting the fetch
       setIsFetching(true);
       isFetchingRef.current = true;
       fetchAttemptsRef.current++;
@@ -109,6 +113,7 @@ export const useProfileOperations = (
         3000
       );
       
+      // Check if component unmounted during fetch
       if (!isComponentMounted.current) {
         console.log("Component unmounted during fetch, abandoning");
         return;
@@ -210,6 +215,16 @@ export const useProfileOperations = (
       console.log("Fetch already in progress, not retrying");
     }
   }, [fetchProfile]);
+
+  // Clear fetching flag if component unmounts during an active fetch
+  useEffect(() => {
+    return () => {
+      if (isFetchingRef.current) {
+        console.log("Component unmounted while fetch was in progress, cleaning up");
+        isFetchingRef.current = false;
+      }
+    };
+  }, []);
 
   return {
     profileData,

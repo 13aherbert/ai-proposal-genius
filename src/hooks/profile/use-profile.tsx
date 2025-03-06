@@ -8,6 +8,7 @@ import { hasProfileChanges } from "./profile-utils";
 export function useProfile(): UseProfileReturn {
   const { session } = useAuth();
   const isComponentMountedRef = useRef(true);
+  const initialFetchCompletedRef = useRef(false);
   
   // Set up event listeners for network reconnection
   useEffect(() => {
@@ -40,14 +41,16 @@ export function useProfile(): UseProfileReturn {
   
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Reset fetch attempts on new session
+  // Reset fetch attempts on new session and fetch only once
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user?.id && !initialFetchCompletedRef.current) {
       console.log("Session detected, initiating profile fetch");
       operations.fetchAttemptsRef.current = 0;
       operations.fetchProfile();
-    } else {
+      initialFetchCompletedRef.current = true;
+    } else if (!session?.user?.id) {
       console.log("No session available, skipping profile fetch");
+      initialFetchCompletedRef.current = false;
     }
   }, [session, operations]);
 
@@ -61,7 +64,7 @@ export function useProfile(): UseProfileReturn {
         operations.setSaveSuccess(false);
       }
     }
-  }, [operations.profileData, operations.isLoadingProfile, operations.initialValues]);
+  }, [operations.profileData, operations.isLoadingProfile, operations.initialValues, operations.setSaveSuccess]);
 
   return {
     profileData: operations.profileData,

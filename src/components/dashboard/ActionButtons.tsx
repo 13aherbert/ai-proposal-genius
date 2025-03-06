@@ -1,9 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { UserFeedbackDialog } from "@/components/feedback/UserFeedbackDialog";
 
 type ActionButtonsProps = {
   isCheckingRoles: boolean;
@@ -104,7 +106,7 @@ export function ActionButtons({
                 variant="ghost" 
                 size="icon"
                 className="h-9 w-9 rounded-full"
-                onClick={() => navigate('/account-settings')}
+                onClick={() => setFeedbackOpen(true)}
               >
                 <AlertCircle className="h-5 w-5" />
               </Button>
@@ -147,6 +149,13 @@ export function ActionButtons({
           </Tooltip>
         </div>
       </TooltipProvider>
+      
+      {/* Render the feedback dialog */}
+      <UserFeedbackDialog
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        feedbackType="bug"
+      />
     </div>
   );
 }

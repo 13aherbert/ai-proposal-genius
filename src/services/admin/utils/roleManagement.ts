@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "../types";
@@ -94,6 +93,88 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
   } catch (error) {
     console.error('Error in removeRole:', error);
     toast.error("Failed to remove role", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+/**
+ * Assign a role to a user by email
+ */
+export async function assignRoleByEmail(email: string, role: UserRole): Promise<boolean> {
+  try {
+    console.log(`Attempting to assign role '${role}' to user with email ${email}`);
+    
+    // Check admin status first
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      console.error("Role assignment failed: Not an admin");
+      toast.error("Access denied", { description: "You don't have permission to assign roles" });
+      return false;
+    }
+
+    // Get current user information 
+    const { data: currentUser } = await supabase.auth.getUser();
+    if (!currentUser.user) {
+      console.error("Role assignment failed: No current user");
+      toast.error("Authentication error", { description: "You need to be logged in" });
+      return false;
+    }
+
+    // Look up the user by email
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('profile_id')
+      .eq('username', email)
+      .maybeSingle();
+
+    if (userError) {
+      console.error('Error finding user by email:', userError);
+      toast.error("Failed to find user", { description: userError.message });
+      return false;
+    }
+
+    if (!userData) {
+      console.error(`User with email ${email} not found`);
+      
+      // Try to retrieve user directly from auth (requires admin)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        console.error('No access token available');
+        toast.error("Failed to find user", { description: "User not found and cannot access auth" });
+        return false;
+      }
+      
+      // Call edge function to get user ID from email
+      console.log("Calling edge function to find user by email");
+      const { data: userIdData, error: userIdError } = await supabase.functions.invoke('get-user-by-email', {
+        body: { email },
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      
+      if (userIdError || !userIdData || !userIdData.userId) {
+        console.error('Error finding user by email:', userIdError || 'User not found');
+        toast.error("Failed to find user", { 
+          description: userIdError?.message || `User with email ${email} not found` 
+        });
+        return false;
+      }
+      
+      // Now that we have the userId, assign the role
+      console.log(`Found user ID for email ${email}:`, userIdData.userId);
+      return assignRole(userIdData.userId, role);
+    }
+
+    // User found in profiles, assign the role
+    const userId = userData.profile_id;
+    console.log(`Found user ID for email ${email}:`, userId);
+    return assignRole(userId, role);
+  } catch (error) {
+    console.error('Error in assignRoleByEmail:', error);
+    toast.error("Failed to assign role", { description: error instanceof Error ? error.message : "Unknown error" });
     return false;
   }
 }

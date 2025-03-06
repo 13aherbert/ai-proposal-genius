@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,8 +10,7 @@ import {
   Code2 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { UserFeedbackDialog } from "../feedback/UserFeedbackDialog";
+import { useUserFeedbackDialog } from "../feedback/UserFeedbackDialog";
 import { useEffect } from "react";
 
 interface ActionButtonsProps {
@@ -39,7 +37,7 @@ export function ActionButtons({
   roleCheckError
 }: ActionButtonsProps) {
   const navigate = useNavigate();
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { setIsOpen: setFeedbackOpen } = useUserFeedbackDialog();
   
   useEffect(() => {
     console.log("ActionButtons - Received props:", { 
@@ -135,12 +133,6 @@ export function ActionButtons({
       >
         <Settings className="h-4 w-4" />
       </Button>
-      
-      {/* Feedback Dialog */}
-      <UserFeedbackDialog
-        open={feedbackOpen}
-        onOpenChange={setFeedbackOpen}
-      />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 // Define error severity levels
@@ -19,6 +18,8 @@ export interface ErrorData {
   sessionId?: string;
   url?: string;
   componentStack?: string;
+  category?: string;
+  originalError?: any;
 }
 
 // Define performance metric types

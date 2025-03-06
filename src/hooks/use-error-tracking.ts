@@ -26,7 +26,7 @@ export function useErrorTracking() {
 
   // Track an error with the current user context
   const trackError = useCallback((
-    error: Omit<ErrorData, 'timestamp' | 'userId'> & { timestamp?: Date }
+    error: Omit<ErrorData, 'timestamp' | 'userId'> & { timestamp?: Date, originalError?: any }
   ) => {
     // Check if it's a network error and categorize it accordingly
     if (error.originalError && isNetworkError(error.originalError)) {

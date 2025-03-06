@@ -12,22 +12,24 @@ import { toast } from '@/components/ui/use-toast';
 import { ValidatedInput, ValidatedTextarea, ValidationRules } from '@/components/form/FormValidation';
 import { Switch } from '@/components/ui/switch';
 
+export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general';
+
 interface UserFeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   errorMessage?: string;
   errorId?: string;
   isBetaFeedback?: boolean;
+  feedbackType?: FeedbackType;
 }
-
-export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general';
 
 export function UserFeedbackDialog({ 
   open, 
   onOpenChange,
   errorMessage,
   errorId = 'manual-report',
-  isBetaFeedback = false
+  isBetaFeedback = false,
+  feedbackType: initialFeedbackType = 'general'
 }: UserFeedbackDialogProps) {
   const { trackError } = useErrorTracking();
   const [name, setName] = useState('');
@@ -35,11 +37,16 @@ export function UserFeedbackDialog({
   const [comments, setComments] = useState('');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>('general');
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>(initialFeedbackType);
   const [allowContact, setAllowContact] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({
     comments: false
   });
+
+  // Update feedbackType when initialFeedbackType prop changes
+  React.useEffect(() => {
+    setFeedbackType(initialFeedbackType);
+  }, [initialFeedbackType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +141,6 @@ export function UserFeedbackDialog({
           <div className="space-y-2">
             <Label>Feedback Type</Label>
             <RadioGroup 
-              defaultValue="general" 
               value={feedbackType}
               onValueChange={(value) => setFeedbackType(value as FeedbackType)}
               className="flex space-x-2"

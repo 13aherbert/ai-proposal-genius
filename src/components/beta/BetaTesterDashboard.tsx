@@ -250,7 +250,7 @@ export function BetaTesterDashboard() {
         open={feedbackDialogOpen} 
         onOpenChange={setFeedbackDialogOpen}
         isBetaFeedback={true}
-        defaultFeedbackType={feedbackType}
+        feedbackType={feedbackType}
       />
     </div>
   );

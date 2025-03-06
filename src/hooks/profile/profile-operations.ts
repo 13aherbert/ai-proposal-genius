@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ProfileData } from "./types";
 import { 
@@ -76,7 +75,6 @@ export const useProfileOperations = (
       return;
     }
     
-    // If we've had a successful fetch in the last 10 seconds, don't retry too aggressively
     if (lastSuccessfulFetchRef.current && (new Date().getTime() - lastSuccessfulFetchRef.current.getTime() < 10000)) {
       console.log("Successful fetch was recent, skipping redundant fetch");
       setIsLoadingProfile(false);
@@ -86,14 +84,12 @@ export const useProfileOperations = (
     
     if (fetchAttemptsRef.current >= 3) {
       console.log("Maximum retry attempts reached, giving up");
-      // Don't show the error toast if we already have valid profile data
       if (!profileData.username) {
         toast.error("Couldn't load profile after multiple attempts", {
           description: "Please check your connection and try again later."
         });
       } else {
         console.log("Profile data already loaded, not showing error toast");
-        // Clear the fetch error since we have data
         setFetchError(null);
       }
       setIsLoadingProfile(false);
@@ -109,8 +105,8 @@ export const useProfileOperations = (
       
       const result = await withRetry(
         async () => fetchProfileFromSupabase(userId),
-        2, // Reduce max retries
-        3000 // Increase base delay
+        2,
+        3000
       );
       
       if (!isComponentMounted.current) {
@@ -227,6 +223,7 @@ export const useProfileOperations = (
     fetchError,
     setFetchError,
     saveSuccess,
+    setSaveSuccess,
     updateProfileData,
     fetchProfile,
     saveProfile,

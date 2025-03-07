@@ -346,6 +346,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_pending_invitation: {
+        Args: {
+          email_param: string
+        }
+        Returns: {
+          id: string
+          email: string
+          invite_code: string
+          invited_by: string
+          status: string
+          created_at: string
+          accepted_at: string
+          expires_at: string
+          invitation_email_sent: boolean
+        }[]
+      }
       check_project_limit: {
         Args: {
           user_id: string
@@ -375,6 +391,13 @@ export type Database = {
           _role: string
         }
         Returns: boolean
+      }
+      invite_beta_tester: {
+        Args: {
+          email_param: string
+          inviter_id: string
+        }
+        Returns: string
       }
       is_admin: {
         Args: Record<PropertyKey, never>

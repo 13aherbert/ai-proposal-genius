@@ -50,7 +50,7 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     }
     
     // First check if invitation already exists using the security definer function
-    const { data: pendingInvitation, error: checkError } = await supabase.rpc(
+    const { data: pendingInvitations, error: checkError } = await supabase.rpc<BetaInvitation[]>(
       'check_pending_invitation',
       { email_param: email }
     );
@@ -61,13 +61,13 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       return false;
     }
     
-    if (pendingInvitation && pendingInvitation.length > 0) {
+    if (pendingInvitations && pendingInvitations.length > 0) {
       toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
       return false;
     }
     
     // Create the invitation using the security definer function
-    const { data: inviteId, error: createError } = await supabase.rpc(
+    const { data: inviteId, error: createError } = await supabase.rpc<string>(
       'invite_beta_tester',
       { 
         email_param: email,

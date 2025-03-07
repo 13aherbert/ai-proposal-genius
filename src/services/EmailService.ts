@@ -1,4 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import { withRateLimit } from '@/utils/network/rate-limit';
+import { withRetry } from '@/utils/network/retry';
 
 interface SendEmailResponse {
   success: boolean;
@@ -15,35 +18,44 @@ class EmailService {
    */
   private async sendEmail(payload: Record<string, any>): Promise<SendEmailResponse> {
     try {
+      const emailKey = `email:${payload.templateType}:${payload.to?.join(',') || 'no-recipient'}`;
       console.log('Sending email with payload:', payload);
       
-      // Call the edge function with authorization
-      console.log('Invoking send-email function with session token');
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: payload,
+      // Use rate limiting to prevent duplicate emails
+      return await withRateLimit(emailKey, async () => {
+        // Call the edge function with authorization and retry with backoff
+        console.log('Invoking send-email function with session token');
+        
+        // Use retry with backoff for network resilience
+        return await withRetry(async () => {
+          const { data, error } = await supabase.functions.invoke('send-email', {
+            body: payload,
+          });
+          
+          if (error) {
+            console.error('Error calling send-email function:', error);
+            return { 
+              success: false, 
+              error: error?.message || 'Failed to send email' 
+            };
+          }
+          
+          if (data?.error) {
+            console.error('Error from send-email function:', data.error);
+            return { 
+              success: false, 
+              error: data.error 
+            };
+          }
+          
+          console.log('Email sent successfully:', data);
+          return { 
+            success: true, 
+            id: data?.id,
+            ...data
+          };
+        }, 2, 2000); // Retry twice with 2s base delay and exponential backoff
       });
-      
-      if (error) {
-        console.error('Error calling send-email function:', error);
-        return { 
-          success: false, 
-          error: error?.message || 'Failed to send email' 
-        };
-      }
-      
-      if (data?.error) {
-        console.error('Error from send-email function:', data.error);
-        return { 
-          success: false, 
-          error: data.error 
-        };
-      }
-      
-      console.log('Email sent successfully:', data);
-      return { 
-        success: true, 
-        id: data?.id 
-      };
     } catch (error) {
       console.error('Exception in sendEmail:', error);
       return { 

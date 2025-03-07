@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,11 +24,18 @@ export function BetaInvitations({
   loadInvitations 
 }: BetaInvitationsProps) {
   const [inviteEmail, setInviteEmail] = useState('');
-  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<Record<string, boolean>>({});
   const [creatingInvitation, setCreatingInvitation] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  
+  const [operationInProgress, setOperationInProgress] = useState(false);
 
   const handleSendInvitation = async () => {
+    if (operationInProgress || creatingInvitation) {
+      toast.info("Operation already in progress");
+      return;
+    }
+    
     setEmailError(null);
     
     if (!inviteEmail) {
@@ -43,6 +49,7 @@ export function BetaInvitations({
     
     try {
       setCreatingInvitation(true);
+      setOperationInProgress(true);
       console.log(`Starting invitation process for ${inviteEmail}`);
       const result = await adminService.createBetaInvitation(inviteEmail);
       console.log(`Invitation creation result: ${result}`);
@@ -60,11 +67,18 @@ export function BetaInvitations({
       });
     } finally {
       setCreatingInvitation(false);
+      setTimeout(() => setOperationInProgress(false), 1000);
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
+    if (operationInProgress) {
+      toast.info("Operation already in progress");
+      return;
+    }
+    
     try {
+      setOperationInProgress(true);
       const success = await adminService.cancelBetaInvitation(invitationId);
       if (success) {
         await loadInvitations();
@@ -75,12 +89,21 @@ export function BetaInvitations({
       toast.error("Failed to cancel invitation", {
         description: error instanceof Error ? error.message : "Unknown error"
       });
+    } finally {
+      setTimeout(() => setOperationInProgress(false), 1000);
     }
   };
 
   const handleResendInvitation = async (invitationId: string, email: string) => {
+    if (sendingEmail[invitationId] || operationInProgress) {
+      toast.info("Email sending already in progress");
+      return;
+    }
+    
     try {
-      setSendingEmail(invitationId);
+      setSendingEmail(prev => ({ ...prev, [invitationId]: true }));
+      setOperationInProgress(true);
+      
       console.log(`Attempting to resend invitation to ${email} (ID: ${invitationId})`);
       const success = await adminService.resendInvitationEmail(invitationId);
       console.log(`Resend result: ${success}`);
@@ -95,7 +118,8 @@ export function BetaInvitations({
         description: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
-      setSendingEmail(null);
+      setSendingEmail(prev => ({ ...prev, [invitationId]: false }));
+      setTimeout(() => setOperationInProgress(false), 1000);
     }
   };
 
@@ -166,9 +190,9 @@ export function BetaInvitations({
                               variant="outline" 
                               size="sm" 
                               onClick={() => handleResendInvitation(invitation.id, invitation.email)}
-                              disabled={sendingEmail === invitation.id}
+                              disabled={sendingEmail[invitation.id]}
                             >
-                              {sendingEmail === invitation.id ? (
+                              {sendingEmail[invitation.id] ? (
                                 <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
                               ) : (
                                 <><Mail className="h-4 w-4 mr-1" /> {invitation.invitation_email_sent ? 'Resend' : 'Send Email'}</>
@@ -178,6 +202,7 @@ export function BetaInvitations({
                               variant="destructive" 
                               size="sm" 
                               onClick={() => handleCancelInvitation(invitation.id)}
+                              disabled={operationInProgress}
                             >
                               Cancel
                             </Button>
@@ -212,7 +237,7 @@ export function BetaInvitations({
             />
             <Button 
               onClick={handleSendInvitation}
-              disabled={creatingInvitation}
+              disabled={creatingInvitation || operationInProgress}
             >
               {creatingInvitation ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inviting...</>

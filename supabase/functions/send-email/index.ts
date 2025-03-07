@@ -1,4 +1,3 @@
-
 // Import React for the email templates
 import React from 'react';
 import { renderAsync } from '@react-email/render';
@@ -22,6 +21,10 @@ const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 // For development/testing - the email allowed by Resend in testing mode
 const RESEND_VERIFIED_EMAIL = 'optirfp@gmail.com';
+
+// Track recently processed requests to prevent duplicates
+const processedRequests = new Map<string, number>();
+const DUPLICATE_REQUEST_WINDOW_MS = 10000; // 10 seconds
 
 // Handler function for processing requests
 Deno.serve(async (req) => {
@@ -47,6 +50,37 @@ Deno.serve(async (req) => {
     if (!payload.subject) {
       console.error('Missing "subject" field');
       throw new Error('Missing "subject" field');
+    }
+    
+    // Create a unique request ID to detect duplicates
+    const requestId = `${payload.to.join(',')}_${payload.subject}_${payload.templateType || 'direct'}`;
+    
+    // Check if this is a duplicate request within the time window
+    const lastProcessed = processedRequests.get(requestId);
+    if (lastProcessed && (Date.now() - lastProcessed) < DUPLICATE_REQUEST_WINDOW_MS) {
+      console.log(`Duplicate request detected for ${requestId}. Skipping.`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          id: null,
+          message: 'Duplicate request detected and skipped',
+          isDuplicate: true
+        }),
+        {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
+    }
+    
+    // Record this request as processed
+    processedRequests.set(requestId, Date.now());
+    
+    // Clean up old entries from the processed requests map
+    const now = Date.now();
+    for (const [key, timestamp] of processedRequests.entries()) {
+      if (now - timestamp > DUPLICATE_REQUEST_WINDOW_MS) {
+        processedRequests.delete(key);
+      }
     }
 
     let html = '';
@@ -188,6 +222,7 @@ Deno.serve(async (req) => {
     const responseData = {
       success: true,
       id: data?.id,
+      requestId: requestId,
       ...(isDevMode && {
         dev_note: `In development mode, all emails are redirected to ${RESEND_VERIFIED_EMAIL} regardless of the original recipients.`,
         original_recipients: payload.to

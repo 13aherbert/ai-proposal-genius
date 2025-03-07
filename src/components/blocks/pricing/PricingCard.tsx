@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,7 +9,7 @@ import { usePricingContext } from "./PricingContext";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { AuthForm } from "@/components/AuthForm";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { toast } from "sonner";
 import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
 

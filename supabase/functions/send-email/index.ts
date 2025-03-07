@@ -14,12 +14,8 @@ import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 import BetaInviteEmail from './templates/BetaInvite.tsx';
 import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
 
-// Define CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-};
+// Import shared CORS utilities
+import { corsHeaders, handleCors, addCorsHeaders } from './_shared/cors.ts';
 
 // Create Resend client using API key from environment variable
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
@@ -29,12 +25,9 @@ Deno.serve(async (req) => {
   console.log('Received request to send-email function');
   
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request with CORS headers');
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+  const corsResponse = handleCors(req);
+  if (corsResponse) {
+    return corsResponse;
   }
 
   try {
@@ -113,14 +106,32 @@ Deno.serve(async (req) => {
         console.log('Template rendered successfully');
       } catch (templateError) {
         console.error('Error rendering template:', templateError);
-        throw new Error(`Template rendering failed: ${templateError.message}`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Template rendering failed: ${templateError.message}` 
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          }
+        );
       }
     } else if (payload.html) {
       // Use direct HTML if provided
       html = payload.html;
     } else {
       console.error('Missing template type/data or direct HTML content');
-      throw new Error('Missing template type/data or direct HTML content');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing template type/data or direct HTML content' 
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
     }
 
     // Send the email via Resend
@@ -142,7 +153,16 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('Resend API error:', error);
-      throw new Error(`Email sending failed: ${error.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Email sending failed: ${error.message}` 
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
     }
 
     console.log('Email sent successfully:', data);

@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "resend";
 import { render } from "@react-email/render";
 import React from "react";
+import { corsHeaders, handleCors, addCorsHeaders } from "../_shared/cors.ts";
 
 // Import our email templates
 import WelcomeEmail from "./templates/Welcome.tsx";
@@ -14,13 +15,6 @@ import BetaAnnouncementEmail from "./templates/BetaAnnouncement.tsx";
 
 // Initialize Resend with API key
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-// CORS headers for cross-origin requests
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 // Email request interface
 interface EmailRequest {
@@ -36,28 +30,131 @@ interface EmailRequest {
   templateData?: Record<string, any>;
 }
 
+// Request tracking for rate limiting
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const MAX_EMAILS_PER_MINUTE = 20;
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+
+// Check if a request exceeds rate limits
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = requestCounts.get(ip);
+  
+  if (!record) {
+    // First request from this IP
+    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  
+  if (now > record.resetTime) {
+    // Reset counter if the window has passed
+    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  
+  // Increment counter
+  record.count += 1;
+  requestCounts.set(ip, record);
+  
+  // Check if limit exceeded
+  return record.count > MAX_EMAILS_PER_MINUTE;
+}
+
+// Validate email data
+function validateEmailRequest(request: EmailRequest): { valid: boolean; error?: string } {
+  // Check required fields
+  if (!request.to || !Array.isArray(request.to) || request.to.length === 0) {
+    return { valid: false, error: "Missing or invalid 'to' field" };
+  }
+  
+  if (!request.subject) {
+    return { valid: false, error: "Missing 'subject' field" };
+  }
+  
+  // Validate email addresses
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const allEmails = [
+    ...(request.to || []),
+    ...(request.cc || []),
+    ...(request.bcc || [])
+  ];
+  
+  for (const email of allEmails) {
+    if (!emailRegex.test(email)) {
+      return { valid: false, error: `Invalid email address: ${email}` };
+    }
+  }
+  
+  // Validate template-specific data
+  if (request.templateType && request.templateData) {
+    switch(request.templateType) {
+      case "welcome": {
+        if (!request.templateData.firstName && !request.templateData.appUrl) {
+          return { valid: false, error: "Invalid welcome template data" };
+        }
+        break;
+      }
+      case "password_reset": {
+        if (!request.templateData.resetUrl) {
+          return { valid: false, error: "Missing resetUrl in password reset template data" };
+        }
+        break;
+      }
+      case "support": {
+        if (!request.templateData.name || !request.templateData.message || !request.templateData.ticketId) {
+          return { valid: false, error: "Invalid support template data" };
+        }
+        break;
+      }
+      case "support_response": {
+        if (!request.templateData.name || !request.templateData.ticketId || !request.templateData.responseMessage) {
+          return { valid: false, error: "Invalid support response template data" };
+        }
+        break;
+      }
+      // Add other template validations as needed
+    }
+  } else if (!request.templateType && !request.html && !request.text) {
+    return { valid: false, error: "Email content is required (html, text, or template)" };
+  }
+  
+  return { valid: true };
+}
+
 serve(async (req) => {
   console.log("Email service received request");
   
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    console.log("Handling CORS preflight request");
-    return new Response(null, { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  // Get client IP for rate limiting
+  const clientIp = req.headers.get("x-forwarded-for") || 
+                  req.headers.get("x-real-ip") || 
+                  "unknown";
+  
+  // Check rate limit
+  if (checkRateLimit(clientIp)) {
+    console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+    return addCorsHeaders(new Response(
+      JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
+      { 
+        status: 429, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    ));
   }
 
   // Only accept POST requests
   if (req.method !== "POST") {
     console.error(`Invalid method: ${req.method}`);
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify({ error: "Method not allowed" }),
       { 
         status: 405, 
-        headers: { 
-          "Content-Type": "application/json",
-          ...corsHeaders 
-        } 
+        headers: { "Content-Type": "application/json" } 
       }
-    );
+    ));
   }
 
   try {
@@ -65,16 +162,13 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       console.error("Missing Authorization header");
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
         { 
           status: 401, 
-          headers: { 
-            "Content-Type": "application/json",
-            ...corsHeaders 
-          } 
+          headers: { "Content-Type": "application/json" } 
         }
-      );
+      ));
     }
 
     // Get request data
@@ -84,6 +178,19 @@ serve(async (req) => {
       subject: requestData.subject,
       templateType: requestData.templateType
     });
+
+    // Validate email request
+    const validationResult = validateEmailRequest(requestData);
+    if (!validationResult.valid) {
+      console.error("Invalid email request:", validationResult.error);
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: validationResult.error }),
+        { 
+          status: 400, 
+          headers: { "Content-Type": "application/json" } 
+        }
+      ));
+    }
 
     // Configure default sender if not provided
     const from = requestData.from || "OptiRFP <notifications@example.com>";
@@ -108,10 +215,13 @@ serve(async (req) => {
       }
 
       console.log("Email sent successfully:", data);
-      return new Response(JSON.stringify({ id: data?.id }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
+      return addCorsHeaders(new Response(
+        JSON.stringify({ id: data?.id }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        }
+      ));
     } 
     // Handle template-based emails using React Email
     else if (requestData.templateType && requestData.templateData) {
@@ -175,22 +285,25 @@ serve(async (req) => {
       }
       
       console.log("Template email sent successfully:", data);
-      return new Response(JSON.stringify({ id: data?.id }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
+      return addCorsHeaders(new Response(
+        JSON.stringify({ id: data?.id }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        }
+      ));
     }
     else {
       throw new Error("Either HTML content or template information must be provided");
     }
   } catch (error) {
     console.error("Error in send-email function:", error);
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       }
-    );
+    ));
   }
 });

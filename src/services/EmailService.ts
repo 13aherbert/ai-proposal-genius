@@ -159,7 +159,7 @@ class EmailService {
     
     return this.sendEmail({
       to: [email],
-      subject: 'You're Invited to the OptiRFP Beta Program!',
+      subject: "You're Invited to the OptiRFP Beta Program!",
       templateType: 'beta_invite',
       templateData: {
         inviteCode,

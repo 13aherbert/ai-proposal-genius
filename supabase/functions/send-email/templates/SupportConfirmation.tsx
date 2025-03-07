@@ -78,7 +78,7 @@ const styles = {
     padding: '20px',
   },
   heading: {
-    color: '#7e22ce',
+    color: '#34D399',
     fontSize: '24px',
     fontWeight: 'bold',
     marginTop: '0',
@@ -97,7 +97,7 @@ const styles = {
     margin: '16px 0',
     padding: '15px',
     backgroundColor: '#f9f9f9',
-    borderLeft: '4px solid #7e22ce',
+    borderLeft: '4px solid #34D399',
     fontStyle: 'italic',
   },
   footer: {

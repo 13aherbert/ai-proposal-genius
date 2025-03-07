@@ -76,7 +76,7 @@ const styles = {
     padding: '20px',
   },
   heading: {
-    color: '#3b82f6',
+    color: '#34D399',
     fontSize: '24px',
     fontWeight: 'bold',
     marginTop: '0',
@@ -93,7 +93,7 @@ const styles = {
     margin: '30px 0',
   },
   button: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#34D399',
     borderRadius: '4px',
     color: '#fff',
     fontSize: '16px',

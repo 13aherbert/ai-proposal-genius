@@ -34,7 +34,7 @@ const SupportEmail: React.FC<SupportEmailProps> = ({
           padding: '40px 20px', 
           maxWidth: '600px' 
         }}>
-          <Heading as="h2" style={{ color: '#4f46e5', textAlign: 'center' }}>
+          <Heading as="h2" style={{ color: '#34D399', textAlign: 'center' }}>
             New Support Request
           </Heading>
           <Section>
@@ -55,7 +55,7 @@ const SupportEmail: React.FC<SupportEmailProps> = ({
               <Link
                 href={supportUrl}
                 style={{
-                  backgroundColor: '#4f46e5',
+                  backgroundColor: '#34D399',
                   color: '#ffffff',
                   display: 'inline-block',
                   padding: '10px 20px',

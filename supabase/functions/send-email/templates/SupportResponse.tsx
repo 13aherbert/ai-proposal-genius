@@ -84,7 +84,7 @@ const styles = {
     padding: '20px',
   },
   heading: {
-    color: '#3b82f6',
+    color: '#34D399',
     fontSize: '24px',
     fontWeight: 'bold',
     marginTop: '0',
@@ -98,7 +98,7 @@ const styles = {
   },
   messageBox: {
     backgroundColor: '#e8e8e8',
-    borderLeft: '4px solid #3b82f6',
+    borderLeft: '4px solid #34D399',
     padding: '15px',
     margin: '20px 0',
   },
@@ -112,7 +112,7 @@ const styles = {
     margin: '30px 0',
   },
   button: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#34D399',
     borderRadius: '4px',
     color: '#fff',
     fontSize: '16px',

@@ -68,7 +68,7 @@ const styles = {
     padding: '20px',
   },
   heading: {
-    color: '#3b82f6',
+    color: '#34D399',
     fontSize: '24px',
     fontWeight: 'bold',
     marginTop: '0',

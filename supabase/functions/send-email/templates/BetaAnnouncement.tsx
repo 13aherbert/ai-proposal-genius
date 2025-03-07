@@ -85,7 +85,7 @@ const styles = {
     padding: '20px',
   },
   heading: {
-    color: '#7e22ce',
+    color: '#34D399',
     fontSize: '24px',
     fontWeight: 'bold',
     marginTop: '0',
@@ -99,7 +99,7 @@ const styles = {
   },
   featureBox: {
     backgroundColor: '#e8e8e8',
-    borderLeft: '4px solid #7e22ce',
+    borderLeft: '4px solid #34D399',
     padding: '15px',
     margin: '20px 0',
   },
@@ -118,7 +118,7 @@ const styles = {
     margin: '30px 0',
   },
   button: {
-    backgroundColor: '#7e22ce',
+    backgroundColor: '#34D399',
     borderRadius: '4px',
     color: '#fff',
     fontSize: '16px',

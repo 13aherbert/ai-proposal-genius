@@ -10,53 +10,45 @@ import {
   Preview,
   Section,
   Text,
-  Box,
 } from '@react-email/components';
 
 interface SupportEmailProps {
   name?: string;
+  email?: string;
   message: string;
   ticketId: string;
-  supportUrl?: string;
 }
 
 export const SupportEmail = ({
-  name = 'there',
+  name = 'User',
+  email = 'user@example.com',
   message,
   ticketId,
-  supportUrl,
 }: SupportEmailProps) => {
   return (
     <Html>
       <Head />
-      <Preview>Support Request Received - OptiRFP</Preview>
+      <Preview>New Support Request: {ticketId}</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            <Heading style={styles.heading}>We've Received Your Support Request</Heading>
+            <Heading style={styles.heading}>New Support Request</Heading>
           </Section>
           <Section>
-            <Text style={styles.text}>Hello {name},</Text>
             <Text style={styles.text}>
-              Thank you for contacting OptiRFP support. We've received your request and will get back to you as soon as possible.
-            </Text>
-            <Box style={styles.messageBox}>
-              <Text style={styles.messageLabel}><strong>Ticket ID:</strong> {ticketId}</Text>
-              <Text style={styles.messageLabel}><strong>Your message:</strong></Text>
-              <Text style={styles.messageContent}>{message}</Text>
-            </Box>
-            {supportUrl && (
-              <Section style={styles.buttonContainer}>
-                <Link href={supportUrl} style={styles.button}>
-                  View Support Ticket
-                </Link>
-              </Section>
-            )}
-            <Text style={styles.text}>
-              If you have any additional information to share, please reply to this email.
+              <strong>Ticket ID:</strong> {ticketId}
             </Text>
             <Text style={styles.text}>
-              Best regards,<br />OptiRFP Support Team
+              <strong>From:</strong> {name} ({email})
+            </Text>
+            <Text style={styles.text}>
+              <strong>Message:</strong>
+            </Text>
+            <Section style={styles.messageBox}>
+              <Text style={styles.messageText}>{message}</Text>
+            </Section>
+            <Text style={styles.text}>
+              Please respond to this request promptly.
             </Text>
           </Section>
           <Section style={styles.footer}>
@@ -100,34 +92,16 @@ const styles = {
     margin: '16px 0',
   },
   messageBox: {
-    backgroundColor: '#e8e8e8',
+    backgroundColor: '#f5f5f5',
     borderLeft: '4px solid #3b82f6',
     padding: '15px',
     margin: '20px 0',
   },
-  messageLabel: {
-    margin: '0 0 10px 0',
+  messageText: {
+    margin: '0',
     fontSize: '16px',
-    color: '#333',
-  },
-  messageContent: {
-    margin: '5px 0 0',
-    fontSize: '16px',
-    color: '#333',
-  },
-  buttonContainer: {
-    textAlign: 'center' as const,
-    margin: '30px 0',
-  },
-  button: {
-    backgroundColor: '#3b82f6',
-    borderRadius: '4px',
-    color: '#fff',
-    fontSize: '16px',
-    textDecoration: 'none',
-    textAlign: 'center' as const,
-    padding: '12px 24px',
-    fontWeight: 'bold',
+    lineHeight: '24px',
+    whiteSpace: 'pre-wrap' as const,
   },
   footer: {
     backgroundColor: '#f5f5f5',

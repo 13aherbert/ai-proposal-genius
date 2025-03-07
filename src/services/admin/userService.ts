@@ -5,7 +5,15 @@ import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network";
 
 /**
+ * ==================================
+ * ROLE CHECK FUNCTIONS
+ * ==================================
+ * These functions handle checking user roles and permissions
+ */
+
+/**
  * Check if current user has admin role
+ * @returns Promise<boolean> - True if user has admin role
  */
 export async function isAdmin(): Promise<boolean> {
   try {
@@ -25,6 +33,7 @@ export async function isAdmin(): Promise<boolean> {
 
 /**
  * Check if current user has beta_tester role
+ * @returns Promise<boolean> - True if user has beta_tester role
  */
 export async function isBetaTester(): Promise<boolean> {
   try {
@@ -49,6 +58,8 @@ export async function isBetaTester(): Promise<boolean> {
 
 /**
  * Check if a user has a specific role
+ * @param role - The role to check
+ * @returns Promise<boolean> - True if user has the specified role
  */
 export async function checkUserRole(role: UserRole): Promise<boolean> {
   try {
@@ -74,6 +85,7 @@ export async function checkUserRole(role: UserRole): Promise<boolean> {
 
 /**
  * Ensure the user has the basic 'user' role, creating it if missing
+ * @returns Promise<boolean> - True if user has or was given the user role
  */
 export async function ensureUserRole(): Promise<boolean> {
   try {
@@ -102,7 +114,17 @@ export async function ensureUserRole(): Promise<boolean> {
 }
 
 /**
+ * ==================================
+ * ROLE MANAGEMENT FUNCTIONS
+ * ==================================
+ * These functions handle assigning and removing user roles
+ */
+
+/**
  * High-level function to assign a role to a user
+ * @param userId - The ID of the user to assign the role to
+ * @param role - The role to assign
+ * @returns Promise<boolean> - True if role was assigned successfully
  */
 export async function assignRole(userId: string, role: UserRole): Promise<boolean> {
   try {
@@ -143,6 +165,9 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
 
 /**
  * High-level function to remove a role from a user
+ * @param userId - The ID of the user to remove the role from
+ * @param role - The role to remove
+ * @returns Promise<boolean> - True if role was removed successfully
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
@@ -175,8 +200,16 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
 }
 
 /**
+ * ==================================
+ * USER DATA RETRIEVAL FUNCTIONS
+ * ==================================
+ * These functions handle retrieving user data for admin purposes
+ */
+
+/**
  * Get all user profiles for admin management
  * Uses Edge Function to avoid auth.admin.listUsers issues and RLS recursion
+ * @returns Promise<UserProfile[]> - Array of user profiles
  */
 export async function getAllUsers(): Promise<UserProfile[]> {
   try {
@@ -306,7 +339,18 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 }
 
 /**
- * Update user subscription plan
+ * ==================================
+ * SUBSCRIPTION MANAGEMENT FUNCTIONS
+ * ==================================
+ * These functions handle updating user subscription plans
+ */
+
+/**
+ * Update user subscription plan for a specific user
+ * @param userId - The ID of the user to update the subscription for
+ * @param plan - The subscription plan to set
+ * @param status - The subscription status to set (default: 'active')
+ * @returns Promise<boolean> - True if subscription was updated successfully
  */
 export async function updateSubscriptionPlan(userId: string, plan: string, status: string = 'active'): Promise<boolean> {
   try {
@@ -394,7 +438,12 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
 }
 
 /**
- * Updates a user's subscription plan (admin only)
+ * Updates a user's subscription plan using their email address (admin only)
+ * Uses an edge function to update subscription
+ * @param email - Email of the user to update
+ * @param plan - Subscription plan to set
+ * @param status - Subscription status to set (default: 'active')
+ * @returns Promise<boolean> - True if subscription was updated successfully
  */
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
   return withRateLimit(`update-subscription-${email}`, async () => {
@@ -469,7 +518,15 @@ export async function updateUserSubscription(email: string, plan: string, status
 }
 
 /**
+ * ==================================
+ * USER ROLE MANAGEMENT FUNCTIONS
+ * ==================================
+ * These functions handle retrieving and managing user roles
+ */
+
+/**
  * Get roles for all users (admin only)
+ * @returns Promise<UserRoleRecord[]> - Array of user role records
  */
 export async function getUserRoles(): Promise<UserRoleRecord[]> {
   try {
@@ -488,7 +545,7 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     }
     
     // Fix the type issue by explicitly mapping to UserRoleRecord with UserRole type
-    return (data || []).map(item => ({
+    return (data || []).map((item: any) => ({
       id: item.id,
       user_id: item.user_id,
       role: item.role as UserRole, // Explicitly cast the role to UserRole
@@ -507,6 +564,9 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
 
 /**
  * Assign a role to a user by email (admin only)
+ * @param email - Email of the user to assign the role to
+ * @param role - Role to assign
+ * @returns Promise<boolean> - True if role was assigned successfully
  */
 export async function assignRoleByEmail(email: string, role: UserRole): Promise<boolean> {
   try {

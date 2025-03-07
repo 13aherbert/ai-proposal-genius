@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BetaTesterDashboard } from '@/components/beta/BetaTesterDashboard';
@@ -28,6 +29,15 @@ export default function BetaProgram() {
     }
     
     const checkBetaAccess = async () => {
+      // If we have an invite code but no session, redirect to auth page
+      if (code && !session?.user?.id) {
+        // Store invite code in session storage to retrieve after auth
+        sessionStorage.setItem('beta_invite_code', code);
+        // Redirect to auth page with signup view active
+        navigate('/auth?view=sign_up&invite=' + code);
+        return;
+      }
+      
       if (session?.user?.id) {
         try {
           const isBeta = await adminService.checkUserRole('beta_tester');

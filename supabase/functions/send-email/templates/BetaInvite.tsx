@@ -1,0 +1,150 @@
+
+import * as React from 'react';
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Html,
+  Link,
+  Preview,
+  Section,
+  Text,
+  Box,
+  Li,
+  Ul,
+} from '@react-email/components';
+
+interface BetaInviteEmailProps {
+  inviteCode: string;
+  inviteUrl: string;
+  expiresAt: string;
+}
+
+export const BetaInviteEmail = ({
+  inviteCode,
+  inviteUrl,
+  expiresAt,
+}: BetaInviteEmailProps) => {
+  const expirationDate = expiresAt ? new Date(expiresAt).toLocaleDateString() : 'in 30 days';
+  
+  return (
+    <Html>
+      <Head />
+      <Preview>You're Invited to the OptiRFP Beta Program!</Preview>
+      <Body style={styles.body}>
+        <Container style={styles.container}>
+          <Section style={styles.header}>
+            <Heading style={styles.heading}>You're Invited to the OptiRFP Beta Program!</Heading>
+          </Section>
+          <Section>
+            <Text style={styles.text}>
+              We're excited to invite you to participate in the beta testing program for OptiRFP.
+            </Text>
+            <Text style={styles.text}>As a beta tester, you'll get:</Text>
+            <Ul style={styles.list}>
+              <Li>Early access to new features</Li>
+              <Li>Direct line to our development team</Li>
+              <Li>Opportunity to shape the future of the product</Li>
+              <Li>Extended premium benefits during the beta period</Li>
+            </Ul>
+            <Box style={styles.inviteBox}>
+              <Text style={styles.inviteText}><strong>Your Invite Code:</strong> {inviteCode}</Text>
+              <Text style={styles.inviteText}><strong>Expires:</strong> {expirationDate}</Text>
+            </Box>
+            <Section style={styles.buttonContainer}>
+              <Link href={inviteUrl} style={styles.button}>
+                Join Beta Program
+              </Link>
+            </Section>
+            <Text style={styles.text}>
+              Thank you for your interest in OptiRFP. We look forward to your valuable feedback!
+            </Text>
+            <Text style={styles.text}>
+              Best regards,<br />The OptiRFP Team
+            </Text>
+          </Section>
+          <Section style={styles.footer}>
+            <Text style={styles.footerText}>
+              © {new Date().getFullYear()} OptiRFP. All rights reserved.
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+};
+
+const styles = {
+  body: {
+    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    backgroundColor: '#ffffff',
+    margin: '0',
+  },
+  container: {
+    margin: '0 auto',
+    padding: '20px 0',
+    maxWidth: '600px',
+  },
+  header: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: '10px 10px 0 0',
+    padding: '20px',
+  },
+  heading: {
+    color: '#7e22ce',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginTop: '0',
+    textAlign: 'center' as const,
+  },
+  text: {
+    fontSize: '16px',
+    lineHeight: '26px',
+    color: '#333',
+    margin: '16px 0',
+  },
+  list: {
+    margin: '16px 0',
+    padding: '0 0 0 20px',
+  },
+  inviteBox: {
+    backgroundColor: '#e8e8e8',
+    borderLeft: '4px solid #7e22ce',
+    padding: '15px',
+    margin: '20px 0',
+  },
+  inviteText: {
+    margin: '10px 0',
+    fontSize: '16px',
+    color: '#333',
+  },
+  buttonContainer: {
+    textAlign: 'center' as const,
+    margin: '30px 0',
+  },
+  button: {
+    backgroundColor: '#7e22ce',
+    borderRadius: '4px',
+    color: '#fff',
+    fontSize: '16px',
+    textDecoration: 'none',
+    textAlign: 'center' as const,
+    padding: '12px 24px',
+    fontWeight: 'bold',
+  },
+  footer: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: '0 0 10px 10px',
+    padding: '20px',
+    marginTop: '20px',
+  },
+  footerText: {
+    fontSize: '12px',
+    color: '#666',
+    textAlign: 'center' as const,
+    margin: '0',
+  },
+};
+
+export default BetaInviteEmail;

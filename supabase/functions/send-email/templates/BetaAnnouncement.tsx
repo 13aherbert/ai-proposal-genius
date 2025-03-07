@@ -10,7 +10,6 @@ import {
   Preview,
   Section,
   Text,
-  Box,
 } from '@react-email/components';
 
 interface BetaAnnouncementEmailProps {
@@ -37,10 +36,10 @@ export const BetaAnnouncementEmail = ({
             <Text style={styles.text}>
               We're excited to announce a new feature now available to our beta testers: <strong>{featureName}</strong>
             </Text>
-            <Box style={styles.featureBox}>
+            <div style={styles.featureBox}>
               <Text style={styles.featureLabel}><strong>Feature Details:</strong></Text>
               <Text style={styles.featureContent}>{featureDetails}</Text>
-            </Box>
+            </div>
             {featureUrl && (
               <Section style={styles.buttonContainer}>
                 <Link href={featureUrl} style={styles.button}>

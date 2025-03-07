@@ -10,8 +10,6 @@ import {
   Preview,
   Section,
   Text,
-  Ul,
-  Li,
 } from '@react-email/components';
 
 interface BetaInviteEmailProps {
@@ -41,12 +39,12 @@ export const BetaInviteEmail = ({
               We're excited to invite you to participate in the beta testing program for OptiRFP.
             </Text>
             <Text style={styles.text}>As a beta tester, you'll get:</Text>
-            <Ul style={styles.list}>
-              <Li>Early access to new features</Li>
-              <Li>Direct line to our development team</Li>
-              <Li>Opportunity to shape the future of the product</Li>
-              <Li>Extended premium benefits during the beta period</Li>
-            </Ul>
+            <div style={styles.list}>
+              <div style={styles.listItem}>Early access to new features</div>
+              <div style={styles.listItem}>Direct line to our development team</div>
+              <div style={styles.listItem}>Opportunity to shape the future of the product</div>
+              <div style={styles.listItem}>Extended premium benefits during the beta period</div>
+            </div>
             <Section style={styles.inviteBox}>
               <Text style={styles.inviteText}><strong>Your Invite Code:</strong> {inviteCode}</Text>
               <Text style={styles.inviteText}><strong>Expires:</strong> {expirationDate}</Text>
@@ -106,6 +104,12 @@ const styles = {
   list: {
     margin: '16px 0',
     padding: '0 0 0 20px',
+  },
+  listItem: {
+    margin: '8px 0',
+    fontSize: '16px',
+    color: '#333',
+    lineHeight: '24px',
   },
   inviteBox: {
     backgroundColor: '#e8e8e8',

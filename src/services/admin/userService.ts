@@ -1,8 +1,181 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
-import { isAdmin } from "./roleService";
 import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network";
+
+/**
+ * Check if current user has admin role
+ */
+export async function isAdmin(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('is_admin');
+    
+    if (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Exception checking admin status:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user has beta_tester role
+ */
+export async function isBetaTester(): Promise<boolean> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return false;
+    
+    const { data, error } = await supabase.rpc('check_beta_tester_role', {
+      user_id_param: userData.user.id
+    });
+    
+    if (error) {
+      console.error('Error checking beta tester status:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Exception checking beta tester status:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user has a specific role
+ */
+export async function checkUserRole(role: UserRole): Promise<boolean> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return false;
+    
+    const { data, error } = await supabase.rpc('check_user_role', {
+      user_id_param: userData.user.id,
+      role_param: role
+    });
+    
+    if (error) {
+      console.error(`Error checking ${role} role:`, error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error(`Exception checking ${role} role:`, error);
+    return false;
+  }
+}
+
+/**
+ * Ensure the user has the basic 'user' role, creating it if missing
+ */
+export async function ensureUserRole(): Promise<boolean> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return false;
+    
+    // First check if user already has the role
+    const hasRole = await checkUserRole('user');
+    if (hasRole) return true;
+    
+    // If not, assign the role
+    const { error } = await supabase.rpc('assign_user_role', {
+      _user_id: userData.user.id,
+      _role: 'user',
+      _created_by: userData.user.id
+    });
+    
+    if (error) {
+      console.error('Error ensuring user role:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Exception ensuring user role:', error);
+    return false;
+  }
+}
+
+/**
+ * High-level function to assign a role to a user
+ */
+export async function assignRole(userId: string, role: UserRole): Promise<boolean> {
+  try {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      toast.error("Authentication required", { description: "You must be logged in to assign roles" });
+      return false;
+    }
+    
+    // Check admin permissions
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to assign roles" });
+      return false;
+    }
+    
+    const { data, error } = await supabase.rpc('assign_user_role', {
+      _user_id: userId,
+      _role: role,
+      _created_by: userData.user.id
+    });
+    
+    if (error) {
+      console.error('Error assigning role:', error);
+      toast.error("Failed to assign role", { description: error.message });
+      return false;
+    }
+    
+    toast.success(`Role '${role}' assigned successfully`);
+    return true;
+  } catch (error) {
+    console.error('Exception in assignRole:', error);
+    toast.error("Failed to assign role", { 
+      description: error instanceof Error ? error.message : "Unknown error" 
+    });
+    return false;
+  }
+}
+
+/**
+ * High-level function to remove a role from a user
+ */
+export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
+  try {
+    // Check admin permissions
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to remove roles" });
+      return false;
+    }
+    
+    const { data, error } = await supabase.rpc('remove_user_role', {
+      _user_id: userId,
+      _role: role
+    });
+    
+    if (error) {
+      console.error('Error removing role:', error);
+      toast.error("Failed to remove role", { description: error.message });
+      return false;
+    }
+    
+    toast.success(`Role '${role}' removed successfully`);
+    return !!data;
+  } catch (error) {
+    console.error('Exception in removeRole:', error);
+    toast.error("Failed to remove role", { 
+      description: error instanceof Error ? error.message : "Unknown error" 
+    });
+    return false;
+  }
+}
 
 /**
  * Get all user profiles for admin management
@@ -317,3 +490,9 @@ export async function updateUserSubscription(email: string, plan: string, status
     }
   });
 }
+
+// Add aliases for compatibility
+export { getAllUsers as getUsers };
+export { assignRole as assignUserRole };
+export { removeRole as removeUserRole };
+export { getUserRoles };

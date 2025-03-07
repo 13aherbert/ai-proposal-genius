@@ -104,7 +104,7 @@ export function BetaInvitations({
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={invitation.invitation_email_sent ? 'success' : 'outline'}>
+                      <Badge variant={invitation.invitation_email_sent ? 'default' : 'outline'}>
                         {invitation.invitation_email_sent ? 'Sent' : 'Not Sent'}
                       </Badge>
                     </TableCell>

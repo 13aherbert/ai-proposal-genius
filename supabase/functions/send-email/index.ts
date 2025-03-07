@@ -25,7 +25,7 @@ const RESEND_VERIFIED_EMAIL = 'optirfp@gmail.com';
 
 // Company email configuration
 const COMPANY_EMAIL_DOMAIN = 'updates.optirfp.ai';
-const DEFAULT_FROM_EMAIL = `OptiRFP <updates@${COMPANY_EMAIL_DOMAIN}>`;
+const DEFAULT_FROM_EMAIL = `OptiRFP <team@${COMPANY_EMAIL_DOMAIN}>`;
 
 // Track recently processed requests to prevent duplicates
 const processedRequests = new Map<string, number>();

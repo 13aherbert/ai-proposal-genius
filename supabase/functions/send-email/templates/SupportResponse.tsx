@@ -10,7 +10,6 @@ import {
   Preview,
   Section,
   Text,
-  Box,
 } from '@react-email/components';
 
 interface SupportResponseEmailProps {
@@ -40,9 +39,9 @@ export const SupportResponseEmail = ({
             <Text style={styles.text}>
               We've responded to your support ticket (ID: {ticketId}). Here's our response:
             </Text>
-            <Box style={styles.messageBox}>
+            <Section style={styles.messageBox}>
               <Text style={styles.messageContent}>{responseMessage}</Text>
-            </Box>
+            </Section>
             {supportUrl && (
               <Section style={styles.buttonContainer}>
                 <Link href={supportUrl} style={styles.button}>

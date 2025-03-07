@@ -160,7 +160,12 @@ export const emailService = {
     inviteCode: string,
     expiresAt: string
   ): Promise<{ success: boolean; error?: string }> {
+    console.log(`Preparing beta invite email for ${email} with code ${inviteCode}`);
+    
     const inviteUrl = `${window.location.origin}/beta?invite=${inviteCode}`;
+    const expiryDate = new Date(expiresAt).toLocaleDateString();
+    
+    console.log(`Beta invitation URL: ${inviteUrl}, expires on: ${expiryDate}`);
     
     return this.sendEmail({
       to: [email],
@@ -169,7 +174,7 @@ export const emailService = {
       templateData: {
         inviteCode,
         inviteUrl,
-        expiresAt
+        expiresAt: expiryDate
       }
     });
   },

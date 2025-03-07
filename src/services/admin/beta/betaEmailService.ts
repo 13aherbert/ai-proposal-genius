@@ -13,6 +13,12 @@ export async function sendInvitationEmail(
   expiresAt: string
 ): Promise<boolean> {
   try {
+    console.log(`Attempting to send beta invitation email to ${email} with code ${inviteCode}`);
+    
+    // Create the invitation URL
+    const inviteUrl = `${window.location.origin}/beta?invite=${inviteCode}`;
+    console.log(`Invitation URL generated: ${inviteUrl}`);
+    
     // Send invitation email
     const emailResult = await emailService.sendBetaInviteEmail(
       email,
@@ -20,13 +26,17 @@ export async function sendInvitationEmail(
       expiresAt
     );
 
+    console.log('Email sending result:', emailResult);
+
     if (!emailResult.success) {
       console.error('Failed to send invitation email:', emailResult.error);
       toast.warning("Invitation created but email could not be sent", { 
-        description: "The user will need the invitation link manually" 
+        description: `Error: ${emailResult.error || "Unknown error"}` 
       });
       return false;
     } 
+    
+    console.log(`Successfully sent invitation email to ${email}, updating database record`);
     
     // Update invitation to mark email as sent
     const { error: updateError } = await supabase
@@ -36,11 +46,19 @@ export async function sendInvitationEmail(
       
     if (updateError) {
       console.error('Failed to update invitation email status:', updateError);
+      toast.warning("Email sent but failed to update invitation record", {
+        description: "The user will receive the email, but the system won't track it properly"
+      });
+    } else {
+      console.log(`Successfully updated invitation record ${invitationId} as sent`);
     }
     
     return true;
   } catch (error) {
     console.error('Error in sendInvitationEmail:', error);
+    toast.error("Failed to send invitation email", { 
+      description: error instanceof Error ? error.message : "Unknown error" 
+    });
     return false;
   }
 }

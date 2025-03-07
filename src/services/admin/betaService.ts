@@ -43,34 +43,46 @@ export async function getBetaInvitations(): Promise<BetaInvitation[]> {
  */
 export async function createBetaInvitation(email: string): Promise<boolean> {
   try {
+    console.log(`Starting beta invitation process for ${email}`);
+    
     // Check if the user is authenticated
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {
+      console.error('Authentication error:', userError);
       toast.error("Authentication error", { description: "Could not verify your identity" });
       return false;
     }
+    
+    console.log(`User authenticated: ${userData.user.id}`);
     
     // Check if invitation already exists
     const pendingInvitations = await checkPendingInvitation(email);
     
     // If the check failed, show an error and return
     if (pendingInvitations === null) {
+      console.error('Failed to check for existing invitations');
       toast.error("Error checking for existing invitations", { description: "Please try again later" });
       return false;
     }
     
     if (pendingInvitations.length > 0) {
+      console.log(`Found existing invitation for ${email}:`, pendingInvitations);
       toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
       return false;
     }
+    
+    console.log(`No existing invitations found for ${email}, creating new invitation`);
     
     // Create the invitation
     const inviteId = await createInvitation(email, userData.user.id);
     
     if (!inviteId) {
+      console.error('Failed to create invitation, no ID returned');
       toast.error("Failed to create invitation", { description: "No invitation ID returned" });
       return false;
     }
+    
+    console.log(`Invitation created with ID: ${inviteId}, fetching details`);
     
     // Get the invitation details to send the email
     const { data: invitationDetails, error: detailsError } = await supabase
@@ -87,15 +99,26 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       return true; // Return true since the invitation was created
     }
 
+    console.log('Retrieved invitation details:', invitationDetails);
+
     // Send invitation email
-    await sendInvitationEmail(
+    const emailSent = await sendInvitationEmail(
       email,
       inviteId,
       invitationDetails.invite_code,
       invitationDetails.expires_at
     );
 
-    toast.success("Invitation created successfully");
+    if (emailSent) {
+      console.log(`Successfully sent invitation email to ${email}`);
+      toast.success("Invitation created and email sent successfully");
+    } else {
+      console.log(`Invitation created but email could not be sent to ${email}`);
+      toast.warning("Invitation created but email could not be sent", {
+        description: "You may need to manually share the invitation link"
+      });
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in createBetaInvitation:', error);

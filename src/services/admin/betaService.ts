@@ -53,7 +53,9 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     // Check if invitation already exists
     const pendingInvitations = await checkPendingInvitation(email);
     
-    if (!pendingInvitations) {
+    // If the check failed, show an error and return
+    if (pendingInvitations === null) {
+      toast.error("Error checking for existing invitations", { description: "Please try again later" });
       return false;
     }
     

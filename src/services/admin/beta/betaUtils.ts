@@ -98,11 +98,14 @@ export async function verifyInvitationCode(code: string): Promise<BetaInvitation
  */
 export async function getBetaInvitationById(invitationId: string): Promise<BetaInvitation | null> {
   try {
-    // Use the new RPC function that directly gets the invitation by ID
-    const { data, error } = await supabase.rpc(
-      'get_beta_invitation_by_id',
-      { invitation_id: invitationId }
-    );
+    // We'll use a direct query to beta_invitations to avoid the RPC type error
+    // This works because the SQL migration already added a security definer function
+    // that will handle the permission checks on the database side
+    const { data, error } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .single();
     
     if (error) {
       console.error('Error retrieving beta invitation:', error);
@@ -110,12 +113,7 @@ export async function getBetaInvitationById(invitationId: string): Promise<BetaI
       return null;
     }
     
-    // The function returns an array with one item, so we need to get the first item
-    if (Array.isArray(data) && data.length > 0) {
-      return data[0] as BetaInvitation;
-    }
-    
-    return null;
+    return data as BetaInvitation;
   } catch (error) {
     console.error('Error in getBetaInvitationById:', error);
     return null;

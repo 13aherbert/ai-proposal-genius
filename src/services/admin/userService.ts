@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -486,7 +487,15 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
       return [];
     }
     
-    return data || [];
+    // Fix the type issue by explicitly mapping to UserRoleRecord with UserRole type
+    return (data || []).map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      role: item.role as UserRole, // Explicitly cast the role to UserRole
+      created_at: item.created_at,
+      created_by: item.created_by,
+      email: item.email || null
+    }));
   } catch (error) {
     console.error('Exception in getUserRoles:', error);
     toast.error("Failed to fetch user roles", { 

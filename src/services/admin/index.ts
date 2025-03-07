@@ -9,18 +9,17 @@ import {
 } from './betaService';
 
 import {
-  getAllUsers as getUsers,
+  getAllUsers,
   getUserRoles,
-  assignUserRole,
-  removeUserRole,
+  assignRole,
+  removeRole,
   updateSubscriptionPlan,
   isAdmin,
   isBetaTester,
   checkUserRole,
   ensureUserRole,
-  assignRole,
-  removeRole,
-  assignRoleByEmail
+  assignRoleByEmail,
+  updateUserSubscription
 } from './userService';
 
 // Re-export types
@@ -36,10 +35,15 @@ export const adminService = {
   resendInvitationEmail,
   
   // User management methods
-  getUsers,
+  getAllUsers,
+  getUsers: getAllUsers, // Alias for backward compatibility
   getUserRoles,
-  assignUserRole,
-  removeUserRole,
+  assignUserRole: assignRole, // Alias for backward compatibility
+  removeUserRole: removeRole, // Alias for backward compatibility
+  
+  // Direct function exports
+  assignRole,
+  removeRole,
   
   // Role check methods
   isAdmin,
@@ -47,12 +51,10 @@ export const adminService = {
   checkUserRole,
   ensureUserRole,
   
-  // Higher-level user management methods
-  assignRole,
-  removeRole,
+  // Subscription management
   updateSubscriptionPlan,
-  assignRoleByEmail,
+  updateUserSubscription,
   
-  // Alias for getAllUsers to maintain backward compatibility
-  getAllUsers: getUsers
+  // User-email operations
+  assignRoleByEmail
 };

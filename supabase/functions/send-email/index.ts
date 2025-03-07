@@ -7,11 +7,12 @@ import { Resend } from 'resend';
 // Import email templates
 import WelcomeEmail from './templates/Welcome.tsx';
 import PasswordResetEmail from './templates/PasswordReset.tsx';
+import PasswordChangedEmail from './templates/PasswordChanged.tsx';
 import SupportEmail from './templates/Support.tsx';
 import SupportResponseEmail from './templates/SupportResponse.tsx';
+import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 import BetaInviteEmail from './templates/BetaInvite.tsx';
 import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
-import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -68,6 +69,11 @@ Deno.serve(async (req) => {
         case 'password_reset':
           html = await renderAsync(
             React.createElement(PasswordResetEmail, templateData)
+          );
+          break;
+        case 'password_changed':
+          html = await renderAsync(
+            React.createElement(PasswordChangedEmail, templateData)
           );
           break;
         case 'support':

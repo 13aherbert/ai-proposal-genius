@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface SendEmailResponse {
@@ -92,6 +93,23 @@ class EmailService {
       templateData: {
         resetUrl,
         expiresIn
+      }
+    });
+  }
+  
+  /**
+   * Send password changed confirmation email
+   */
+  async sendPasswordChangedEmail(
+    email: string,
+    name: string = "User"
+  ): Promise<SendEmailResponse> {
+    return this.sendEmail({
+      to: [email],
+      subject: "Your OptiRFP Password Has Been Changed",
+      templateType: 'password_changed',
+      templateData: {
+        name
       }
     });
   }
@@ -206,23 +224,6 @@ class EmailService {
         featureName,
         featureDetails,
         featureUrl
-      }
-    });
-  }
-  
-  /**
-   * Send password changed confirmation email
-   */
-  async sendPasswordChangedEmail(
-    email: string,
-    name: string = "User"
-  ): Promise<SendEmailResponse> {
-    return this.sendEmail({
-      to: [email],
-      subject: "Your OptiRFP Password Has Been Changed",
-      templateType: 'password_changed',
-      templateData: {
-        name
       }
     });
   }

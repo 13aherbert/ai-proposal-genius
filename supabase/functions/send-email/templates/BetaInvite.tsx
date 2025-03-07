@@ -10,7 +10,6 @@ import {
   Preview,
   Section,
   Text,
-  Box,
   Ul,
   Li,
 } from '@react-email/components';
@@ -48,10 +47,10 @@ export const BetaInviteEmail = ({
               <Li>Opportunity to shape the future of the product</Li>
               <Li>Extended premium benefits during the beta period</Li>
             </Ul>
-            <Box style={styles.inviteBox}>
+            <Section style={styles.inviteBox}>
               <Text style={styles.inviteText}><strong>Your Invite Code:</strong> {inviteCode}</Text>
               <Text style={styles.inviteText}><strong>Expires:</strong> {expirationDate}</Text>
-            </Box>
+            </Section>
             <Section style={styles.buttonContainer}>
               <Link href={inviteUrl} style={styles.button}>
                 Join Beta Program

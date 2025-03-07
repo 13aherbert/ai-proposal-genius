@@ -14,7 +14,7 @@ import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 import BetaInviteEmail from './templates/BetaInvite.tsx';
 import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
 
-// Define CORS headers directly in this file to ensure they're applied correctly
+// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -38,13 +38,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('Missing Authorization header');
-      throw new Error('Missing Authorization header');
-    }
-
     // Get request payload
     const payload = await req.json();
     console.log('Email request payload:', payload);

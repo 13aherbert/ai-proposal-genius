@@ -17,13 +17,6 @@ class EmailService {
     try {
       console.log('Sending email with payload:', payload);
       
-      // Get current user session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        console.error('No active session for sending email');
-        return { success: false, error: 'Authentication required' };
-      }
-      
       // Call the edge function with authorization
       console.log('Invoking send-email function with session token');
       const { data, error } = await supabase.functions.invoke('send-email', {

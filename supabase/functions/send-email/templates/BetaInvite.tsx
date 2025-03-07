@@ -11,8 +11,8 @@ import {
   Section,
   Text,
   Box,
-  Li,
   Ul,
+  Li,
 } from '@react-email/components';
 
 interface BetaInviteEmailProps {

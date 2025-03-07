@@ -112,7 +112,18 @@ function validateEmailRequest(request: EmailRequest): { valid: boolean; error?: 
         }
         break;
       }
-      // Add other template validations as needed
+      case "beta_invite": {
+        if (!request.templateData.inviteCode || !request.templateData.inviteUrl) {
+          return { valid: false, error: "Missing inviteCode or inviteUrl in beta invite template data" };
+        }
+        break;
+      }
+      case "beta_announcement": {
+        if (!request.templateData.featureName || !request.templateData.featureDetails) {
+          return { valid: false, error: "Missing featureName or featureDetails in beta announcement template data" };
+        }
+        break;
+      }
     }
   } else if (!request.templateType && !request.html && !request.text) {
     return { valid: false, error: "Email content is required (html, text, or template)" };
@@ -193,7 +204,7 @@ serve(async (req) => {
     }
 
     // Configure default sender if not provided
-    const from = requestData.from || "OptiRFP <notifications@example.com>";
+    const from = requestData.from || "OptiRFP <notifications@resend.dev>";
 
     // Send email directly with provided HTML
     if (requestData.html) {
@@ -253,6 +264,7 @@ serve(async (req) => {
         }
         case "beta_invite": {
           const { inviteCode, inviteUrl, expiresAt } = requestData.templateData;
+          console.log("Rendering beta invite email with:", { inviteCode, inviteUrl, expiresAt });
           html = render(React.createElement(BetaInviteEmail, { inviteCode, inviteUrl, expiresAt }));
           break;
         }
@@ -268,6 +280,8 @@ serve(async (req) => {
         default:
           throw new Error(`Unknown template type: ${requestData.templateType}`);
       }
+      
+      console.log("Sending email with rendered HTML");
       
       const { data, error } = await resend.emails.send({
         from,

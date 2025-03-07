@@ -8,8 +8,9 @@ import { toast } from "sonner";
  */
 export async function checkPendingInvitation(email: string): Promise<BetaInvitation[] | null> {
   try {
-    // Fix: Add proper type arguments to RPC function
-    const { data, error } = await supabase.rpc<BetaInvitation[], { email_param: string }>(
+    // We need to correctly call the RPC function without explicit type parameters
+    // as they're inferred from the function name
+    const { data, error } = await supabase.rpc(
       'check_pending_invitation',
       { email_param: email }
     );
@@ -20,7 +21,7 @@ export async function checkPendingInvitation(email: string): Promise<BetaInvitat
       return null;
     }
     
-    return data;
+    return data as BetaInvitation[];
   } catch (error) {
     console.error('Error in checkPendingInvitation:', error);
     return null;
@@ -35,8 +36,8 @@ export async function createInvitation(
   userId: string
 ): Promise<string | null> {
   try {
-    // Fix: Add proper type arguments to RPC function
-    const { data, error } = await supabase.rpc<string, { email_param: string, inviter_id: string }>(
+    // Fix the RPC call to use proper typing
+    const { data, error } = await supabase.rpc(
       'invite_beta_tester',
       { 
         email_param: email,
@@ -50,7 +51,7 @@ export async function createInvitation(
       return null;
     }
     
-    return data;
+    return data as string;
   } catch (error) {
     console.error('Error in createInvitation:', error);
     return null;

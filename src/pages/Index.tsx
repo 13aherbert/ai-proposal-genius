@@ -1,5 +1,4 @@
-
-import { AuthForm } from "@/components/AuthForm";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { LogIn, DollarSign, HelpCircle } from "lucide-react";

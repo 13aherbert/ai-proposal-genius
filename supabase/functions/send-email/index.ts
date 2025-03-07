@@ -206,109 +206,123 @@ serve(async (req) => {
     // Configure default sender if not provided
     const from = requestData.from || "OptiRFP <notifications@resend.dev>";
 
-    // Send email directly with provided HTML
-    if (requestData.html) {
-      console.log("Sending custom HTML email");
-      const { data, error } = await resend.emails.send({
-        from,
-        to: requestData.to,
-        subject: requestData.subject,
-        html: requestData.html,
-        text: requestData.text,
-        cc: requestData.cc,
-        bcc: requestData.bcc,
-        reply_to: requestData.replyTo
-      });
+    try {
+      // Send email directly with provided HTML
+      if (requestData.html) {
+        console.log("Sending custom HTML email");
+        const { data, error } = await resend.emails.send({
+          from,
+          to: requestData.to,
+          subject: requestData.subject,
+          html: requestData.html,
+          text: requestData.text,
+          cc: requestData.cc,
+          bcc: requestData.bcc,
+          reply_to: requestData.replyTo
+        });
 
-      if (error) {
-        console.error("Error sending email:", error);
-        throw error;
+        if (error) {
+          console.error("Error sending email:", error);
+          throw error;
+        }
+
+        console.log("Email sent successfully:", data);
+        return addCorsHeaders(new Response(
+          JSON.stringify({ id: data?.id }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          }
+        ));
+      } 
+      // Handle template-based emails using React Email
+      else if (requestData.templateType && requestData.templateData) {
+        console.log(`Sending template email: ${requestData.templateType}`);
+        
+        // Render appropriate template based on templateType
+        let html = "";
+        
+        switch(requestData.templateType) {
+          case "welcome": {
+            const { firstName, appUrl } = requestData.templateData;
+            html = render(React.createElement(WelcomeEmail, { firstName, appUrl }));
+            break;
+          }
+          case "password_reset": {
+            const { resetUrl, expiresIn } = requestData.templateData;
+            html = render(React.createElement(PasswordResetEmail, { resetUrl, expiresIn }));
+            break;
+          }
+          case "support": {
+            const { name, message, ticketId, supportUrl } = requestData.templateData;
+            html = render(React.createElement(SupportEmail, { name, message, ticketId, supportUrl }));
+            break;
+          }
+          case "support_response": {
+            const { name, ticketId, responseMessage, supportUrl } = requestData.templateData;
+            html = render(React.createElement(SupportResponseEmail, { name, ticketId, responseMessage, supportUrl }));
+            break;
+          }
+          case "beta_invite": {
+            const { inviteCode, inviteUrl, expiresAt } = requestData.templateData;
+            console.log("Rendering beta invite email with:", { inviteCode, inviteUrl, expiresAt });
+            html = render(React.createElement(BetaInviteEmail, { inviteCode, inviteUrl, expiresAt }));
+            break;
+          }
+          case "beta_announcement": {
+            const { featureName, featureDetails, featureUrl } = requestData.templateData;
+            html = render(React.createElement(BetaAnnouncementEmail, { 
+              featureName, 
+              featureDetails, 
+              featureUrl 
+            }));
+            break;
+          }
+          default:
+            throw new Error(`Unknown template type: ${requestData.templateType}`);
+        }
+        
+        console.log("Sending email with rendered HTML");
+        
+        const { data, error } = await resend.emails.send({
+          from,
+          to: requestData.to,
+          subject: requestData.subject,
+          html,
+          cc: requestData.cc,
+          bcc: requestData.bcc,
+          reply_to: requestData.replyTo
+        });
+        
+        if (error) {
+          console.error("Error sending email:", error);
+          throw error;
+        }
+        
+        console.log("Template email sent successfully:", data);
+        return addCorsHeaders(new Response(
+          JSON.stringify({ id: data?.id }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          }
+        ));
       }
-
-      console.log("Email sent successfully:", data);
+      else {
+        throw new Error("Either HTML content or template information must be provided");
+      }
+    } catch (sendError) {
+      console.error("Error sending email with Resend:", sendError);
       return addCorsHeaders(new Response(
-        JSON.stringify({ id: data?.id }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
+        JSON.stringify({ 
+          error: "Failed to send email", 
+          details: sendError instanceof Error ? sendError.message : String(sendError) 
+        }),
+        { 
+          status: 500, 
+          headers: { "Content-Type": "application/json" } 
         }
       ));
-    } 
-    // Handle template-based emails using React Email
-    else if (requestData.templateType && requestData.templateData) {
-      console.log(`Sending template email: ${requestData.templateType}`);
-      
-      // Render appropriate template based on templateType
-      let html = "";
-      
-      switch(requestData.templateType) {
-        case "welcome": {
-          const { firstName, appUrl } = requestData.templateData;
-          html = render(React.createElement(WelcomeEmail, { firstName, appUrl }));
-          break;
-        }
-        case "password_reset": {
-          const { resetUrl, expiresIn } = requestData.templateData;
-          html = render(React.createElement(PasswordResetEmail, { resetUrl, expiresIn }));
-          break;
-        }
-        case "support": {
-          const { name, message, ticketId, supportUrl } = requestData.templateData;
-          html = render(React.createElement(SupportEmail, { name, message, ticketId, supportUrl }));
-          break;
-        }
-        case "support_response": {
-          const { name, ticketId, responseMessage, supportUrl } = requestData.templateData;
-          html = render(React.createElement(SupportResponseEmail, { name, ticketId, responseMessage, supportUrl }));
-          break;
-        }
-        case "beta_invite": {
-          const { inviteCode, inviteUrl, expiresAt } = requestData.templateData;
-          console.log("Rendering beta invite email with:", { inviteCode, inviteUrl, expiresAt });
-          html = render(React.createElement(BetaInviteEmail, { inviteCode, inviteUrl, expiresAt }));
-          break;
-        }
-        case "beta_announcement": {
-          const { featureName, featureDetails, featureUrl } = requestData.templateData;
-          html = render(React.createElement(BetaAnnouncementEmail, { 
-            featureName, 
-            featureDetails, 
-            featureUrl 
-          }));
-          break;
-        }
-        default:
-          throw new Error(`Unknown template type: ${requestData.templateType}`);
-      }
-      
-      console.log("Sending email with rendered HTML");
-      
-      const { data, error } = await resend.emails.send({
-        from,
-        to: requestData.to,
-        subject: requestData.subject,
-        html,
-        cc: requestData.cc,
-        bcc: requestData.bcc,
-        reply_to: requestData.replyTo
-      });
-      
-      if (error) {
-        console.error("Error sending email:", error);
-        throw error;
-      }
-      
-      console.log("Template email sent successfully:", data);
-      return addCorsHeaders(new Response(
-        JSON.stringify({ id: data?.id }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        }
-      ));
-    }
-    else {
-      throw new Error("Either HTML content or template information must be provided");
     }
   } catch (error) {
     console.error("Error in send-email function:", error);

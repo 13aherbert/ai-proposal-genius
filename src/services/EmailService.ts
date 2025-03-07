@@ -1,132 +1,128 @@
-import { supabase } from "@/integrations/supabase/client";
 
-type EmailTemplate = "welcome" | "password_reset" | "support" | "beta_invite" | "beta_announcement" | "support_response";
+import { supabase } from '@/integrations/supabase/client';
 
-interface SendEmailOptions {
-  to: string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  from?: string;
-  cc?: string[];
-  bcc?: string[];
-  replyTo?: string;
-  templateType?: EmailTemplate;
-  templateData?: Record<string, any>;
+interface SendEmailResponse {
+  success: boolean;
+  error?: string;
+  id?: string;
 }
 
 /**
- * Service for sending emails using the Supabase Edge Function
+ * Email service handles sending different types of emails via the edge function
  */
-export const emailService = {
+class EmailService {
   /**
-   * Send an email with HTML content or using a template
-   * @param options Email sending options
-   * @returns Response from the email service
+   * General function to send email through the edge function
    */
-  async sendEmail(options: SendEmailOptions): Promise<{ success: boolean; id?: string; error?: string }> {
+  private async sendEmail(payload: Record<string, any>): Promise<SendEmailResponse> {
     try {
-      console.log("Sending email to:", options.to);
+      console.log('Sending email with payload:', payload);
       
-      // Get current session for authentication
+      // Get current user session for authentication
       const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session?.access_token) {
-        throw new Error("Authentication required to send emails");
+      if (!sessionData.session) {
+        console.error('No active session for sending email');
+        return { success: false, error: 'Authentication required' };
       }
       
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke("send-email", {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`
-        },
-        body: options
+      // Call the edge function with authorization
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: payload,
       });
       
-      if (error) {
-        console.error("Error sending email:", error);
-        return { success: false, error: error.message };
+      if (error || !data) {
+        console.error('Error calling send-email function:', error);
+        return { 
+          success: false, 
+          error: error?.message || 'Failed to send email' 
+        };
       }
       
-      console.log("Email sent successfully:", data);
-      return { success: true, id: data?.id };
+      if (data.error) {
+        console.error('Error from send-email function:', data.error);
+        return { 
+          success: false, 
+          error: data.error 
+        };
+      }
+      
+      return { 
+        success: true, 
+        id: data.id 
+      };
     } catch (error) {
-      console.error("Error in emailService.sendEmail:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      return { success: false, error: errorMessage };
+      console.error('Exception in sendEmail:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error sending email' 
+      };
     }
-  },
+  }
   
   /**
-   * Send a welcome email to a new user
-   * @param email User's email address
-   * @param firstName User's first name
-   * @returns Response from the email service
+   * Send welcome email to new user
    */
-  async sendWelcomeEmail(email: string, firstName?: string): Promise<{ success: boolean; error?: string }> {
+  async sendWelcomeEmail(
+    email: string, 
+    firstName: string, 
+    appUrl = window.location.origin
+  ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
-      subject: "Welcome to OptiRFP!",
-      templateType: "welcome",
+      subject: 'Welcome to OptiRFP!',
+      templateType: 'welcome',
       templateData: {
         firstName,
-        appUrl: window.location.origin
+        appUrl
       }
     });
-  },
+  }
   
   /**
-   * Send a password reset email
-   * @param email User's email address
-   * @param resetUrl URL for password reset
-   * @returns Response from the email service
+   * Send password reset email
    */
-  async sendPasswordResetEmail(email: string, resetUrl: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordResetEmail(
+    email: string, 
+    resetUrl: string,
+    expiresIn = '1 hour'
+  ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
-      subject: "Reset Your Password - OptiRFP",
-      templateType: "password_reset",
+      subject: 'Reset Your Password',
+      templateType: 'password_reset',
       templateData: {
         resetUrl,
-        expiresIn: "24 hours"
+        expiresIn
       }
     });
-  },
+  }
   
   /**
-   * Send a confirmation email for a support/feedback request
-   * @param email User's email address
-   * @param name User's name
-   * @param message Support/feedback message
-   * @param ticketId Optional ticket ID
-   * @returns Response from the email service
+   * Send support ticket email
    */
-  async sendSupportConfirmationEmail(
-    email: string, 
-    name: string, 
+  async sendSupportEmail(
+    email: string,
+    name: string,
     message: string,
-    ticketId?: string
-  ): Promise<{ success: boolean; error?: string }> {
+    ticketId: string,
+    supportUrl?: string
+  ): Promise<SendEmailResponse> {
     return this.sendEmail({
-      to: [email],
-      subject: "We've Received Your Support Request - OptiRFP",
-      templateType: "support",
+      to: ['support@optirfp.com'], // Support team address
+      subject: `Support Request #${ticketId}`,
+      templateType: 'support',
       templateData: {
         name,
         message,
-        ticketId: ticketId || `TKT-${Date.now()}`,
-      }
+        ticketId,
+        supportUrl
+      },
+      replyTo: email
     });
-  },
+  }
   
   /**
-   * Send a response notification for a support ticket
-   * @param email User's email address
-   * @param name User's name
-   * @param ticketId Support ticket ID
-   * @param responseMessage Response message from support team
-   * @param supportUrl Optional URL to view the ticket
-   * @returns Response from the email service
+   * Send support response email
    */
   async sendSupportResponseEmail(
     email: string,
@@ -134,11 +130,11 @@ export const emailService = {
     ticketId: string,
     responseMessage: string,
     supportUrl?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
-      subject: `New Response to Your Support Request (Ticket #${ticketId}) - OptiRFP`,
-      templateType: "support_response",
+      subject: `Re: Support Request #${ticketId}`,
+      templateType: 'support_response',
       templateData: {
         name,
         ticketId,
@@ -146,57 +142,46 @@ export const emailService = {
         supportUrl
       }
     });
-  },
+  }
   
   /**
-   * Send a beta invitation email
-   * @param email Invitee's email address
-   * @param inviteCode Beta invitation code
-   * @param expiresAt Expiration date of the invitation
-   * @returns Response from the email service
+   * Send beta program invitation email
    */
   async sendBetaInviteEmail(
     email: string,
     inviteCode: string,
+    inviteUrl: string,
     expiresAt: string
-  ): Promise<{ success: boolean; error?: string }> {
-    console.log(`Preparing beta invite email for ${email} with code ${inviteCode}`);
-    
-    const inviteUrl = `${window.location.origin}/beta?invite=${inviteCode}`;
-    const expiryDate = new Date(expiresAt).toLocaleDateString();
-    
-    console.log(`Beta invitation URL: ${inviteUrl}, expires on: ${expiryDate}`);
+  ): Promise<SendEmailResponse> {
+    console.log('Preparing beta invite email with params:', {
+      email, inviteCode, inviteUrl, expiresAt
+    });
     
     return this.sendEmail({
       to: [email],
-      subject: "You're Invited to the OptiRFP Beta Program!",
-      templateType: "beta_invite",
+      subject: 'You're Invited to the OptiRFP Beta Program!',
+      templateType: 'beta_invite',
       templateData: {
         inviteCode,
         inviteUrl,
-        expiresAt: expiryDate
+        expiresAt
       }
     });
-  },
+  }
   
   /**
-   * Send a beta program announcement email
-   * @param emails List of beta tester emails
-   * @param featureName Name of the new feature
-   * @param featureDetails Details about the feature
-   * @param featureUrl URL to try the feature
-   * @returns Response from the email service
+   * Send beta feature announcement email
    */
   async sendBetaAnnouncementEmail(
-    emails: string[],
+    email: string,
     featureName: string,
     featureDetails: string,
     featureUrl?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<SendEmailResponse> {
     return this.sendEmail({
-      to: emails,
-      subject: `New Feature Alert: ${featureName} - OptiRFP Beta`,
-      templateType: "beta_announcement",
+      to: [email],
+      subject: `New Beta Feature: ${featureName}`,
+      templateType: 'beta_announcement',
       templateData: {
         featureName,
         featureDetails,
@@ -204,4 +189,6 @@ export const emailService = {
       }
     });
   }
-};
+}
+
+export const emailService = new EmailService();

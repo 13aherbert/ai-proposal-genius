@@ -3,14 +3,6 @@ project_id = "bmopbbkfxkgzlbmhhgox"
 
 [global.env_variables]
 
-[[analyzers]]
-name = "openai"
-config = { api_key = "env:OPENAI_API_KEY" }
-
-[[analyzers]]
-name = "anthropic"
-config = { api_key = "env:ANTHROPIC_API_KEY" }
-
 [[functions]]
 name = "generate-section-content"
 verify_jwt = false
@@ -24,14 +16,17 @@ import_map = "import_map.json"
 [[functions]]
 name = "check-subscription"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "cancel-subscription"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "create-checkout-session"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "stripe-webhook"
@@ -51,26 +46,32 @@ import_map = "import_map.json"
 [[functions]]
 name = "parse-knowledge-file"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "parse-existing-knowledge-files"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "renew-subscription"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "get-user-roles"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "get-pending-invitation"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "get-beta-invitations"
 verify_jwt = true
+import_map = "import_map.json"
 
 [[functions]]
 name = "send-email"
@@ -80,4 +81,19 @@ import_map = "import_map.json"
 [[functions]]
 name = "email-webhooks"
 verify_jwt = false
+import_map = "import_map.json"
+
+[[functions]]
+name = "get-user-by-email"
+verify_jwt = true
+import_map = "import_map.json"
+
+[[functions]]
+name = "set-initial-admin"
+verify_jwt = true
+import_map = "import_map.json"
+
+[[functions]]
+name = "admin-update-subscription"
+verify_jwt = true
 import_map = "import_map.json"

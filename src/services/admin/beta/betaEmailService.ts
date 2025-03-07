@@ -23,11 +23,20 @@ export async function sendInvitationEmail(
     const baseUrl = window.location.origin;
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     
+    console.log("Sending beta invitation email", {
+      email,
+      inviteCode,
+      inviteUrl,
+      expiresAt,
+      invitationId
+    });
+    
     // Use the general email service instead of direct edge function call
     // This avoids the RLS recursion by using a more general approach
     const { success, error } = await emailService.sendBetaInviteEmail(
       email,
       inviteCode,
+      inviteUrl,
       expiresAt
     );
     

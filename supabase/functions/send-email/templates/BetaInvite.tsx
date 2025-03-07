@@ -18,7 +18,7 @@ import {
 interface BetaInviteEmailProps {
   inviteCode: string;
   inviteUrl: string;
-  expiresAt: string;
+  expiresAt?: string;
 }
 
 export const BetaInviteEmail = ({

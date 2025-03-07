@@ -1,12 +1,10 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
 import { 
   checkPendingInvitation, 
   createInvitation, 
-  verifyInvitationCode, 
-  getBetaInvitationById 
+  verifyInvitationCode
 } from "./beta/betaUtils";
 import { sendInvitationEmail } from "./beta/betaEmailService";
 
@@ -77,7 +75,7 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       if (confirm(`An invitation for ${email} already exists. Would you like to resend it?`)) {
         const existingInvitation = pendingInvitations[0];
         
-        // Check if the invitation email has been sent before
+        // Send invitation email directly with existing invitation details
         const emailSent = await sendInvitationEmail(
           email,
           existingInvitation.id,
@@ -116,38 +114,50 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     
     console.log(`Invitation created with ID: ${inviteId}, fetching details`);
     
-    // Get the invitation details using our new direct function
-    const invitationDetails = await getBetaInvitationById(inviteId);
+    // Get the invitation details directly from the database
+    try {
+      const { data: invitationData, error: invitationError } = await supabase
+        .from('beta_invitations')
+        .select('*')
+        .eq('id', inviteId)
+        .single();
       
-    if (!invitationDetails) {
-      console.error('Error retrieving invitation details');
+      if (invitationError || !invitationData) {
+        console.error('Error retrieving invitation details:', invitationError);
+        toast.warning("Invitation created but could not retrieve details", { 
+          description: "The email could not be sent automatically" 
+        });
+        return true; // Return true since the invitation was created
+      }
+
+      console.log('Retrieved invitation details:', invitationData);
+
+      // Send invitation email
+      const emailSent = await sendInvitationEmail(
+        email,
+        inviteId,
+        invitationData.invite_code,
+        invitationData.expires_at
+      );
+
+      if (emailSent) {
+        console.log(`Successfully sent invitation email to ${email}`);
+        toast.success("Invitation created and email sent successfully");
+      } else {
+        console.log(`Invitation created but email could not be sent to ${email}`);
+        toast.warning("Invitation created but email could not be sent", {
+          description: "You may need to manually share the invitation link"
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error retrieving invitation details:', error);
       toast.warning("Invitation created but could not retrieve details", { 
         description: "The email could not be sent automatically" 
       });
       return true; // Return true since the invitation was created
     }
-
-    console.log('Retrieved invitation details:', invitationDetails);
-
-    // Send invitation email
-    const emailSent = await sendInvitationEmail(
-      email,
-      inviteId,
-      invitationDetails.invite_code,
-      invitationDetails.expires_at
-    );
-
-    if (emailSent) {
-      console.log(`Successfully sent invitation email to ${email}`);
-      toast.success("Invitation created and email sent successfully");
-    } else {
-      console.log(`Invitation created but email could not be sent to ${email}`);
-      toast.warning("Invitation created but email could not be sent", {
-        description: "You may need to manually share the invitation link"
-      });
-    }
-    
-    return true;
   } catch (error) {
     console.error('Error in createBetaInvitation:', error);
     toast.error("Failed to create invitation", { description: error instanceof Error ? error.message : "Unknown error" });
@@ -247,12 +257,18 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
  */
 export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
   try {
-    // Get the invitation details using our new direct function
-    const invitation = await getBetaInvitationById(invitationId);
+    // Get the invitation details directly without using getBetaInvitationById
+    const { data: invitation, error } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .single();
       
-    if (!invitation) {
-      console.error('Error retrieving invitation details');
-      toast.error("Failed to retrieve invitation details");
+    if (error || !invitation) {
+      console.error('Error retrieving invitation details:', error);
+      toast.error("Failed to retrieve invitation details", { 
+        description: error?.message || "Could not find invitation" 
+      });
       return false;
     }
     

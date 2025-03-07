@@ -20,6 +20,9 @@ import { corsHeaders, handleCors, addCorsHeaders } from './_shared/cors.ts';
 // Create Resend client using API key from environment variable
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
+// For development/testing - the email allowed by Resend in testing mode
+const RESEND_VERIFIED_EMAIL = 'optirfp@gmail.com';
+
 // Handler function for processing requests
 Deno.serve(async (req) => {
   console.log('Received request to send-email function');
@@ -134,10 +137,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Determine if we're in development/testing mode or production
+    const isDevMode = Deno.env.get('NODE_ENV') !== 'production';
+    
+    // In development mode, override recipient with the verified email
+    // This handles Resend's restriction that free accounts can only send to verified emails
+    const recipients = isDevMode 
+      ? [RESEND_VERIFIED_EMAIL]  // In dev mode, only send to verified email
+      : payload.to;              // In production, use the actual recipients
+    
     // Send the email via Resend
     const emailOptions = {
       from: payload.from || 'OptiRFP <onboarding@resend.dev>', // Use Resend's verified domain
-      to: payload.to,
+      to: recipients,
       subject: payload.subject,
       html: html,
       ...(payload.replyTo && { reply_to: payload.replyTo }),
@@ -148,6 +160,11 @@ Deno.serve(async (req) => {
       subject: emailOptions.subject,
       replyTo: emailOptions.reply_to,
     });
+    
+    // Log if we've redirected emails in development mode
+    if (isDevMode && JSON.stringify(recipients) !== JSON.stringify(payload.to)) {
+      console.log(`⚠️ DEV MODE: Redirecting email from [${payload.to.join(', ')}] to verified email [${RESEND_VERIFIED_EMAIL}]`);
+    }
 
     const { data, error } = await resend.emails.send(emailOptions);
 
@@ -166,12 +183,19 @@ Deno.serve(async (req) => {
     }
 
     console.log('Email sent successfully:', data);
+    
+    // In development mode, add a note about email redirection
+    const responseData = {
+      success: true,
+      id: data?.id,
+      ...(isDevMode && {
+        dev_note: `In development mode, all emails are redirected to ${RESEND_VERIFIED_EMAIL} regardless of the original recipients.`,
+        original_recipients: payload.to
+      })
+    };
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        id: data?.id,
-      }),
+      JSON.stringify(responseData),
       {
         headers: {
           'Content-Type': 'application/json',

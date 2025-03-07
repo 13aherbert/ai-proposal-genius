@@ -8,7 +8,8 @@ import { toast } from "sonner";
  */
 export async function checkPendingInvitation(email: string): Promise<BetaInvitation[] | null> {
   try {
-    const { data, error } = await supabase.rpc<BetaInvitation[]>(
+    // Fix: Add proper type arguments to RPC function
+    const { data, error } = await supabase.rpc<BetaInvitation[], { email_param: string }>(
       'check_pending_invitation',
       { email_param: email }
     );
@@ -34,7 +35,8 @@ export async function createInvitation(
   userId: string
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabase.rpc<string>(
+    // Fix: Add proper type arguments to RPC function
+    const { data, error } = await supabase.rpc<string, { email_param: string, inviter_id: string }>(
       'invite_beta_tester',
       { 
         email_param: email,

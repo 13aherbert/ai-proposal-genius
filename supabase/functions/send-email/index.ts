@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
 
     // Send the email via Resend
     const emailOptions = {
-      from: payload.from || 'OptiRFP <noreply@example.com>', // Replace with your verified domain
+      from: payload.from || 'OptiRFP <onboarding@resend.dev>', // Use Resend's verified domain
       to: payload.to,
       subject: payload.subject,
       html: html,

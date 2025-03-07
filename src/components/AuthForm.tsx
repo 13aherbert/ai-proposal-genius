@@ -9,6 +9,8 @@ import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthError } from "@supabase/supabase-js";
+import { emailService } from "@/services/EmailService";
+import { toast } from "sonner";
 
 interface AuthFormProps {
   defaultView?: 'sign_in' | 'sign_up';
@@ -73,7 +75,7 @@ export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -85,7 +87,18 @@ export const AuthForm = ({ defaultView = 'sign_in' }: AuthFormProps) => {
             }
           }
         });
+        
         if (error) throw error;
+        
+        // Send welcome email after successful signup
+        if (data?.user) {
+          try {
+            await emailService.sendWelcomeEmail(email, firstName);
+            toast.success("Welcome email sent to your inbox");
+          } catch (emailError) {
+            console.error("Failed to send welcome email:", emailError);
+          }
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

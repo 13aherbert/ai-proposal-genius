@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,8 @@ import { useErrorTracking } from '@/hooks/use-error-tracking';
 import { toast } from '@/components/ui/use-toast';
 import { ValidatedInput, ValidatedTextarea, ValidationRules } from '@/components/form/FormValidation';
 import { Switch } from '@/components/ui/switch';
+import { emailService } from '@/services/EmailService';
+import { useAuth } from '@/components/AuthProvider';
 
 export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general';
 
@@ -32,6 +33,7 @@ export function UserFeedbackDialog({
   feedbackType: initialFeedbackType = 'general'
 }: UserFeedbackDialogProps) {
   const { trackError } = useErrorTracking();
+  const { session } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [comments, setComments] = useState('');
@@ -43,7 +45,6 @@ export function UserFeedbackDialog({
     comments: false
   });
 
-  // Update feedbackType when initialFeedbackType prop changes
   React.useEffect(() => {
     setFeedbackType(initialFeedbackType);
   }, [initialFeedbackType]);
@@ -51,7 +52,6 @@ export function UserFeedbackDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
     if (!comments.trim()) {
       setValidationErrors(prev => ({ ...prev, comments: true }));
       toast({
@@ -65,7 +65,8 @@ export function UserFeedbackDialog({
     setIsSubmitting(true);
 
     try {
-      // Track the user feedback as an error or feedback
+      const ticketId = `TICKET-${Date.now()}`;
+      
       trackError({
         message: `${isBetaFeedback ? 'Beta Feedback' : 'User Feedback'}: ${feedbackType} - ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
         severity: feedbackType === 'bug' ? ErrorSeverity.ERROR : ErrorSeverity.INFO,
@@ -79,25 +80,38 @@ export function UserFeedbackDialog({
             allowContact,
             relatedErrorId: errorId,
             relatedErrorMessage: errorMessage,
-            isBetaFeedback
+            isBetaFeedback,
+            ticketId
           },
           source: isBetaFeedback ? 'beta-feedback-form' : 'user-feedback-form'
         }
       });
 
-      // Simulate API call delay
+      const userEmail = email || session?.user?.email;
+      const userName = name || (session?.user?.user_metadata?.first_name || 'User');
+      
+      if (userEmail && allowContact) {
+        try {
+          await emailService.sendSupportConfirmationEmail(
+            userEmail,
+            userName,
+            comments,
+            ticketId
+          );
+        } catch (emailError) {
+          console.error("Failed to send confirmation email:", emailError);
+        }
+      }
+
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Show success message
       toast({
         title: isBetaFeedback ? "Beta Feedback Submitted" : "Feedback Submitted",
-        description: `Thank you for your ${isBetaFeedback ? 'beta feedback' : 'feedback'}. We'll review it as soon as possible.`,
+        description: `Thank you for your ${isBetaFeedback ? 'beta feedback' : 'feedback'}. ${userEmail && allowContact ? 'We\'ve sent a confirmation to your email.' : 'We\'ll review it as soon as possible.'}`,
       });
       
-      // Close the dialog
       onOpenChange(false);
       
-      // Reset form
       setName('');
       setEmail('');
       setComments('');

@@ -9,6 +9,7 @@ import { adminService } from '@/services/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { emailService } from '@/services/EmailService';
 
 export default function BetaProgram() {
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +53,24 @@ export default function BetaProgram() {
               // Check onboarding status after accepting invitation
               const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
               setOnboardingComplete(status);
+              
+              // Send welcome to beta email
+              try {
+                if (session.user.email) {
+                  const expirationDate = new Date();
+                  expirationDate.setDate(expirationDate.getDate() + 90); // 90 days beta period
+                  
+                  await emailService.sendBetaInviteEmail(
+                    session.user.email,
+                    code,
+                    expirationDate.toISOString()
+                  );
+                  
+                  toast.success("Welcome to the beta program! Check your email for more details.");
+                }
+              } catch (emailError) {
+                console.error("Failed to send beta welcome email:", emailError);
+              }
               
               // Remove the invite code from the URL
               navigate('/beta', { replace: true });

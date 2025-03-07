@@ -13,6 +13,10 @@ interface SendEmailResponse {
  * Email service handles sending different types of emails via the edge function
  */
 class EmailService {
+  // Company email configuration
+  private readonly emailDomain = 'updates.optirfp.ai';
+  private readonly defaultFromEmail = `OptiRFP <updates@${this.emailDomain}>`;
+
   /**
    * General function to send email through the edge function
    */
@@ -20,6 +24,11 @@ class EmailService {
     try {
       const emailKey = `email:${payload.templateType}:${payload.to?.join(',') || 'no-recipient'}`;
       console.log('Sending email with payload:', payload);
+      
+      // Set default from email address using verified domain
+      if (!payload.from) {
+        payload.from = this.defaultFromEmail;
+      }
       
       // Use rate limiting to prevent duplicate emails
       return await withRateLimit(emailKey, async () => {
@@ -204,6 +213,7 @@ class EmailService {
     try {
       return await this.sendEmail({
         to: [email],
+        from: this.defaultFromEmail,
         subject: "You're Invited to the OptiRFP Beta Program!",
         templateType: 'beta_invite',
         templateData: {

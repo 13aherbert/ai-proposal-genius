@@ -1,3 +1,4 @@
+
 // Import React for the email templates
 import React from 'react';
 import { renderAsync } from '@react-email/render';
@@ -21,6 +22,10 @@ const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 // For development/testing - the email allowed by Resend in testing mode
 const RESEND_VERIFIED_EMAIL = 'optirfp@gmail.com';
+
+// Company email configuration
+const COMPANY_EMAIL_DOMAIN = 'updates.optirfp.ai';
+const DEFAULT_FROM_EMAIL = `OptiRFP <updates@${COMPANY_EMAIL_DOMAIN}>`;
 
 // Track recently processed requests to prevent duplicates
 const processedRequests = new Map<string, number>();
@@ -182,7 +187,7 @@ Deno.serve(async (req) => {
     
     // Send the email via Resend
     const emailOptions = {
-      from: payload.from || 'OptiRFP <onboarding@resend.dev>', // Use Resend's verified domain
+      from: payload.from || DEFAULT_FROM_EMAIL, // Use our new verified domain
       to: recipients,
       subject: payload.subject,
       html: html,
@@ -192,6 +197,7 @@ Deno.serve(async (req) => {
     console.log('Sending email with options:', {
       to: emailOptions.to,
       subject: emailOptions.subject,
+      from: emailOptions.from,
       replyTo: emailOptions.reply_to,
     });
     

@@ -19,7 +19,21 @@ export async function sendInvitationEmail(
     const inviteUrl = `${window.location.origin}/beta?invite=${inviteCode}`;
     console.log(`Invitation URL generated: ${inviteUrl}`);
     
+    // Check if email was already sent for this invitation
+    const { data: invitationData, error: invitationError } = await supabase
+      .from('beta_invitations')
+      .select('invitation_email_sent')
+      .eq('id', invitationId)
+      .single();
+      
+    if (invitationError) {
+      console.error('Error checking invitation email status:', invitationError);
+    } else if (invitationData?.invitation_email_sent) {
+      console.log(`Invitation email was previously sent for ${email}, attempting to resend`);
+    }
+    
     // Send invitation email
+    console.log(`Calling emailService.sendBetaInviteEmail for ${email}`);
     const emailResult = await emailService.sendBetaInviteEmail(
       email,
       inviteCode,

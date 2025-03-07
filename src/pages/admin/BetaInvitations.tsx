@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus } from "lucide-react";
+import { Mail, UserPlus } from "lucide-react";
 import { BetaInvitation } from "@/services/admin/types";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -49,6 +49,13 @@ export function BetaInvitations({
     }
   };
 
+  const handleResendInvitation = async (invitationId: string) => {
+    const success = await adminService.resendInvitationEmail(invitationId);
+    if (success) {
+      await loadInvitations();
+    }
+  };
+
   const copyInviteLink = (inviteCode: string) => {
     const baseUrl = window.location.origin;
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
@@ -75,6 +82,7 @@ export function BetaInvitations({
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Expires</TableHead>
+                <TableHead>Email Sent</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -96,6 +104,11 @@ export function BetaInvitations({
                       )}
                     </TableCell>
                     <TableCell>
+                      <Badge variant={invitation.invitation_email_sent ? 'success' : 'outline'}>
+                        {invitation.invitation_email_sent ? 'Sent' : 'Not Sent'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex space-x-2">
                         {invitation.status === 'pending' && (
                           <>
@@ -106,6 +119,24 @@ export function BetaInvitations({
                             >
                               Copy Link
                             </Button>
+                            {!invitation.invitation_email_sent && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleResendInvitation(invitation.id)}
+                              >
+                                <Mail className="h-4 w-4 mr-1" /> Send Email
+                              </Button>
+                            )}
+                            {invitation.invitation_email_sent && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleResendInvitation(invitation.id)}
+                              >
+                                <Mail className="h-4 w-4 mr-1" /> Resend
+                              </Button>
+                            )}
                             <Button 
                               variant="destructive" 
                               size="sm" 
@@ -121,7 +152,7 @@ export function BetaInvitations({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
+                  <TableCell colSpan={6} className="text-center py-4">
                     No invitations found
                   </TableCell>
                 </TableRow>

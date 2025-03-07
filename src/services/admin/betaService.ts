@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
@@ -67,8 +66,35 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     
     if (pendingInvitations.length > 0) {
       console.log(`Found existing invitation for ${email}:`, pendingInvitations);
-      toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
-      return false;
+      
+      // Ask user if they want to resend the invitation
+      if (confirm(`An invitation for ${email} already exists. Would you like to resend it?`)) {
+        const existingInvitation = pendingInvitations[0];
+        
+        // Check if the invitation email has been sent before
+        const emailSent = await sendInvitationEmail(
+          email,
+          existingInvitation.id,
+          existingInvitation.invite_code,
+          existingInvitation.expires_at
+        );
+        
+        if (emailSent) {
+          console.log(`Successfully resent invitation email to ${email}`);
+          toast.success("Invitation email resent successfully");
+          return true;
+        } else {
+          console.log(`Failed to resend invitation email to ${email}`);
+          toast.error("Failed to resend invitation email", {
+            description: "Please try again later"
+          });
+          return false;
+        }
+      } else {
+        // User chose not to resend
+        toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
+        return false;
+      }
     }
     
     console.log(`No existing invitations found for ${email}, creating new invitation`);
@@ -210,6 +236,50 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
   } catch (error) {
     console.error('Error in acceptBetaInvitation:', error);
     toast.error("Failed to join beta program", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+/**
+ * Resend invitation email for an existing invitation
+ */
+export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
+  try {
+    // Get the invitation details
+    const { data: invitation, error } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .single();
+      
+    if (error || !invitation) {
+      console.error('Error retrieving invitation details:', error);
+      toast.error("Failed to retrieve invitation details", { 
+        description: error?.message || "Unknown error" 
+      });
+      return false;
+    }
+    
+    // Send invitation email
+    const emailSent = await sendInvitationEmail(
+      invitation.email,
+      invitation.id,
+      invitation.invite_code,
+      invitation.expires_at
+    );
+    
+    if (emailSent) {
+      toast.success("Invitation email resent successfully");
+      return true;
+    } else {
+      toast.error("Failed to resend invitation email");
+      return false;
+    }
+  } catch (error) {
+    console.error('Error in resendInvitationEmail:', error);
+    toast.error("Failed to resend invitation email", { 
+      description: error instanceof Error ? error.message : "Unknown error" 
+    });
     return false;
   }
 }

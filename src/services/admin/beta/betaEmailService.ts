@@ -41,12 +41,16 @@ export async function sendInvitationEmail(
     
     console.log('Beta invitation email sent successfully');
     
-    // Update the invitation record without using functions that could trigger recursion
+    // Use the security definer function to update the invitation status
+    // This avoids RLS recursion by bypassing the policies
     try {
-      const { error: updateError } = await supabase
-        .from('beta_invitations')
-        .update({ invitation_email_sent: true })
-        .eq('id', invitationId);
+      const { data, error: updateError } = await supabase.rpc(
+        'update_beta_invitation_email_sent',
+        { 
+          invitation_id_param: invitationId,
+          sent_status: true
+        }
+      );
       
       if (updateError) {
         console.error('Error updating invitation status:', updateError);

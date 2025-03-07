@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
@@ -257,20 +258,22 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
  */
 export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
   try {
-    // Get the invitation details directly without using getBetaInvitationById
-    const { data: invitation, error } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('id', invitationId)
-      .single();
+    // Use the security definer function to retrieve invitation details
+    // This avoids the RLS recursion issue by bypassing the policies
+    const { data, error } = await supabase.rpc(
+      'get_beta_invitation_direct',
+      { invitation_id_param: invitationId }
+    );
       
-    if (error || !invitation) {
+    if (error || !data || data.length === 0) {
       console.error('Error retrieving invitation details:', error);
       toast.error("Failed to retrieve invitation details", { 
         description: error?.message || "Could not find invitation" 
       });
       return false;
     }
+    
+    const invitation = data[0] as BetaInvitation;
     
     // Send invitation email
     const emailSent = await sendInvitationEmail(

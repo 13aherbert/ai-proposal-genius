@@ -385,6 +385,22 @@ export type Database = {
           created_by: string
         }[]
       }
+      get_beta_invitation_direct: {
+        Args: {
+          invitation_id_param: string
+        }
+        Returns: {
+          id: string
+          email: string
+          invite_code: string
+          invited_by: string
+          status: string
+          created_at: string
+          accepted_at: string
+          expires_at: string
+          invitation_email_sent: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -411,6 +427,13 @@ export type Database = {
         Args: {
           _user_id: string
           _role: string
+        }
+        Returns: boolean
+      }
+      update_beta_invitation_email_sent: {
+        Args: {
+          invitation_id_param: string
+          sent_status: boolean
         }
         Returns: boolean
       }

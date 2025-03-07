@@ -8,6 +8,7 @@ import React from "react";
 import WelcomeEmail from "./templates/Welcome.tsx";
 import PasswordResetEmail from "./templates/PasswordReset.tsx";
 import SupportEmail from "./templates/Support.tsx";
+import SupportResponseEmail from "./templates/SupportResponse.tsx";
 import BetaInviteEmail from "./templates/BetaInvite.tsx";
 import BetaAnnouncementEmail from "./templates/BetaAnnouncement.tsx";
 
@@ -31,7 +32,7 @@ interface EmailRequest {
   cc?: string[];
   bcc?: string[];
   replyTo?: string;
-  templateType?: "welcome" | "password_reset" | "support" | "beta_invite" | "beta_announcement";
+  templateType?: "welcome" | "password_reset" | "support" | "support_response" | "beta_invite" | "beta_announcement";
   templateData?: Record<string, any>;
 }
 
@@ -133,6 +134,11 @@ serve(async (req) => {
         case "support": {
           const { name, message, ticketId, supportUrl } = requestData.templateData;
           html = render(React.createElement(SupportEmail, { name, message, ticketId, supportUrl }));
+          break;
+        }
+        case "support_response": {
+          const { name, ticketId, responseMessage, supportUrl } = requestData.templateData;
+          html = render(React.createElement(SupportResponseEmail, { name, ticketId, responseMessage, supportUrl }));
           break;
         }
         case "beta_invite": {

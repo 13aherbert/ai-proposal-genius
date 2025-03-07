@@ -1,7 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-type EmailTemplate = "welcome" | "password_reset" | "support" | "beta_invite" | "beta_announcement";
+type EmailTemplate = "welcome" | "password_reset" | "support" | "beta_invite" | "beta_announcement" | "support_response";
 
 interface SendEmailOptions {
   to: string[];
@@ -116,6 +115,35 @@ export const emailService = {
         name,
         message,
         ticketId: ticketId || `TKT-${Date.now()}`,
+      }
+    });
+  },
+  
+  /**
+   * Send a response notification for a support ticket
+   * @param email User's email address
+   * @param name User's name
+   * @param ticketId Support ticket ID
+   * @param responseMessage Response message from support team
+   * @param supportUrl Optional URL to view the ticket
+   * @returns Response from the email service
+   */
+  async sendSupportResponseEmail(
+    email: string,
+    name: string,
+    ticketId: string,
+    responseMessage: string,
+    supportUrl?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.sendEmail({
+      to: [email],
+      subject: `New Response to Your Support Request (Ticket #${ticketId}) - OptiRFP`,
+      templateType: "support_response",
+      templateData: {
+        name,
+        ticketId,
+        responseMessage,
+        supportUrl
       }
     });
   },

@@ -16,7 +16,6 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have a hash parameter in the URL (required for password reset)
     const hash = window.location.hash;
     setIsHashPresent(hash.length > 0);
     
@@ -51,7 +50,6 @@ export default function ResetPassword() {
         description: "You can now log in with your new password"
       });
 
-      // Send password changed confirmation email if we have the user's email
       if (data?.user?.email) {
         await emailService.sendPasswordChangedEmail(
           data.user.email,
@@ -59,7 +57,6 @@ export default function ResetPassword() {
         );
       }
       
-      // Short delay before redirecting
       setTimeout(() => {
         navigate("/");
       }, 2000);

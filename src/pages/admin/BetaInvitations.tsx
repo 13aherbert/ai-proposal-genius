@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Mail, UserPlus } from "lucide-react";
+import { Mail, UserPlus, Loader2 } from "lucide-react";
 import { BetaInvitation } from "@/services/admin/types";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ export function BetaInvitations({
   loadInvitations 
 }: BetaInvitationsProps) {
   const [inviteEmail, setInviteEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [creatingInvitation, setCreatingInvitation] = useState(false);
 
   const handleSendInvitation = async () => {
     if (!inviteEmail) {
@@ -35,24 +37,55 @@ export function BetaInvitations({
       toast.error("Please enter a valid email address");
       return;
     }
-    const result = await adminService.createBetaInvitation(inviteEmail);
-    if (result) {
-      setInviteEmail('');
-      await loadInvitations();
+    
+    try {
+      setCreatingInvitation(true);
+      const result = await adminService.createBetaInvitation(inviteEmail);
+      if (result) {
+        setInviteEmail('');
+        await loadInvitations();
+        toast.success("Invitation created and email sent successfully");
+      }
+    } catch (error) {
+      console.error("Error creating invitation:", error);
+      toast.error("Failed to create invitation", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
+    } finally {
+      setCreatingInvitation(false);
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
-    const success = await adminService.cancelBetaInvitation(invitationId);
-    if (success) {
-      await loadInvitations();
+    try {
+      const success = await adminService.cancelBetaInvitation(invitationId);
+      if (success) {
+        await loadInvitations();
+        toast.success("Invitation canceled successfully");
+      }
+    } catch (error) {
+      console.error("Error canceling invitation:", error);
+      toast.error("Failed to cancel invitation", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   };
 
-  const handleResendInvitation = async (invitationId: string) => {
-    const success = await adminService.resendInvitationEmail(invitationId);
-    if (success) {
-      await loadInvitations();
+  const handleResendInvitation = async (invitationId: string, email: string) => {
+    try {
+      setSendingEmail(invitationId);
+      const success = await adminService.resendInvitationEmail(invitationId);
+      if (success) {
+        await loadInvitations();
+        toast.success(`Invitation email sent to ${email}`);
+      }
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      toast.error("Failed to send invitation email", {
+        description: error instanceof Error ? error.message : "Unknown error"
+      });
+    } finally {
+      setSendingEmail(null);
     }
   };
 
@@ -123,18 +156,28 @@ export function BetaInvitations({
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleResendInvitation(invitation.id)}
+                                onClick={() => handleResendInvitation(invitation.id, invitation.email)}
+                                disabled={sendingEmail === invitation.id}
                               >
-                                <Mail className="h-4 w-4 mr-1" /> Send Email
+                                {sendingEmail === invitation.id ? (
+                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
+                                ) : (
+                                  <><Mail className="h-4 w-4 mr-1" /> Send Email</>
+                                )}
                               </Button>
                             )}
                             {invitation.invitation_email_sent && (
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleResendInvitation(invitation.id)}
+                                onClick={() => handleResendInvitation(invitation.id, invitation.email)}
+                                disabled={sendingEmail === invitation.id}
                               >
-                                <Mail className="h-4 w-4 mr-1" /> Resend
+                                {sendingEmail === invitation.id ? (
+                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
+                                ) : (
+                                  <><Mail className="h-4 w-4 mr-1" /> Resend</>
+                                )}
                               </Button>
                             )}
                             <Button 
@@ -169,8 +212,15 @@ export function BetaInvitations({
             onChange={e => setInviteEmail(e.target.value)} 
             className="flex-1" 
           />
-          <Button onClick={handleSendInvitation}>
-            <UserPlus className="h-4 w-4 mr-2" /> Invite
+          <Button 
+            onClick={handleSendInvitation}
+            disabled={creatingInvitation}
+          >
+            {creatingInvitation ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inviting...</>
+            ) : (
+              <><UserPlus className="h-4 w-4 mr-2" /> Invite</>
+            )}
           </Button>
         </div>
       </CardFooter>

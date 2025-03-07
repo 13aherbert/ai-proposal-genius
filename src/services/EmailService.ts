@@ -30,7 +30,7 @@ class EmailService {
         body: payload,
       });
       
-      if (error || !data) {
+      if (error) {
         console.error('Error calling send-email function:', error);
         return { 
           success: false, 
@@ -38,7 +38,7 @@ class EmailService {
         };
       }
       
-      if (data.error) {
+      if (data?.error) {
         console.error('Error from send-email function:', data.error);
         return { 
           success: false, 
@@ -48,7 +48,7 @@ class EmailService {
       
       return { 
         success: true, 
-        id: data.id 
+        id: data?.id 
       };
     } catch (error) {
       console.error('Exception in sendEmail:', error);

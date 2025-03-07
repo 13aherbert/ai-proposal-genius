@@ -25,6 +25,7 @@ interface ImportMetaEnv {
   readonly VITE_MAX_UPLOAD_SIZE?: string;
   readonly VITE_ANALYTICS_ID?: string;
   readonly VITE_SENTRY_DSN?: string;
+  readonly VITE_EMAIL_WEBHOOK_SECRET?: string;
 }
 
 interface ImportMeta {

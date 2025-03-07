@@ -18,12 +18,20 @@ export const webhookService = {
     try {
       console.log("Triggering support response webhook for ticket:", ticketId);
       
+      // Get the webhook secret from environment variables
+      const webhookSecret = import.meta.env.VITE_EMAIL_WEBHOOK_SECRET;
+      
+      if (!webhookSecret) {
+        console.error("EMAIL_WEBHOOK_SECRET environment variable is not set");
+        return { success: false, error: "Webhook secret not configured" };
+      }
+      
       // Call the email-webhooks edge function
       const { data, error } = await supabase.functions.invoke("email-webhooks", {
         body: {
           ticketId,
           responseMessage,
-          secret: process.env.EMAIL_WEBHOOK_SECRET || "your-webhook-secret-here"
+          secret: webhookSecret
         }
       });
       

@@ -56,6 +56,20 @@ serve(async (req) => {
     
     // Verify webhook secret
     const webhookSecret = Deno.env.get("EMAIL_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("EMAIL_WEBHOOK_SECRET environment variable is not set");
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured" }),
+        { 
+          status: 500, 
+          headers: { 
+            "Content-Type": "application/json",
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
+    
     if (payload.secret !== webhookSecret) {
       console.error("Invalid webhook secret");
       return new Response(

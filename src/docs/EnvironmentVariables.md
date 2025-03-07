@@ -19,6 +19,12 @@ OPENAI_API_KEY=your-openai-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
+### Email Services
+```
+RESEND_API_KEY=your-resend-api-key
+EMAIL_WEBHOOK_SECRET=your-webhook-secret-key
+```
+
 ### Payment Processing
 ```
 STRIPE_API_KEY=your-stripe-public-key

@@ -1,337 +1,161 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Resend } from "resend";
-import { render } from "@react-email/render";
-import React from "react";
-import { corsHeaders, handleCors, addCorsHeaders } from "../_shared/cors.ts";
+// Import React for the email templates
+import React from 'react';
+import { renderAsync } from '@react-email/render';
+import { Resend } from 'resend';
 
-// Import our email templates
-import WelcomeEmail from "./templates/Welcome.tsx";
-import PasswordResetEmail from "./templates/PasswordReset.tsx";
-import SupportEmail from "./templates/Support.tsx";
-import SupportResponseEmail from "./templates/SupportResponse.tsx";
-import BetaInviteEmail from "./templates/BetaInvite.tsx";
-import BetaAnnouncementEmail from "./templates/BetaAnnouncement.tsx";
+// Import email templates
+import WelcomeEmail from './templates/Welcome.tsx';
+import PasswordResetEmail from './templates/PasswordReset.tsx';
+import SupportEmail from './templates/Support.tsx';
+import SupportResponseEmail from './templates/SupportResponse.tsx';
+import BetaInviteEmail from './templates/BetaInvite.tsx';
+import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
+import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 
-// Initialize Resend with API key
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// CORS headers for browser requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-// Email request interface
-interface EmailRequest {
-  to: string[];
-  subject: string;
-  html?: string;
-  text?: string;
-  from?: string;
-  cc?: string[];
-  bcc?: string[];
-  replyTo?: string;
-  templateType?: "welcome" | "password_reset" | "support" | "support_response" | "beta_invite" | "beta_announcement";
-  templateData?: Record<string, any>;
-}
+// Create Resend client using API key from environment variable
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
-// Request tracking for rate limiting
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
-const MAX_EMAILS_PER_MINUTE = 20;
-const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-
-// Check if a request exceeds rate limits
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = requestCounts.get(ip);
-  
-  if (!record) {
-    // First request from this IP
-    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  
-  if (now > record.resetTime) {
-    // Reset counter if the window has passed
-    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  
-  // Increment counter
-  record.count += 1;
-  requestCounts.set(ip, record);
-  
-  // Check if limit exceeded
-  return record.count > MAX_EMAILS_PER_MINUTE;
-}
-
-// Validate email data
-function validateEmailRequest(request: EmailRequest): { valid: boolean; error?: string } {
-  // Check required fields
-  if (!request.to || !Array.isArray(request.to) || request.to.length === 0) {
-    return { valid: false, error: "Missing or invalid 'to' field" };
-  }
-  
-  if (!request.subject) {
-    return { valid: false, error: "Missing 'subject' field" };
-  }
-  
-  // Validate email addresses
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const allEmails = [
-    ...(request.to || []),
-    ...(request.cc || []),
-    ...(request.bcc || [])
-  ];
-  
-  for (const email of allEmails) {
-    if (!emailRegex.test(email)) {
-      return { valid: false, error: `Invalid email address: ${email}` };
-    }
-  }
-  
-  // Validate template-specific data
-  if (request.templateType && request.templateData) {
-    switch(request.templateType) {
-      case "welcome": {
-        if (!request.templateData.firstName && !request.templateData.appUrl) {
-          return { valid: false, error: "Invalid welcome template data" };
-        }
-        break;
-      }
-      case "password_reset": {
-        if (!request.templateData.resetUrl) {
-          return { valid: false, error: "Missing resetUrl in password reset template data" };
-        }
-        break;
-      }
-      case "support": {
-        if (!request.templateData.name || !request.templateData.message || !request.templateData.ticketId) {
-          return { valid: false, error: "Invalid support template data" };
-        }
-        break;
-      }
-      case "support_response": {
-        if (!request.templateData.name || !request.templateData.ticketId || !request.templateData.responseMessage) {
-          return { valid: false, error: "Invalid support response template data" };
-        }
-        break;
-      }
-      case "beta_invite": {
-        if (!request.templateData.inviteCode || !request.templateData.inviteUrl) {
-          return { valid: false, error: "Missing inviteCode or inviteUrl in beta invite template data" };
-        }
-        break;
-      }
-      case "beta_announcement": {
-        if (!request.templateData.featureName || !request.templateData.featureDetails) {
-          return { valid: false, error: "Missing featureName or featureDetails in beta announcement template data" };
-        }
-        break;
-      }
-    }
-  } else if (!request.templateType && !request.html && !request.text) {
-    return { valid: false, error: "Email content is required (html, text, or template)" };
-  }
-  
-  return { valid: true };
-}
-
-serve(async (req) => {
-  console.log("Email service received request");
-  
+// Handler function for processing requests
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
-
-  // Get client IP for rate limiting
-  const clientIp = req.headers.get("x-forwarded-for") || 
-                  req.headers.get("x-real-ip") || 
-                  "unknown";
-  
-  // Check rate limit
-  if (checkRateLimit(clientIp)) {
-    console.warn(`Rate limit exceeded for IP: ${clientIp}`);
-    return addCorsHeaders(new Response(
-      JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-      { 
-        status: 429, 
-        headers: { "Content-Type": "application/json" } 
-      }
-    ));
-  }
-
-  // Only accept POST requests
-  if (req.method !== "POST") {
-    console.error(`Invalid method: ${req.method}`);
-    return addCorsHeaders(new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { 
-        status: 405, 
-        headers: { "Content-Type": "application/json" } 
-      }
-    ));
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: corsHeaders,
+    });
   }
 
   try {
     // Verify authentication
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error("Missing Authorization header");
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
-        { 
-          status: 401, 
-          headers: { "Content-Type": "application/json" } 
-        }
-      ));
+      throw new Error('Missing Authorization header');
     }
 
-    // Get request data
-    const requestData: EmailRequest = await req.json();
-    console.log("Received email request:", {
-      to: requestData.to,
-      subject: requestData.subject,
-      templateType: requestData.templateType
+    // Get request payload
+    const payload = await req.json();
+    console.log('Email request payload:', payload);
+
+    // Validate required fields
+    if (!payload.to || !Array.isArray(payload.to) || !payload.to.length) {
+      throw new Error('Missing or invalid "to" field');
+    }
+
+    if (!payload.subject) {
+      throw new Error('Missing "subject" field');
+    }
+
+    let html = '';
+    
+    // Check if we're using a template or direct HTML
+    if (payload.templateType && payload.templateData) {
+      // Render the appropriate React email template based on templateType
+      const templateType = payload.templateType;
+      const templateData = payload.templateData;
+      
+      switch (templateType) {
+        case 'welcome':
+          html = await renderAsync(
+            React.createElement(WelcomeEmail, templateData)
+          );
+          break;
+        case 'password_reset':
+          html = await renderAsync(
+            React.createElement(PasswordResetEmail, templateData)
+          );
+          break;
+        case 'support':
+          html = await renderAsync(
+            React.createElement(SupportEmail, templateData)
+          );
+          break;
+        case 'support_response':
+          html = await renderAsync(
+            React.createElement(SupportResponseEmail, templateData)
+          );
+          break;
+        case 'support_confirmation':
+          html = await renderAsync(
+            React.createElement(SupportConfirmationEmail, templateData)
+          );
+          break;
+        case 'beta_invite':
+          html = await renderAsync(
+            React.createElement(BetaInviteEmail, templateData)
+          );
+          break;
+        case 'beta_announcement':
+          html = await renderAsync(
+            React.createElement(BetaAnnouncementEmail, templateData)
+          );
+          break;
+        default:
+          throw new Error(`Unsupported template type: ${templateType}`);
+      }
+    } else if (payload.html) {
+      // Use direct HTML if provided
+      html = payload.html;
+    } else {
+      throw new Error('Missing template type/data or direct HTML content');
+    }
+
+    // Send the email via Resend
+    const emailOptions = {
+      from: payload.from || 'OptiRFP <support@example.com>', // Replace with your verified domain
+      to: payload.to,
+      subject: payload.subject,
+      html: html,
+      ...(payload.replyTo && { reply_to: payload.replyTo }),
+    };
+
+    console.log('Sending email with options:', {
+      to: emailOptions.to,
+      subject: emailOptions.subject,
+      replyTo: emailOptions.reply_to,
     });
 
-    // Validate email request
-    const validationResult = validateEmailRequest(requestData);
-    if (!validationResult.valid) {
-      console.error("Invalid email request:", validationResult.error);
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: validationResult.error }),
-        { 
-          status: 400, 
-          headers: { "Content-Type": "application/json" } 
-        }
-      ));
+    const { data, error } = await resend.emails.send(emailOptions);
+
+    if (error) {
+      console.error('Resend API error:', error);
+      throw new Error(`Email sending failed: ${error.message}`);
     }
 
-    // Configure default sender if not provided
-    const from = requestData.from || "OptiRFP <notifications@resend.dev>";
+    console.log('Email sent successfully:', data);
 
-    try {
-      // Send email directly with provided HTML
-      if (requestData.html) {
-        console.log("Sending custom HTML email");
-        const { data, error } = await resend.emails.send({
-          from,
-          to: requestData.to,
-          subject: requestData.subject,
-          html: requestData.html,
-          text: requestData.text,
-          cc: requestData.cc,
-          bcc: requestData.bcc,
-          reply_to: requestData.replyTo
-        });
-
-        if (error) {
-          console.error("Error sending email:", error);
-          throw error;
-        }
-
-        console.log("Email sent successfully:", data);
-        return addCorsHeaders(new Response(
-          JSON.stringify({ id: data?.id }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          }
-        ));
-      } 
-      // Handle template-based emails using React Email
-      else if (requestData.templateType && requestData.templateData) {
-        console.log(`Sending template email: ${requestData.templateType}`);
-        
-        // Render appropriate template based on templateType
-        let html = "";
-        
-        switch(requestData.templateType) {
-          case "welcome": {
-            const { firstName, appUrl } = requestData.templateData;
-            html = render(React.createElement(WelcomeEmail, { firstName, appUrl }));
-            break;
-          }
-          case "password_reset": {
-            const { resetUrl, expiresIn } = requestData.templateData;
-            html = render(React.createElement(PasswordResetEmail, { resetUrl, expiresIn }));
-            break;
-          }
-          case "support": {
-            const { name, message, ticketId, supportUrl } = requestData.templateData;
-            html = render(React.createElement(SupportEmail, { name, message, ticketId, supportUrl }));
-            break;
-          }
-          case "support_response": {
-            const { name, ticketId, responseMessage, supportUrl } = requestData.templateData;
-            html = render(React.createElement(SupportResponseEmail, { name, ticketId, responseMessage, supportUrl }));
-            break;
-          }
-          case "beta_invite": {
-            const { inviteCode, inviteUrl, expiresAt } = requestData.templateData;
-            console.log("Rendering beta invite email with:", { inviteCode, inviteUrl, expiresAt });
-            html = render(React.createElement(BetaInviteEmail, { inviteCode, inviteUrl, expiresAt }));
-            break;
-          }
-          case "beta_announcement": {
-            const { featureName, featureDetails, featureUrl } = requestData.templateData;
-            html = render(React.createElement(BetaAnnouncementEmail, { 
-              featureName, 
-              featureDetails, 
-              featureUrl 
-            }));
-            break;
-          }
-          default:
-            throw new Error(`Unknown template type: ${requestData.templateType}`);
-        }
-        
-        console.log("Sending email with rendered HTML");
-        
-        const { data, error } = await resend.emails.send({
-          from,
-          to: requestData.to,
-          subject: requestData.subject,
-          html,
-          cc: requestData.cc,
-          bcc: requestData.bcc,
-          reply_to: requestData.replyTo
-        });
-        
-        if (error) {
-          console.error("Error sending email:", error);
-          throw error;
-        }
-        
-        console.log("Template email sent successfully:", data);
-        return addCorsHeaders(new Response(
-          JSON.stringify({ id: data?.id }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          }
-        ));
-      }
-      else {
-        throw new Error("Either HTML content or template information must be provided");
-      }
-    } catch (sendError) {
-      console.error("Error sending email with Resend:", sendError);
-      return addCorsHeaders(new Response(
-        JSON.stringify({ 
-          error: "Failed to send email", 
-          details: sendError instanceof Error ? sendError.message : String(sendError) 
-        }),
-        { 
-          status: 500, 
-          headers: { "Content-Type": "application/json" } 
-        }
-      ));
-    }
-  } catch (error) {
-    console.error("Error in send-email function:", error);
-    return addCorsHeaders(new Response(
-      JSON.stringify({ error: error.message }),
+    return new Response(
+      JSON.stringify({
+        success: true,
+        id: data?.id,
+      }),
       {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
       }
-    ));
+    );
+  } catch (error) {
+    console.error('Error in send-email function:', error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
+      }
+    );
   }
 });

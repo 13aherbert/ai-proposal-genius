@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,15 +53,10 @@ export default function ResetPassword() {
 
       // Send password changed confirmation email if we have the user's email
       if (data?.user?.email) {
-        await emailService.sendEmail({
-          to: [data.user.email],
-          subject: "Your OptiRFP password has been changed",
-          html: `
-            <h2>Password Change Confirmation</h2>
-            <p>Your password for OptiRFP has been successfully changed.</p>
-            <p>If you did not initiate this change, please contact support immediately.</p>
-          `
-        });
+        await emailService.sendPasswordChangedEmail(
+          data.user.email,
+          data.user.user_metadata?.first_name
+        );
       }
       
       // Short delay before redirecting

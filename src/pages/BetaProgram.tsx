@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BetaTesterDashboard } from '@/components/beta/BetaTesterDashboard';
@@ -21,7 +20,6 @@ export default function BetaProgram() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if there's an invite code in the URL
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('invite');
     if (code) {
@@ -32,37 +30,34 @@ export default function BetaProgram() {
     const checkBetaAccess = async () => {
       if (session?.user?.id) {
         try {
-          // First check if the user is a beta tester in the database
           const isBeta = await adminService.checkUserRole('beta_tester');
           setIsBetaTester(isBeta);
           
           if (isBeta) {
-            // If they're a beta tester, check if they've completed onboarding
             const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
             setOnboardingComplete(status);
           } else if (code) {
-            // If they're not a beta tester but have an invite code, verify it
             const invitation = await adminService.verifyBetaInvitation(code);
             if (invitation) {
-              // Valid invitation
               setIsBetaTester(true);
               
-              // Accept the invitation automatically
               await adminService.acceptBetaInvitation(code);
               
-              // Check onboarding status after accepting invitation
               const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
               setOnboardingComplete(status);
               
-              // Send welcome to beta email
               try {
                 if (session.user.email) {
                   const expirationDate = new Date();
-                  expirationDate.setDate(expirationDate.getDate() + 90); // 90 days beta period
+                  expirationDate.setDate(expirationDate.getDate() + 90);
+                  
+                  const baseUrl = window.location.origin;
+                  const inviteUrl = `${baseUrl}/beta?invite=${code}`;
                   
                   await emailService.sendBetaInviteEmail(
                     session.user.email,
                     code,
+                    inviteUrl,
                     expirationDate.toISOString()
                   );
                   
@@ -72,7 +67,6 @@ export default function BetaProgram() {
                 console.error("Failed to send beta welcome email:", emailError);
               }
               
-              // Remove the invite code from the URL
               navigate('/beta', { replace: true });
             } else {
               toast.error("Invalid or expired invitation");

@@ -79,11 +79,9 @@ export async function ensureUserRole(): Promise<boolean> {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return false;
     
-    // First check if user already has the role
     const hasRole = await checkUserRole('user');
     if (hasRole) return true;
     
-    // If not, assign the role
     const { error } = await supabase.rpc('assign_user_role', {
       _user_id: userData.user.id,
       _role: 'user',
@@ -113,7 +111,6 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
     
-    // Check admin permissions
     const adminStatus = await isAdmin();
     if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to assign roles" });
@@ -148,7 +145,6 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
-    // Check admin permissions
     const adminStatus = await isAdmin();
     if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to remove roles" });
@@ -183,7 +179,6 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function getAllUsers(): Promise<UserProfile[]> {
   try {
-    // First check if user is admin through RPC function
     const adminStatus = await isAdmin();
     console.log("Admin status check result:", adminStatus);
     
@@ -192,7 +187,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       return [];
     }
     
-    // Get session for auth header
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
     
@@ -201,7 +195,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error('Authentication required');
     }
     
-    // Call our edge function to get user roles with email info
     console.log("Calling edge function to get user roles with emails");
     const { data: userRolesData, error: userRolesError } = await withRetry<EdgeFunctionResponse>(
       () => supabase.functions.invoke('get-user-roles', {
@@ -209,8 +202,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
           Authorization: `Bearer ${accessToken}`
         }
       }),
-      3, // max retries
-      1000 // base delay
+      3,
+      1000
     );
     
     if (userRolesError) {
@@ -220,7 +213,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     
     console.log("User roles data from edge function:", userRolesData);
     
-    // Get profiles directly from the profiles table
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('*');
@@ -232,7 +224,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Fetched profiles:", profiles);
 
-    // Get all subscriptions - make sure we're getting the most up-to-date data
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
@@ -244,31 +235,28 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Fetched subscriptions:", subscriptions);
 
-    // Create a map of user IDs to their most recent subscription
     const userSubscriptionMap = new Map();
     
     if (subscriptions && Array.isArray(subscriptions)) {
       subscriptions.forEach(sub => {
-        // Only store the subscription if it's newer than what we already have
-        const existing = userSubscriptionMap.get(sub.user_id);
-        if (!existing || new Date(sub.updated_at) > new Date(existing.updated_at)) {
-          userSubscriptionMap.set(sub.user_id, sub);
+        if (sub.user_id) {
+          const existing = userSubscriptionMap.get(sub.user_id);
+          if (!existing || new Date(sub.updated_at) > new Date(existing.updated_at)) {
+            userSubscriptionMap.set(sub.user_id, sub);
+          }
         }
       });
     }
 
-    // Create a map of user IDs to roles
     const userRolesMap = new Map<string, UserRole[]>();
     const userEmailMap = new Map<string, string>();
     
     if (userRolesData && Array.isArray(userRolesData)) {
       userRolesData.forEach((record: any) => {
-        // Store email information
         if (record.email) {
           userEmailMap.set(record.user_id, record.email);
         }
         
-        // Store role information
         const existing = userRolesMap.get(record.user_id) || [];
         if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {
           existing.push(record.role as UserRole);
@@ -279,7 +267,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     console.log("Processed user subscriptions:", Object.fromEntries(userSubscriptionMap));
 
-    // Map profiles to UserProfile format
     return profiles?.map(profile => {
       const roles = userRolesMap.get(profile.profile_id) || [];
       const subscription = userSubscriptionMap.get(profile.profile_id);
@@ -322,25 +309,21 @@ export async function getAllUsers(): Promise<UserProfile[]> {
  */
 export async function updateSubscriptionPlan(userId: string, plan: string, status: string = 'active'): Promise<boolean> {
   try {
-    // Check admin using RPC
     const adminStatus = await isAdmin();
     if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
       return false;
     }
 
-    // Determine project limit based on plan
-    let projectLimit = 3; // Default for trial
+    let projectLimit = 3;
     if (plan === 'pro') {
       projectLimit = 30;
     } else if (plan === 'starter') {
       projectLimit = 10;
     }
 
-    // Get the current timestamp for the updated_at field
     const now = new Date().toISOString();
 
-    // Fetch the existing subscription to check if it exists
     const { data: existingSub, error: fetchError } = await supabase
       .from('subscriptions')
       .select('subscription_id')
@@ -358,7 +341,6 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
     let result;
     
     if (existingSub) {
-      // Update existing subscription
       console.log(`Updating existing subscription ${existingSub.subscription_id} for user ${userId} to plan ${plan} with status ${status}`);
       
       result = await supabase
@@ -371,7 +353,6 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
         })
         .eq('subscription_id', existingSub.subscription_id);
     } else {
-      // Create new subscription
       console.log(`Creating new subscription for user ${userId} with plan ${plan} and status ${status}`);
       
       result = await supabase
@@ -417,7 +398,6 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
   return withRateLimit(`update-subscription-${email}`, async () => {
     try {
-      // Get session for auth header
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       
@@ -428,11 +408,9 @@ export async function updateUserSubscription(email: string, plan: string, status
       
       console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
       
-      // Show a loading toast
       const loadingId = toast.loading(`Updating subscription for ${email}...`);
       
       try {
-        // Call our edge function to update the subscription with retry
         const { data, error } = await withRetry<EdgeFunctionResponse>(
           () => supabase.functions.invoke('admin-update-subscription', {
             body: { 
@@ -445,11 +423,10 @@ export async function updateUserSubscription(email: string, plan: string, status
               'Content-Type': 'application/json'
             }
           }),
-          2, // Reduce max retries to prevent resource exhaustion
-          2000 // Increase base delay to give more time between retries
+          2,
+          2000
         );
         
-        // Dismiss the loading toast
         toast.dismiss(loadingId);
         
         if (error) {
@@ -468,9 +445,8 @@ export async function updateUserSubscription(email: string, plan: string, status
         toast.success(`Subscription updated to ${plan} plan with status ${status}`);
         return true;
       } catch (error) {
-        // Dismiss the loading toast in case of error
         toast.dismiss(loadingId);
-        throw error; // Re-throw for the outer catch
+        throw error;
       }
     } catch (error) {
       console.error('Error in updateUserSubscription:', error);
@@ -491,8 +467,95 @@ export async function updateUserSubscription(email: string, plan: string, status
   });
 }
 
+/**
+ * Get roles for all users (admin only)
+ */
+export async function getUserRoles(): Promise<UserRoleRecord[]> {
+  try {
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to view user roles" });
+      return [];
+    }
+    
+    const { data, error } = await supabase.rpc('get_all_user_roles');
+    
+    if (error) {
+      console.error('Error fetching user roles:', error);
+      toast.error("Failed to fetch user roles", { description: error.message });
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Exception in getUserRoles:', error);
+    toast.error("Failed to fetch user roles", { 
+      description: error instanceof Error ? error.message : "Unknown error" 
+    });
+    return [];
+  }
+}
+
+/**
+ * Assign a role to a user by email (admin only)
+ */
+export async function assignRoleByEmail(email: string, role: UserRole): Promise<boolean> {
+  try {
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to assign roles" });
+      return false;
+    }
+    
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
+    if (!accessToken) {
+      console.error('No access token available');
+      throw new Error('Authentication required');
+    }
+    
+    console.log(`Admin assigning ${role} role to user with email ${email}`);
+    
+    const { data: userData, error: userError } = await supabase.functions.invoke('get-user-by-email', {
+      body: { email },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (userError) {
+      console.error("Error getting user by email:", userError);
+      throw userError;
+    }
+    
+    if (!userData || !userData.user) {
+      toast.error("User not found", { description: `No user found with email ${email}` });
+      return false;
+    }
+    
+    console.log("Found user:", userData.user);
+    
+    return await assignRole(userData.user.id, role);
+  } catch (error) {
+    console.error('Error in assignRoleByEmail:', error);
+    
+    if (isNetworkError(error)) {
+      toast.error("Network error", { 
+        description: getNetworkErrorMessage(error) 
+      });
+    } else {
+      toast.error("Failed to assign role", { 
+        description: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+    
+    return false;
+  }
+}
+
 // Add aliases for compatibility
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
-export { getUserRoles };

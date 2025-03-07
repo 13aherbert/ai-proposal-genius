@@ -1,10 +1,15 @@
 
-import { emailService } from "../../EmailService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Send an invitation email and update the invitation record
+ * Send an invitation email to a beta tester
+ * 
+ * @param email Recipient email address
+ * @param invitationId The UUID of the invitation 
+ * @param inviteCode The invitation code
+ * @param expiresAt The expiration date of the invitation
+ * @returns boolean indicating if the email was sent successfully
  */
 export async function sendInvitationEmail(
   email: string,
@@ -13,58 +18,57 @@ export async function sendInvitationEmail(
   expiresAt: string
 ): Promise<boolean> {
   try {
-    console.log(`Attempting to send beta invitation email to ${email} with code ${inviteCode}`);
+    // Get the base URL for the invitation link
+    const baseUrl = window.location.origin;
+    const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     
-    // Create the invitation URL
-    const inviteUrl = `${window.location.origin}/beta?invite=${inviteCode}`;
-    console.log(`Invitation URL generated: ${inviteUrl}`);
-    
-    // Check if email was already sent for this invitation
-    const { data: invitationData, error: invitationError } = await supabase
-      .from('beta_invitations')
-      .select('invitation_email_sent')
-      .eq('id', invitationId)
-      .single();
-      
-    if (invitationError) {
-      console.error('Error checking invitation email status:', invitationError);
-    } else if (invitationData?.invitation_email_sent) {
-      console.log(`Invitation email was previously sent for ${email}, attempting to resend`);
+    // Get current access token
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.access_token) {
+      toast.error("Authentication required", { description: "Please log in to send invitation emails" });
+      return false;
     }
     
-    // Send invitation email
-    console.log(`Calling emailService.sendBetaInviteEmail for ${email}`);
-    const emailResult = await emailService.sendBetaInviteEmail(
-      email,
-      inviteCode,
-      expiresAt
-    );
-
-    console.log('Email sending result:', emailResult);
-
-    if (!emailResult.success) {
-      console.error('Failed to send invitation email:', emailResult.error);
-      toast.warning("Invitation created but email could not be sent", { 
-        description: `Error: ${emailResult.error || "Unknown error"}` 
+    // Call the edge function to send the email
+    const { data, error } = await supabase.functions.invoke("send-email", {
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`
+      },
+      body: {
+        to: [email],
+        subject: "You're Invited to the OptiRFP Beta Program!",
+        templateType: "beta_invite",
+        templateData: {
+          inviteCode,
+          inviteUrl,
+          expiresAt
+        }
+      }
+    });
+    
+    if (error) {
+      console.error('Error sending beta invitation email:', error);
+      toast.error("Failed to send invitation email", { 
+        description: error.message || "Please try again later" 
       });
       return false;
-    } 
+    }
     
-    console.log(`Successfully sent invitation email to ${email}, updating database record`);
+    console.log('Beta invitation email sent successfully:', data);
     
-    // Update invitation to mark email as sent
+    // Update the invitation record to mark email as sent
     const { error: updateError } = await supabase
       .from('beta_invitations')
       .update({ invitation_email_sent: true })
       .eq('id', invitationId);
-      
+    
     if (updateError) {
-      console.error('Failed to update invitation email status:', updateError);
-      toast.warning("Email sent but failed to update invitation record", {
-        description: "The user will receive the email, but the system won't track it properly"
+      console.error('Error updating invitation status:', updateError);
+      toast.warning("Email sent but couldn't update invitation record", {
+        description: "The recipient will still receive the invitation"
       });
-    } else {
-      console.log(`Successfully updated invitation record ${invitationId} as sent`);
+      // Still return true since the email was sent
+      return true;
     }
     
     return true;

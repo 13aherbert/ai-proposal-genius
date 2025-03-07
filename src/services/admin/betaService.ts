@@ -1,7 +1,13 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
-import { checkPendingInvitation, createInvitation, verifyInvitationCode } from "./beta/betaUtils";
+import { 
+  checkPendingInvitation, 
+  createInvitation, 
+  verifyInvitationCode, 
+  getBetaInvitationById 
+} from "./beta/betaUtils";
 import { sendInvitationEmail } from "./beta/betaEmailService";
 
 /**
@@ -110,15 +116,11 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     
     console.log(`Invitation created with ID: ${inviteId}, fetching details`);
     
-    // Get the invitation details to send the email
-    const { data: invitationDetails, error: detailsError } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('id', inviteId)
-      .single();
+    // Get the invitation details using our new direct function
+    const invitationDetails = await getBetaInvitationById(inviteId);
       
-    if (detailsError || !invitationDetails) {
-      console.error('Error retrieving invitation details:', detailsError);
+    if (!invitationDetails) {
+      console.error('Error retrieving invitation details');
       toast.warning("Invitation created but could not retrieve details", { 
         description: "The email could not be sent automatically" 
       });
@@ -245,18 +247,12 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
  */
 export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
   try {
-    // Get the invitation details
-    const { data: invitation, error } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('id', invitationId)
-      .single();
+    // Get the invitation details using our new direct function
+    const invitation = await getBetaInvitationById(invitationId);
       
-    if (error || !invitation) {
-      console.error('Error retrieving invitation details:', error);
-      toast.error("Failed to retrieve invitation details", { 
-        description: error?.message || "Unknown error" 
-      });
+    if (!invitation) {
+      console.error('Error retrieving invitation details');
+      toast.error("Failed to retrieve invitation details");
       return false;
     }
     

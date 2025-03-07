@@ -8,8 +8,7 @@ import { toast } from "sonner";
  */
 export async function checkPendingInvitation(email: string): Promise<BetaInvitation[] | null> {
   try {
-    // We need to correctly call the RPC function without explicit type parameters
-    // as they're inferred from the function name
+    // Use the dedicated RPC function to check pending invitations
     const { data, error } = await supabase.rpc(
       'check_pending_invitation',
       { email_param: email }
@@ -36,7 +35,7 @@ export async function createInvitation(
   userId: string
 ): Promise<string | null> {
   try {
-    // Fix the RPC call to use proper typing
+    // Use the RPC function to create a beta invitation
     const { data, error } = await supabase.rpc(
       'invite_beta_tester',
       { 
@@ -89,6 +88,36 @@ export async function verifyInvitationCode(code: string): Promise<BetaInvitation
     return data as BetaInvitation;
   } catch (error) {
     console.error('Error in verifyInvitationCode:', error);
+    return null;
+  }
+}
+
+/**
+ * Retrieve a beta invitation by its ID using a direct function
+ * This avoids RLS recursion issues
+ */
+export async function getBetaInvitationById(invitationId: string): Promise<BetaInvitation | null> {
+  try {
+    // Use the new RPC function that directly gets the invitation by ID
+    const { data, error } = await supabase.rpc(
+      'get_beta_invitation_by_id',
+      { invitation_id: invitationId }
+    );
+    
+    if (error) {
+      console.error('Error retrieving beta invitation:', error);
+      toast.error("Failed to retrieve invitation details", { description: error.message });
+      return null;
+    }
+    
+    // The function returns an array with one item, so we need to get the first item
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0] as BetaInvitation;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error in getBetaInvitationById:', error);
     return null;
   }
 }

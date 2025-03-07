@@ -2,7 +2,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BetaInvitation } from "./types";
-import { emailService } from "../EmailService";
+import { checkPendingInvitation, createInvitation, verifyInvitationCode } from "./beta/betaUtils";
+import { sendInvitationEmail } from "./beta/betaEmailService";
 
 /**
  * Get all beta invitations
@@ -49,37 +50,20 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       return false;
     }
     
-    // First check if invitation already exists using the security definer function
-    const { data: pendingInvitations, error: checkError } = await supabase.rpc<BetaInvitation[]>(
-      'check_pending_invitation',
-      { email_param: email }
-    );
+    // Check if invitation already exists
+    const pendingInvitations = await checkPendingInvitation(email);
     
-    if (checkError) {
-      console.error('Error checking pending invitations:', checkError);
-      toast.error("Failed to check existing invitations", { description: checkError.message });
+    if (!pendingInvitations) {
       return false;
     }
     
-    if (pendingInvitations && pendingInvitations.length > 0) {
+    if (pendingInvitations.length > 0) {
       toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
       return false;
     }
     
-    // Create the invitation using the security definer function
-    const { data: inviteId, error: createError } = await supabase.rpc<string>(
-      'invite_beta_tester',
-      { 
-        email_param: email,
-        inviter_id: userData.user.id
-      }
-    );
-    
-    if (createError) {
-      console.error('Error creating beta invitation:', createError);
-      toast.error("Failed to create invitation", { description: createError.message });
-      return false;
-    }
+    // Create the invitation
+    const inviteId = await createInvitation(email, userData.user.id);
     
     if (!inviteId) {
       toast.error("Failed to create invitation", { description: "No invitation ID returned" });
@@ -102,24 +86,12 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
     }
 
     // Send invitation email
-    const emailResult = await emailService.sendBetaInviteEmail(
+    await sendInvitationEmail(
       email,
+      inviteId,
       invitationDetails.invite_code,
       invitationDetails.expires_at
     );
-
-    if (!emailResult.success) {
-      console.error('Failed to send invitation email:', emailResult.error);
-      toast.warning("Invitation created but email could not be sent", { 
-        description: "The user will need the invitation link manually" 
-      });
-    } else {
-      // Update invitation to mark email as sent
-      await supabase
-        .from('beta_invitations')
-        .update({ invitation_email_sent: true })
-        .eq('id', inviteId);
-    }
 
     toast.success("Invitation created successfully");
     return true;
@@ -159,35 +131,7 @@ export async function cancelBetaInvitation(invitationId: string): Promise<boolea
  * Verify a beta invitation
  */
 export async function verifyBetaInvitation(code: string): Promise<BetaInvitation | null> {
-  try {
-    const { data, error } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('invite_code', code)
-      .eq('status', 'pending')
-      .single();
-
-    if (error || !data) {
-      console.error('Error verifying beta invitation:', error);
-      return null;
-    }
-
-    // Check if invitation has expired
-    const expiresAt = new Date(data.expires_at);
-    if (expiresAt < new Date()) {
-      // Mark as expired
-      await supabase
-        .from('beta_invitations')
-        .update({ status: 'expired' })
-        .eq('id', data.id);
-      return null;
-    }
-
-    return data as BetaInvitation;
-  } catch (error) {
-    console.error('Error in verifyBetaInvitation:', error);
-    return null;
-  }
+  return await verifyInvitationCode(code);
 }
 
 /**
@@ -243,11 +187,4 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
     toast.error("Failed to join beta program", { description: error instanceof Error ? error.message : "Unknown error" });
     return false;
   }
-}
-
-/**
- * Generate a random invitation code
- */
-function generateInviteCode(): string {
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
 }

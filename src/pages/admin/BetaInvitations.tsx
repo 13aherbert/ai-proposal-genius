@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Mail, UserPlus, Loader2 } from "lucide-react";
+import { Mail, UserPlus, Loader2, AlertTriangle } from "lucide-react";
 import { BetaInvitation } from "@/services/admin/types";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -27,8 +27,11 @@ export function BetaInvitations({
   const [inviteEmail, setInviteEmail] = useState('');
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [creatingInvitation, setCreatingInvitation] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const handleSendInvitation = async () => {
+    setEmailError(null);
+    
     if (!inviteEmail) {
       toast.error("Please enter an email address");
       return;
@@ -40,7 +43,10 @@ export function BetaInvitations({
     
     try {
       setCreatingInvitation(true);
+      console.log(`Starting invitation process for ${inviteEmail}`);
       const result = await adminService.createBetaInvitation(inviteEmail);
+      console.log(`Invitation creation result: ${result}`);
+      
       if (result) {
         setInviteEmail('');
         await loadInvitations();
@@ -48,6 +54,7 @@ export function BetaInvitations({
       }
     } catch (error) {
       console.error("Error creating invitation:", error);
+      setEmailError(error instanceof Error ? error.message : "Unknown error");
       toast.error("Failed to create invitation", {
         description: error instanceof Error ? error.message : "Unknown error"
       });
@@ -74,7 +81,10 @@ export function BetaInvitations({
   const handleResendInvitation = async (invitationId: string, email: string) => {
     try {
       setSendingEmail(invitationId);
+      console.log(`Attempting to resend invitation to ${email} (ID: ${invitationId})`);
       const success = await adminService.resendInvitationEmail(invitationId);
+      console.log(`Resend result: ${success}`);
+      
       if (success) {
         await loadInvitations();
         toast.success(`Invitation email sent to ${email}`);
@@ -152,34 +162,18 @@ export function BetaInvitations({
                             >
                               Copy Link
                             </Button>
-                            {!invitation.invitation_email_sent && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleResendInvitation(invitation.id, invitation.email)}
-                                disabled={sendingEmail === invitation.id}
-                              >
-                                {sendingEmail === invitation.id ? (
-                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
-                                ) : (
-                                  <><Mail className="h-4 w-4 mr-1" /> Send Email</>
-                                )}
-                              </Button>
-                            )}
-                            {invitation.invitation_email_sent && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleResendInvitation(invitation.id, invitation.email)}
-                                disabled={sendingEmail === invitation.id}
-                              >
-                                {sendingEmail === invitation.id ? (
-                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
-                                ) : (
-                                  <><Mail className="h-4 w-4 mr-1" /> Resend</>
-                                )}
-                              </Button>
-                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleResendInvitation(invitation.id, invitation.email)}
+                              disabled={sendingEmail === invitation.id}
+                            >
+                              {sendingEmail === invitation.id ? (
+                                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
+                              ) : (
+                                <><Mail className="h-4 w-4 mr-1" /> {invitation.invitation_email_sent ? 'Resend' : 'Send Email'}</>
+                              )}
+                            </Button>
                             <Button 
                               variant="destructive" 
                               size="sm" 
@@ -205,23 +199,35 @@ export function BetaInvitations({
         )}
       </CardContent>
       <CardFooter>
-        <div className="flex space-x-2 w-full">
-          <Input 
-            placeholder="Email address" 
-            value={inviteEmail} 
-            onChange={e => setInviteEmail(e.target.value)} 
-            className="flex-1" 
-          />
-          <Button 
-            onClick={handleSendInvitation}
-            disabled={creatingInvitation}
-          >
-            {creatingInvitation ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inviting...</>
-            ) : (
-              <><UserPlus className="h-4 w-4 mr-2" /> Invite</>
-            )}
-          </Button>
+        <div className="flex flex-col w-full space-y-2">
+          <div className="flex space-x-2 w-full">
+            <Input 
+              placeholder="Email address" 
+              value={inviteEmail} 
+              onChange={e => {
+                setInviteEmail(e.target.value);
+                setEmailError(null);
+              }} 
+              className="flex-1" 
+            />
+            <Button 
+              onClick={handleSendInvitation}
+              disabled={creatingInvitation}
+            >
+              {creatingInvitation ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Inviting...</>
+              ) : (
+                <><UserPlus className="h-4 w-4 mr-2" /> Invite</>
+              )}
+            </Button>
+          </div>
+          
+          {emailError && (
+            <div className="text-destructive text-sm flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              {emailError}
+            </div>
+          )}
         </div>
       </CardFooter>
     </Card>

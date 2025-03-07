@@ -14,24 +14,34 @@ import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 import BetaInviteEmail from './templates/BetaInvite.tsx';
 import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
 
-// Import shared CORS utilities
-import { corsHeaders, handleCors } from '../_shared/cors.ts';
+// Define CORS headers directly in this file to ensure they're applied correctly
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
 // Create Resend client using API key from environment variable
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 // Handler function for processing requests
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests - use the shared handler
-  const corsResponse = handleCors(req);
-  if (corsResponse) {
-    return corsResponse;
+  console.log('Received request to send-email function');
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request with CORS headers');
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
   }
 
   try {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing Authorization header');
       throw new Error('Missing Authorization header');
     }
 
@@ -41,10 +51,12 @@ Deno.serve(async (req) => {
 
     // Validate required fields
     if (!payload.to || !Array.isArray(payload.to) || !payload.to.length) {
+      console.error('Missing or invalid "to" field');
       throw new Error('Missing or invalid "to" field');
     }
 
     if (!payload.subject) {
+      console.error('Missing "subject" field');
       throw new Error('Missing "subject" field');
     }
 
@@ -55,6 +67,8 @@ Deno.serve(async (req) => {
       // Render the appropriate React email template based on templateType
       const templateType = payload.templateType;
       const templateData = payload.templateData;
+      
+      console.log(`Rendering ${templateType} template with data:`, templateData);
       
       try {
         switch (templateType) {
@@ -89,6 +103,7 @@ Deno.serve(async (req) => {
             );
             break;
           case 'beta_invite':
+            console.log('Rendering beta_invite template');
             html = await renderAsync(
               React.createElement(BetaInviteEmail, templateData)
             );
@@ -99,8 +114,10 @@ Deno.serve(async (req) => {
             );
             break;
           default:
+            console.error(`Unsupported template type: ${templateType}`);
             throw new Error(`Unsupported template type: ${templateType}`);
         }
+        console.log('Template rendered successfully');
       } catch (templateError) {
         console.error('Error rendering template:', templateError);
         throw new Error(`Template rendering failed: ${templateError.message}`);
@@ -109,6 +126,7 @@ Deno.serve(async (req) => {
       // Use direct HTML if provided
       html = payload.html;
     } else {
+      console.error('Missing template type/data or direct HTML content');
       throw new Error('Missing template type/data or direct HTML content');
     }
 

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface SendEmailResponse {
@@ -26,6 +25,7 @@ class EmailService {
       }
       
       // Call the edge function with authorization
+      console.log('Invoking send-email function with session token');
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: payload,
       });
@@ -46,6 +46,7 @@ class EmailService {
         };
       }
       
+      console.log('Email sent successfully:', data);
       return { 
         success: true, 
         id: data?.id 
@@ -195,16 +196,24 @@ class EmailService {
       email, inviteCode, inviteUrl, expiresAt
     });
     
-    return this.sendEmail({
-      to: [email],
-      subject: "You're Invited to the OptiRFP Beta Program!",
-      templateType: 'beta_invite',
-      templateData: {
-        inviteCode,
-        inviteUrl,
-        expiresAt
-      }
-    });
+    try {
+      return await this.sendEmail({
+        to: [email],
+        subject: "You're Invited to the OptiRFP Beta Program!",
+        templateType: 'beta_invite',
+        templateData: {
+          inviteCode,
+          inviteUrl,
+          expiresAt
+        }
+      });
+    } catch (error) {
+      console.error('Error in sendBetaInviteEmail:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error sending beta invite email' 
+      };
+    }
   }
   
   /**

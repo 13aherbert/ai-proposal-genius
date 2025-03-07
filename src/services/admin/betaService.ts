@@ -42,63 +42,70 @@ export async function getBetaInvitations(): Promise<BetaInvitation[]> {
  */
 export async function createBetaInvitation(email: string): Promise<boolean> {
   try {
-    // Get current access token
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session?.access_token) {
-      toast.error("Authentication required", { description: "Please log in to create beta invitations" });
-      return false;
-    }
-
-    // Check if invitation already exists
-    const { data } = await supabase.functions.invoke("get-pending-invitation", {
-      headers: {
-        Authorization: `Bearer ${sessionData.session.access_token}`
-      },
-      body: { email }
-    });
-
-    if (data && data.length > 0) {
-      toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
-      return false;
-    }
-
-    // Create invitation code
-    const inviteCode = generateInviteCode();
-    
-    // Calculate expiration date (30 days from now)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-    const expiresAtString = expiresAt.toISOString();
-
-    // Get current user ID for invited_by field
+    // Check if the user is authenticated
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {
       toast.error("Authentication error", { description: "Could not verify your identity" });
       return false;
     }
-
-    // Insert new invitation
-    const { error } = await supabase
-      .from('beta_invitations')
-      .insert({
-        email,
-        invite_code: inviteCode,
-        status: 'pending',
-        expires_at: expiresAtString,
-        invited_by: userData.user.id
-      });
-
-    if (error) {
-      console.error('Error creating beta invitation:', error);
-      toast.error("Failed to create invitation", { description: error.message });
+    
+    // First check if invitation already exists using the security definer function
+    const { data: pendingInvitation, error: checkError } = await supabase.rpc(
+      'check_pending_invitation',
+      { email_param: email }
+    );
+    
+    if (checkError) {
+      console.error('Error checking pending invitations:', checkError);
+      toast.error("Failed to check existing invitations", { description: checkError.message });
       return false;
+    }
+    
+    if (pendingInvitation && pendingInvitation.length > 0) {
+      toast.info("Invitation already exists", { description: `An invitation for ${email} is already active` });
+      return false;
+    }
+    
+    // Create the invitation using the security definer function
+    const { data: inviteId, error: createError } = await supabase.rpc(
+      'invite_beta_tester',
+      { 
+        email_param: email,
+        inviter_id: userData.user.id
+      }
+    );
+    
+    if (createError) {
+      console.error('Error creating beta invitation:', createError);
+      toast.error("Failed to create invitation", { description: createError.message });
+      return false;
+    }
+    
+    if (!inviteId) {
+      toast.error("Failed to create invitation", { description: "No invitation ID returned" });
+      return false;
+    }
+    
+    // Get the invitation details to send the email
+    const { data: invitationDetails, error: detailsError } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('id', inviteId)
+      .single();
+      
+    if (detailsError || !invitationDetails) {
+      console.error('Error retrieving invitation details:', detailsError);
+      toast.warning("Invitation created but could not retrieve details", { 
+        description: "The email could not be sent automatically" 
+      });
+      return true; // Return true since the invitation was created
     }
 
     // Send invitation email
     const emailResult = await emailService.sendBetaInviteEmail(
       email,
-      inviteCode,
-      expiresAtString
+      invitationDetails.invite_code,
+      invitationDetails.expires_at
     );
 
     if (!emailResult.success) {
@@ -111,8 +118,7 @@ export async function createBetaInvitation(email: string): Promise<boolean> {
       await supabase
         .from('beta_invitations')
         .update({ invitation_email_sent: true })
-        .eq('email', email)
-        .eq('invite_code', inviteCode);
+        .eq('id', inviteId);
     }
 
     toast.success("Invitation created successfully");

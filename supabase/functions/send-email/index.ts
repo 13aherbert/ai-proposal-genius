@@ -14,22 +14,18 @@ import SupportConfirmationEmail from './templates/SupportConfirmation.tsx';
 import BetaInviteEmail from './templates/BetaInvite.tsx';
 import BetaAnnouncementEmail from './templates/BetaAnnouncement.tsx';
 
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Import shared CORS utilities
+import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
 // Create Resend client using API key from environment variable
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 // Handler function for processing requests
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
+  // Handle CORS preflight requests - use the shared handler
+  const corsResponse = handleCors(req);
+  if (corsResponse) {
+    return corsResponse;
   }
 
   try {
@@ -60,49 +56,54 @@ Deno.serve(async (req) => {
       const templateType = payload.templateType;
       const templateData = payload.templateData;
       
-      switch (templateType) {
-        case 'welcome':
-          html = await renderAsync(
-            React.createElement(WelcomeEmail, templateData)
-          );
-          break;
-        case 'password_reset':
-          html = await renderAsync(
-            React.createElement(PasswordResetEmail, templateData)
-          );
-          break;
-        case 'password_changed':
-          html = await renderAsync(
-            React.createElement(PasswordChangedEmail, templateData)
-          );
-          break;
-        case 'support':
-          html = await renderAsync(
-            React.createElement(SupportEmail, templateData)
-          );
-          break;
-        case 'support_response':
-          html = await renderAsync(
-            React.createElement(SupportResponseEmail, templateData)
-          );
-          break;
-        case 'support_confirmation':
-          html = await renderAsync(
-            React.createElement(SupportConfirmationEmail, templateData)
-          );
-          break;
-        case 'beta_invite':
-          html = await renderAsync(
-            React.createElement(BetaInviteEmail, templateData)
-          );
-          break;
-        case 'beta_announcement':
-          html = await renderAsync(
-            React.createElement(BetaAnnouncementEmail, templateData)
-          );
-          break;
-        default:
-          throw new Error(`Unsupported template type: ${templateType}`);
+      try {
+        switch (templateType) {
+          case 'welcome':
+            html = await renderAsync(
+              React.createElement(WelcomeEmail, templateData)
+            );
+            break;
+          case 'password_reset':
+            html = await renderAsync(
+              React.createElement(PasswordResetEmail, templateData)
+            );
+            break;
+          case 'password_changed':
+            html = await renderAsync(
+              React.createElement(PasswordChangedEmail, templateData)
+            );
+            break;
+          case 'support':
+            html = await renderAsync(
+              React.createElement(SupportEmail, templateData)
+            );
+            break;
+          case 'support_response':
+            html = await renderAsync(
+              React.createElement(SupportResponseEmail, templateData)
+            );
+            break;
+          case 'support_confirmation':
+            html = await renderAsync(
+              React.createElement(SupportConfirmationEmail, templateData)
+            );
+            break;
+          case 'beta_invite':
+            html = await renderAsync(
+              React.createElement(BetaInviteEmail, templateData)
+            );
+            break;
+          case 'beta_announcement':
+            html = await renderAsync(
+              React.createElement(BetaAnnouncementEmail, templateData)
+            );
+            break;
+          default:
+            throw new Error(`Unsupported template type: ${templateType}`);
+        }
+      } catch (templateError) {
+        console.error('Error rendering template:', templateError);
+        throw new Error(`Template rendering failed: ${templateError.message}`);
       }
     } else if (payload.html) {
       // Use direct HTML if provided

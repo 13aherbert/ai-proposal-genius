@@ -32,9 +32,9 @@ const Dashboard = () => {
     },
     {
       icon: FolderOpen,
-      title: "Recent Projects",
+      title: "Projects",
       description: "Access and manage your existing RFP response projects",
-      path: "/recent-projects"
+      path: "/projects"
     },
     {
       icon: BookOpen,

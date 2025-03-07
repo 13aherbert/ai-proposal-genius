@@ -20,7 +20,7 @@ export function ProjectsHeader({ canCreateProject = true }: ProjectsHeaderProps)
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold text-white">Recent Projects</h1>
+        <h1 className="text-3xl font-bold text-white">Projects</h1>
       </div>
       <Button 
         onClick={() => navigate("/upload-rfp")}

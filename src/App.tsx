@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -61,16 +63,10 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* Primary project routes */}
                 <Route
                   path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <RecentProjects />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/recent-projects"
                   element={
                     <ProtectedRoute>
                       <RecentProjects />
@@ -85,14 +81,25 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* Legacy route redirects for backward compatibility */}
+                <Route
+                  path="/recent-projects"
+                  element={
+                    <ProtectedRoute>
+                      <RecentProjectsRedirect />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/project/:projectId"
                   element={
                     <ProtectedRoute>
-                      <ProjectDetails />
+                      <ProjectDetailsRedirect />
                     </ProtectedRoute>
                   }
                 />
+                
                 <Route
                   path="/subscription"
                   element={

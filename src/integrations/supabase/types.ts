@@ -20,6 +20,7 @@ export type Database = {
           invite_code: string
           invited_by: string
           status: string
+          updated_at: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -31,6 +32,7 @@ export type Database = {
           invite_code: string
           invited_by: string
           status?: string
+          updated_at?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -42,6 +44,7 @@ export type Database = {
           invite_code?: string
           invited_by?: string
           status?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -436,6 +439,30 @@ export type Database = {
           sent_status: boolean
         }
         Returns: boolean
+      }
+      update_beta_invitation_status: {
+        Args: {
+          invitation_id_param: string
+          status_param: string
+          accepted_at_param: string
+        }
+        Returns: boolean
+      }
+      verify_invitation_code: {
+        Args: {
+          code_param: string
+        }
+        Returns: {
+          id: string
+          email: string
+          invite_code: string
+          invited_by: string
+          status: string
+          created_at: string
+          accepted_at: string
+          expires_at: string
+          invitation_email_sent: boolean
+        }[]
       }
     }
     Enums: {

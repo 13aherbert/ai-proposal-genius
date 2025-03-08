@@ -1,7 +1,7 @@
 // Rate limiting utility to prevent too many concurrent requests
 const activeRequests = new Map<string, number>();
 const MAX_CONCURRENT_REQUESTS = 3;
-const requestQueue = new Map<string, Promise<any>[]>();
+const requestQueue = new Map<string, (() => Promise<any>)[]>();
 
 /**
  * Limits the number of concurrent requests to the same endpoint
@@ -28,16 +28,19 @@ export async function withRateLimit<T>(
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         // Clean up and reject if it takes too long
-        const index = queue.indexOf(queuePromise);
+        const index = queue.indexOf(queuedOperation);
         if (index > -1) queue.splice(index, 1);
         reject(new Error(`Request to ${key} timed out while waiting in queue.`));
       }, 30000); // 30 second timeout
       
-      // Create a callback to execute when a slot becomes available
-      // IMPORTANT: We don't call withRateLimit recursively here to avoid stack overflow
-      const executeQueuedOperation = async () => {
+      // Create the operation to be queued - IMPORTANT: do NOT call withRateLimit again!
+      const queuedOperation = async () => {
         try {
-          activeRequests.set(key, (activeRequests.get(key) || 0) + 1);
+          // Mark this request as active
+          const currentCount = activeRequests.get(key) || 0;
+          activeRequests.set(key, currentCount + 1);
+          
+          // Execute the original operation
           const result = await operation();
           resolve(result);
           return result;
@@ -45,21 +48,62 @@ export async function withRateLimit<T>(
           reject(err);
           throw err;
         } finally {
+          // Clean up after the operation completes
           const newCount = (activeRequests.get(key) || 1) - 1;
           if (newCount <= 0) {
             activeRequests.delete(key);
+            
+            // Process the next queued operation if there is one
+            const nextQueue = requestQueue.get(key) || [];
+            if (nextQueue.length > 0) {
+              const nextOperation = nextQueue.shift()!;
+              nextOperation().catch(console.error);
+              
+              if (nextQueue.length === 0) {
+                requestQueue.delete(key);
+              } else {
+                requestQueue.set(key, nextQueue);
+              }
+            }
           } else {
             activeRequests.set(key, newCount);
           }
+          
+          // Clear the timeout
+          clearTimeout(timeoutId);
         }
       };
       
-      const queuePromise = executeQueuedOperation();
-      queue.push(queuePromise);
+      // Add to queue
+      queue.push(queuedOperation);
       requestQueue.set(key, queue);
+      
+      // If this is the first item in the queue, execute it when a slot becomes available
+      if (queue.length === 1) {
+        const checkAndExecute = () => {
+          const currentCount = activeRequests.get(key) || 0;
+          if (currentCount < MAX_CONCURRENT_REQUESTS) {
+            const operation = queue.shift()!;
+            operation().catch(console.error);
+            
+            if (queue.length === 0) {
+              requestQueue.delete(key);
+            } else {
+              requestQueue.set(key, queue);
+              setTimeout(checkAndExecute, 100);
+            }
+          } else {
+            // Check again after a short delay
+            setTimeout(checkAndExecute, 100);
+          }
+        };
+        
+        setTimeout(checkAndExecute, 100);
+      }
     });
   }
   
+  // If under the limit, execute immediately
   activeRequests.set(key, currentCount + 1);
   
   try {
@@ -72,11 +116,14 @@ export async function withRateLimit<T>(
       // Process the next queued request if any
       const queue = requestQueue.get(key) || [];
       if (queue.length > 0) {
-        // Just remove the promise, it will execute on its own
-        queue.shift();
-        requestQueue.set(key, queue);
-      } else {
-        requestQueue.delete(key);
+        const nextOperation = queue.shift()!;
+        nextOperation().catch(console.error);
+        
+        if (queue.length === 0) {
+          requestQueue.delete(key);
+        } else {
+          requestQueue.set(key, queue);
+        }
       }
     } else {
       activeRequests.set(key, newCount);

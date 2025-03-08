@@ -62,14 +62,22 @@ export async function createInvitation(
  */
 export async function verifyInvitationCode(code: string): Promise<BetaInvitation | null> {
   try {
-    // Instead of direct table access, use a stored procedure
-    const { data, error } = await supabase.rpc(
-      'verify_invitation_code',
-      { code_param: code }
+    // Call the edge function instead of direct table access
+    const { data, error } = await supabase.functions.invoke(
+      'verify-beta-invitation',
+      {
+        body: { code }
+      }
     );
 
-    if (error || !data) {
+    if (error) {
       console.error('Error verifying beta invitation:', error);
+      toast.error("Invalid or expired invitation code");
+      return null;
+    }
+
+    if (!data) {
+      console.error('No data returned from verify-beta-invitation function');
       toast.error("Invalid or expired invitation code");
       return null;
     }
@@ -117,12 +125,16 @@ export async function updateInvitationStatus(
   acceptedAt?: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc(
-      'update_beta_invitation_status',
-      { 
-        invitation_id_param: invitationId,
-        status_param: status,
-        accepted_at_param: acceptedAt || null
+    // Call the edge function to update the invitation status
+    const { data, error } = await supabase.functions.invoke(
+      'verify-beta-invitation',
+      {
+        body: { 
+          action: 'update',
+          id: invitationId,
+          status,
+          acceptedAt
+        }
       }
     );
     

@@ -1,4 +1,71 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { BetaInvitation } from "./types";
+
+// Verify a beta invitation code
+export async function verifyBetaInvitation(code: string): Promise<BetaInvitation | null> {
+  try {
+    console.log(`Verifying beta invitation code: ${code}`);
+    
+    const { data, error } = await supabase.functions.invoke("verify-beta-invitation", {
+      body: { code }
+    });
+    
+    if (error) {
+      console.error("Error verifying beta invitation:", error);
+      return null;
+    }
+    
+    if (!data || data.error) {
+      console.log("Invalid or expired invitation:", data?.error || "No data returned");
+      return null;
+    }
+    
+    console.log("Invitation verified:", data);
+    return data as BetaInvitation;
+  } catch (error) {
+    console.error("Error in verifyBetaInvitation:", error);
+    return null;
+  }
+}
+
+// Update the status of a beta invitation
+export async function updateInvitationStatus(
+  invitationId: string,
+  status: 'pending' | 'accepted' | 'expired' | 'canceled',
+  acceptedAt?: string
+): Promise<boolean> {
+  try {
+    console.log(`Updating invitation ${invitationId} status to ${status}`);
+    
+    const { data, error } = await supabase.functions.invoke("verify-beta-invitation", {
+      body: { 
+        action: 'update',
+        id: invitationId,
+        status,
+        acceptedAt
+      }
+    });
+    
+    if (error) {
+      console.error("Error updating invitation status:", error);
+      return false;
+    }
+    
+    if (!data || !data.success) {
+      console.error("Failed to update invitation status:", data?.error || "Unknown error");
+      return false;
+    }
+    
+    console.log("Invitation status updated successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in updateInvitationStatus:", error);
+    return false;
+  }
+}
+
 /**
  * Accept a beta invitation and assign beta_tester role to the user
  */
@@ -61,6 +128,93 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
   } catch (error) {
     console.error('Error in acceptBetaInvitation:', error);
     toast.error("Failed to join beta program", { description: error instanceof Error ? error.message : "Unknown error" });
+    return false;
+  }
+}
+
+// Get all beta invitations
+export async function getBetaInvitations(): Promise<BetaInvitation[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("get-beta-invitations");
+    
+    if (error) {
+      console.error("Error fetching beta invitations:", error);
+      toast.error("Failed to load beta invitations");
+      return [];
+    }
+    
+    return data as BetaInvitation[];
+  } catch (error) {
+    console.error("Error in getBetaInvitations:", error);
+    toast.error("Failed to load beta invitations");
+    return [];
+  }
+}
+
+// Create a new beta invitation
+export async function createBetaInvitation(email: string, expiresInDays = 7): Promise<BetaInvitation | null> {
+  try {
+    const { data, error } = await supabase.rpc(
+      'create_beta_invitation',
+      {
+        email_param: email,
+        expires_in_days: expiresInDays
+      }
+    );
+    
+    if (error) {
+      console.error("Error creating beta invitation:", error);
+      toast.error("Failed to create beta invitation");
+      return null;
+    }
+    
+    toast.success("Beta invitation created successfully");
+    return data as BetaInvitation;
+  } catch (error) {
+    console.error("Error in createBetaInvitation:", error);
+    toast.error("Failed to create beta invitation");
+    return null;
+  }
+}
+
+// Cancel a beta invitation
+export async function cancelBetaInvitation(invitationId: string): Promise<boolean> {
+  try {
+    const statusUpdated = await updateInvitationStatus(invitationId, 'canceled');
+    
+    if (statusUpdated) {
+      toast.success("Beta invitation canceled");
+      return true;
+    } else {
+      toast.error("Failed to cancel beta invitation");
+      return false;
+    }
+  } catch (error) {
+    console.error("Error in cancelBetaInvitation:", error);
+    toast.error("Failed to cancel beta invitation");
+    return false;
+  }
+}
+
+// Resend an invitation email
+export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc(
+      'resend_beta_invitation',
+      { invitation_id_param: invitationId }
+    );
+    
+    if (error) {
+      console.error("Error resending beta invitation:", error);
+      toast.error("Failed to resend invitation");
+      return false;
+    }
+    
+    toast.success("Invitation email resent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in resendInvitationEmail:", error);
+    toast.error("Failed to resend invitation");
     return false;
   }
 }

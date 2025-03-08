@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -21,6 +22,13 @@ serve(async (req) => {
     if (requestData.action === 'update' && requestData.id) {
       console.log(`Updating invitation ${requestData.id} status to ${requestData.status}`);
       
+      if (!requestData.status) {
+        return new Response(
+          JSON.stringify({ error: "Missing status parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       // Update the invitation status
       const { data: updateResult, error: updateError } = await supabase.rpc(
         'update_beta_invitation_status',
@@ -30,6 +38,8 @@ serve(async (req) => {
           accepted_at_param: requestData.acceptedAt || null
         }
       );
+      
+      console.log("Update result:", updateResult, "Error:", updateError);
       
       if (updateError) {
         console.error("Error updating invitation status:", updateError);
@@ -62,6 +72,8 @@ serve(async (req) => {
       'verify_invitation_code',
       { code_param: code }
     );
+    
+    console.log("Verification result:", invitations, "Error:", invitationError);
     
     if (invitationError) {
       console.error("Error verifying invitation:", invitationError);

@@ -17,6 +17,7 @@ export default function BetaProgram() {
   const [isBetaTester, setIsBetaTester] = useState(false);
   const [hasInviteCode, setHasInviteCode] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
+  const [inviteProcessed, setInviteProcessed] = useState(false);
   const { session } = useAuth();
   const navigate = useNavigate();
   
@@ -48,41 +49,36 @@ export default function BetaProgram() {
             // If user is already a beta tester, check onboarding status
             const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
             setOnboardingComplete(status);
-          } else if (code) {
+          } else if (code && !inviteProcessed) {
             // If user has an invite code and is not a beta tester yet
+            setInviteProcessed(true); // Prevent multiple processing attempts
+            
+            console.log(`Verifying invite code: ${code}`);
             const invitation = await adminService.verifyBetaInvitation(code);
             
             if (invitation) {
-              // If invitation is valid, accept it
+              console.log(`Invitation is valid, accepting...`);
               const success = await adminService.acceptBetaInvitation(code);
               
               if (success) {
+                console.log(`Invitation accepted successfully`);
                 setIsBetaTester(true);
                 
                 // Check onboarding status after role is assigned
                 const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
                 setOnboardingComplete(status);
                 
-                // Send welcome email with rate limiting to prevent multiple sends
-                if (session.user.email) {
-                  try {
-                    // Use the rate limiter to prevent duplicate emails
-                    await withRateLimit(`beta-welcome:${session.user.email}`, async () => {
-                      toast.success("Welcome to the beta program!");
-                      
-                      // Clean URL to remove invite code
-                      navigate('/beta', { replace: true });
-                    });
-                  } catch (emailError) {
-                    console.error("Rate limiting prevented sending welcome: ", emailError);
-                    // Still navigate to beta page
-                    navigate('/beta', { replace: true });
-                  }
-                }
+                // Send welcome notification
+                toast.success("Welcome to the beta program!");
+                
+                // Clean URL to remove invite code
+                navigate('/beta', { replace: true });
               } else {
+                console.error(`Failed to accept invitation`);
                 toast.error("Error accepting beta invitation");
               }
             } else {
+              console.error(`Invalid or expired invitation`);
               toast.error("Invalid or expired invitation");
             }
           }
@@ -97,7 +93,7 @@ export default function BetaProgram() {
     };
     
     checkBetaAccess();
-  }, [session, navigate, inviteCode]);
+  }, [session, navigate, inviteCode, inviteProcessed]);
   
   if (isLoading) {
     return (

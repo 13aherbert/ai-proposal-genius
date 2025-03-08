@@ -125,6 +125,8 @@ export async function updateInvitationStatus(
   acceptedAt?: string
 ): Promise<boolean> {
   try {
+    console.log(`Updating invitation ${invitationId} to status ${status}`, { acceptedAt });
+    
     // Call the edge function to update the invitation status
     const { data, error } = await supabase.functions.invoke(
       'verify-beta-invitation',
@@ -133,13 +135,18 @@ export async function updateInvitationStatus(
           action: 'update',
           id: invitationId,
           status,
-          acceptedAt
+          acceptedAt: acceptedAt || new Date().toISOString()
         }
       }
     );
     
     if (error) {
       console.error('Error updating invitation status:', error);
+      return false;
+    }
+    
+    if (!data || !data.success) {
+      console.error('Failed to update invitation status:', data);
       return false;
     }
     

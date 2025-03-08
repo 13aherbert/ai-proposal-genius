@@ -27,39 +27,34 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     console.log("Auth header present:", !!authHeader);
     
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Create Supabase client with admin privileges
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // If auth header is present, verify the user
-    let userId = null;
-    if (authHeader) {
-      const { data: { user }, error: userError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (userError) {
-        console.error("Error getting user:", userError);
-        return new Response(
-          JSON.stringify({ error: "Unauthorized user", details: userError }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      if (user) {
-        userId = user.id;
-        console.log("Authenticated user ID:", userId);
-      }
-    }
+    const token = authHeader.replace('Bearer ', '');
     
-    if (!userId) {
-      console.error("No authenticated user found");
+    // If auth header is present, verify the user
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error("Error getting user:", userError);
       return new Response(
-        JSON.stringify({ error: "Authentication required" }),
+        JSON.stringify({ error: "Unauthorized", details: userError }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    const userId = user.id;
+    console.log("Authenticated user ID:", userId);
 
     // Check if the user is an admin by accessing user_roles table directly
     console.log("Checking if user is admin");

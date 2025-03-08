@@ -33,16 +33,28 @@ export async function withRateLimit<T>(
         reject(new Error(`Request to ${key} timed out while waiting in queue.`));
       }, 30000); // 30 second timeout
       
-      const queuePromise = withRateLimit(key, operation)
-        .then(result => {
-          clearTimeout(timeoutId);
+      // Create a callback to execute when a slot becomes available
+      // IMPORTANT: We don't call withRateLimit recursively here to avoid stack overflow
+      const executeQueuedOperation = async () => {
+        try {
+          activeRequests.set(key, (activeRequests.get(key) || 0) + 1);
+          const result = await operation();
           resolve(result);
-        })
-        .catch(err => {
-          clearTimeout(timeoutId);
+          return result;
+        } catch (err) {
           reject(err);
-        });
+          throw err;
+        } finally {
+          const newCount = (activeRequests.get(key) || 1) - 1;
+          if (newCount <= 0) {
+            activeRequests.delete(key);
+          } else {
+            activeRequests.set(key, newCount);
+          }
+        }
+      };
       
+      const queuePromise = executeQueuedOperation();
       queue.push(queuePromise);
       requestQueue.set(key, queue);
     });

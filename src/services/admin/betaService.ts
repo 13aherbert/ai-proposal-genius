@@ -5,7 +5,8 @@ import { BetaInvitation } from "./types";
 import { 
   checkPendingInvitation, 
   createInvitation, 
-  verifyInvitationCode
+  verifyInvitationCode,
+  updateInvitationStatus
 } from "./beta/betaUtils";
 import { sendInvitationEmail } from "./beta/betaEmailService";
 
@@ -206,6 +207,7 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
     // First verify the invitation
     const invitation = await verifyBetaInvitation(code);
     if (!invitation) {
+      toast.error("Invalid or expired invitation code");
       return false;
     }
 
@@ -216,31 +218,32 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
       return false;
     }
 
-    // Update invitation status
-    const { error: updateError } = await supabase
-      .from('beta_invitations')
-      .update({
-        status: 'accepted',
-        accepted_at: new Date().toISOString()
-      })
-      .eq('id', invitation.id);
+    // Update invitation status using RPC function to avoid RLS issues
+    const statusUpdated = await updateInvitationStatus(
+      invitation.id, 
+      'accepted', 
+      new Date().toISOString()
+    );
 
-    if (updateError) {
-      console.error('Error updating beta invitation status:', updateError);
-      return false;
+    if (!statusUpdated) {
+      console.error('Error updating beta invitation status');
+      toast.error("Failed to update invitation status");
+      // Continue anyway to try adding the role
     }
 
-    // Add beta_tester role to user
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .insert({
-        user_id: userData.user.id,
-        role: 'beta_tester',
-        created_by: invitation.invited_by
-      });
+    // Add beta_tester role to user using RPC function to avoid RLS issues
+    const { data: roleData, error: roleError } = await supabase.rpc(
+      'assign_user_role',
+      {
+        _user_id: userData.user.id,
+        _role: 'beta_tester',
+        _created_by: invitation.invited_by || userData.user.id
+      }
+    );
 
     if (roleError) {
       console.error('Error assigning beta_tester role:', roleError);
+      toast.error("Failed to assign beta tester role");
       return false;
     }
 

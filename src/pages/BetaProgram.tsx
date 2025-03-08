@@ -9,7 +9,7 @@ import { adminService } from '@/services/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { emailService } from '@/services/EmailService';
+import { withRateLimit } from '@/utils/network/rate-limit';
 
 export default function BetaProgram() {
   const [isLoading, setIsLoading] = useState(true);
@@ -40,44 +40,48 @@ export default function BetaProgram() {
       
       if (session?.user?.id) {
         try {
+          // First check if the user is already a beta tester
           const isBeta = await adminService.checkUserRole('beta_tester');
           setIsBetaTester(isBeta);
           
           if (isBeta) {
+            // If user is already a beta tester, check onboarding status
             const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
             setOnboardingComplete(status);
           } else if (code) {
+            // If user has an invite code and is not a beta tester yet
             const invitation = await adminService.verifyBetaInvitation(code);
+            
             if (invitation) {
-              setIsBetaTester(true);
+              // If invitation is valid, accept it
+              const success = await adminService.acceptBetaInvitation(code);
               
-              await adminService.acceptBetaInvitation(code);
-              
-              const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
-              setOnboardingComplete(status);
-              
-              try {
+              if (success) {
+                setIsBetaTester(true);
+                
+                // Check onboarding status after role is assigned
+                const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+                setOnboardingComplete(status);
+                
+                // Send welcome email with rate limiting to prevent multiple sends
                 if (session.user.email) {
-                  const expirationDate = new Date();
-                  expirationDate.setDate(expirationDate.getDate() + 90);
-                  
-                  const baseUrl = window.location.origin;
-                  const inviteUrl = `${baseUrl}/beta?invite=${code}`;
-                  
-                  await emailService.sendBetaInviteEmail(
-                    session.user.email,
-                    code,
-                    inviteUrl,
-                    expirationDate.toISOString()
-                  );
-                  
-                  toast.success("Welcome to the beta program! Check your email for more details.");
+                  try {
+                    // Use the rate limiter to prevent duplicate emails
+                    await withRateLimit(`beta-welcome:${session.user.email}`, async () => {
+                      toast.success("Welcome to the beta program!");
+                      
+                      // Clean URL to remove invite code
+                      navigate('/beta', { replace: true });
+                    });
+                  } catch (emailError) {
+                    console.error("Rate limiting prevented sending welcome: ", emailError);
+                    // Still navigate to beta page
+                    navigate('/beta', { replace: true });
+                  }
                 }
-              } catch (emailError) {
-                console.error("Failed to send beta welcome email:", emailError);
+              } else {
+                toast.error("Error accepting beta invitation");
               }
-              
-              navigate('/beta', { replace: true });
             } else {
               toast.error("Invalid or expired invitation");
             }

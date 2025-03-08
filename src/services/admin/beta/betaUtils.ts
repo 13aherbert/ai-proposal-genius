@@ -62,32 +62,23 @@ export async function createInvitation(
  */
 export async function verifyInvitationCode(code: string): Promise<BetaInvitation | null> {
   try {
-    const { data, error } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('invite_code', code)
-      .eq('status', 'pending')
-      .single();
+    // Instead of direct table access, use a stored procedure
+    const { data, error } = await supabase.rpc(
+      'verify_invitation_code',
+      { code_param: code }
+    );
 
     if (error || !data) {
       console.error('Error verifying beta invitation:', error);
+      toast.error("Invalid or expired invitation code");
       return null;
     }
 
-    // Check if invitation has expired
-    const expiresAt = new Date(data.expires_at);
-    if (expiresAt < new Date()) {
-      // Mark as expired
-      await supabase
-        .from('beta_invitations')
-        .update({ status: 'expired' })
-        .eq('id', data.id);
-      return null;
-    }
-
+    // Return the verified invitation
     return data as BetaInvitation;
   } catch (error) {
     console.error('Error in verifyInvitationCode:', error);
+    toast.error("Failed to verify invitation code");
     return null;
   }
 }
@@ -98,14 +89,11 @@ export async function verifyInvitationCode(code: string): Promise<BetaInvitation
  */
 export async function getBetaInvitationById(invitationId: string): Promise<BetaInvitation | null> {
   try {
-    // We'll use a direct query to beta_invitations to avoid the RPC type error
-    // This works because the SQL migration already added a security definer function
-    // that will handle the permission checks on the database side
-    const { data, error } = await supabase
-      .from('beta_invitations')
-      .select('*')
-      .eq('id', invitationId)
-      .single();
+    // Use the RPC function to get invitation details
+    const { data, error } = await supabase.rpc(
+      'get_beta_invitation_direct',
+      { invitation_id_param: invitationId }
+    );
     
     if (error) {
       console.error('Error retrieving beta invitation:', error);
@@ -113,10 +101,40 @@ export async function getBetaInvitationById(invitationId: string): Promise<BetaI
       return null;
     }
     
-    return data as BetaInvitation;
+    return Array.isArray(data) && data.length > 0 ? data[0] as BetaInvitation : null;
   } catch (error) {
     console.error('Error in getBetaInvitationById:', error);
     return null;
+  }
+}
+
+/**
+ * Update beta invitation status
+ */
+export async function updateInvitationStatus(
+  invitationId: string, 
+  status: 'pending' | 'accepted' | 'expired',
+  acceptedAt?: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc(
+      'update_beta_invitation_status',
+      { 
+        invitation_id_param: invitationId,
+        status_param: status,
+        accepted_at_param: acceptedAt || null
+      }
+    );
+    
+    if (error) {
+      console.error('Error updating invitation status:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateInvitationStatus:', error);
+    return false;
   }
 }
 

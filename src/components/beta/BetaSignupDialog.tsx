@@ -18,6 +18,14 @@ interface BetaSignupDialogProps {
 }
 
 export function BetaSignupDialog({ open, onOpenChange, inviteCode }: BetaSignupDialogProps) {
+  // Store the invite code in session storage when the dialog opens
+  React.useEffect(() => {
+    if (open && inviteCode) {
+      console.log("BetaSignupDialog: Storing invite code in session storage", inviteCode);
+      sessionStorage.setItem('beta_invite_code', inviteCode);
+    }
+  }, [open, inviteCode]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">

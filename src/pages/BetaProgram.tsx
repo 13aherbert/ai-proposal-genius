@@ -25,14 +25,20 @@ export default function BetaProgram() {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // First useEffect: Check for invite code in URL and handle session storage
   useEffect(() => {
-    // Check for invite code in URL
     const checkForInviteCode = () => {
+      // Check URL parameters first
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('invite');
       
-      // Also check session storage (saved from previous redirect)
+      // Then check session storage (saved from previous redirect)
       const storedCode = sessionStorage.getItem('beta_invite_code');
+      
+      console.log('URL invite code:', code);
+      console.log('Stored invite code:', storedCode);
+      
+      // Use URL code if available, fall back to stored code
       const finalCode = code || storedCode;
       
       if (finalCode) {
@@ -40,12 +46,14 @@ export default function BetaProgram() {
         setInviteCode(finalCode);
         setHasInviteCode(true);
         
+        // Store invite code in session storage to retrieve after auth
+        // This is important even if storedCode exists to ensure consistency
+        sessionStorage.setItem('beta_invite_code', finalCode);
+        
         // If we have an invite code but no session, show the signup dialog
         if (!session?.user?.id) {
           console.log('No user session, showing signup dialog');
           setShowSignupDialog(true);
-          // Store invite code in session storage to retrieve after auth
-          sessionStorage.setItem('beta_invite_code', finalCode);
         }
       }
       
@@ -53,10 +61,10 @@ export default function BetaProgram() {
     };
     
     checkForInviteCode();
-  }, [location.search]);
+  }, [location.search, session?.user?.id]);
   
+  // Second useEffect: Handle user authentication and beta status
   useEffect(() => {
-    // Handle user authentication and beta status
     const checkBetaAccess = async () => {
       if (!session?.user?.id) return;
       
@@ -95,7 +103,7 @@ export default function BetaProgram() {
               // Clean URL to remove invite code
               navigate('/beta', { replace: true });
               
-              // Clear the stored invite code
+              // Clear the stored invite code after successful processing
               sessionStorage.removeItem('beta_invite_code');
             } else {
               console.error(`Failed to accept invitation`);
@@ -122,8 +130,9 @@ export default function BetaProgram() {
   const handleDialogOpenChange = (open: boolean) => {
     setShowSignupDialog(open);
     
-    // If dialog is closed without a session, redirect to auth page with the invite code
+    // If dialog is closed manually without a session, redirect to auth page with the invite code
     if (!open && !session?.user?.id && hasInviteCode) {
+      console.log('Dialog closed, redirecting to auth with invite code:', inviteCode);
       navigate(`/auth?view=sign_up&invite=${inviteCode}`);
     }
   };

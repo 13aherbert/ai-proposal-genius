@@ -24,6 +24,12 @@ export const useAuthRedirects = () => {
     if (storedInvite || inviteParam) {
       // We're coming from an invite link, ensure we're in signup mode
       setIsSignUp(true);
+      
+      // Store the invite code in session storage if it came from URL
+      if (inviteParam && !storedInvite) {
+        console.log('Storing invite code in session storage:', inviteParam);
+        sessionStorage.setItem('beta_invite_code', inviteParam);
+      }
     }
   }, [location, setIsSignUp]);
 
@@ -59,15 +65,18 @@ export const useAuthRedirects = () => {
   }, [navigate, location.search, setError]);
   
   const handleRedirect = (session: any) => {
-    // Check for invite code
+    // Check for invite code in session storage first, then URL
+    const storedInvite = sessionStorage.getItem('beta_invite_code');
     const searchParams = new URLSearchParams(location.search);
     const inviteParam = searchParams.get('invite');
-    const storedInvite = sessionStorage.getItem('beta_invite_code');
     
-    if (inviteParam || storedInvite) {
-      const inviteCode = inviteParam || storedInvite;
-      // Clear the stored invite code
-      sessionStorage.removeItem('beta_invite_code');
+    if (storedInvite || inviteParam) {
+      const inviteCode = storedInvite || inviteParam;
+      console.log('Redirecting to beta program with invite code:', inviteCode);
+      
+      // Note: We don't clear the stored invite code here to ensure it persists
+      // through the redirect to the beta page
+      
       // Redirect to beta page with invite code
       navigate(`/beta?invite=${inviteCode}`);
     } else {

@@ -154,16 +154,21 @@ export async function getBetaInvitations(): Promise<BetaInvitation[]> {
 // Create a new beta invitation
 export async function createBetaInvitation(email: string, expiresInDays = 7): Promise<BetaInvitation | null> {
   try {
-    const { data, error } = await supabase.rpc(
-      'create_beta_invitation',
-      {
-        email_param: email,
-        expires_in_days: expiresInDays
+    // Instead of using rpc, let's use edge function to create beta invitations
+    const { data, error } = await supabase.functions.invoke("create-beta-invitation", {
+      body: {
+        email,
+        expiresInDays
       }
-    );
+    });
     
     if (error) {
       console.error("Error creating beta invitation:", error);
+      toast.error("Failed to create beta invitation");
+      return null;
+    }
+    
+    if (!data) {
       toast.error("Failed to create beta invitation");
       return null;
     }
@@ -199,10 +204,10 @@ export async function cancelBetaInvitation(invitationId: string): Promise<boolea
 // Resend an invitation email
 export async function resendInvitationEmail(invitationId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc(
-      'resend_beta_invitation',
-      { invitation_id_param: invitationId }
-    );
+    // Instead of using rpc, let's use edge function to resend invitation emails
+    const { data, error } = await supabase.functions.invoke("resend-beta-invitation", {
+      body: { invitationId }
+    });
     
     if (error) {
       console.error("Error resending beta invitation:", error);

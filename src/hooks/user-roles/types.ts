@@ -16,6 +16,7 @@ export interface UserRoleRefs {
   userStatus: boolean;
   checkingInProgress: boolean;
   lastNetworkErrorTime: number | null;
+  lastCheckedTime: number | null;
   forceUpdate: number;
   timeout: number | null;
 }

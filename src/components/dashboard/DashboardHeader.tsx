@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
@@ -31,26 +32,16 @@ export default function DashboardHeader() {
   
   const hasLoggedBetaStatus = useRef(false);
   
+  // Only force a check once on initial render
   useEffect(() => {
+    // Just do one initial check when the component mounts
     forceRoleCheck();
-    const interval = setInterval(() => {
-      forceRoleCheck();
-    }, 5000);
     
-    return () => clearInterval(interval);
+    // No need for constant interval checks anymore
   }, [forceRoleCheck]);
   
+  // Only log status changes when they happen
   useEffect(() => {
-    console.log("Dashboard Header - Current role states:", {
-      isAdmin,
-      isBetaTester,
-      showBetaBadge,
-      showAdminButton,
-      isCheckingRoles,
-      roleCheckError,
-      timestamp: new Date().toISOString()
-    });
-    
     if (isBetaTester && !hasLoggedBetaStatus.current) {
       console.log("Beta tester status confirmed in Header", {
         timestamp: new Date().toISOString(),
@@ -59,7 +50,7 @@ export default function DashboardHeader() {
       });
       hasLoggedBetaStatus.current = true;
     }
-  }, [isAdmin, isBetaTester, showBetaBadge, showAdminButton, isCheckingRoles, roleCheckError]);
+  }, [isBetaTester, showBetaBadge]);
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">

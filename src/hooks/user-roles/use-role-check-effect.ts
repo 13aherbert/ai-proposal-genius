@@ -6,6 +6,9 @@ import { Session } from "@supabase/supabase-js";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
 
+// Minimum time between role checks (10 seconds)
+const MIN_CHECK_INTERVAL = 10000;
+
 export const useRoleCheckEffect = (
   session: Session | null | undefined,
   setIsAdmin: (value: boolean) => void,
@@ -19,7 +22,15 @@ export const useRoleCheckEffect = (
   const checkRoles = useCallback(async () => {
     if (!session?.user || refs.checkingInProgress) return;
     
-    if (refs.lastNetworkErrorTime && (Date.now() - refs.lastNetworkErrorTime < 5000)) {
+    // Don't check too frequently
+    const now = Date.now();
+    if (refs.lastCheckedTime && (now - refs.lastCheckedTime < MIN_CHECK_INTERVAL)) {
+      console.log("Skipping role check, last check was too recent");
+      return;
+    }
+    
+    // Skip if there was a recent network error
+    if (refs.lastNetworkErrorTime && (now - refs.lastNetworkErrorTime < 5000)) {
       console.log("Skipping role check due to recent network error");
       return;
     }
@@ -30,6 +41,9 @@ export const useRoleCheckEffect = (
       if (!refs.rolesInitialized) {
         setIsCheckingRoles(true);
       }
+      
+      // Mark this check time
+      refs.lastCheckedTime = now;
       
       setRoleCheckError(null);
       
@@ -42,18 +56,17 @@ export const useRoleCheckEffect = (
         }
       } catch (adminError) {
         console.error("Error during admin role check:", adminError);
-        refs.lastNetworkErrorTime = Date.now();
+        refs.lastNetworkErrorTime = now;
       }
       
       // Check beta tester role - directly using our specialized function
       try {
-        // Force update to true to ensure state updates even if the reference is the same
-        const betaStatus = await checkBetaTesterRole(session.user.id, refs, true);
-        updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
-        console.log("Beta role check in checkRoles:", betaStatus);
+        // Only check beta status occasionally for efficiency
+        const betaStatus = await checkBetaTesterRole(session.user.id, refs, false);
+        updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, false);
       } catch (betaError) {
         console.error("Error during beta role check:", betaError);
-        refs.lastNetworkErrorTime = Date.now();
+        refs.lastNetworkErrorTime = now;
       }
       
       // Check user role
@@ -65,7 +78,7 @@ export const useRoleCheckEffect = (
         }
       } catch (userError) {
         console.error("Error during user role check:", userError);
-        refs.lastNetworkErrorTime = Date.now();
+        refs.lastNetworkErrorTime = now;
       }
       
       refs.rolesInitialized = true;
@@ -83,7 +96,7 @@ export const useRoleCheckEffect = (
       }
       
       setIsCheckingRoles(false);
-      refs.lastNetworkErrorTime = Date.now();
+      refs.lastNetworkErrorTime = now;
     } finally {
       refs.checkingInProgress = false;
     }

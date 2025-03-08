@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Badge } from "@/components/ui/badge";
+import { GiftIcon } from "lucide-react";
 
 interface BetaSignupDialogProps {
   open: boolean;
@@ -22,8 +23,9 @@ export function BetaSignupDialog({ open, onOpenChange, inviteCode }: BetaSignupD
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <DialogTitle>Join Beta Program</DialogTitle>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Invitation</Badge>
+            <GiftIcon className="h-5 w-5 text-primary" />
+            <DialogTitle>Join OptiRFP Beta Program</DialogTitle>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Exclusive Invitation</Badge>
           </div>
           <DialogDescription>
             You've been invited to join our exclusive beta program! Please create an account or sign in to continue.

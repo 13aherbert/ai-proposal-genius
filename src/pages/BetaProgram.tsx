@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BetaTesterDashboard } from '@/components/beta/BetaTesterDashboard';
 import { BetaTesterOnboarding } from '@/components/beta/BetaTesterOnboarding';
 import { BetaSignupDialog } from '@/components/beta/BetaSignupDialog';
@@ -8,10 +8,10 @@ import { useAuth } from '@/components/AuthProvider';
 import { betaTestingService } from '@/services/BetaTestingService';
 import { adminService } from '@/services/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, LogIn } from 'lucide-react';
+import { AlertCircle, LogIn, GiftIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function BetaProgram() {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,94 +23,108 @@ export default function BetaProgram() {
   const [showSignupDialog, setShowSignupDialog] = useState(false);
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('invite');
-    if (code) {
-      setInviteCode(code);
-      setHasInviteCode(true);
+    // Check for invite code in URL
+    const checkForInviteCode = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('invite');
       
-      // If we have an invite code but no session, show the signup dialog
-      if (!session?.user?.id) {
-        setShowSignupDialog(true);
-        setIsLoading(false);
-      }
-    }
-    
-    const checkBetaAccess = async () => {
-      // If we have an invite code but no session, show the signup dialog
-      if (code && !session?.user?.id) {
-        // Store invite code in session storage to retrieve after auth
-        sessionStorage.setItem('beta_invite_code', code);
-        setShowSignupDialog(true);
-        setIsLoading(false);
-        return;
-      }
+      // Also check session storage (saved from previous redirect)
+      const storedCode = sessionStorage.getItem('beta_invite_code');
+      const finalCode = code || storedCode;
       
-      if (session?.user?.id) {
-        try {
-          // First check if the user is already a beta tester
-          const isBeta = await adminService.checkUserRole('beta_tester');
-          setIsBetaTester(isBeta);
-          
-          if (isBeta) {
-            // If user is already a beta tester, check onboarding status
-            const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
-            setOnboardingComplete(status);
-          } else if (code && !inviteProcessed) {
-            // If user has an invite code and is not a beta tester yet
-            setInviteProcessed(true); // Prevent multiple processing attempts
-            
-            console.log(`Verifying invite code: ${code}`);
-            const invitation = await adminService.verifyBetaInvitation(code);
-            
-            if (invitation) {
-              console.log(`Invitation is valid, accepting...`);
-              const success = await adminService.acceptBetaInvitation(code);
-              
-              if (success) {
-                console.log(`Invitation accepted successfully`);
-                setIsBetaTester(true);
-                
-                // Check onboarding status after role is assigned
-                const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
-                setOnboardingComplete(status);
-                
-                // Send welcome notification
-                toast.success("Welcome to the beta program!");
-                
-                // Clean URL to remove invite code
-                navigate('/beta', { replace: true });
-              } else {
-                console.error(`Failed to accept invitation`);
-                toast.error("Error accepting beta invitation");
-              }
-            } else {
-              console.error(`Invalid or expired invitation`);
-              toast.error("Invalid or expired invitation");
-            }
-          }
-        } catch (error) {
-          console.error('Error checking beta access:', error);
-        } finally {
-          setIsLoading(false);
+      if (finalCode) {
+        console.log('Beta invite code detected:', finalCode);
+        setInviteCode(finalCode);
+        setHasInviteCode(true);
+        
+        // If we have an invite code but no session, show the signup dialog
+        if (!session?.user?.id) {
+          console.log('No user session, showing signup dialog');
+          setShowSignupDialog(true);
+          // Store invite code in session storage to retrieve after auth
+          sessionStorage.setItem('beta_invite_code', finalCode);
         }
-      } else {
+      }
+      
+      setIsLoading(false);
+    };
+    
+    checkForInviteCode();
+  }, [location.search]);
+  
+  useEffect(() => {
+    // Handle user authentication and beta status
+    const checkBetaAccess = async () => {
+      if (!session?.user?.id) return;
+      
+      try {
+        console.log('Checking beta status for user:', session.user.id);
+        // First check if the user is already a beta tester
+        const isBeta = await adminService.checkUserRole('beta_tester');
+        setIsBetaTester(isBeta);
+        
+        if (isBeta) {
+          // If user is already a beta tester, check onboarding status
+          const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+          setOnboardingComplete(status);
+        } else if (hasInviteCode && !inviteProcessed) {
+          // If user has an invite code and is not a beta tester yet
+          setInviteProcessed(true); // Prevent multiple processing attempts
+          
+          console.log(`Verifying invite code: ${inviteCode}`);
+          const invitation = await adminService.verifyBetaInvitation(inviteCode);
+          
+          if (invitation) {
+            console.log(`Invitation is valid, accepting...`);
+            const success = await adminService.acceptBetaInvitation(inviteCode);
+            
+            if (success) {
+              console.log(`Invitation accepted successfully`);
+              setIsBetaTester(true);
+              
+              // Check onboarding status after role is assigned
+              const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+              setOnboardingComplete(status);
+              
+              // Send welcome notification
+              toast.success("Welcome to the beta program!");
+              
+              // Clean URL to remove invite code
+              navigate('/beta', { replace: true });
+              
+              // Clear the stored invite code
+              sessionStorage.removeItem('beta_invite_code');
+            } else {
+              console.error(`Failed to accept invitation`);
+              toast.error("Error accepting beta invitation");
+            }
+          } else {
+            console.error(`Invalid or expired invitation`);
+            toast.error("Invalid or expired invitation");
+          }
+        }
+      } catch (error) {
+        console.error('Error checking beta access:', error);
+      } finally {
         setIsLoading(false);
       }
     };
     
-    checkBetaAccess();
-  }, [session, navigate, inviteCode, inviteProcessed]);
+    if (session?.user?.id) {
+      checkBetaAccess();
+    }
+  }, [session, inviteCode, hasInviteCode, inviteProcessed, navigate]);
   
   // Handle dialog closing
   const handleDialogOpenChange = (open: boolean) => {
     setShowSignupDialog(open);
     
-    // If dialog is closed and still no session, redirect to auth page
+    // If dialog is closed without a session, redirect to auth page with the invite code
     if (!open && !session?.user?.id && hasInviteCode) {
-      navigate('/auth?view=sign_up&invite=' + inviteCode);
+      navigate(`/auth?view=sign_up&invite=${inviteCode}`);
     }
   };
   
@@ -145,6 +159,7 @@ export default function BetaProgram() {
   
   return (
     <>
+      {/* Always show the dialog for users without a session who have an invite code */}
       {hasInviteCode && !session?.user?.id && (
         <BetaSignupDialog 
           open={showSignupDialog} 
@@ -157,29 +172,41 @@ export default function BetaProgram() {
         <BetaTesterDashboard />
       ) : (
         <div className="container mx-auto py-10">
-          <Card className="max-w-xl mx-auto">
-            <CardHeader>
+          <Card className="max-w-xl mx-auto shadow-lg border-blue-100">
+            <CardHeader className="bg-blue-50/50">
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-blue-500" />
-                Beta Invitation
+                <GiftIcon className="h-5 w-5 text-blue-500" />
+                Beta Program Invitation
               </CardTitle>
               <CardDescription>
-                You've been invited to join our beta program! {session?.user?.id ? 
-                  "We're processing your invitation." : 
-                  "Please sign in or create an account to continue."}
+                You've been invited to join our exclusive beta program! Please sign in or create an account to continue.
               </CardDescription>
             </CardHeader>
-            {!session?.user?.id && (
-              <CardContent>
-                <Button 
-                  onClick={() => setShowSignupDialog(true)}
-                  className="w-full"
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign up or Log in to continue
-                </Button>
-              </CardContent>
-            )}
+            <CardContent className="pt-6">
+              <p className="mb-4">
+                As a beta tester, you'll get:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 mb-6">
+                <li>Early access to new features</li>
+                <li>Direct influence on product development</li>
+                <li>Special recognition when we launch</li>
+                <li>Priority support during the beta period</li>
+              </ul>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Your invitation code: <span className="font-mono font-medium">{inviteCode}</span>
+              </p>
+            </CardContent>
+            <CardFooter className="bg-gray-50/50 flex justify-center">
+              <Button 
+                onClick={() => setShowSignupDialog(true)}
+                className="w-full md:w-auto"
+                size="lg"
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign up or Log in to join the beta
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       )}

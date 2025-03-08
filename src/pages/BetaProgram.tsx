@@ -8,9 +8,10 @@ import { useAuth } from '@/components/AuthProvider';
 import { betaTestingService } from '@/services/BetaTestingService';
 import { adminService } from '@/services/admin';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
-import { withRateLimit } from '@/utils/network/rate-limit';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function BetaProgram() {
   const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function BetaProgram() {
       // If we have an invite code but no session, show the signup dialog
       if (!session?.user?.id) {
         setShowSignupDialog(true);
+        setIsLoading(false);
       }
     }
     
@@ -155,15 +157,30 @@ export default function BetaProgram() {
         <BetaTesterDashboard />
       ) : (
         <div className="container mx-auto py-10">
-          <Alert className="max-w-xl mx-auto">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Beta Invitation</AlertTitle>
-            <AlertDescription>
-              {session?.user?.id ? 
-                "We're processing your beta invitation. Please wait..." : 
-                "Please sign in or create an account to join the beta program."}
-            </AlertDescription>
-          </Alert>
+          <Card className="max-w-xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-blue-500" />
+                Beta Invitation
+              </CardTitle>
+              <CardDescription>
+                You've been invited to join our beta program! {session?.user?.id ? 
+                  "We're processing your invitation." : 
+                  "Please sign in or create an account to continue."}
+              </CardDescription>
+            </CardHeader>
+            {!session?.user?.id && (
+              <CardContent>
+                <Button 
+                  onClick={() => setShowSignupDialog(true)}
+                  className="w-full"
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign up or Log in to continue
+                </Button>
+              </CardContent>
+            )}
+          </Card>
         </div>
       )}
     </>

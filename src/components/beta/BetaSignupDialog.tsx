@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface BetaSignupDialogProps {
   open: boolean;
@@ -21,9 +21,12 @@ export function BetaSignupDialog({ open, onOpenChange, inviteCode }: BetaSignupD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Join Beta Program</DialogTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <DialogTitle>Join Beta Program</DialogTitle>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Invitation</Badge>
+          </div>
           <DialogDescription>
-            You've been invited to join our beta program! Please create an account or sign in to continue.
+            You've been invited to join our exclusive beta program! Please create an account or sign in to continue.
           </DialogDescription>
         </DialogHeader>
         

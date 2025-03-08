@@ -104,8 +104,54 @@ serve(async (req) => {
       );
     }
     
+    // Prepare the invitation URL
+    const baseUrl = Deno.env.get("PUBLIC_URL") || "https://optirfp.ai";
+    const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
+    
+    // Send the email via the send-email edge function
+    const emailPayload = {
+      to: [email],
+      subject: "You're Invited to the OptiRFP Beta Program!",
+      templateType: "beta_invite",
+      templateData: {
+        inviteCode: inviteCode,
+        inviteUrl: inviteUrl,
+        expiresAt: expiresAt.toISOString()
+      }
+    };
+    
+    console.log("Sending beta invitation email:", emailPayload);
+    
+    const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
+      "send-email",
+      {
+        body: emailPayload
+      }
+    );
+    
+    if (emailError) {
+      console.error("Error sending invitation email:", emailError);
+      // Don't return an error, continue to return the invitation
+      // Just log it so we can see the issue
+    } else {
+      console.log("Email response:", emailResponse);
+      
+      // Mark the invitation as email sent
+      await supabase
+        .from('beta_invitations')
+        .update({ 
+          invitation_email_sent: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', invitation.id);
+    }
+    
     return new Response(
-      JSON.stringify(invitation),
+      JSON.stringify({
+        ...invitation,
+        email_sent: emailError ? false : true,
+        email_error: emailError ? emailError.message : null
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BetaTesterDashboard } from '@/components/beta/BetaTesterDashboard';
 import { BetaTesterOnboarding } from '@/components/beta/BetaTesterOnboarding';
+import { BetaSignupDialog } from '@/components/beta/BetaSignupDialog';
 import { useAuth } from '@/components/AuthProvider';
 import { betaTestingService } from '@/services/BetaTestingService';
 import { adminService } from '@/services/admin';
@@ -18,6 +19,7 @@ export default function BetaProgram() {
   const [hasInviteCode, setHasInviteCode] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteProcessed, setInviteProcessed] = useState(false);
+  const [showSignupDialog, setShowSignupDialog] = useState(false);
   const { session } = useAuth();
   const navigate = useNavigate();
   
@@ -27,15 +29,20 @@ export default function BetaProgram() {
     if (code) {
       setInviteCode(code);
       setHasInviteCode(true);
+      
+      // If we have an invite code but no session, show the signup dialog
+      if (!session?.user?.id) {
+        setShowSignupDialog(true);
+      }
     }
     
     const checkBetaAccess = async () => {
-      // If we have an invite code but no session, redirect to auth page
+      // If we have an invite code but no session, show the signup dialog
       if (code && !session?.user?.id) {
         // Store invite code in session storage to retrieve after auth
         sessionStorage.setItem('beta_invite_code', code);
-        // Redirect to auth page with signup view active
-        navigate('/auth?view=sign_up&invite=' + code);
+        setShowSignupDialog(true);
+        setIsLoading(false);
         return;
       }
       
@@ -95,6 +102,16 @@ export default function BetaProgram() {
     checkBetaAccess();
   }, [session, navigate, inviteCode, inviteProcessed]);
   
+  // Handle dialog closing
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowSignupDialog(open);
+    
+    // If dialog is closed and still no session, redirect to auth page
+    if (!open && !session?.user?.id && hasInviteCode) {
+      navigate('/auth?view=sign_up&invite=' + inviteCode);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="container mx-auto py-10 flex items-center justify-center">
@@ -106,7 +123,7 @@ export default function BetaProgram() {
     );
   }
   
-  if (!isBetaTester) {
+  if (!isBetaTester && !hasInviteCode) {
     return (
       <div className="container mx-auto py-10">
         <Alert variant="destructive" className="max-w-xl mx-auto">
@@ -120,9 +137,35 @@ export default function BetaProgram() {
     );
   }
   
-  if (!onboardingComplete) {
+  if (!onboardingComplete && isBetaTester) {
     return <BetaTesterOnboarding />;
   }
   
-  return <BetaTesterDashboard />;
+  return (
+    <>
+      {hasInviteCode && !session?.user?.id && (
+        <BetaSignupDialog 
+          open={showSignupDialog} 
+          onOpenChange={handleDialogOpenChange} 
+          inviteCode={inviteCode}
+        />
+      )}
+      
+      {isBetaTester ? (
+        <BetaTesterDashboard />
+      ) : (
+        <div className="container mx-auto py-10">
+          <Alert className="max-w-xl mx-auto">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Beta Invitation</AlertTitle>
+            <AlertDescription>
+              {session?.user?.id ? 
+                "We're processing your beta invitation. Please wait..." : 
+                "Please sign in or create an account to join the beta program."}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+    </>
+  );
 }

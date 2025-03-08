@@ -52,7 +52,13 @@ export const useAuthRedirects = () => {
         setError("");
       }
       if (event === "SIGNED_OUT") {
-        navigate("/");
+        // If there's a beta invite code, redirect to the beta page
+        const storedInvite = sessionStorage.getItem('beta_invite_code');
+        if (storedInvite) {
+          navigate(`/beta?invite=${storedInvite}`);
+        } else {
+          navigate("/");
+        }
       }
       if (event === "PASSWORD_RECOVERY") {
         setError("");
@@ -80,7 +86,14 @@ export const useAuthRedirects = () => {
       // Redirect to beta page with invite code
       navigate(`/beta?invite=${inviteCode}`);
     } else {
-      navigate("/dashboard");
+      // Check if we have a redirect path stored
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath);
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 };

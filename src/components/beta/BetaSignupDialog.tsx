@@ -26,8 +26,20 @@ export function BetaSignupDialog({ open, onOpenChange, inviteCode }: BetaSignupD
     }
   }, [open, inviteCode]);
 
+  // Prevent dialog from being closed by clicking outside or pressing escape
+  // This ensures users must either login/signup or manually close the dialog
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen === false) {
+      // Allow dialog to be closed
+      onOpenChange(false);
+    } else {
+      // Allow dialog to be opened
+      onOpenChange(true);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">

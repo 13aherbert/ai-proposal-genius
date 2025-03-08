@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
+// This is an unprotected component - authentication is checked within the component
 export default function BetaProgram() {
   const [isLoading, setIsLoading] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -54,10 +55,12 @@ export default function BetaProgram() {
         if (!session?.user?.id) {
           console.log('No user session, showing signup dialog');
           setShowSignupDialog(true);
+          // Make sure we don't redirect away from this page
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     
     checkForInviteCode();
@@ -66,7 +69,14 @@ export default function BetaProgram() {
   // Second useEffect: Handle user authentication and beta status
   useEffect(() => {
     const checkBetaAccess = async () => {
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {
+        // If there's an invite code, we've already set isLoading to false
+        // in the first useEffect
+        if (!hasInviteCode) {
+          setIsLoading(false);
+        }
+        return;
+      }
       
       try {
         console.log('Checking beta status for user:', session.user.id);
@@ -121,7 +131,7 @@ export default function BetaProgram() {
       }
     };
     
-    if (session?.user?.id) {
+    if (session?.user?.id || !hasInviteCode) {
       checkBetaAccess();
     }
   }, [session, inviteCode, hasInviteCode, inviteProcessed, navigate]);
@@ -129,12 +139,6 @@ export default function BetaProgram() {
   // Handle dialog closing
   const handleDialogOpenChange = (open: boolean) => {
     setShowSignupDialog(open);
-    
-    // If dialog is closed manually without a session, redirect to auth page with the invite code
-    if (!open && !session?.user?.id && hasInviteCode) {
-      console.log('Dialog closed, redirecting to auth with invite code:', inviteCode);
-      navigate(`/auth?view=sign_up&invite=${inviteCode}`);
-    }
   };
   
   if (isLoading) {
@@ -148,7 +152,8 @@ export default function BetaProgram() {
     );
   }
   
-  if (!isBetaTester && !hasInviteCode) {
+  // For authenticated users without beta access and no invite code
+  if (session?.user?.id && !isBetaTester && !hasInviteCode) {
     return (
       <div className="container mx-auto py-10">
         <Alert variant="destructive" className="max-w-xl mx-auto">
@@ -162,10 +167,11 @@ export default function BetaProgram() {
     );
   }
   
-  if (!onboardingComplete && isBetaTester) {
+  if (session?.user?.id && !onboardingComplete && isBetaTester) {
     return <BetaTesterOnboarding />;
   }
   
+  // For users with invite code but no session, or authenticated beta testers
   return (
     <>
       {/* Always show the dialog for users without a session who have an invite code */}
@@ -177,9 +183,9 @@ export default function BetaProgram() {
         />
       )}
       
-      {isBetaTester ? (
+      {session?.user?.id && isBetaTester ? (
         <BetaTesterDashboard />
-      ) : (
+      ) : hasInviteCode && !session?.user?.id ? (
         <div className="container mx-auto py-10">
           <Card className="max-w-xl mx-auto shadow-lg border-blue-100">
             <CardHeader className="bg-blue-50/50">
@@ -218,7 +224,7 @@ export default function BetaProgram() {
             </CardFooter>
           </Card>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

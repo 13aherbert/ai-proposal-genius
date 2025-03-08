@@ -3,29 +3,30 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 /**
- * Redirects to beta program page with invite code when direct URL is accessed
+ * BetaInviteRedirect component
+ * 
+ * This component captures beta invite URLs and ensures they're properly
+ * directed to the beta program page without authentication checks.
  */
 export function BetaInviteRedirect() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const inviteCode = searchParams.get('invite');
     
     if (inviteCode) {
-      console.log(`BetaInviteRedirect: Redirecting to beta program with invite code ${inviteCode}`);
+      console.log(`BetaInviteRedirect: Storing and redirecting with invite code ${inviteCode}`);
+      
+      // Store the invite code in session storage for retrieval in the beta page
       sessionStorage.setItem('beta_invite_code', inviteCode);
+      
+      // Redirect to the beta page with the invite code
+      // Using replace to prevent back button issues
       navigate(`/beta?invite=${inviteCode}`, { replace: true });
-    } else {
-      // If no invite code, redirect to home
-      navigate('/', { replace: true });
     }
-  }, [navigate, location.search]);
+  }, [location.search, navigate]);
   
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>
-  );
+  return null;
 }

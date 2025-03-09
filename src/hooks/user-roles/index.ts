@@ -1,7 +1,6 @@
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { checkBetaTesterRole, updateBetaTesterState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState } from "./role-check-utils";
 import { useRoleCheckEffect } from "./use-role-check-effect";
 import { UserRoleState, UserRoleRefs } from "./types";
 
@@ -72,14 +71,16 @@ export function useUserRoles() {
     // Only perform the check if we have a user session
     if (session?.user) {
       // First check admin status
-      checkRoles();
+      checkAdminRole(session.user.id, refs, true).then(adminStatus => {
+        updateAdminState(adminStatus, refs.adminStatus, refs, setIsAdmin, true);
+      });
       
       // Then check beta tester status
       checkBetaTesterRole(session.user.id, refs, true).then(betaStatus => {
         updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
       });
     }
-  }, [session, refs, checkRoles]);
+  }, [session, refs, setIsAdmin, setIsBetaTester]);
 
   // Effect for session changes and timer-based role checking
   useEffect(() => {

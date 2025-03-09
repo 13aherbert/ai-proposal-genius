@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,38 +9,33 @@ import { ChevronRight, BugIcon, Lightbulb, CheckCircle, AlertTriangle } from 'lu
 import { BetaMetricsPanel } from './BetaMetricsPanel';
 import { betaTestingService } from '@/services/BetaTestingService';
 import { toast } from 'sonner';
+import { useAuth } from '@/components/AuthProvider';
 
 export function BetaTesterDashboard() {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedbackType, setFeedbackType] = useState<'bug' | 'feature' | 'improvement' | 'general'>('general');
-  const [activeTasks, setActiveTasks] = useState([
-    {
-      id: '1',
-      title: "Test RFP Document Upload",
-      description: "Try uploading different document formats and verify correct parsing",
-      priority: "high"
-    },
-    {
-      id: '2',
-      title: "Create a Complex Proposal",
-      description: "Test the proposal editor with multiple sections and formatting",
-      priority: "medium"
-    },
-    {
-      id: '3',
-      title: "Verify Knowledge Base Integration",
-      description: "Check that Knowledge Base entries are correctly suggested in proposal drafts",
-      priority: "low"
-    }
-  ]);
-  const [completedTasks, setCompletedTasks] = useState([
-    {
-      id: '4',
-      title: "Initial Login Flow",
-      description: "Test the login and registration process"
-    }
-  ]);
+  const [activeTasks, setActiveTasks] = useState<Array<{id: string, title: string, description: string, priority: 'low' | 'medium' | 'high'}>>([]);
+  const [completedTasks, setCompletedTasks] = useState<Array<{id: string, title: string, description: string}>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { session } = useAuth();
+  
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const tasks = await betaTestingService.getBetaTestingTasks();
+        setActiveTasks(tasks.active);
+        setCompletedTasks(tasks.completed);
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        toast.error('Failed to load beta tasks');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTasks();
+  }, []);
   
   const handleStartTask = (taskId: string) => {
     const task = activeTasks.find(t => t.id === taskId);
@@ -66,33 +60,47 @@ export function BetaTesterDashboard() {
     }
   };
   
-  const handleCompleteTask = (taskId: string) => {
+  const handleCompleteTask = async (taskId: string) => {
     // Find the task to mark as completed
     const taskToComplete = activeTasks.find(t => t.id === taskId);
     if (!taskToComplete) return;
     
-    // Remove task from active tasks
-    const updatedActiveTasks = activeTasks.filter(t => t.id !== taskId);
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to complete tasks');
+      return;
+    }
     
-    // Add task to completed tasks
-    const updatedCompletedTasks = [
-      ...completedTasks,
-      {
-        id: taskToComplete.id,
-        title: taskToComplete.title,
-        description: taskToComplete.description
+    try {
+      // Call the service to mark the task as completed
+      const success = await betaTestingService.completeTask(taskId, session.user.id);
+      
+      if (success) {
+        // Remove task from active tasks
+        const updatedActiveTasks = activeTasks.filter(t => t.id !== taskId);
+        
+        // Add task to completed tasks
+        const updatedCompletedTasks = [
+          ...completedTasks,
+          {
+            id: taskToComplete.id,
+            title: taskToComplete.title,
+            description: taskToComplete.description
+          }
+        ];
+        
+        // Update state
+        setActiveTasks(updatedActiveTasks);
+        setCompletedTasks(updatedCompletedTasks);
+        
+        // Show success message
+        toast.success(`Task "${taskToComplete.title}" marked as completed!`);
+      } else {
+        toast.error('Failed to complete task. Please try again.');
       }
-    ];
-    
-    // Update state
-    setActiveTasks(updatedActiveTasks);
-    setCompletedTasks(updatedCompletedTasks);
-    
-    // Show success message
-    toast.success(`Task "${taskToComplete.title}" marked as completed!`);
-    
-    // In a real app, we would also save this to the database
-    // betaTestingService.completeTask(taskId);
+    } catch (error) {
+      console.error('Error completing task:', error);
+      toast.error('An error occurred while completing the task');
+    }
   };
   
   const openFeedbackDialog = (type: 'bug' | 'feature' | 'improvement' | 'general' = 'general') => {
@@ -172,67 +180,82 @@ export function BetaTesterDashboard() {
           <CardDescription>Help us test specific features and scenarios</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="active">
-            <TabsList className="mb-4">
-              <TabsTrigger value="active">Active Tasks</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="active" className="space-y-4">
-              {activeTasks.map(task => (
-                <div key={task.id} className="border rounded-lg p-4 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{task.title}</h3>
-                      <Badge variant={
-                        task.priority === 'high' ? 'destructive' : 
-                        task.priority === 'medium' ? 'default' : 
-                        'outline'
-                      }>
-                        {task.priority}
-                      </Badge>
+          {isLoading ? (
+            <div className="py-4 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">Loading tasks...</p>
+            </div>
+          ) : (
+            <Tabs defaultValue="active">
+              <TabsList className="mb-4">
+                <TabsTrigger value="active">Active Tasks</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="active" className="space-y-4">
+                {activeTasks.length === 0 ? (
+                  <p className="text-center py-4 text-muted-foreground">No active tasks at the moment.</p>
+                ) : (
+                  activeTasks.map(task => (
+                    <div key={task.id} className="border rounded-lg p-4 flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{task.title}</h3>
+                          <Badge variant={
+                            task.priority === 'high' ? 'destructive' : 
+                            task.priority === 'medium' ? 'default' : 
+                            'outline'
+                          }>
+                            {task.priority}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="shrink-0"
+                          onClick={() => handleCompleteTask(task.id)}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="shrink-0"
+                          onClick={() => handleStartTask(task.id)}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{task.description}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="shrink-0"
-                      onClick={() => handleCompleteTask(task.id)}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="shrink-0"
-                      onClick={() => handleStartTask(task.id)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </TabsContent>
-            
-            <TabsContent value="completed" className="space-y-4">
-              {completedTasks.map(task => (
-                <div key={task.id} className="border rounded-lg p-4 flex justify-between items-center opacity-60">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium line-through">{task.title}</h3>
-                      <Badge variant="outline">completed</Badge>
+                  ))
+                )}
+              </TabsContent>
+              
+              <TabsContent value="completed" className="space-y-4">
+                {completedTasks.length === 0 ? (
+                  <p className="text-center py-4 text-muted-foreground">You haven't completed any tasks yet.</p>
+                ) : (
+                  completedTasks.map(task => (
+                    <div key={task.id} className="border rounded-lg p-4 flex justify-between items-center opacity-60">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium line-through">{task.title}</h3>
+                          <Badge variant="outline">completed</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="shrink-0">
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">{task.description}</p>
-                  </div>
-                  <Button variant="ghost" size="sm" className="shrink-0">
-                    <CheckCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </TabsContent>
-          </Tabs>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </CardContent>
       </Card>
       

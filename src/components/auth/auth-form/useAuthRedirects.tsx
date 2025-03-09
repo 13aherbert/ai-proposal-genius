@@ -80,9 +80,6 @@ export const useAuthRedirects = () => {
       const inviteCode = storedInvite || inviteParam;
       console.log('Redirecting to beta program with invite code:', inviteCode);
       
-      // Note: We don't clear the stored invite code here to ensure it persists
-      // through the redirect to the beta page
-      
       // Redirect to beta page with invite code
       navigate(`/beta?invite=${inviteCode}`);
     } else {

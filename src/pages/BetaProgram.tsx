@@ -8,7 +8,6 @@ import { BetaAccessDenied } from '@/components/beta/BetaAccessDenied';
 import { BetaLoadingState } from '@/components/beta/BetaLoadingState';
 import { useBetaProgram } from '@/hooks/useBetaProgram';
 
-// This is an unprotected component - authentication is checked within the component
 export default function BetaProgram() {
   const {
     isLoading,
@@ -26,6 +25,26 @@ export default function BetaProgram() {
     return <BetaLoadingState />;
   }
   
+  // Show the signup dialog immediately for users with invite codes but no session
+  if (hasInviteCode && !session?.user?.id) {
+    return (
+      <>
+        <BetaSignupDialog 
+          open={true} 
+          onOpenChange={handleDialogOpenChange} 
+          inviteCode={inviteCode}
+          autoOpen={true}
+        />
+        <div className="container mx-auto py-10">
+          <BetaInvitationCard 
+            inviteCode={inviteCode}
+            onSignUpClick={() => setShowSignupDialog(true)}
+          />
+        </div>
+      </>
+    );
+  }
+  
   // For authenticated users without beta access and no invite code
   if (session?.user?.id && !isBetaTester && !hasInviteCode) {
     return <BetaAccessDenied />;
@@ -35,28 +54,15 @@ export default function BetaProgram() {
     return <BetaTesterOnboarding />;
   }
   
-  // For users with invite code but no session, or authenticated beta testers
+  // For authenticated beta testers
+  if (session?.user?.id && isBetaTester) {
+    return <BetaTesterDashboard />;
+  }
+  
+  // Fallback for any other cases
   return (
-    <>
-      {/* Always show the dialog for users without a session who have an invite code */}
-      {hasInviteCode && !session?.user?.id && (
-        <BetaSignupDialog 
-          open={showSignupDialog} 
-          onOpenChange={handleDialogOpenChange} 
-          inviteCode={inviteCode}
-        />
-      )}
-      
-      {session?.user?.id && isBetaTester ? (
-        <BetaTesterDashboard />
-      ) : hasInviteCode && !session?.user?.id ? (
-        <div className="container mx-auto py-10">
-          <BetaInvitationCard 
-            inviteCode={inviteCode}
-            onSignUpClick={() => setShowSignupDialog(true)}
-          />
-        </div>
-      ) : null}
-    </>
+    <div className="container mx-auto py-10">
+      <BetaAccessDenied />
+    </div>
   );
 }

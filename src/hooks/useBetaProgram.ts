@@ -40,19 +40,16 @@ export function useBetaProgram() {
         setHasInviteCode(true);
         
         // Store invite code in session storage to retrieve after auth
-        // This is important even if storedCode exists to ensure consistency
         sessionStorage.setItem('beta_invite_code', finalCode);
         
         // If we have an invite code but no session, show the signup dialog
         if (!session?.user?.id) {
-          console.log('No user session, showing signup dialog');
+          console.log('No user session with invite code, showing signup dialog');
           setShowSignupDialog(true);
-          // Make sure we don't redirect away from this page
-          setIsLoading(false);
         }
-      } else {
-        setIsLoading(false);
       }
+      
+      setIsLoading(false);
     };
     
     checkForInviteCode();
@@ -62,11 +59,6 @@ export function useBetaProgram() {
   useEffect(() => {
     const checkBetaAccess = async () => {
       if (!session?.user?.id) {
-        // If there's an invite code, we've already set isLoading to false
-        // in the first useEffect
-        if (!hasInviteCode) {
-          setIsLoading(false);
-        }
         return;
       }
       
@@ -118,18 +110,23 @@ export function useBetaProgram() {
         }
       } catch (error) {
         console.error('Error checking beta access:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
     
-    if (session?.user?.id || !hasInviteCode) {
+    if (session?.user?.id) {
       checkBetaAccess();
     }
   }, [session, inviteCode, hasInviteCode, inviteProcessed, navigate]);
 
   const handleDialogOpenChange = (open: boolean) => {
     setShowSignupDialog(open);
+    
+    // If dialog is closed manually and user is not authenticated, 
+    // store the invite code for later
+    if (!open && !session?.user?.id && inviteCode) {
+      console.log('Dialog closed but invite code preserved for later use');
+      sessionStorage.setItem('beta_invite_code', inviteCode);
+    }
   };
 
   return {

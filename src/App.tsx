@@ -26,7 +26,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
-import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
+import { RecentProjectsRedirect, ProjectDetailsRedirect, BetaInviteRedirect } from "./components/routing/Redirects";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -125,7 +125,8 @@ export default function App() {
                   }
                 />
                 
-                {/* Beta Testing Routes */}
+                {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
+                <Route path="/beta" element={<BetaProgram />} />
                 <Route
                   path="/beta/dashboard"
                   element={
@@ -142,14 +143,9 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/beta"
-                  element={
-                    <ProtectedRoute>
-                      <BetaProgram />
-                    </ProtectedRoute>
-                  }
-                />
+                
+                {/* Legacy beta invite redirect */}
+                <Route path="/beta-invite" element={<BetaInviteRedirect />} />
                 
                 {/* Admin Routes */}
                 <Route

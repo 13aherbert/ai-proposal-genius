@@ -46,23 +46,23 @@ export function BetaSignupDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2">
           <div className="flex items-center gap-2 mb-1">
             <GiftIcon className="h-5 w-5 text-primary" />
-            <DialogTitle>Join OptiRFP Beta Program</DialogTitle>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Exclusive Invitation</Badge>
+            <DialogTitle>Join Beta Program</DialogTitle>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Exclusive</Badge>
           </div>
-          <DialogDescription>
-            You've been invited to join our exclusive beta program! Please create an account or sign in to continue.
+          <DialogDescription className="text-sm">
+            Create an account or sign in to join our exclusive beta program.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4">
+        <div className="py-2">
           <AuthForm defaultView="sign_up" />
           
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-3 text-center">
+            <p className="text-xs text-muted-foreground">
               Your invitation code: <span className="font-mono font-medium">{inviteCode}</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">

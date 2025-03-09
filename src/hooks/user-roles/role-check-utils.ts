@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { UserRoleRefs } from "./types";
 
@@ -60,20 +59,15 @@ export const updateAdminState = (
   newStatus: boolean,
   currentStatus: boolean,
   refs: { adminStatus: boolean },
-  setIsAdmin: (updater: (prev: boolean) => boolean) => void,
+  setIsAdmin: (value: boolean) => void,
   forceUpdate = false
 ): void => {
   // Only trigger state updates if the status actually changed or force update requested
   if (newStatus !== currentStatus || forceUpdate) {
     refs.adminStatus = newStatus;
     
-    // Use a function updater to ensure React picks up the state change
-    setIsAdmin((prev) => {
-      if (prev !== newStatus) {
-        console.log(`Updating admin state from ${prev} to ${newStatus}`);
-      }
-      return newStatus;
-    });
+    // Use direct value since the type has been updated
+    setIsAdmin(newStatus);
     
     if (newStatus !== currentStatus) {
       console.log("Admin state updated", {

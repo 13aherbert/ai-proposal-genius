@@ -11,7 +11,7 @@ const MIN_CHECK_INTERVAL = 15000;
 
 export const useRoleCheckEffect = (
   session: Session | null | undefined,
-  setIsAdmin: (value: boolean) => void,
+  setIsAdmin: (value: boolean) => void,  // Updated type definition to match actual usage
   setIsBetaTester: (updater: (prev: boolean) => boolean) => void,
   setIsUser: (value: boolean) => void,
   setIsCheckingRoles: (value: boolean) => void,

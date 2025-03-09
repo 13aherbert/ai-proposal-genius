@@ -1,13 +1,13 @@
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback } from "react";
 import { UserRoleRefs } from "./types";
-import { checkBetaTesterRole, updateBetaTesterState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState } from "./role-check-utils";
 import { Session } from "@supabase/supabase-js";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
 
-// Minimum time between role checks (10 seconds)
-const MIN_CHECK_INTERVAL = 10000;
+// Minimum time between role checks (15 seconds - increased from 10)
+const MIN_CHECK_INTERVAL = 15000;
 
 export const useRoleCheckEffect = (
   session: Session | null | undefined,
@@ -47,21 +47,18 @@ export const useRoleCheckEffect = (
       
       setRoleCheckError(null);
       
-      // Check admin role
+      // Check admin role using direct RPC function
       try {
-        const adminCheck = await adminService.isAdmin();
-        if (adminCheck !== refs.adminStatus) {
-          refs.adminStatus = adminCheck;
-          setIsAdmin(adminCheck);
-        }
+        console.log("Checking admin role directly via RPC at", new Date().toISOString());
+        const adminStatus = await checkAdminRole(session.user.id, refs, false);
+        updateAdminState(adminStatus, refs.adminStatus, refs, setIsAdmin, false);
       } catch (adminError) {
         console.error("Error during admin role check:", adminError);
         refs.lastNetworkErrorTime = now;
       }
       
-      // Check beta tester role - directly using our specialized function
+      // Check beta tester role directly
       try {
-        // Only check beta status occasionally for efficiency
         const betaStatus = await checkBetaTesterRole(session.user.id, refs, false);
         updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, false);
       } catch (betaError) {

@@ -1,4 +1,6 @@
 
+export type UserRole = 'admin' | 'beta_tester' | 'user';
+
 export interface UserRoleState {
   isAdmin: boolean;
   isBetaTester: boolean;
@@ -17,6 +19,7 @@ export interface UserRoleRefs {
   checkingInProgress: boolean;
   lastNetworkErrorTime: number | null;
   lastCheckedTime: number | null;
+  lastForceCheckTime?: number | null; // New field to track force check timing separately
   forceUpdate: number;
   timeout: number | null;
 }

@@ -5,12 +5,14 @@ import { checkBetaTesterRole, updateBetaTesterState } from "./role-check-utils";
 import { useRoleCheckEffect } from "./use-role-check-effect";
 import { UserRoleState, UserRoleRefs } from "./types";
 
-// Cache duration in milliseconds (5 seconds)
-const ROLE_CACHE_DURATION = 5000;
-// Forced check interval in milliseconds (30 seconds)
-const FORCE_CHECK_INTERVAL = 30000;
+// Cache duration in milliseconds (10 seconds - increased from 5)
+const ROLE_CACHE_DURATION = 10000;
+// Forced check interval in milliseconds (60 seconds - increased from 30)
+const FORCE_CHECK_INTERVAL = 60000;
 // Initial check delay after session change
 const INITIAL_CHECK_DELAY = 1000;
+// Minimum time between force checks
+const MIN_FORCE_CHECK_INTERVAL = 5000;
 
 export function useUserRoles() {
   const { session } = useAuth();
@@ -29,6 +31,7 @@ export function useUserRoles() {
     checkingInProgress: false,
     lastNetworkErrorTime: null,
     lastCheckedTime: null,
+    lastForceCheckTime: null,
     forceUpdate: 0,
     timeout: null
   }).current;
@@ -44,32 +47,39 @@ export function useUserRoles() {
     refs
   );
   
-  // Function to force a full role check synchronously
+  // Function to force a full role check synchronously - with rate limiting
   const forceRoleCheck = useCallback(() => {
     if (!session?.user) return;
     
-    // Don't allow forced checks more often than every 2 seconds
+    // Don't allow forced checks more often than minimum interval
     const now = Date.now();
-    if (refs.lastCheckedTime && now - refs.lastCheckedTime < 2000) {
-      console.log("Skipping forced role check, too soon since last check");
+    
+    // New check: Track the last force check time separately
+    if (refs.lastForceCheckTime && now - refs.lastForceCheckTime < MIN_FORCE_CHECK_INTERVAL) {
+      console.log("Skipping forced role check, too soon since last force check");
       return;
     }
     
     refs.forceUpdate++;
     refs.lastCheckedTime = now;
+    refs.lastForceCheckTime = now;
     
     console.log("Forced role check triggered", {
       current: refs.forceUpdate,
       timestamp: new Date().toISOString()
     });
     
-    // Only perform the full check if we have a user session
+    // Only perform the check if we have a user session
     if (session?.user) {
+      // First check admin status
+      checkRoles();
+      
+      // Then check beta tester status
       checkBetaTesterRole(session.user.id, refs, true).then(betaStatus => {
         updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
       });
     }
-  }, [session, refs]);
+  }, [session, refs, checkRoles]);
 
   // Effect for session changes and timer-based role checking
   useEffect(() => {
@@ -84,7 +94,9 @@ export function useUserRoles() {
       refs.rolesInitialized = false;
       refs.lastNetworkErrorTime = null;
       refs.betaTesterStatus = false;
+      refs.adminStatus = false;
       refs.lastCheckedTime = null;
+      refs.lastForceCheckTime = null;
       
       // Clear any existing timeout
       if (refs.timeout) {
@@ -106,17 +118,12 @@ export function useUserRoles() {
       // Perform an initial check when session changes
       checkRoles();
       
-      // CRITICAL: Perform one beta check on session change
-      // This ensures beta status is properly detected on initial load
-      if (!refs.lastCheckedTime || Date.now() - refs.lastCheckedTime > ROLE_CACHE_DURATION) {
-        refs.lastCheckedTime = Date.now();
-        checkBetaTesterRole(session.user.id, refs, true).then(isBeta => {
-          console.log("Initial beta check completed with result:", isBeta);
-          updateBetaTesterState(isBeta, refs.betaTesterStatus, refs, setIsBetaTester, true);
-        });
-      }
+      // Log that we're doing an initial critical role check
+      console.log("Performing initial critical role check after session change", {
+        timestamp: new Date().toISOString()
+      });
       
-      // Set up regular forced checks at a reasonable interval
+      // Set up regular forced checks at a reasonable interval - significantly reduced frequency
       const regularCheckInterval = setInterval(() => {
         if (!refs.checkingInProgress && session?.user?.id) {
           console.log("Performing scheduled role check");
@@ -138,20 +145,23 @@ export function useUserRoles() {
         refs.timeout = null;
       }
     };
-  }, [session, checkRoles, refs]);
+  }, [session, checkRoles, refs, isAdmin, isBetaTester, isUser, isCheckingRoles, roleCheckError]);
   
   // Make these derive directly from state
   const showAdminButton = isAdmin;
   const showBetaBadge = isBetaTester;
 
+  // Debug logging for admin status changes
   useEffect(() => {
-    // Log whenever these critical values change, but only once per change
-    if (refs.betaTesterStatus !== isBetaTester) {
-      console.log("Beta tester state changed in hook:", isBetaTester, {
+    if (refs.adminStatus !== isAdmin) {
+      console.log("Admin status changed in hook:", {
+        from: refs.adminStatus,
+        to: isAdmin,
         timestamp: new Date().toISOString()
       });
+      refs.adminStatus = isAdmin;
     }
-  }, [isBetaTester, refs.betaTesterStatus]);
+  }, [isAdmin, refs]);
 
   return {
     isAdmin,

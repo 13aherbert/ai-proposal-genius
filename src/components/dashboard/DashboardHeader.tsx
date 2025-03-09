@@ -30,27 +30,31 @@ export default function DashboardHeader() {
     forceRoleCheck
   } = useUserRoles();
   
-  const hasLoggedBetaStatus = useRef(false);
+  const hasCheckedRoles = useRef(false);
   
   // Only force a check once on initial render
   useEffect(() => {
-    // Just do one initial check when the component mounts
-    forceRoleCheck();
-    
-    // No need for constant interval checks anymore
+    if (!hasCheckedRoles.current) {
+      // Log that we're doing the initial check
+      console.log("Performing initial role check in DashboardHeader");
+      forceRoleCheck();
+      hasCheckedRoles.current = true;
+    }
   }, [forceRoleCheck]);
   
-  // Only log status changes when they happen
+  // Log role states in development
   useEffect(() => {
-    if (isBetaTester && !hasLoggedBetaStatus.current) {
-      console.log("Beta tester status confirmed in Header", {
-        timestamp: new Date().toISOString(),
+    if (import.meta.env.DEV) {
+      console.log("DashboardHeader role states:", {
+        isAdmin,
         isBetaTester,
-        showBetaBadge
+        showAdminButton,
+        showBetaBadge,
+        isCheckingRoles,
+        timestamp: new Date().toISOString()
       });
-      hasLoggedBetaStatus.current = true;
     }
-  }, [isBetaTester, showBetaBadge]);
+  }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
 
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">

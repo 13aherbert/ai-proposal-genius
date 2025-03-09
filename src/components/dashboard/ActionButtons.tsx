@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Book, Crown, Settings, Users, Beaker } from "lucide-react";
+import { AlertCircle, Book, Crown, Settings, Users, Beaker, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -44,7 +44,7 @@ export function ActionButtons({
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
-      {isCheckingRoles && showAdminButton && (
+      {isCheckingRoles && (
         <Badge variant="outline" className="py-2 px-3">
           Checking roles...
         </Badge>
@@ -56,7 +56,7 @@ export function ActionButtons({
           className="bg-black/20 border-brand-silver hover:bg-black/40"
           onClick={() => navigate('/admin')}
         >
-          <Users className="h-5 w-5 mr-2" />
+          <Shield className="h-5 w-5 mr-2" />
           Admin Dashboard
         </Button>
       )}
@@ -87,11 +87,11 @@ export function ActionButtons({
       
       {import.meta.env.DEV && (
         <Badge variant="outline" className="py-2 px-3 bg-blue-900/20 border-blue-400">
-          Beta Badge: {showBetaBadge ? 'Yes' : 'No'}
+          Admin: {showAdminButton ? 'Yes' : 'No'} | Beta: {showBetaBadge ? 'Yes' : 'No'}
         </Badge>
       )}
       
-      {roleCheckError && !isCheckingRoles && showAdminButton && (
+      {roleCheckError && !isCheckingRoles && (
         <Badge variant="destructive" className="py-2 px-3">
           <AlertCircle className="h-4 w-4 mr-1" />
           {roleCheckError}

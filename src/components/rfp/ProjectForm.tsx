@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ValidatedInput, ValidationRules, FormValidationGroup } from "@/components/form/FormValidation";
+import { debounce } from "lodash";
 
 interface ProjectFormProps {
   projectTitle: string;
@@ -35,30 +36,46 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
   
-  // Memoize the form fields to prevent unnecessary re-renders
-  const formFields = [
+  // Use useMemo instead of recreating the array on every render
+  const formFields = useMemo(() => [
     { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
     { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
     { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
-  ];
+  ], [projectTitle, isTitleValid, clientName, businessName]);
   
-  // Optimized form validation handler - only log when debugging is needed
-  const handleFormValidation = useCallback((isValid: boolean, validFields: string[]) => {
-    // Form validation logic can be expanded here if needed
-    // console.log("Form validation status:", isValid, "Valid fields:", validFields);
-  }, []);
+  // Debounced validation handler to prevent excessive validation calls
+  const handleFormValidation = useCallback(debounce((isValid: boolean, validFields: string[]) => {
+    // Skip unnecessary validation logs
+  }, 250), []);
 
-  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Debounced handlers for text input changes
+  const handleTitleChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
     setProjectTitle(e.target.value);
-  }, [setProjectTitle]);
+  }, 100), [setProjectTitle]);
 
-  const handleClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClientNameChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
     setClientName(e.target.value);
-  }, [setClientName]);
+  }, 100), [setClientName]);
 
-  const handleBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBusinessNameChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
     setBusinessName(e.target.value);
-  }, [setBusinessName]);
+  }, 100), [setBusinessName]);
+
+  // Memoize the actual input change handlers to prevent recreating on each render
+  const onTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.persist();
+    handleTitleChange(e);
+  }, [handleTitleChange]);
+
+  const onClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.persist();
+    handleClientNameChange(e);
+  }, [handleClientNameChange]);
+
+  const onBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.persist();
+    handleBusinessNameChange(e);
+  }, [handleBusinessNameChange]);
 
   return (
     <div className="space-y-6">
@@ -68,11 +85,11 @@ export function ProjectForm({
             id="project-title"
             label="Project Title *"
             value={projectTitle}
-            onChange={handleTitleChange}
+            onChange={onTitleChange}
             placeholder="Enter a descriptive title for your project"
             rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
             onValidation={setIsTitleValid}
-            validateOnChange={true}
+            validateOnChange={false}
             validateOnBlur={true}
             required
           />
@@ -111,7 +128,7 @@ export function ProjectForm({
             id="client-name"
             label="Client Name (Optional)"
             value={clientName}
-            onChange={handleClientNameChange}
+            onChange={onClientNameChange}
             placeholder="Enter the client or organization name"
             rules={[ValidationRules.maxLength(100)]}
             validateOnChange={false}
@@ -122,7 +139,7 @@ export function ProjectForm({
             id="business-name"
             label="Your Business Name (Optional)"
             value={businessName}
-            onChange={handleBusinessNameChange}
+            onChange={onBusinessNameChange}
             placeholder="Enter your business or organization name"
             rules={[ValidationRules.maxLength(100)]}
             validateOnChange={false}

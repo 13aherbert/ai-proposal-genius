@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 interface DeleteUserDialogProps {
   isOpen: boolean;
@@ -26,11 +27,18 @@ export function DeleteUserDialog({
   userName,
   isDeleting
 }: DeleteUserDialogProps) {
+  const [error, setError] = useState<string | null>(null);
+  
   const handleConfirm = async () => {
     try {
+      setError(null);
       await onConfirm();
     } catch (error) {
       console.error("Error in DeleteUserDialog.handleConfirm:", error);
+      setError(error instanceof Error ? error.message : "An unknown error occurred");
+      toast.error("Failed to delete user", {
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
     }
   };
 
@@ -56,6 +64,12 @@ export function DeleteUserDialog({
             <li>Authentication data</li>
           </ul>
         </div>
+        
+        {error && (
+          <div className="mt-2 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+            {error}
+          </div>
+        )}
         
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isDeleting}>

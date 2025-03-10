@@ -30,13 +30,40 @@ serve(async (req) => {
     let body;
     try {
       // If we have raw body content, parse it
-      if (rawBody) {
-        body = JSON.parse(rawBody);
+      if (rawBody && rawBody.trim()) {
+        try {
+          body = JSON.parse(rawBody);
+          console.log("Successfully parsed JSON body:", body);
+        } catch (jsonError) {
+          console.log("Raw body isn't valid JSON, using as-is");
+          // Try to extract userId from raw string if it contains it
+          if (rawBody.includes('userId')) {
+            const match = rawBody.match(/"userId"\s*:\s*"([^"]+)"/);
+            if (match && match[1]) {
+              body = { userId: match[1] };
+              console.log("Extracted userId from raw body:", body);
+            }
+          }
+        }
       } else {
-        // Try the original req.json() as fallback
-        body = await req.json();
+        // Try to get from URL search params if body is empty
+        const url = new URL(req.url);
+        const userId = url.searchParams.get('userId');
+        if (userId) {
+          body = { userId };
+          console.log("Retrieved userId from URL params:", body);
+        } else {
+          console.log("No body content and no URL params, trying original req.json()");
+          // Try the original req.json() as fallback
+          try {
+            body = await req.json();
+            console.log("Successfully parsed body via req.json():", body);
+          } catch (jsonError) {
+            console.error("Failed to parse body via req.json():", jsonError);
+            throw new Error("No valid userId found in request");
+          }
+        }
       }
-      console.log("Parsed body:", body);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return new Response(

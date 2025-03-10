@@ -26,6 +26,14 @@ export function useProjects(user: User | null) {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
+  
+  // Get the current project limit from useSubscriptionFeatures whenever this hook is used
+  useEffect(() => {
+    const limit = getProjectLimit();
+    console.log("useProjects: Current project limit from useSubscriptionFeatures:", limit);
+    setCachedProjectLimit(limit);
+  }, [getProjectLimit]);
   
   useEffect(() => {
     if (user?.id) {
@@ -224,8 +232,9 @@ export function useProjects(user: User | null) {
     }
   };
 
-  // Get the current project limit from useSubscriptionFeatures - this will ensure we have the latest
-  const projectLimit = getProjectLimit();
+  // Always get fresh project limit from subscription features
+  // This ensures we have the latest limit even if subscription data changes
+  const projectLimit = cachedProjectLimit || getProjectLimit();
   const projectCount = totalCount;
   const canCreateProject = projectCount < projectLimit;
 

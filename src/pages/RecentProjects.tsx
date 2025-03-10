@@ -18,6 +18,7 @@ export default function RecentProjects() {
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
   const { checkSubscription, data: subscriptionData } = useSubscription();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   useEffect(() => {
     if (!loading) {
@@ -25,13 +26,14 @@ export default function RecentProjects() {
     }
   }, [loading]);
   
-  // Ensure subscription data is fresh
+  // Ensure subscription data is fresh on component mount
   useEffect(() => {
-    if (session?.user) {
-      console.log("RecentProjects: Checking subscription data");
+    if (session?.user && !initialLoadComplete) {
+      console.log("RecentProjects: Initial mount, checking subscription data");
       checkSubscription(true); // Force a refresh to ensure we have the latest data
+      setInitialLoadComplete(true);
     }
-  }, [session, checkSubscription]);
+  }, [session, checkSubscription, initialLoadComplete]);
   
   const { 
     projects, 
@@ -53,7 +55,8 @@ export default function RecentProjects() {
   const correctProjectLimit = getProjectLimit();
   
   useEffect(() => {
-    if (plan) {
+    // Only run this effect when data is available
+    if (plan && subscriptionData && !isLoading) {
       console.log(`Current plan: ${plan} with project limit: ${correctProjectLimit}`);
       console.log(`Subscription data from context:`, subscriptionData);
       
@@ -61,14 +64,25 @@ export default function RecentProjects() {
         console.log(`Stored project limit in subscription: ${subscriptionData.project_limit}`);
       }
       
+      // Check for project limit mismatch and handle it
       if (projectLimit !== correctProjectLimit) {
         console.log(`Project limit mismatch: ${projectLimit} vs ${correctProjectLimit}`);
-        toast.info("Refreshing subscription data to update project limits");
-        checkSubscription(true);
-        setTimeout(() => refetch(), 1000); // Refetch projects after subscription refresh
+        
+        // If we're on a starter plan but seeing a trial limit, force a refresh
+        if (plan === 'starter' && projectLimit === 3) {
+          console.log('Starter plan has wrong limit (3), forcing subscription refresh');
+          toast.info("Refreshing subscription data to update project limits");
+          checkSubscription(true);
+          
+          // Allow time for subscription update to complete before refetching projects
+          setTimeout(() => {
+            console.log('Refetching projects after subscription refresh');
+            refetch();
+          }, 1500);
+        }
       }
     }
-  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch, subscriptionData]);
+  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch, subscriptionData, isLoading]);
 
   useEffect(() => {
     pagination.setCurrentPage(1);
@@ -82,6 +96,7 @@ export default function RecentProjects() {
     }
   };
   
+  // Show loading state while we're waiting for authentication to complete
   if (loading) {
     return (
       <div className="container py-10 space-y-8">
@@ -95,6 +110,7 @@ export default function RecentProjects() {
     );
   }
   
+  // Show auth required message if not authenticated
   if (!session?.user) {
     return (
       <div className="container py-10 space-y-8">

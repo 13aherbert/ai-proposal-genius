@@ -64,6 +64,54 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setLoading(true);
       setError(null); // Clear any previous errors
 
+      // First attempt to use the edge function with fresh data
+      try {
+        console.log("Calling check-subscription edge function for fresh data");
+        const { data: edgeFunctionResult, error: edgeFunctionError } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        });
+        
+        if (edgeFunctionError) {
+          console.error("Edge function error:", edgeFunctionError);
+          throw edgeFunctionError;
+        }
+        
+        if (edgeFunctionResult?.subscription) {
+          console.log("Edge function returned subscription data:", edgeFunctionResult.subscription);
+          
+          // Process the subscription data
+          const normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
+          
+          // Ensure correct project limit for the plan
+          let projectLimit = edgeFunctionResult.subscription.project_limit || getProjectLimitForPlan(normalizedPlanType);
+          
+          // For starter plans, ensure the project limit is set to 10
+          if (normalizedPlanType === 'starter' && projectLimit !== 10) {
+            console.log(`Correcting starter plan project limit from ${projectLimit} to 10`);
+            projectLimit = 10;
+          }
+          
+          const validatedData: SubscriptionPlan = {
+            ...edgeFunctionResult.subscription,
+            plan_type: normalizedPlanType,
+            project_limit: projectLimit
+          };
+          
+          setSubscription(validatedData);
+          setInitialFetchCompleted(true);
+          setLoading(false);
+          setSubscriptionChecked(true);
+          return;
+        }
+        
+        console.log("Edge function did not return subscription data, falling back to direct query");
+      } catch (edgeError) {
+        console.error("Error with edge function approach:", edgeError);
+        console.log("Falling back to direct database query");
+      }
+
       // Query subscriptions table directly with no-cache headers
       const { data: directData, error: directError } = await supabase
         .from('subscriptions')
@@ -129,7 +177,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           // Update the database with the correct limit
           const { data: updateData, error: updateError } = await supabase
             .from('subscriptions')
-            .update({ project_limit: 10 })
+            .update({ 
+              project_limit: 10,
+              plan_type: 'starter' // Ensure plan_type is lowercase 'starter'
+            })
             .eq('subscription_id', directData.subscription_id);
             
           if (updateError) {
@@ -215,7 +266,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
-      checkSubscription();
+      checkSubscription(true); // Always force recheck on initial mount
     } else if (!session?.user) {
       console.log("No session available, subscription data cleared");
       setSubscription(null);

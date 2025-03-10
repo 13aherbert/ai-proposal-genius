@@ -3,11 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// Update the interface to include the new props
 interface ProjectsHeaderProps {
   canCreateProject?: boolean;
+  currentPlanLimit?: number;
+  projectCount?: number;
 }
 
-export function ProjectsHeader({ canCreateProject = true }: ProjectsHeaderProps) {
+export function ProjectsHeader({ 
+  canCreateProject = true,
+  currentPlanLimit,
+  projectCount 
+}: ProjectsHeaderProps) {
   const navigate = useNavigate();
   
   return (
@@ -21,6 +28,13 @@ export function ProjectsHeader({ canCreateProject = true }: ProjectsHeaderProps)
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-3xl font-bold text-white">Projects</h1>
+        
+        {/* Display project count and limit when available */}
+        {currentPlanLimit && typeof projectCount === 'number' && (
+          <div className="ml-2 text-sm text-muted-foreground">
+            {projectCount} of {currentPlanLimit} projects
+          </div>
+        )}
       </div>
       <Button 
         onClick={() => navigate("/upload-rfp")}

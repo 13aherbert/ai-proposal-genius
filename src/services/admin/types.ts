@@ -30,7 +30,7 @@ export type BetaInvitation = {
   email: string;
   invite_code: string;
   invited_by: string;
-  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  status: 'pending' | 'accepted' | 'expired' | 'canceled';
   created_at: string;
   accepted_at: string | null;
   expires_at: string;

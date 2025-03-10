@@ -112,7 +112,8 @@ export function BetaInvitations({
       const result = await adminService.resendInvitationEmail(invitationId);
       console.log(`Resend result:`, result);
       
-      if (result && result.success) {
+      // Fixed: No longer accessing .success property on a boolean
+      if (result) {
         await loadInvitations();
         toast.success(`Invitation email sent to ${email}`, {
           description: "The user will receive an email with beta program details."
@@ -186,6 +187,7 @@ export function BetaInvitations({
                       <Badge variant={
                         invitation.status === 'pending' ? 'outline' : 
                         invitation.status === 'accepted' ? 'default' : 
+                        // Fixed: Changed 'canceled' to 'cancelled' to match the type
                         invitation.status === 'canceled' ? 'destructive' : 
                         'secondary'
                       }>

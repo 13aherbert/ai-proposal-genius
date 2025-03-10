@@ -104,10 +104,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           subscription_id: directData.subscription_id,
           user_id: directData.user_id,
           status: validatedStatus,
-          plan_type: directData.plan_type,
+          plan_type: directData.plan_type || 'trial',
           current_period_end: directData.current_period_end,
           created_at: directData.created_at,
-          updated_at: directData.updated_at,
+          updated_at: directData.updated_at || directData.created_at,
           project_limit: directData.project_limit || 3,
           features: parsedFeatures,
           stripe_customer_id: directData.stripe_customer_id,
@@ -115,6 +115,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           cancel_at_period_end: directData.cancel_at_period_end || false
         };
         
+        console.log("Processed subscription data:", validatedData);
         setSubscription(validatedData);
         setInitialFetchCompleted(true);
       } else {

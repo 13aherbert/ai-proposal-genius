@@ -13,7 +13,7 @@ interface ProjectSidebarProps {
 }
 
 export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSidebarProps) {
-  const { hasFeature, plan, isLoading } = useSubscriptionFeatures();
+  const { hasFeature, plan, isLoading, enableTestMode, isTestMode } = useSubscriptionFeatures();
   const { subscription, loading: subscriptionLoading } = useSubscription();
 
   const sections = [
@@ -62,6 +62,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     console.log("ProjectSidebar - Subscription Status:", subscription?.status);
     console.log("ProjectSidebar - isLoading (features):", isLoading);
     console.log("ProjectSidebar - isLoading (subscription):", subscriptionLoading);
+    console.log("ProjectSidebar - Test Mode:", isTestMode);
     
     const featureAvailability = {} as Record<FeatureName, boolean>;
     sections.forEach(section => {
@@ -71,7 +72,21 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     });
     console.log("Feature availability:", featureAvailability);
     
-  }, [plan, isLoading, subscriptionLoading, subscription]);
+  }, [plan, isLoading, subscriptionLoading, subscription, hasFeature, isTestMode]);
+
+  // Double-click handler for development mode to toggle test mode
+  const handleDevModeToggle = () => {
+    if (process.env.NODE_ENV === 'development') {
+      if (isTestMode) {
+        // If already in test mode, disable it
+        toast.info("Test mode disabled");
+      } else {
+        // Enable test mode with trial plan
+        enableTestMode('trial');
+        toast.info("Test mode enabled with trial plan");
+      }
+    }
+  };
 
   const handleSectionChange = (sectionId: string, feature: FeatureName | null) => {
     if (!feature || hasFeature(feature)) {
@@ -109,7 +124,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
         // Don't check feature availability while loading to prevent flickering
         const isFeatureAvailable = 
           !section.feature || 
-          (isLoading ? false : hasFeature(section.feature));
+          (isLoading ? true : hasFeature(section.feature));
         
         return (
           <Button
@@ -128,12 +143,17 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
         );
       })}
       
-      {/* Subscription status indicator for debugging */}
+      {/* Subscription status indicator and development tools */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+        <div 
+          className="mt-4 pt-4 border-t text-xs text-muted-foreground cursor-pointer" 
+          onDoubleClick={handleDevModeToggle}
+        >
           <p>Plan: {plan || 'Loading...'}</p>
           <p>Status: {subscription?.status || 'Loading...'}</p>
           <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+          <p>Test Mode: {isTestMode ? 'Enabled' : 'Disabled'}</p>
+          <p className="mt-1 text-xs italic">Double-click to toggle test mode</p>
         </div>
       )}
     </div>

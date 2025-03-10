@@ -34,6 +34,12 @@ export function useSubscriptionFeatures() {
     console.log("useSubscriptionFeatures - Loading:", isLoading);
     console.log("useSubscriptionFeatures - Error:", error);
     console.log("useSubscriptionFeatures - Test mode:", isTestMode);
+    console.log("useSubscriptionFeatures - Plan type:", subscription?.plan_type);
+    
+    // Debug features
+    if (subscription?.features) {
+      console.log("useSubscriptionFeatures - Features:", subscription.features);
+    }
   }, [subscription, isLoading, error, testMode]);
 
   // Clear feature cache when subscription changes
@@ -96,6 +102,12 @@ export function useSubscriptionFeatures() {
     // Trial tier now has access to RFP summary, proposal outline, and proposal draft
     else if (currentPlan === 'trial') {
       hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
+    }
+    
+    // For development testing, enable all features
+    if (process.env.NODE_ENV === 'development') {
+      // Uncomment next line to enable all features in development
+      // hasAccess = true;
     }
     
     console.log(`Feature access for ${feature} on plan ${currentPlan}: ${hasAccess}`);
@@ -167,6 +179,26 @@ export function useSubscriptionFeatures() {
     }
   }, [subscription, testMode]);
 
+  // Add helper to simulate a trial plan for testing
+  const enableTestMode = useCallback((planType: 'trial' | 'starter' | 'pro' = 'trial') => {
+    localStorage.setItem('test_mode', 'true');
+    localStorage.setItem('test_plan', planType);
+    setTestMode(true);
+    featureCache.clear();
+    projectLimitCache.clear();
+    console.log(`Test mode enabled with plan: ${planType}`);
+  }, []);
+
+  // Disable test mode
+  const disableTestMode = useCallback(() => {
+    localStorage.removeItem('test_mode');
+    localStorage.removeItem('test_plan');
+    setTestMode(false);
+    featureCache.clear();
+    projectLimitCache.clear();
+    console.log('Test mode disabled');
+  }, []);
+
   return {
     hasFeature,
     getProjectLimit,
@@ -174,6 +206,8 @@ export function useSubscriptionFeatures() {
     isLoading: testMode ? false : isLoading,
     error: testMode ? null : error,
     plan: testMode ? (localStorage.getItem('test_plan') as string || 'trial') : subscription?.plan_type,
-    isTestMode: testMode
+    isTestMode: testMode,
+    enableTestMode,
+    disableTestMode
   };
 }

@@ -19,6 +19,7 @@ import {
   renewSubscription as renewUserSubscription 
 } from './subscription/use-subscription-actions';
 import { toast } from 'sonner';
+import { getProjectLimitForPlan } from './subscription/feature-access';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -101,16 +102,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           }
         }
         
+        // Normalize plan type to lowercase for consistent comparison
+        const normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
+        
         // Create validated subscription data with correct types
         const validatedData: SubscriptionPlan = {
           subscription_id: directData.subscription_id,
           user_id: directData.user_id,
           status: validatedStatus,
-          plan_type: directData.plan_type || 'trial',
+          plan_type: normalizedPlanType,
           current_period_end: directData.current_period_end,
           created_at: directData.created_at,
           updated_at: directData.updated_at || directData.created_at,
-          project_limit: directData.project_limit || 3,
+          project_limit: directData.project_limit || getProjectLimitForPlan(normalizedPlanType),
           features: parsedFeatures,
           stripe_customer_id: directData.stripe_customer_id,
           stripe_subscription_id: directData.stripe_subscription_id,
@@ -118,9 +122,21 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         };
         
         // For starter plans, ensure the project limit is set to 10
-        if (validatedData.plan_type === 'starter' && validatedData.project_limit !== 10) {
+        if (normalizedPlanType === 'starter' && validatedData.project_limit !== 10) {
           console.log(`Correcting starter plan project limit locally from ${validatedData.project_limit} to 10`);
           validatedData.project_limit = 10;
+          
+          // Update the database with the correct limit
+          const { data: updateData, error: updateError } = await supabase
+            .from('subscriptions')
+            .update({ project_limit: 10 })
+            .eq('subscription_id', directData.subscription_id);
+            
+          if (updateError) {
+            console.error("Error updating project limit in database:", updateError);
+          } else {
+            console.log("Successfully updated project limit in database to 10");
+          }
         }
         
         console.log("Processed subscription data:", validatedData);
@@ -251,7 +267,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         loading,
         isLoading: loading,
         error,
-        checkSubscription: () => checkSubscription(true),
+        checkSubscription: (forceRecheck = true) => checkSubscription(forceRecheck),
         renewSubscription,
         isPastGracePeriod: checkIsPastGracePeriod,
         isInGracePeriod: checkIsInGracePeriod,

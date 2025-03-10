@@ -11,6 +11,7 @@ import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
+import { toast } from "sonner";
 
 export default function RecentProjects() {
   const { session, loading } = useAuth();
@@ -28,7 +29,7 @@ export default function RecentProjects() {
   useEffect(() => {
     if (session?.user) {
       console.log("RecentProjects: Checking subscription data");
-      checkSubscription();
+      checkSubscription(true); // Force a refresh to ensure we have the latest data
     }
   }, [session, checkSubscription]);
   
@@ -56,9 +57,12 @@ export default function RecentProjects() {
       console.log(`Current plan: ${plan} with project limit: ${correctProjectLimit}`);
       if (projectLimit !== correctProjectLimit) {
         console.log(`Project limit mismatch: ${projectLimit} vs ${correctProjectLimit}`);
+        toast.info("Refreshing subscription data to update project limits");
+        checkSubscription(true);
+        setTimeout(() => refetch(), 1000); // Refetch projects after subscription refresh
       }
     }
-  }, [plan, projectLimit, correctProjectLimit]);
+  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch]);
 
   useEffect(() => {
     pagination.setCurrentPage(1);

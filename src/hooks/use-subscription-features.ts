@@ -11,7 +11,8 @@ import {
   projectLimitCache, 
   determineFeatureAccess, 
   getFeatureName, 
-  clearFeatureCaches 
+  clearFeatureCaches,
+  getProjectLimitForPlan
 } from "./subscription/feature-access";
 import {
   isTestModeEnabled,
@@ -54,7 +55,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       if (normalizedPlanType === 'starter' && subscription.project_limit !== 10) {
         console.log("Detected incorrect project limit for starter plan. Refreshing subscription data.");
         // Force a subscription check to correct the data
-        checkSubscription();
+        checkSubscription(true);
       }
     }
     
@@ -134,7 +135,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     if (testMode) {
       limit = getTestProjectLimit();
     } else {
-      // Normalize the plan type to lowercase for consistent comparison
+      // Get plan type and ensure it's normalized to lowercase
       const currentPlan = subscription?.plan_type?.toLowerCase() || 'trial';
       
       // Use cached value if available
@@ -146,23 +147,24 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // Check if subscription has a specific project_limit value
       if (subscription?.project_limit) {
         console.log(`Using project limit from subscription: ${subscription.project_limit}`);
+        
         // For starter plans, ensure the limit is 10
         if (currentPlan === 'starter') {
           limit = 10;
           if (subscription.project_limit !== 10) {
             console.log('Overriding stored starter plan project limit to correct value of 10');
             // Trigger a subscription refresh to fix the database value
-            checkSubscription();
+            checkSubscription(true);
           }
         } else {
           limit = subscription.project_limit;
         }
       } else {
-        // Use the constants defined in types
-        limit = SUBSCRIPTION_PLAN_LIMITS[currentPlan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || SUBSCRIPTION_PLAN_LIMITS.trial;
+        // Use the function to get the correct limit for the plan
+        limit = getProjectLimitForPlan(currentPlan);
         
         // Log for debugging
-        console.log(`Using plan limit from constants: ${currentPlan} -> ${limit}`);
+        console.log(`Using plan limit for ${currentPlan}: ${limit}`);
       }
       
       // Cache the result

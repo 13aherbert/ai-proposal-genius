@@ -57,6 +57,22 @@ export function getFeatureName(feature: FeatureName, currentPlan: string): strin
 }
 
 /**
+ * Gets the correct project limit for a plan type
+ */
+export function getProjectLimitForPlan(planType: string): number {
+  // Normalize the plan type to lowercase for consistent comparison
+  const normalizedPlan = planType.toLowerCase();
+  
+  if (normalizedPlan === 'pro') {
+    return 30;
+  } else if (normalizedPlan === 'starter') {
+    return 10;
+  } else {
+    return 3; // Trial or unknown plan
+  }
+}
+
+/**
  * Clears all feature caches
  */
 export function clearFeatureCaches(): void {

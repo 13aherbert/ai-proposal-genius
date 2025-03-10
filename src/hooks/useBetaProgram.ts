@@ -66,6 +66,7 @@ export function useBetaProgram() {
         console.log('Checking beta status for user:', session.user.id);
         // First check if the user is already a beta tester
         const isBeta = await adminService.checkUserRole('beta_tester');
+        console.log('Beta role check result:', isBeta);
         setIsBetaTester(isBeta);
         
         if (isBeta) {
@@ -85,7 +86,11 @@ export function useBetaProgram() {
             
             if (success) {
               console.log(`Invitation accepted successfully`);
-              setIsBetaTester(true);
+              
+              // Force a refresh of the beta tester status
+              const betaStatus = await adminService.checkUserRole('beta_tester');
+              console.log('Beta status after acceptance:', betaStatus);
+              setIsBetaTester(betaStatus);
               
               // Check onboarding status after role is assigned
               const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);

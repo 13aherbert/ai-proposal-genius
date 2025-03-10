@@ -123,6 +123,37 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
     }
 
     console.log(`Beta tester role assigned successfully`);
+    
+    // Force a role check to update the user's roles in the application state
+    try {
+      // Make a direct call to check if the role was actually assigned
+      const { data: roleCheckData, error: roleCheckError } = await supabase.rpc(
+        'check_beta_tester_role',
+        { user_id_param: userData.user.id }
+      );
+      
+      console.log('Role check result:', roleCheckData, roleCheckError);
+      
+      if (!roleCheckData && !roleCheckError) {
+        // If role check says role wasn't assigned, try one more time
+        console.log('Role not detected after assignment, trying again...');
+        
+        const { data: retryData, error: retryError } = await supabase.rpc(
+          'assign_user_role',
+          {
+            _user_id: userData.user.id,
+            _role: 'beta_tester',
+            _created_by: invitation.invited_by || userData.user.id
+          }
+        );
+        
+        console.log('Retry assignment result:', retryData, retryError);
+      }
+    } catch (roleCheckError) {
+      console.error('Error checking role assignment:', roleCheckError);
+      // Don't fail the operation, just log the error
+    }
+    
     toast.success("You have joined the beta program!");
     return true;
   } catch (error) {

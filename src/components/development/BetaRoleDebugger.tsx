@@ -13,11 +13,17 @@ export function BetaRoleDebugger() {
   const [userId, setUserId] = useState<string | null>(null);
   const [directQueryResult, setDirectQueryResult] = useState<any>(null);
   const [serviceResult, setServiceResult] = useState<boolean | null>(null);
+  const [invitationResult, setInvitationResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [emailForInvitation, setEmailForInvitation] = useState<string>("");
 
   useEffect(() => {
     if (session?.user) {
       setUserId(session.user.id);
+      // Try to get the user's email from session
+      if (session.user.email) {
+        setEmailForInvitation(session.user.email);
+      }
     } else {
       setUserId(null);
     }
@@ -30,7 +36,7 @@ export function BetaRoleDebugger() {
     setError(null);
     
     try {
-      // Use our new dedicated beta tester role check function
+      // Use our dedicated beta tester role check function
       const { data, error } = await supabase.rpc('check_beta_tester_role', {
         user_id_param: userId
       });
@@ -86,6 +92,41 @@ export function BetaRoleDebugger() {
     }
   };
 
+  const checkPendingInvitation = async () => {
+    if (!emailForInvitation) {
+      setError("Please enter an email address");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("get-pending-invitation", {
+        body: { email: emailForInvitation }
+      });
+      
+      if (error) throw error;
+      
+      setInvitationResult(data);
+      console.log("Pending invitation result:", data);
+    } catch (err) {
+      console.error("Invitation check error:", err);
+      // Properly format the error message
+      if (typeof err === 'object' && err !== null) {
+        if ('message' in err) {
+          setError((err as Error).message);
+        } else {
+          setError(JSON.stringify(err, null, 2));
+        }
+      } else {
+        setError(String(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="w-full max-w-3xl mx-auto mt-8">
       <CardHeader>
@@ -108,6 +149,22 @@ export function BetaRoleDebugger() {
           </Button>
         </div>
 
+        <div className="border-t pt-4 mt-4">
+          <div className="font-medium mb-2">Check Pending Invitation:</div>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={emailForInvitation}
+              onChange={(e) => setEmailForInvitation(e.target.value)}
+              placeholder="Email address"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <Button onClick={checkPendingInvitation} disabled={loading || !emailForInvitation}>
+              Check
+            </Button>
+          </div>
+        </div>
+        
         {loading && <div className="text-center">Loading...</div>}
         
         {error && (
@@ -146,6 +203,24 @@ export function BetaRoleDebugger() {
                   <Badge variant="destructive">No</Badge>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+        
+        {invitationResult !== null && (
+          <div className="space-y-2">
+            <div className="font-medium">Pending Invitation Results:</div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+              <div className="mb-2">
+                Found: {Array.isArray(invitationResult) && invitationResult.length > 0 ? (
+                  <Badge variant="default" className="bg-green-500">Yes</Badge>
+                ) : (
+                  <Badge variant="destructive">No</Badge>
+                )}
+              </div>
+              <pre className="text-xs overflow-auto">
+                {JSON.stringify(invitationResult, null, 2)}
+              </pre>
             </div>
           </div>
         )}

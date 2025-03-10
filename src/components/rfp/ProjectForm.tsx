@@ -36,46 +36,30 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
   
-  // Use useMemo instead of recreating the array on every render
+  // Use useMemo to avoid recreating the array on every render
   const formFields = useMemo(() => [
     { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
     { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
     { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
   ], [projectTitle, isTitleValid, clientName, businessName]);
   
-  // Debounced validation handler to prevent excessive validation calls
+  // Use a memoized handler for form validation with minimal debounce
   const handleFormValidation = useCallback(debounce((isValid: boolean, validFields: string[]) => {
-    // Skip unnecessary validation logs
-  }, 250), []);
+    // No need to do anything with validation results here
+  }, 100), []);
 
-  // Debounced handlers for text input changes
-  const handleTitleChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Direct handlers for immediate UI responsiveness
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setProjectTitle(e.target.value);
-  }, 100), [setProjectTitle]);
+  }, [setProjectTitle]);
 
-  const handleClientNameChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setClientName(e.target.value);
-  }, 100), [setClientName]);
+  }, [setClientName]);
 
-  const handleBusinessNameChange = useCallback(debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setBusinessName(e.target.value);
-  }, 100), [setBusinessName]);
-
-  // Memoize the actual input change handlers to prevent recreating on each render
-  const onTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.persist();
-    handleTitleChange(e);
-  }, [handleTitleChange]);
-
-  const onClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.persist();
-    handleClientNameChange(e);
-  }, [handleClientNameChange]);
-
-  const onBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.persist();
-    handleBusinessNameChange(e);
-  }, [handleBusinessNameChange]);
+  }, [setBusinessName]);
 
   return (
     <div className="space-y-6">
@@ -85,7 +69,7 @@ export function ProjectForm({
             id="project-title"
             label="Project Title *"
             value={projectTitle}
-            onChange={onTitleChange}
+            onChange={handleTitleChange}
             placeholder="Enter a descriptive title for your project"
             rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
             onValidation={setIsTitleValid}
@@ -128,7 +112,7 @@ export function ProjectForm({
             id="client-name"
             label="Client Name (Optional)"
             value={clientName}
-            onChange={onClientNameChange}
+            onChange={handleClientNameChange}
             placeholder="Enter the client or organization name"
             rules={[ValidationRules.maxLength(100)]}
             validateOnChange={false}
@@ -139,7 +123,7 @@ export function ProjectForm({
             id="business-name"
             label="Your Business Name (Optional)"
             value={businessName}
-            onChange={onBusinessNameChange}
+            onChange={handleBusinessNameChange}
             placeholder="Enter your business or organization name"
             rules={[ValidationRules.maxLength(100)]}
             validateOnChange={false}

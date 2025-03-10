@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -24,13 +23,10 @@ export function useRFPUpload() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
-  // Debounced project title update
-  const debouncedSetProjectTitle = useCallback(
-    debounce((title: string) => {
-      setProjectTitle(title);
-    }, 300),
-    []
-  );
+  // Use direct state updates for better responsiveness
+  const handleSetProjectTitle = useCallback((title: string) => {
+    setProjectTitle(title);
+  }, []);
 
   const validateFile = (file: File): boolean => {
     // Check file type
@@ -297,7 +293,7 @@ export function useRFPUpload() {
     isUploading,
     projectId,
     projectTitle,
-    setProjectTitle: debouncedSetProjectTitle,
+    setProjectTitle: handleSetProjectTitle,
     handleFileUpload,
     updateProject,
   };

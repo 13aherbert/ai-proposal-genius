@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -28,7 +27,6 @@ export function useProjects(user: User | null) {
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
-  // Get the current project limit from useSubscriptionFeatures whenever this hook is used
   useEffect(() => {
     const limit = getProjectLimit();
     console.log("useProjects: Current project limit from useSubscriptionFeatures:", limit);
@@ -115,7 +113,7 @@ export function useProjects(user: User | null) {
     queryKey: ["projects", user?.id, currentPage, pageSize],
     queryFn: async () => {
       if (!user?.id) {
-        console.warn("Query execution prevented: No user ID available");
+        console.log("Query execution prevented: No user ID available");
         return [];
       }
       
@@ -232,8 +230,11 @@ export function useProjects(user: User | null) {
     }
   };
 
-  // Always get fresh project limit from subscription features
-  // This ensures we have the latest limit even if subscription data changes
+  const updateProjectLimit = useCallback((newLimit: number) => {
+    console.log(`Updating project limit to ${newLimit}`);
+    setCachedProjectLimit(newLimit);
+  }, []);
+
   const projectLimit = cachedProjectLimit || getProjectLimit();
   const projectCount = totalCount;
   const canCreateProject = projectCount < projectLimit;
@@ -252,6 +253,7 @@ export function useProjects(user: User | null) {
     projectLimit,
     projectCount,
     canCreateProject,
+    updateProjectLimit,
     pagination: {
       currentPage,
       pageSize,

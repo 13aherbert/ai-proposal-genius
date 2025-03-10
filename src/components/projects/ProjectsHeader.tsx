@@ -8,12 +8,14 @@ interface ProjectsHeaderProps {
   canCreateProject?: boolean;
   currentPlanLimit?: number;
   projectCount?: number;
+  isSubscriptionLoading?: boolean;
 }
 
 export function ProjectsHeader({ 
   canCreateProject = true,
   currentPlanLimit,
-  projectCount 
+  projectCount,
+  isSubscriptionLoading = false
 }: ProjectsHeaderProps) {
   const navigate = useNavigate();
   
@@ -30,9 +32,15 @@ export function ProjectsHeader({
         <h1 className="text-3xl font-bold text-white">Projects</h1>
         
         {/* Display project count and limit when available */}
-        {currentPlanLimit && typeof projectCount === 'number' && (
+        {currentPlanLimit && typeof projectCount === 'number' && !isSubscriptionLoading && (
           <div className="ml-2 text-sm text-muted-foreground">
             {projectCount} of {currentPlanLimit} projects
+          </div>
+        )}
+        
+        {isSubscriptionLoading && (
+          <div className="ml-2 text-sm text-muted-foreground">
+            Loading project limits...
           </div>
         )}
       </div>

@@ -224,6 +224,7 @@ export function useProjects(user: User | null) {
     }
   };
 
+  // Get the current project limit from useSubscriptionFeatures - this will ensure we have the latest
   const projectLimit = getProjectLimit();
   const projectCount = totalCount;
   const canCreateProject = projectCount < projectLimit;

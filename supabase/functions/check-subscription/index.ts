@@ -177,7 +177,7 @@ serve(async (req) => {
         error: error.message,
         debug: {
           timestamp: new Date().toISOString(),
-          version: '1.4' // Incremented version for tracking
+          version: '1.5' // Incremented version for tracking
         }
       }),
       { 

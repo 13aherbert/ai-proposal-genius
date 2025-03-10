@@ -17,7 +17,7 @@ export default function RecentProjects() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
-  const { checkSubscription } = useSubscription();
+  const { checkSubscription, data: subscriptionData } = useSubscription();
   
   useEffect(() => {
     if (!loading) {
@@ -55,6 +55,12 @@ export default function RecentProjects() {
   useEffect(() => {
     if (plan) {
       console.log(`Current plan: ${plan} with project limit: ${correctProjectLimit}`);
+      console.log(`Subscription data from context:`, subscriptionData);
+      
+      if (subscriptionData) {
+        console.log(`Stored project limit in subscription: ${subscriptionData.project_limit}`);
+      }
+      
       if (projectLimit !== correctProjectLimit) {
         console.log(`Project limit mismatch: ${projectLimit} vs ${correctProjectLimit}`);
         toast.info("Refreshing subscription data to update project limits");
@@ -62,7 +68,7 @@ export default function RecentProjects() {
         setTimeout(() => refetch(), 1000); // Refetch projects after subscription refresh
       }
     }
-  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch]);
+  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch, subscriptionData]);
 
   useEffect(() => {
     pagination.setCurrentPage(1);

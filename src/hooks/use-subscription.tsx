@@ -79,10 +79,42 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("Found subscription data:", directData);
         // Ensure the status is a valid SubscriptionStatus
         const validatedStatus = validateSubscriptionStatus(directData.status);
+        
+        // Convert JSON features to Record<string, any>
+        let parsedFeatures: Record<string, any> = {};
+        if (directData.features) {
+          try {
+            // If features is a string, parse it to an object
+            if (typeof directData.features === 'string') {
+              parsedFeatures = JSON.parse(directData.features);
+            } 
+            // If features is already an object, use it directly
+            else if (typeof directData.features === 'object') {
+              parsedFeatures = directData.features as Record<string, any>;
+            }
+          } catch (e) {
+            console.error("Error parsing features:", e);
+            // Use empty object as fallback
+            parsedFeatures = {};
+          }
+        }
+        
+        // Create validated subscription data with correct types
         const validatedData: SubscriptionPlan = {
-          ...directData,
-          status: validatedStatus
+          subscription_id: directData.subscription_id,
+          user_id: directData.user_id,
+          status: validatedStatus,
+          plan_type: directData.plan_type,
+          current_period_end: directData.current_period_end,
+          created_at: directData.created_at,
+          updated_at: directData.updated_at,
+          project_limit: directData.project_limit || 3,
+          features: parsedFeatures,
+          stripe_customer_id: directData.stripe_customer_id,
+          stripe_subscription_id: directData.stripe_subscription_id,
+          cancel_at_period_end: directData.cancel_at_period_end || false
         };
+        
         setSubscription(validatedData);
         setInitialFetchCompleted(true);
       } else {

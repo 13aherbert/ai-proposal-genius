@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
+import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -13,6 +14,7 @@ interface ProjectSidebarProps {
 
 export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSidebarProps) {
   const { hasFeature, plan, isLoading } = useSubscriptionFeatures();
+  const { subscription, loading: subscriptionLoading } = useSubscription();
 
   const sections = [
     {
@@ -53,22 +55,34 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     },
   ] as const;
 
-  // Debug information once when component loads
+  // Enhanced debug information
   useEffect(() => {
     console.log("ProjectSidebar - Subscription Plan:", plan);
-    console.log("ProjectSidebar - isLoading:", isLoading);
+    console.log("ProjectSidebar - Plan from subscription object:", subscription?.plan_type);
+    console.log("ProjectSidebar - Subscription Status:", subscription?.status);
+    console.log("ProjectSidebar - isLoading (features):", isLoading);
+    console.log("ProjectSidebar - isLoading (subscription):", subscriptionLoading);
     
+    const featureAvailability = {} as Record<FeatureName, boolean>;
     sections.forEach(section => {
       if (section.feature) {
-        console.log(`ProjectSidebar - Feature ${section.feature} available:`, hasFeature(section.feature));
+        featureAvailability[section.feature] = hasFeature(section.feature);
       }
     });
-  }, [plan, isLoading]);
+    console.log("Feature availability:", featureAvailability);
+    
+  }, [plan, isLoading, subscriptionLoading, subscription]);
 
   const handleSectionChange = (sectionId: string, feature: FeatureName | null) => {
     if (!feature || hasFeature(feature)) {
       onSectionChange(sectionId);
     } else {
+      // Check if subscription is still loading before showing error
+      if (isLoading || subscriptionLoading) {
+        toast.loading("Checking your subscription status...");
+        return;
+      }
+      
       // Determine the required plan based on the feature
       const requiredPlan = 
         feature === "compiled_draft" || feature === "evaluation" 
@@ -92,7 +106,10 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
   return (
     <div className="w-64 border-r bg-background p-4 space-y-2">
       {sections.map((section) => {
-        const isFeatureAvailable = !section.feature || hasFeature(section.feature);
+        // Don't check feature availability while loading to prevent flickering
+        const isFeatureAvailable = 
+          !section.feature || 
+          (isLoading ? false : hasFeature(section.feature));
         
         return (
           <Button
@@ -110,6 +127,15 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
           </Button>
         );
       })}
+      
+      {/* Subscription status indicator for debugging */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+          <p>Plan: {plan || 'Loading...'}</p>
+          <p>Status: {subscription?.status || 'Loading...'}</p>
+          <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+        </div>
+      )}
     </div>
   );
 }

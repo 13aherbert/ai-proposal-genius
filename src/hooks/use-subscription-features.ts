@@ -28,13 +28,20 @@ export function useSubscriptionFeatures() {
       featureCache.clear();
       projectLimitCache.clear();
     }
-  }, []);
+
+    // Log subscription data for debugging
+    console.log("useSubscriptionFeatures - Subscription data:", subscription);
+    console.log("useSubscriptionFeatures - Loading:", isLoading);
+    console.log("useSubscriptionFeatures - Error:", error);
+    console.log("useSubscriptionFeatures - Test mode:", isTestMode);
+  }, [subscription, isLoading, error, testMode]);
 
   // Clear feature cache when subscription changes
   useEffect(() => {
     if (subscription) {
       const cacheKey = `${subscription.subscription_id}-${subscription.plan_type}-${subscription.status}`;
       if (!featureCache.has(cacheKey)) {
+        console.log("Clearing feature cache, subscription changed");
         featureCache.clear();
         projectLimitCache.clear();
       }
@@ -49,24 +56,31 @@ export function useSubscriptionFeatures() {
       currentPlan = localStorage.getItem('test_plan') || 'trial';
       console.log("Using test plan:", currentPlan);
     } else {
-      if (isLoading || error) {
-        console.log("Subscription still loading or error:", { isLoading, error });
+      if (isLoading) {
+        console.log("Subscription still loading, deferring feature check");
+        return false;
+      }
+      
+      if (error) {
+        console.error("Error loading subscription:", error);
         return false;
       }
       
       if (!subscription) {
-        console.log("No subscription data available");
+        console.log("No subscription data available, using trial defaults");
         return feature === "rfp_summary" || feature === "proposal_outline" || feature === "proposal_draft";
       }
       
-      console.log("Using subscription plan:", subscription.plan_type);
+      console.log("Using subscription plan:", subscription.plan_type, "with status:", subscription.status);
       currentPlan = subscription.plan_type || 'trial';
     }
     
     // Use cached value if available
     const cacheKey = `${currentPlan}-${feature}`;
     if (featureCache.has(cacheKey)) {
-      return featureCache.get(cacheKey) as boolean;
+      const cachedResult = featureCache.get(cacheKey);
+      console.log(`Using cached feature access for ${feature} on plan ${currentPlan}: ${cachedResult}`);
+      return cachedResult as boolean;
     }
     
     let hasAccess = false;

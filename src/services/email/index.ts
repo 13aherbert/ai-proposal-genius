@@ -12,35 +12,58 @@ import { BetaEmailService } from './beta-emails';
  * - beta: beta program-related emails
  */
 class EmailService {
-  readonly account: AccountEmailService;
-  readonly support: SupportEmailService;
-  readonly beta: BetaEmailService;
+  private readonly _account: AccountEmailService;
+  private readonly _support: SupportEmailService;
+  private readonly _beta: BetaEmailService;
 
   constructor() {
-    this.account = new AccountEmailService();
-    this.support = new SupportEmailService();
-    this.beta = new BetaEmailService();
+    this._account = new AccountEmailService();
+    this._support = new SupportEmailService();
+    this._beta = new BetaEmailService();
   }
 
-  /**
-   * Legacy methods to maintain backward compatibility
-   * These are aliases to the new organized methods
-   */
+  get account() { return this._account; }
+  get support() { return this._support; }
+  get beta() { return this._beta; }
 
   // Account methods
-  sendWelcomeEmail = this.account.sendWelcomeEmail.bind(this.account);
-  sendPasswordResetEmail = this.account.sendPasswordResetEmail.bind(this.account);
-  sendPasswordChangedEmail = this.account.sendPasswordChangedEmail.bind(this.account);
+  sendWelcomeEmail(email: string, firstName: string, appUrl?: string) {
+    return this._account.sendWelcomeEmail(email, firstName, appUrl);
+  }
+
+  sendPasswordResetEmail(email: string, resetUrl: string, expiresIn?: string) {
+    return this._account.sendPasswordResetEmail(email, resetUrl, expiresIn);
+  }
+
+  sendPasswordChangedEmail(email: string, name?: string) {
+    return this._account.sendPasswordChangedEmail(email, name);
+  }
 
   // Support methods
-  sendSupportEmail = this.support.sendSupportEmail.bind(this.support);
-  sendSupportResponseEmail = this.support.sendSupportResponseEmail.bind(this.support);
-  sendSupportConfirmationEmail = this.support.sendSupportConfirmationEmail.bind(this.support);
-  sendFeedbackEmail = this.support.sendFeedbackEmail.bind(this.support);
+  sendSupportEmail(email: string, name: string, message: string, ticketId: string, supportUrl?: string) {
+    return this._support.sendSupportEmail(email, name, message, ticketId, supportUrl);
+  }
+
+  sendSupportResponseEmail(email: string, name: string, ticketId: string, responseMessage: string, supportUrl?: string) {
+    return this._support.sendSupportResponseEmail(email, name, ticketId, responseMessage, supportUrl);
+  }
+
+  sendSupportConfirmationEmail(email: string, name: string, message: string, ticketId: string) {
+    return this._support.sendSupportConfirmationEmail(email, name, message, ticketId);
+  }
+
+  sendFeedbackEmail(feedbackType: string, comments: string, severity: string, userName?: string, userEmail?: string, errorMessage?: string, errorId?: string, isBetaFeedback?: boolean) {
+    return this._support.sendFeedbackEmail(feedbackType, comments, severity, userName, userEmail, errorMessage, errorId, isBetaFeedback);
+  }
 
   // Beta methods
-  sendBetaInviteEmail = this.beta.sendBetaInviteEmail.bind(this.beta);
-  sendBetaAnnouncementEmail = this.beta.sendBetaAnnouncementEmail.bind(this.beta);
+  sendBetaInviteEmail(email: string, inviteCode: string, inviteUrl: string, expiresAt: string) {
+    return this._beta.sendBetaInviteEmail(email, inviteCode, inviteUrl, expiresAt);
+  }
+
+  sendBetaAnnouncementEmail(email: string, featureName: string, featureDetails: string, featureUrl?: string) {
+    return this._beta.sendBetaAnnouncementEmail(email, featureName, featureDetails, featureUrl);
+  }
 }
 
 // Export a singleton instance for use throughout the application

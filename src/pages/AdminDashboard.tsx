@@ -37,6 +37,7 @@ export default function AdminDashboard() {
     handleAssignRole,
     handleRemoveRole,
     handleUpdateSubscription,
+    handleDeleteUser,
     loadUsers,
     invitations,
     isLoadingInvitations,

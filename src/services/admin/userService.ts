@@ -764,4 +764,3 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
-export { deleteUserAccount };

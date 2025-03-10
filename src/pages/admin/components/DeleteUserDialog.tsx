@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,11 @@ export function DeleteUserDialog({
   isDeleting
 }: DeleteUserDialogProps) {
   const handleConfirm = async () => {
-    await onConfirm();
+    try {
+      await onConfirm();
+    } catch (error) {
+      console.error("Error in DeleteUserDialog.handleConfirm:", error);
+    }
   };
 
   return (

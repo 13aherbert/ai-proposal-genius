@@ -15,16 +15,36 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Request received:", {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+      url: req.url
+    });
+    
+    // Log the raw request body
+    const clonedRequest = req.clone();
+    const rawBody = await clonedRequest.text();
+    console.log("Raw request body:", rawBody);
+    
     // Parse request body
     let body;
     try {
-      body = await req.json();
+      // If we have raw body content, parse it
+      if (rawBody) {
+        body = JSON.parse(rawBody);
+      } else {
+        // Try the original req.json() as fallback
+        body = await req.json();
+      }
+      console.log("Parsed body:", body);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid request body. Make sure to send a valid JSON object with userId.' 
+          error: 'Invalid request body. Make sure to send a valid JSON object with userId.',
+          details: parseError.message,
+          rawBody: rawBody
         }),
         {
           status: 400,
@@ -34,10 +54,15 @@ serve(async (req) => {
     }
 
     const { userId } = body || {};
+    console.log("Extracted userId:", userId);
 
     if (!userId) {
       return new Response(
-        JSON.stringify({ success: false, error: 'User ID is required' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'User ID is required',
+          receivedBody: body 
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

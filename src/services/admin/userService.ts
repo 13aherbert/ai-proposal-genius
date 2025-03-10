@@ -631,6 +631,8 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
  */
 export async function deleteUserAccount(userId: string): Promise<boolean> {
   try {
+    console.log("Starting delete user account operation for:", userId);
+    
     const adminStatus = await isAdmin();
     if (!adminStatus) {
       toast.error("Access denied", { description: "You don't have permission to delete user accounts" });
@@ -720,13 +722,19 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
       }
       
       // Finally, delete the user from auth.users using an edge function with admin privileges
+      console.log("Calling admin-delete-user edge function with:", { userId });
+      const requestBody = JSON.stringify({ userId });
+      console.log("Stringified request body:", requestBody);
+      
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId }, // This is the key fix - providing the userId in the correct format
+        body: { userId }, // The body object should be automatically stringified
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         }
       });
+      
+      console.log("Edge function response:", data, error);
       
       if (error) {
         console.error('Error deleting user auth record:', error);

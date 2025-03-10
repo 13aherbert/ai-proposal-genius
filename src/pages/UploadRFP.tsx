@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useCallback, memo } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
@@ -40,6 +40,12 @@ const UploadRFP = () => {
     navigate("/dashboard");
   }, [navigate]);
 
+  const handleViewProject = useCallback(() => {
+    if (projectId) {
+      navigate(`/project/${projectId}`);
+    }
+  }, [navigate, projectId]);
+
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -61,18 +67,30 @@ const UploadRFP = () => {
               isUploading={isUploading}
               uploadProgress={uploadProgress}
             />
-            <ProjectForm
-              projectTitle={projectTitle}
-              setProjectTitle={setProjectTitle}
-              deadline={deadline}
-              setDeadline={setDeadline}
-              clientName={clientName}
-              setClientName={setClientName}
-              businessName={businessName}
-              setBusinessName={setBusinessName}
-              onSubmit={handleUpdateProject}
-              isProcessing={isUploading}
-            />
+            <div className="flex flex-col gap-6">
+              <ProjectForm
+                projectTitle={projectTitle}
+                setProjectTitle={setProjectTitle}
+                deadline={deadline}
+                setDeadline={setDeadline}
+                clientName={clientName}
+                setClientName={setClientName}
+                businessName={businessName}
+                setBusinessName={setBusinessName}
+                onSubmit={handleUpdateProject}
+                isProcessing={isUploading}
+              />
+              
+              {projectId && (
+                <Button 
+                  onClick={handleViewProject}
+                  className="mt-2 w-full flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Project Details
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

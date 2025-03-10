@@ -1,6 +1,6 @@
 
 // Export feature types and hook
-export { FeatureName } from './subscription-features-types';
+export type { FeatureName } from './subscription-features-types';
 export { useSubscriptionFeatures } from '../use-subscription-features';
 
 // Export subscription helper functions

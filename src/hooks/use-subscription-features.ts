@@ -21,7 +21,7 @@ import {
   getTestProjectLimit
 } from "./subscription/test-mode";
 
-export { FeatureName } from "./subscription/subscription-features-types";
+export type { FeatureName } from "./subscription/subscription-features-types";
 
 export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const { data: subscription, isLoading, error } = useSubscription();

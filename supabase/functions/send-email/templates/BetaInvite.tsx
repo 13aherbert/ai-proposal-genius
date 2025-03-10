@@ -10,6 +10,7 @@ import {
   Preview,
   Section,
   Text,
+  Button,
 } from '@react-email/components';
 
 interface BetaInviteEmailProps {
@@ -40,10 +41,10 @@ export const BetaInviteEmail = ({
             </Text>
             <Text style={styles.text}>As a beta tester, you'll get:</Text>
             <div style={styles.list}>
-              <div style={styles.listItem}>Early access to new features</div>
-              <div style={styles.listItem}>Direct line to our development team</div>
-              <div style={styles.listItem}>Opportunity to shape the future of the product</div>
-              <div style={styles.listItem}>Extended premium benefits during the beta period</div>
+              <div style={styles.listItem}>• Early access to new features</div>
+              <div style={styles.listItem}>• Direct line to our development team</div>
+              <div style={styles.listItem}>• Opportunity to shape the future of the product</div>
+              <div style={styles.listItem}>• Extended premium benefits during the beta period</div>
             </div>
             <Section style={styles.inviteBox}>
               <Text style={styles.inviteText}><strong>Your Invite Code:</strong> {inviteCode}</Text>
@@ -55,6 +56,9 @@ export const BetaInviteEmail = ({
               </Link>
             </Section>
             <Text style={styles.text}>
+              To join, click the button above or copy this link into your browser: <Link href={inviteUrl} style={styles.textLink}>{inviteUrl}</Link>
+            </Text>
+            <Text style={styles.text}>
               Thank you for your interest in OptiRFP. We look forward to your valuable feedback!
             </Text>
             <Text style={styles.text}>
@@ -64,6 +68,9 @@ export const BetaInviteEmail = ({
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
               © {new Date().getFullYear()} OptiRFP. All rights reserved.
+            </Text>
+            <Text style={styles.footerText}>
+              If you did not request this invitation, please disregard this email.
             </Text>
           </Section>
         </Container>
@@ -100,6 +107,10 @@ const styles = {
     lineHeight: '26px',
     color: '#333',
     margin: '16px 0',
+  },
+  textLink: {
+    color: '#34D399',
+    textDecoration: 'underline',
   },
   list: {
     margin: '16px 0',
@@ -146,7 +157,7 @@ const styles = {
     fontSize: '12px',
     color: '#666',
     textAlign: 'center' as const,
-    margin: '0',
+    margin: '5px 0',
   },
 };
 

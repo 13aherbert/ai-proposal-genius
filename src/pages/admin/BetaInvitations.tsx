@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Mail, UserPlus, Loader2, AlertTriangle } from "lucide-react";
+import { Mail, UserPlus, Loader2, AlertTriangle, Copy, Check } from "lucide-react";
 import { BetaInvitation } from "@/services/admin/types";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ export function BetaInvitations({
   const [sendingEmail, setSendingEmail] = useState<Record<string, boolean>>({});
   const [creatingInvitation, setCreatingInvitation] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [copiedIds, setCopiedIds] = useState<Record<string, boolean>>({});
   
   const [operationInProgress, setOperationInProgress] = useState(false);
 
@@ -52,12 +54,14 @@ export function BetaInvitations({
       setOperationInProgress(true);
       console.log(`Starting invitation process for ${inviteEmail}`);
       const result = await adminService.createBetaInvitation(inviteEmail);
-      console.log(`Invitation creation result: ${result}`);
+      console.log(`Invitation creation result:`, result);
       
       if (result) {
         setInviteEmail('');
         await loadInvitations();
-        toast.success("Invitation created and email sent successfully");
+        toast.success(`Invitation email sent to ${inviteEmail}`, {
+          description: "The user will receive an email with instructions to join the beta program."
+        });
       }
     } catch (error) {
       console.error("Error creating invitation:", error);
@@ -105,12 +109,14 @@ export function BetaInvitations({
       setOperationInProgress(true);
       
       console.log(`Attempting to resend invitation to ${email} (ID: ${invitationId})`);
-      const success = await adminService.resendInvitationEmail(invitationId);
-      console.log(`Resend result: ${success}`);
+      const result = await adminService.resendInvitationEmail(invitationId);
+      console.log(`Resend result:`, result);
       
-      if (success) {
+      if (result && result.success) {
         await loadInvitations();
-        toast.success(`Invitation email sent to ${email}`);
+        toast.success(`Invitation email sent to ${email}`, {
+          description: "The user will receive an email with beta program details."
+        });
       }
     } catch (error) {
       console.error("Error resending invitation:", error);
@@ -123,11 +129,29 @@ export function BetaInvitations({
     }
   };
 
-  const copyInviteLink = (inviteCode: string) => {
+  const copyInviteLink = (inviteCode: string, id: string) => {
     const baseUrl = window.location.origin;
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     navigator.clipboard.writeText(inviteUrl);
+    
+    // Show copied state
+    setCopiedIds(prev => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setCopiedIds(prev => ({ ...prev, [id]: false }));
+    }, 2000);
+    
     toast.success("Invite link copied to clipboard");
+  };
+
+  // Format date with time
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Check if invitation is expired
+  const isExpired = (expiresAt: string) => {
+    return new Date(expiresAt) < new Date();
   };
 
   return (
@@ -156,17 +180,22 @@ export function BetaInvitations({
             <TableBody>
               {invitations.length > 0 ? (
                 invitations.map(invitation => (
-                  <TableRow key={invitation.id}>
+                  <TableRow key={invitation.id} className={isExpired(invitation.expires_at) ? "opacity-60" : ""}>
                     <TableCell>{invitation.email}</TableCell>
                     <TableCell>
-                      <Badge variant={invitation.status === 'pending' ? 'outline' : invitation.status === 'accepted' ? 'default' : 'secondary'}>
+                      <Badge variant={
+                        invitation.status === 'pending' ? 'outline' : 
+                        invitation.status === 'accepted' ? 'default' : 
+                        invitation.status === 'canceled' ? 'destructive' : 
+                        'secondary'
+                      }>
                         {invitation.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(invitation.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDateTime(invitation.created_at)}</TableCell>
                     <TableCell>
-                      {new Date(invitation.expires_at).toLocaleDateString()}
-                      {new Date(invitation.expires_at) < new Date() && (
+                      {formatDateTime(invitation.expires_at)}
+                      {isExpired(invitation.expires_at) && (
                         <Badge variant="destructive" className="ml-2">Expired</Badge>
                       )}
                     </TableCell>
@@ -177,14 +206,18 @@ export function BetaInvitations({
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        {invitation.status === 'pending' && (
+                        {invitation.status === 'pending' && !isExpired(invitation.expires_at) && (
                           <>
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => copyInviteLink(invitation.invite_code)}
+                              onClick={() => copyInviteLink(invitation.invite_code, invitation.id)}
                             >
-                              Copy Link
+                              {copiedIds[invitation.id] ? (
+                                <><Check className="h-4 w-4 mr-1" /> Copied</>
+                              ) : (
+                                <><Copy className="h-4 w-4 mr-1" /> Copy Link</>
+                              )}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -207,6 +240,9 @@ export function BetaInvitations({
                               Cancel
                             </Button>
                           </>
+                        )}
+                        {isExpired(invitation.expires_at) && (
+                          <span className="text-sm text-muted-foreground">Expired</span>
                         )}
                       </div>
                     </TableCell>

@@ -64,7 +64,7 @@ serve(async (req) => {
     }
     
     // Get request data
-    const { email, expiresInDays = 7 } = await req.json();
+    const { email, expiresInDays = 30 } = await req.json();
     
     if (!email) {
       return new Response(
@@ -150,7 +150,8 @@ serve(async (req) => {
       JSON.stringify({
         ...invitation,
         email_sent: emailError ? false : true,
-        email_error: emailError ? emailError.message : null
+        email_error: emailError ? emailError.message : null,
+        inviteUrl: inviteUrl
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

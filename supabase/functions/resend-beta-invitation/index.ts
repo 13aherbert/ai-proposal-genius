@@ -88,6 +88,15 @@ serve(async (req) => {
       );
     }
     
+    // Check if invitation has expired
+    const expiresAt = new Date(invitation.expires_at);
+    if (expiresAt < new Date()) {
+      return new Response(
+        JSON.stringify({ error: "Cannot resend expired invitation" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Prepare the invitation URL
     const baseUrl = Deno.env.get("PUBLIC_URL") || "https://optirfp.ai";
     const inviteUrl = `${baseUrl}/beta?invite=${invitation.invite_code}`;
@@ -104,7 +113,7 @@ serve(async (req) => {
       }
     };
     
-    console.log("Sending beta invitation email:", emailPayload);
+    console.log("Resending beta invitation email:", emailPayload);
     
     const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
       "send-email",
@@ -143,7 +152,12 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true, invitation: updateData, email: emailResponse }),
+      JSON.stringify({ 
+        success: true, 
+        invitation: updateData, 
+        email: emailResponse,
+        inviteUrl: inviteUrl
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

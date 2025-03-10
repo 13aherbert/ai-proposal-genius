@@ -723,11 +723,11 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
       
       // Finally, delete the user from auth.users using an edge function with admin privileges
       console.log("Calling admin-delete-user edge function with:", { userId });
-      const requestBody = JSON.stringify({ userId });
-      console.log("Stringified request body:", requestBody);
       
+      // The key fix: Use a simple object with userId property as the body
+      // The Supabase client automatically stringifies this object
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId }, // The body object should be automatically stringified
+        body: { userId },
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'

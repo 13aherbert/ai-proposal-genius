@@ -55,115 +55,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       console.log("Checking subscription for user:", session.user.id, session.user.email);
       setLoading(true);
 
-      // Try direct fetch from the edge function first
-      if (!directFetchAttempted) {
-        try {
-          if (!session.access_token) {
-            console.error("No access token available");
-            throw new Error("No access token available");
-          }
-          
-          console.log("Attempting direct fetch from edge function with token:", 
-            session.access_token.substring(0, 10) + "...");
-          
-          const { data: directData, error: directError } = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`
-            }
-          });
-          
-          console.log("Direct fetch response:", directData, directError);
-          setDirectFetchAttempted(true);
-          
-          if (directError) {
-            console.error("Error from edge function:", directError);
-            throw directError;
-          }
-          
-          if (!directData) {
-            console.error("No data returned from edge function");
-            throw new Error("No data returned from edge function");
-          }
-          
-          if (directData.error) {
-            console.warn("Edge function returned error:", directData.error);
-            // Continue to fallback method instead of throwing
-          } else if (directData.subscription) {
-            console.log("Direct fetch successful:", directData);
-            const subscriptionData: SubscriptionPlan = {
-              subscription_id: directData.subscription.subscription_id,
-              user_id: directData.subscription.user_id,
-              created_at: directData.subscription.created_at,
-              updated_at: directData.subscription.updated_at,
-              status: (directData.subscription.status || 'trialing') as SubscriptionStatus,
-              plan_type: directData.subscription.plan_type || 'trial',
-              project_limit: directData.subscription.project_limit || 3,
-              features: typeof directData.subscription.features === 'object' && directData.subscription.features !== null 
-                ? directData.subscription.features as Record<string, any>
-                : {},
-              current_period_end: directData.subscription.current_period_end,
-              stripe_customer_id: directData.subscription.stripe_customer_id,
-              stripe_subscription_id: directData.subscription.stripe_subscription_id,
-              cancel_at_period_end: directData.subscription.cancel_at_period_end || false
-            };
-            
-            setSubscription(subscriptionData);
-            setLoading(false);
-            setInitialFetchCompleted(true);
-            return;
-          }
-        } catch (directFetchError) {
-          console.error("Error during direct fetch:", directFetchError);
-          // Continue to fallback method
-        }
-      }
-
-      // Fall back to database query if direct fetch fails
-      console.log("Falling back to direct database query");
-      const { data, error: subError } = await supabase
+      // Query subscriptions table directly first
+      const { data: directData, error: directError } = await supabase
         .from('subscriptions')
-        .select('subscription_id, user_id, created_at, updated_at, status, plan_type, project_limit, features, current_period_end, stripe_customer_id, stripe_subscription_id, cancel_at_period_end')
+        .select('*')
         .eq('user_id', session.user.id)
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (subError) {
-        console.error("Error in fallback database query:", subError);
-        throw subError;
+      if (directError) {
+        console.error("Error fetching subscription:", directError);
+        throw directError;
       }
-      
-      if (data) {
-        console.log("Found subscription data:", data);
-        const subscriptionData: SubscriptionPlan = {
-          subscription_id: data.subscription_id,
-          user_id: data.user_id,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          status: (data.status || 'trialing') as SubscriptionStatus,
-          plan_type: data.plan_type || 'trial',
-          project_limit: data.project_limit || 3,
-          features: typeof data.features === 'object' && data.features !== null 
-            ? data.features as Record<string, any>
-            : {},
-          current_period_end: data.current_period_end,
-          stripe_customer_id: data.stripe_customer_id,
-          stripe_subscription_id: data.stripe_subscription_id,
-          cancel_at_period_end: data.cancel_at_period_end || false
-        };
-        
-        console.log("Processed subscription data:", subscriptionData);
-        
-        // Compare with previous subscription to check for changes
-        if (subscription && 
-            (subscription.status !== subscriptionData.status || 
-             subscription.plan_type !== subscriptionData.plan_type)) {
-          toast.success(`Subscription updated to ${subscriptionData.plan_type} (${subscriptionData.status})`, {
-            id: "subscription-update",
-          });
-        }
-        
-        setSubscription(subscriptionData);
+
+      if (directData) {
+        console.log("Found subscription data:", directData);
+        setSubscription(directData);
         setInitialFetchCompleted(true);
       } else {
         console.log("No subscription found, creating trial subscription");

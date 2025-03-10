@@ -14,6 +14,7 @@ export function useBetaProgram() {
   const [inviteCode, setInviteCode] = useState('');
   const [inviteProcessed, setInviteProcessed] = useState(false);
   const [showSignupDialog, setShowSignupDialog] = useState(false);
+  const [roleCheckAttempts, setRoleCheckAttempts] = useState(0);
   const { session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,14 +88,51 @@ export function useBetaProgram() {
             if (success) {
               console.log(`Invitation accepted successfully`);
               
-              // Force a refresh of the beta tester status
-              const betaStatus = await adminService.checkUserRole('beta_tester');
-              console.log('Beta status after acceptance:', betaStatus);
-              setIsBetaTester(betaStatus);
+              // Allow up to 3 attempts to check beta tester status with increasing delays
+              // This helps account for potential role propagation delays
+              let betaStatus = false;
+              const checkBetaRole = async (attempt: number): Promise<boolean> => {
+                console.log(`Checking beta status attempt ${attempt}`);
+                const status = await adminService.checkUserRole('beta_tester');
+                console.log(`Beta status check #${attempt}:`, status);
+                return status;
+              };
               
-              // Check onboarding status after role is assigned
-              const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
-              setOnboardingComplete(status);
+              betaStatus = await checkBetaRole(1);
+              
+              if (!betaStatus) {
+                // Wait and retry
+                setTimeout(async () => {
+                  betaStatus = await checkBetaRole(2);
+                  setIsBetaTester(betaStatus);
+                  
+                  if (!betaStatus) {
+                    // Final attempt with longer delay
+                    setTimeout(async () => {
+                      betaStatus = await checkBetaRole(3);
+                      setIsBetaTester(betaStatus);
+                      
+                      if (betaStatus) {
+                        // If successful on retry, check onboarding status
+                        const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+                        setOnboardingComplete(status);
+                      } else {
+                        console.error('Failed to verify beta role after multiple attempts');
+                        // Force a page refresh as last resort
+                        window.location.reload();
+                      }
+                    }, 2000);
+                  } else {
+                    // Check onboarding status if role check succeeds
+                    const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+                    setOnboardingComplete(status);
+                  }
+                }, 1000);
+              } else {
+                setIsBetaTester(true);
+                const status = await betaTestingService.checkBetaOnboardingStatus(session.user.id);
+                setOnboardingComplete(status);
+              }
               
               // Send welcome notification
               toast.success("Welcome to the beta program!");
@@ -121,7 +159,7 @@ export function useBetaProgram() {
     if (session?.user?.id) {
       checkBetaAccess();
     }
-  }, [session, inviteCode, hasInviteCode, inviteProcessed, navigate]);
+  }, [session, inviteCode, hasInviteCode, inviteProcessed, navigate, roleCheckAttempts]);
 
   const handleDialogOpenChange = (open: boolean) => {
     setShowSignupDialog(open);

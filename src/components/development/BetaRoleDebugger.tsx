@@ -6,6 +6,7 @@ import { adminService } from "@/services/admin";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 
 export function BetaRoleDebugger() {
   const { session } = useAuth();
@@ -16,6 +17,8 @@ export function BetaRoleDebugger() {
   const [invitationResult, setInvitationResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [emailForInvitation, setEmailForInvitation] = useState<string>("");
+  const [lastRoleCheckTime, setLastRoleCheckTime] = useState<string | null>(null);
+  const [fixingRole, setFixingRole] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -47,6 +50,7 @@ export function BetaRoleDebugger() {
       const formattedResult = data ? [{ exists: true, role: 'beta_tester' }] : [];
       
       setDirectQueryResult(formattedResult);
+      setLastRoleCheckTime(new Date().toLocaleTimeString());
       console.log("Beta tester check result:", data, formattedResult);
     } catch (err) {
       console.error("Direct query error:", err);
@@ -73,6 +77,7 @@ export function BetaRoleDebugger() {
     try {
       const result = await adminService.isBetaTester();
       setServiceResult(result);
+      setLastRoleCheckTime(new Date().toLocaleTimeString());
       console.log("Service method result:", result);
     } catch (err) {
       console.error("Service method error:", err);
@@ -127,6 +132,56 @@ export function BetaRoleDebugger() {
     }
   };
 
+  const fixBetaTesterRole = async () => {
+    if (!userId) return;
+    
+    setFixingRole(true);
+    setError(null);
+    
+    try {
+      console.log("Attempting to assign beta_tester role to user:", userId);
+      
+      // Direct assignment using the RPC function 
+      const { data, error } = await supabase.rpc(
+        'assign_user_role',
+        {
+          _user_id: userId,
+          _role: 'beta_tester',
+          _created_by: userId
+        }
+      );
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Role assignment result:", data);
+      
+      // Verify the assignment was successful
+      await runDirectQuery();
+      
+      if (directQueryResult && directQueryResult.length > 0) {
+        console.log("Role assignment verified successfully");
+      } else {
+        console.log("Role was assigned but verification failed, retrying check");
+        setTimeout(runDirectQuery, 1000);
+      }
+    } catch (err) {
+      console.error("Error fixing beta tester role:", err);
+      if (typeof err === 'object' && err !== null) {
+        if ('message' in err) {
+          setError((err as Error).message);
+        } else {
+          setError(JSON.stringify(err, null, 2));
+        }
+      } else {
+        setError(String(err));
+      }
+    } finally {
+      setFixingRole(false);
+    }
+  };
+
   return (
     <Card className="w-full max-w-3xl mx-auto mt-8">
       <CardHeader>
@@ -147,7 +202,23 @@ export function BetaRoleDebugger() {
           <Button onClick={checkServiceMethod} disabled={loading || !userId}>
             Test Service Method
           </Button>
+          {directQueryResult && directQueryResult.length === 0 && (
+            <Button 
+              onClick={fixBetaTesterRole} 
+              disabled={fixingRole || !userId}
+              variant="destructive"
+            >
+              {fixingRole ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <AlertCircle className="mr-1 h-4 w-4" />}
+              Fix Missing Role
+            </Button>
+          )}
         </div>
+        
+        {lastRoleCheckTime && (
+          <div className="text-xs text-gray-500">
+            Last checked: {lastRoleCheckTime}
+          </div>
+        )}
 
         <div className="border-t pt-4 mt-4">
           <div className="font-medium mb-2">Check Pending Invitation:</div>
@@ -178,11 +249,18 @@ export function BetaRoleDebugger() {
           <div className="space-y-2">
             <div className="font-medium">Direct Query Results:</div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-              <div className="mb-2">
-                Found: {directQueryResult.length > 0 ? (
-                  <Badge variant="default" className="bg-green-500">Yes</Badge>
+              <div className="mb-2 flex items-center">
+                <span className="mr-2">Beta Tester Role:</span>
+                {directQueryResult.length > 0 ? (
+                  <Badge variant="default" className="bg-green-500 flex items-center">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Yes
+                  </Badge>
                 ) : (
-                  <Badge variant="destructive">No</Badge>
+                  <Badge variant="destructive" className="flex items-center">
+                    <AlertCircle className="mr-1 h-3 w-3" />
+                    No
+                  </Badge>
                 )}
               </div>
               <pre className="text-xs overflow-auto">
@@ -196,11 +274,18 @@ export function BetaRoleDebugger() {
           <div className="space-y-2">
             <div className="font-medium">Service Method Result:</div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-              <div className="mb-2">
-                Is Beta Tester: {serviceResult ? (
-                  <Badge variant="default" className="bg-green-500">Yes</Badge>
+              <div className="mb-2 flex items-center">
+                <span className="mr-2">Is Beta Tester:</span>
+                {serviceResult ? (
+                  <Badge variant="default" className="bg-green-500 flex items-center">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Yes
+                  </Badge>
                 ) : (
-                  <Badge variant="destructive">No</Badge>
+                  <Badge variant="destructive" className="flex items-center">
+                    <AlertCircle className="mr-1 h-3 w-3" />
+                    No
+                  </Badge>
                 )}
               </div>
             </div>
@@ -211,11 +296,18 @@ export function BetaRoleDebugger() {
           <div className="space-y-2">
             <div className="font-medium">Pending Invitation Results:</div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-              <div className="mb-2">
-                Found: {Array.isArray(invitationResult) && invitationResult.length > 0 ? (
-                  <Badge variant="default" className="bg-green-500">Yes</Badge>
+              <div className="mb-2 flex items-center">
+                <span className="mr-2">Found:</span>
+                {Array.isArray(invitationResult) && invitationResult.length > 0 ? (
+                  <Badge variant="default" className="bg-green-500 flex items-center">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Yes
+                  </Badge>
                 ) : (
-                  <Badge variant="destructive">No</Badge>
+                  <Badge variant="destructive" className="flex items-center">
+                    <AlertCircle className="mr-1 h-3 w-3" />
+                    No
+                  </Badge>
                 )}
               </div>
               <pre className="text-xs overflow-auto">

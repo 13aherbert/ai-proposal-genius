@@ -107,22 +107,39 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
     }
 
     // Add beta_tester role to user using RPC function to avoid RLS issues
-    const { data: roleData, error: roleError } = await supabase.rpc(
-      'assign_user_role',
-      {
-        _user_id: userData.user.id,
-        _role: 'beta_tester',
-        _created_by: invitation.invited_by || userData.user.id
+    let roleAssignmentAttempts = 0;
+    const maxAttempts = 3;
+    let roleAssigned = false;
+    
+    while (roleAssignmentAttempts < maxAttempts && !roleAssigned) {
+      roleAssignmentAttempts++;
+      console.log(`Attempt ${roleAssignmentAttempts} to assign beta_tester role`);
+      
+      const { data: roleData, error: roleError } = await supabase.rpc(
+        'assign_user_role',
+        {
+          _user_id: userData.user.id,
+          _role: 'beta_tester',
+          _created_by: invitation.invited_by || userData.user.id
+        }
+      );
+
+      if (roleError) {
+        console.error(`Attempt ${roleAssignmentAttempts} error assigning beta_tester role:`, roleError);
+        // Wait a short time before retrying
+        if (roleAssignmentAttempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500 * roleAssignmentAttempts));
+        }
+      } else {
+        console.log(`Beta tester role assigned successfully on attempt ${roleAssignmentAttempts}`);
+        roleAssigned = true;
       }
-    );
-
-    if (roleError) {
-      console.error('Error assigning beta_tester role:', roleError);
-      toast.error("Failed to assign beta tester role");
-      return false;
     }
-
-    console.log(`Beta tester role assigned successfully`);
+    
+    if (!roleAssigned) {
+      toast.error("Failed to assign beta tester role");
+      console.error(`Failed to assign beta_tester role after ${maxAttempts} attempts`);
+    }
     
     // Force a role check to update the user's roles in the application state
     try {
@@ -135,10 +152,10 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
       console.log('Role check result:', roleCheckData, roleCheckError);
       
       if (!roleCheckData && !roleCheckError) {
-        // If role check says role wasn't assigned, try one more time
-        console.log('Role not detected after assignment, trying again...');
+        // If role check says role wasn't assigned, try one more manual assignment
+        console.log('Role not detected after assignment, trying one final direct assignment...');
         
-        const { data: retryData, error: retryError } = await supabase.rpc(
+        const { data: finalAttemptData, error: finalAttemptError } = await supabase.rpc(
           'assign_user_role',
           {
             _user_id: userData.user.id,
@@ -147,15 +164,35 @@ export async function acceptBetaInvitation(code: string): Promise<boolean> {
           }
         );
         
-        console.log('Retry assignment result:', retryData, retryError);
+        console.log('Final assignment attempt result:', finalAttemptData, finalAttemptError);
+        
+        // Verify one more time if it was successful
+        const { data: finalCheckData } = await supabase.rpc(
+          'check_beta_tester_role',
+          { user_id_param: userData.user.id }
+        );
+        
+        console.log('Final role check result:', finalCheckData);
+        
+        // If the final attempt succeeded, update roleAssigned
+        if (finalCheckData) {
+          roleAssigned = true;
+        }
       }
     } catch (roleCheckError) {
-      console.error('Error checking role assignment:', roleCheckError);
-      // Don't fail the operation, just log the error
+      console.error('Error during final role verification:', roleCheckError);
     }
     
-    toast.success("You have joined the beta program!");
-    return true;
+    if (roleAssigned) {
+      toast.success("You have joined the beta program!");
+      return true;
+    } else {
+      // If all attempts failed, give appropriate message
+      toast.error("Partial success", { 
+        description: "Your invitation was accepted but there may be a delay in activating your beta access. Please try refreshing the page in a few moments."
+      });
+      return false;
+    }
   } catch (error) {
     console.error('Error in acceptBetaInvitation:', error);
     toast.error("Failed to join beta program", { description: error instanceof Error ? error.message : "Unknown error" });

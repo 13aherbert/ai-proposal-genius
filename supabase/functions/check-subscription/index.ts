@@ -111,6 +111,22 @@ serve(async (req) => {
         if (plan === 'starter' && subscription.project_limit === 3) {
           subscription.project_limit = 10;
           console.log('Corrected starter plan project limit from 3 to 10');
+          
+          // Update the subscription record in the database with the correct limit
+          try {
+            const { error: updateError } = await supabaseClient
+              .from('subscriptions')
+              .update({ project_limit: 10 })
+              .eq('subscription_id', subscription.subscription_id);
+              
+            if (updateError) {
+              console.error('Error updating subscription project limit:', updateError);
+            } else {
+              console.log('Successfully updated project limit in database to 10');
+            }
+          } catch (updateError) {
+            console.error('Exception updating subscription:', updateError);
+          }
         }
       }
     } else {
@@ -149,7 +165,7 @@ serve(async (req) => {
         error: error.message,
         debug: {
           timestamp: new Date().toISOString(),
-          version: '1.1'
+          version: '1.2'
         }
       }),
       { 

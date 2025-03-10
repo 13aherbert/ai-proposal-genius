@@ -8,11 +8,11 @@ import { ProjectNotFound } from "@/components/project/details/ProjectNotFound";
 import { ProjectContent } from "@/components/project/details/ProjectContent";
 
 const ProjectDetails = () => {
-  const { id } = useParams();
+  const { projectId } = useParams();
   const { session } = useAuth();
-  const { data: project, isLoading, error } = useProjectDetails(id, session?.user);
+  const { data: project, isLoading, error } = useProjectDetails(projectId, session?.user);
 
-  console.log("ProjectDetails - Project ID:", id);
+  console.log("ProjectDetails - Project ID:", projectId);
   console.log("ProjectDetails - User:", session?.user?.id);
   console.log("ProjectDetails - Loading:", isLoading);
   console.log("ProjectDetails - Error:", error);
@@ -24,7 +24,7 @@ const ProjectDetails = () => {
 
   if (error || !project) {
     console.error("Project not found or error:", error);
-    return <ProjectNotFound projectId={id} />;
+    return <ProjectNotFound projectId={projectId} />;
   }
 
   return (

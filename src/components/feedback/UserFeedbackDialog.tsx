@@ -87,6 +87,17 @@ export function UserFeedbackDialog({
         }
       });
 
+      await emailService.sendFeedbackEmail(
+        feedbackType,
+        comments,
+        severity,
+        name || (session?.user?.user_metadata?.first_name || 'User'),
+        email || session?.user?.email,
+        errorMessage,
+        errorId,
+        isBetaFeedback
+      );
+
       const userEmail = email || session?.user?.email;
       const userName = name || (session?.user?.user_metadata?.first_name || 'User');
       

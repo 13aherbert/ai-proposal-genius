@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { withRateLimit } from '@/utils/network/rate-limit';
 import { withRetry } from '@/utils/network/retry';
@@ -249,6 +248,39 @@ class EmailService {
         featureDetails,
         featureUrl
       }
+    });
+  }
+
+  /**
+   * Send feedback email to support team
+   */
+  async sendFeedbackEmail(
+    feedbackType: string,
+    comments: string,
+    severity: string,
+    userName: string = 'Anonymous',
+    userEmail?: string,
+    errorMessage?: string,
+    errorId?: string,
+    isBetaFeedback: boolean = false
+  ): Promise<SendEmailResponse> {
+    return this.sendEmail({
+      to: ['support@optirfp.ai'],
+      subject: `${isBetaFeedback ? 'Beta ' : ''}Feedback: ${feedbackType}`,
+      templateType: 'support',
+      templateData: {
+        name: userName,
+        message: `
+Type: ${feedbackType}
+Severity: ${severity}
+${errorMessage ? `Error: ${errorMessage}` : ''}
+${errorId ? `Error ID: ${errorId}` : ''}
+
+Comments:
+${comments}`,
+        ticketId: `FB-${Date.now()}`,
+      },
+      replyTo: userEmail
     });
   }
 }

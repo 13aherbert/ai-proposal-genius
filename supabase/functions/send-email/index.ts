@@ -179,11 +179,18 @@ Deno.serve(async (req) => {
     // Determine if we're in development/testing mode or production
     const isDevMode = Deno.env.get('NODE_ENV') !== 'production';
     
-    // In development mode, override recipient with the verified email
-    // This handles Resend's restriction that free accounts can only send to verified emails
-    const recipients = isDevMode 
-      ? [RESEND_VERIFIED_EMAIL]  // In dev mode, only send to verified email
-      : payload.to;              // In production, use the actual recipients
+    // Determine whether to use actual recipients or redirect to verified email
+    let recipients;
+    
+    // If forceRealRecipient is set or we're in production mode, use actual recipients
+    if (payload.forceRealRecipient === true || !isDevMode) {
+      recipients = payload.to;  // Use the actual recipient
+      console.log('Using actual email recipients:', recipients);
+    } else {
+      // In dev mode without force flag, redirect to verified email
+      recipients = [RESEND_VERIFIED_EMAIL];
+      console.log(`⚠️ DEV MODE: Redirecting email from [${payload.to.join(', ')}] to verified email [${RESEND_VERIFIED_EMAIL}]`);
+    }
     
     // Send the email via Resend
     const emailOptions = {
@@ -201,11 +208,6 @@ Deno.serve(async (req) => {
       replyTo: emailOptions.reply_to,
     });
     
-    // Log if we've redirected emails in development mode
-    if (isDevMode && JSON.stringify(recipients) !== JSON.stringify(payload.to)) {
-      console.log(`⚠️ DEV MODE: Redirecting email from [${payload.to.join(', ')}] to verified email [${RESEND_VERIFIED_EMAIL}]`);
-    }
-
     const { data, error } = await resend.emails.send(emailOptions);
 
     if (error) {
@@ -224,15 +226,14 @@ Deno.serve(async (req) => {
 
     console.log('Email sent successfully:', data);
     
-    // In development mode, add a note about email redirection
+    // Add debugging info to response
     const responseData = {
       success: true,
       id: data?.id,
       requestId: requestId,
-      ...(isDevMode && {
-        dev_note: `In development mode, all emails are redirected to ${RESEND_VERIFIED_EMAIL} regardless of the original recipients.`,
-        original_recipients: payload.to
-      })
+      sentTo: recipients,
+      wasRedirected: recipients.toString() !== payload.to.toString(),
+      originalRecipients: payload.to
     };
 
     return new Response(

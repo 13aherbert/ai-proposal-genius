@@ -110,17 +110,19 @@ serve(async (req) => {
     
     // Send the email via the send-email edge function
     const emailPayload = {
-      to: [email],
+      to: [email], // Make sure we send to the actual beta tester email
       subject: "You're Invited to the OptiRFP Beta Program!",
       templateType: "beta_invite",
       templateData: {
         inviteCode: inviteCode,
         inviteUrl: inviteUrl,
         expiresAt: expiresAt.toISOString()
-      }
+      },
+      forceRealRecipient: true // Add a flag to bypass development redirects
     };
     
-    console.log("Sending beta invitation email:", emailPayload);
+    console.log("Sending beta invitation email to:", email);
+    console.log("Email payload:", JSON.stringify(emailPayload, null, 2));
     
     const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
       "send-email",

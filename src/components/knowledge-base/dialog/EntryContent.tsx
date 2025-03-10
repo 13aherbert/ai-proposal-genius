@@ -1,6 +1,8 @@
+
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface EntryContentProps {
   isLoading: boolean;
@@ -29,19 +31,29 @@ export const EntryContent = ({
 
   if (filePath) {
     return (
-      <div className="flex items-center justify-between p-4 border rounded-lg">
-        <p className="text-sm text-muted-foreground">
-          This entry contains an uploaded document
-        </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onDownload}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Download File
-        </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            This entry contains an uploaded document
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onDownload}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Download File
+          </Button>
+        </div>
+        
+        {content && (
+          <ScrollArea className="h-[400px] w-full rounded-lg border p-4">
+            <div className="prose prose-sm max-w-none">
+              {content}
+            </div>
+          </ScrollArea>
+        )}
       </div>
     );
   }
@@ -55,9 +67,11 @@ export const EntryContent = ({
           className="min-h-[200px]"
         />
       ) : (
-        <div className="prose prose-sm max-w-none">
-          {content || "No content available"}
-        </div>
+        <ScrollArea className="h-[400px] w-full">
+          <div className="prose prose-sm max-w-none">
+            {content || "No content available"}
+          </div>
+        </ScrollArea>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { getSafeProjectLimit } from "@/hooks/subscription/feature-access";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 
@@ -17,8 +17,9 @@ export default function RecentProjects() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
-  const { checkSubscription, data: subscriptionData } = useSubscription();
+  const { checkSubscription, data: subscriptionData, isLoading: subscriptionLoading } = useSubscription();
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [projectLimitApplied, setProjectLimitApplied] = useState(false);
   
   useEffect(() => {
     if (!loading) {
@@ -45,44 +46,72 @@ export default function RecentProjects() {
     pagination,
     projectCount,
     projectLimit,
-    refetch
+    refetch,
+    updateProjectLimit
   } = useProjects(authReady ? session?.user || null : null);
   
   const { hasFeature, plan, getProjectLimit } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
   
-  // Get the correct project limit directly from useSubscriptionFeatures
-  const correctProjectLimit = getProjectLimit();
-  
-  useEffect(() => {
-    // Only run this effect when data is available
-    if (plan && subscriptionData && !isLoading) {
-      console.log(`Current plan: ${plan} with project limit: ${correctProjectLimit}`);
-      console.log(`Subscription data from context:`, subscriptionData);
+  // Enhanced project limit handling
+  const handleProjectLimitUpdate = () => {
+    if (subscriptionData) {
+      // Get the correct limit based on plan type, with a fallback to the stored limit
+      const safeLimit = getSafeProjectLimit(
+        subscriptionData.plan_type,
+        subscriptionData.project_limit
+      );
       
-      if (subscriptionData) {
-        console.log(`Stored project limit in subscription: ${subscriptionData.project_limit}`);
+      // Defensively handle plan types
+      const normalizedPlan = (subscriptionData.plan_type || '').toLowerCase();
+      
+      // For starter plans, ensure we always use 10 as the limit
+      if (normalizedPlan === 'starter' && safeLimit !== 10) {
+        console.log(`Correcting starter plan project limit from ${safeLimit} to 10`);
+        updateProjectLimit(10);
+        return 10;
       }
       
-      // Check for project limit mismatch and handle it
-      if (projectLimit !== correctProjectLimit) {
-        console.log(`Project limit mismatch: ${projectLimit} vs ${correctProjectLimit}`);
-        
-        // If we're on a starter plan but seeing a trial limit, force a refresh
-        if (plan === 'starter' && projectLimit === 3) {
-          console.log('Starter plan has wrong limit (3), forcing subscription refresh');
-          toast.info("Refreshing subscription data to update project limits");
-          checkSubscription(true);
-          
-          // Allow time for subscription update to complete before refetching projects
-          setTimeout(() => {
-            console.log('Refetching projects after subscription refresh');
-            refetch();
-          }, 1500);
-        }
+      // If the current project limit doesn't match the safe limit, update it
+      if (projectLimit !== safeLimit) {
+        console.log(`Updating project limit from ${projectLimit} to ${safeLimit}`);
+        updateProjectLimit(safeLimit);
+      }
+      
+      return safeLimit;
+    }
+    
+    // Default to trial limit if no subscription data
+    return 3;
+  };
+  
+  // Apply project limit when subscription data changes
+  useEffect(() => {
+    if (subscriptionData && !subscriptionLoading && !projectLimitApplied) {
+      console.log(`Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
+      
+      // Apply the correct project limit
+      const correctLimit = handleProjectLimitUpdate();
+      
+      console.log(`Applied project limit: ${correctLimit}`);
+      setProjectLimitApplied(true);
+      
+      // If we applied a different limit, refetch projects
+      if (correctLimit !== projectLimit) {
+        setTimeout(() => {
+          console.log('Refetching projects after updating project limit');
+          refetch();
+        }, 500);
       }
     }
-  }, [plan, projectLimit, correctProjectLimit, checkSubscription, refetch, subscriptionData, isLoading]);
+  }, [subscriptionData, subscriptionLoading, projectLimit, projectLimitApplied]);
+  
+  // Reset the applied flag when subscription data changes
+  useEffect(() => {
+    if (subscriptionData) {
+      setProjectLimitApplied(false);
+    }
+  }, [subscriptionData?.subscription_id]);
 
   useEffect(() => {
     pagination.setCurrentPage(1);
@@ -128,12 +157,18 @@ export default function RecentProjects() {
     );
   }
 
+  // Get a safe project limit for displaying even while subscription is loading
+  const displayProjectLimit = subscriptionData 
+    ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
+    : projectLimit || 3;
+
   return (
     <div className="container py-10 space-y-8">
       <ProjectsHeader 
         canCreateProject={canCreateProject} 
-        currentPlanLimit={correctProjectLimit} 
+        currentPlanLimit={displayProjectLimit} 
         projectCount={projectCount}
+        isSubscriptionLoading={subscriptionLoading}
       />
 
       {isLoading ? (
@@ -157,7 +192,7 @@ export default function RecentProjects() {
               Create your first project to start generating proposal drafts and analyzing RFPs.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Your current plan allows up to {correctProjectLimit} projects.
+              Your current plan allows up to {displayProjectLimit} projects.
             </p>
           </div>
           <Button onClick={() => navigate("/upload-rfp")}>

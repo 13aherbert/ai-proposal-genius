@@ -12,7 +12,8 @@ import {
   determineFeatureAccess, 
   getFeatureName, 
   clearFeatureCaches,
-  getProjectLimitForPlan
+  getProjectLimitForPlan,
+  getSafeProjectLimit
 } from "./subscription/feature-access";
 import {
   isTestModeEnabled,
@@ -49,7 +50,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       console.log("useSubscriptionFeatures - Project limit:", subscription.project_limit);
       
       // Special case: normalize plan type strings for comparison
-      const normalizedPlanType = subscription.plan_type.toLowerCase();
+      const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
       
       // Check to ensure starter plans have correct project limit
       if (normalizedPlanType === 'starter' && subscription.project_limit !== 10) {
@@ -86,6 +87,12 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     } else {
       if (isLoading) {
         console.log("Subscription still loading, deferring feature check");
+        
+        // For certain features, we can provide default access while loading
+        if (feature === 'rfp_summary' || feature === 'proposal_outline' || feature === 'proposal_draft') {
+          return true; // These features are available in all plans
+        }
+        
         return false;
       }
       
@@ -101,7 +108,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       console.log("Using subscription plan:", subscription.plan_type, "with status:", subscription.status);
       // Normalize the plan type to lowercase for consistent comparison
-      currentPlan = subscription.plan_type?.toLowerCase() || 'trial';
+      currentPlan = (subscription.plan_type || '').toLowerCase();
     }
     
     // Use cached value if available
@@ -129,55 +136,37 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   }, [subscription, isLoading, error, testMode]);
 
   const getProjectLimit = useCallback((): number => {
-    let limit: number;
-    
     // If test mode is enabled, use the test project limit from localStorage
     if (testMode) {
-      limit = getTestProjectLimit();
-    } else {
-      // Get plan type and ensure it's normalized to lowercase
-      const currentPlan = subscription?.plan_type?.toLowerCase() || 'trial';
-      
-      // Use cached value if available
-      const cacheKey = `${currentPlan}-limit`;
-      if (projectLimitCache.has(cacheKey)) {
-        return projectLimitCache.get(cacheKey) as number;
-      }
-      
-      // Check if subscription has a specific project_limit value
-      if (subscription?.project_limit) {
-        console.log(`Using project limit from subscription: ${subscription.project_limit}`);
-        
-        // For starter plans, ensure the limit is 10
-        if (currentPlan === 'starter') {
-          limit = 10;
-          if (subscription.project_limit !== 10) {
-            console.log('Overriding stored starter plan project limit to correct value of 10');
-            // Trigger a subscription refresh to fix the database value
-            checkSubscription(true);
-          }
-        } else {
-          limit = subscription.project_limit;
-        }
-      } else {
-        // Use the function to get the correct limit for the plan
-        limit = getProjectLimitForPlan(currentPlan);
-        
-        // Log for debugging
-        console.log(`Using plan limit for ${currentPlan}: ${limit}`);
-      }
-      
-      // Cache the result
-      projectLimitCache.set(cacheKey, limit);
+      return getTestProjectLimit();
     }
     
-    return limit;
-  }, [subscription, testMode, checkSubscription]);
+    // While loading, we can't determine the exact limit, so return a safe default
+    if (isLoading) {
+      console.log("Subscription loading, returning default project limit");
+      return 3; // Trial default
+    }
+    
+    // If we have subscription data, determine the limit based on plan type
+    if (subscription) {
+      // Normalize plan type to lowercase
+      const normalizedPlan = (subscription.plan_type || '').toLowerCase();
+      
+      // Use the safe project limit function to get the correct limit
+      const safeLimit = getSafeProjectLimit(normalizedPlan, subscription.project_limit);
+      
+      console.log(`Using safe project limit for ${normalizedPlan}: ${safeLimit}`);
+      return safeLimit;
+    }
+    
+    // Fallback to trial limit
+    return 3;
+  }, [subscription, isLoading, testMode]);
 
   const getPlanName = useCallback((feature: FeatureName): string => {
     const currentPlan = testMode 
       ? getTestPlan()
-      : subscription?.plan_type?.toLowerCase() || 'trial';
+      : (subscription?.plan_type || 'trial').toLowerCase();
       
     return getFeatureName(feature, currentPlan);
   }, [subscription, testMode]);
@@ -200,7 +189,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     getPlanName,
     isLoading: testMode ? false : isLoading,
     error: testMode ? null : error,
-    plan: testMode ? getTestPlan() : subscription?.plan_type?.toLowerCase(),
+    plan: testMode ? getTestPlan() : (subscription?.plan_type || 'trial').toLowerCase(),
     isTestMode: testMode,
     enableTestMode,
     disableTestMode

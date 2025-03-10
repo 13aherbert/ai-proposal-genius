@@ -91,7 +91,7 @@ serve(async (req) => {
       isActive = subscription.status === 'active';
       
       // Normalize the plan type to lowercase for consistent comparison
-      const normalizedPlanType = subscription.plan_type.toLowerCase();
+      const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
       
       if (normalizedPlanType.includes('starter')) {
         plan = 'starter';
@@ -102,26 +102,17 @@ serve(async (req) => {
         projectLimit = 30; // Pro users get 30 projects
       }
       
-      // If there's a specific project_limit in the subscription, use that
-      if (subscription.project_limit) {
-        projectLimit = subscription.project_limit;
-      }
-      
-      // Make sure plan_type is clearly set for frontend
+      // Always ensure plan_type is clearly set for frontend
       subscription.plan_type = plan;
       
-      // Ensure project_limit is included
-      if (!subscription.project_limit) {
-        subscription.project_limit = projectLimit;
-      } else {
-        // For starter plans, override if the stored limit is incorrect (3 instead of 10)
-        if (plan === 'starter' && subscription.project_limit !== 10) {
-          subscription.project_limit = 10;
-          console.log('Corrected starter plan project limit from', subscription.project_limit, 'to 10');
-          
-          // Update the subscription record in the database with the correct limit
+      // Always ensure starter plans have project_limit=10
+      if (plan === 'starter') {
+        subscription.project_limit = 10;
+        
+        // Update the subscription record in the database with the correct limit if needed
+        if (subscription.project_limit !== 10) {
           try {
-            console.log('Attempting to update subscription record with ID:', subscription.subscription_id);
+            console.log('Updating starter subscription record with ID:', subscription.subscription_id);
             const { data: updateData, error: updateError } = await supabaseClient
               .from('subscriptions')
               .update({ 
@@ -140,6 +131,9 @@ serve(async (req) => {
             console.error('Exception updating subscription:', updateError);
           }
         }
+      } else if (subscription.project_limit) {
+        // For non-starter plans, respect the stored project_limit if it exists
+        projectLimit = subscription.project_limit;
       }
     } else {
       console.log('No subscription found for user:', user.id);
@@ -157,7 +151,11 @@ serve(async (req) => {
       JSON.stringify({ 
         subscribed: isActive,
         plan: plan,
-        subscription: subscription || null,
+        subscription: subscription ? {
+          ...subscription,
+          plan_type: plan,
+          project_limit: projectLimit
+        } : null,
         user: {
           id: user.id,
           email: user.email || null
@@ -177,7 +175,7 @@ serve(async (req) => {
         error: error.message,
         debug: {
           timestamp: new Date().toISOString(),
-          version: '1.6' // Incremented version for tracking
+          version: '1.7' // Incremented version for tracking
         }
       }),
       { 

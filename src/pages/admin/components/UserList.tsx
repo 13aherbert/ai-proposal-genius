@@ -1,13 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from "@/services/admin/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit2, Save } from "lucide-react";
+import { Edit2, Save, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { UserRoleManager } from "./UserRoleManager";
 import { UserSubscriptionManager } from "./UserSubscriptionManager";
 import { UserRole } from "@/services/admin/types";
+import { DeleteUserDialog } from './DeleteUserDialog';
 
 interface UserListProps {
   users: UserProfile[];
@@ -25,6 +26,7 @@ interface UserListProps {
   handleAssignRole: (userId: string, role: UserRole) => Promise<boolean>;
   handleRemoveRole: (userId: string, role: UserRole) => Promise<boolean>;
   handleUpdateSubscription: (userId: string, plan: string, status: string) => Promise<void>;
+  handleDeleteUser: (userId: string) => Promise<void>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
@@ -48,9 +50,13 @@ export function UserList({
   handleAssignRole,
   handleRemoveRole,
   handleUpdateSubscription,
+  handleDeleteUser,
   searchQuery,
   setSearchQuery
 }: UserListProps) {
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
     if (!searchQuery.trim()) return true;
@@ -66,6 +72,25 @@ export function UserList({
       user.subscription?.status.toLowerCase().includes(query)
     );
   });
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await handleDeleteUser(userToDelete.userId);
+    } finally {
+      setIsDeleting(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const getUserDisplayName = (user: UserProfile): string => {
+    if (user.firstName || user.lastName) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    }
+    return user.businessName || user.email || 'Unknown user';
+  };
 
   return (
     <div>
@@ -129,25 +154,36 @@ export function UserList({
                 </TableCell>
                 
                 <TableCell>
-                  {editingUserId === user.userId ? (
+                  <div className="flex space-x-2">
+                    {editingUserId === user.userId ? (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={stopEditingUser}
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Done
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => startEditingUser(user.userId)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                    
                     <Button 
                       size="sm" 
-                      variant="outline" 
-                      onClick={stopEditingUser}
+                      variant="destructive" 
+                      onClick={() => setUserToDelete(user)}
                     >
-                      <Save className="h-4 w-4 mr-2" />
-                      Done
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </Button>
-                  ) : (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => startEditingUser(user.userId)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))
@@ -160,6 +196,16 @@ export function UserList({
           )}
         </TableBody>
       </Table>
+
+      {userToDelete && (
+        <DeleteUserDialog
+          isOpen={!!userToDelete}
+          onClose={() => setUserToDelete(null)}
+          onConfirm={confirmDeleteUser}
+          userName={getUserDisplayName(userToDelete)}
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   );
 }

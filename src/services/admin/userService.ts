@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -624,7 +623,145 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
   }
 }
 
+/**
+ * Delete a user account (admin only)
+ * @param userId - The ID of the user to delete
+ * @returns Promise<boolean> - True if the user was deleted successfully
+ */
+export async function deleteUserAccount(userId: string): Promise<boolean> {
+  try {
+    const adminStatus = await isAdmin();
+    if (!adminStatus) {
+      toast.error("Access denied", { description: "You don't have permission to delete user accounts" });
+      return false;
+    }
+    
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
+    if (!accessToken) {
+      console.error('No access token available');
+      throw new Error('Authentication required');
+    }
+    
+    console.log(`Admin deleting user account: ${userId}`);
+    
+    // Delete all user data from various tables
+    try {
+      // Delete user's subscriptions
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (subscriptionError) {
+        console.error('Error deleting user subscriptions:', subscriptionError);
+      }
+      
+      // Delete user's project documents
+      const { error: documentsError } = await supabase
+        .from('project_documents')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (documentsError) {
+        console.error('Error deleting user documents:', documentsError);
+      }
+      
+      // Delete user's proposal sections
+      const { error: sectionsError } = await supabase
+        .from('proposal_sections')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (sectionsError) {
+        console.error('Error deleting user proposal sections:', sectionsError);
+      }
+      
+      // Delete user's projects
+      const { error: projectsError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (projectsError) {
+        console.error('Error deleting user projects:', projectsError);
+      }
+      
+      // Delete user's knowledge entries
+      const { error: entriesError } = await supabase
+        .from('knowledge_entries')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (entriesError) {
+        console.error('Error deleting user knowledge entries:', entriesError);
+      }
+      
+      // Delete user's roles
+      const { error: rolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (rolesError) {
+        console.error('Error deleting user roles:', rolesError);
+      }
+      
+      // Delete user's profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('profile_id', userId);
+        
+      if (profileError) {
+        console.error('Error deleting user profile:', profileError);
+      }
+      
+      // Finally, delete the user from auth.users using an edge function with admin privileges
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (error) {
+        console.error('Error deleting user auth record:', error);
+        throw error;
+      }
+      
+      if (!data?.success) {
+        console.error('Failed to delete user auth record:', data?.error);
+        throw new Error(data?.error || 'Failed to delete user account');
+      }
+      
+      toast.success("User account deleted successfully");
+      return true;
+    } catch (error) {
+      console.error('Error in delete user operation:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in deleteUserAccount:', error);
+    
+    if (isNetworkError(error)) {
+      toast.error("Network error", { 
+        description: getNetworkErrorMessage(error)
+      });
+    } else {
+      toast.error("Failed to delete user account", { 
+        description: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+    
+    return false;
+  }
+}
+
 // Add aliases for compatibility
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
+export { deleteUserAccount };

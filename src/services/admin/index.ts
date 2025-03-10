@@ -19,7 +19,8 @@ import {
   checkUserRole,
   ensureUserRole,
   assignRoleByEmail,
-  updateUserSubscription
+  updateUserSubscription,
+  deleteUserAccount
 } from './userService';
 
 // Re-export types
@@ -56,5 +57,8 @@ export const adminService = {
   updateUserSubscription,
   
   // User-email operations
-  assignRoleByEmail
+  assignRoleByEmail,
+  
+  // User account management
+  deleteUserAccount
 };

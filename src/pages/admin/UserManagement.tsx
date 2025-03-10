@@ -25,6 +25,7 @@ interface UserManagementProps {
   handleAssignRole: (userId: string, role: UserRole) => Promise<boolean>;
   handleRemoveRole: (userId: string, role: UserRole) => Promise<boolean>;
   handleUpdateSubscription: (userId: string, plan: string, status: string) => Promise<void>;
+  handleDeleteUser: (userId: string) => Promise<void>;
   loadUsers: () => Promise<void>;
 }
 
@@ -50,6 +51,7 @@ export function UserManagement({
   handleAssignRole,
   handleRemoveRole,
   handleUpdateSubscription,
+  handleDeleteUser,
   loadUsers
 }: UserManagementProps) {
   return (
@@ -88,6 +90,7 @@ export function UserManagement({
             handleAssignRole={handleAssignRole}
             handleRemoveRole={handleRemoveRole}
             handleUpdateSubscription={handleUpdateSubscription}
+            handleDeleteUser={handleDeleteUser}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />

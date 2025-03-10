@@ -125,6 +125,7 @@ export default function AdminDashboard() {
             handleAssignRole={handleAssignRole}
             handleRemoveRole={handleRemoveRole}
             handleUpdateSubscription={handleUpdateSubscription}
+            handleDeleteUser={handleDeleteUser}
             loadUsers={loadUsers}
           />
         </TabsContent>

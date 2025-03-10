@@ -114,3 +114,5 @@ VITE_CONTENT_SECURITY_POLICY=strict
 4. **Production Deployments**: Set variables through your deployment platform's environment variable interface.
 
 5. **Type Definitions**: Update `vite-env.d.ts` when adding new environment variables to maintain type safety.
+
+6. **Email Delivery**: The email system now sends to actual recipients in both development and production environments. No test mode redirection is used.

@@ -176,21 +176,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Determine if we're in development/testing mode or production
-    const isDevMode = Deno.env.get('NODE_ENV') !== 'production';
-    
-    // Determine whether to use actual recipients or redirect to verified email
-    let recipients;
-    
-    // If forceRealRecipient is set or we're in production mode, use actual recipients
-    if (payload.forceRealRecipient === true || !isDevMode) {
-      recipients = payload.to;  // Use the actual recipient
-      console.log('Using actual email recipients:', recipients);
-    } else {
-      // In dev mode without force flag, redirect to verified email
-      recipients = [RESEND_VERIFIED_EMAIL];
-      console.log(`⚠️ DEV MODE: Redirecting email from [${payload.to.join(', ')}] to verified email [${RESEND_VERIFIED_EMAIL}]`);
-    }
+    // Always use the actual recipient email addresses
+    // We completely disable the test mode redirection
+    const recipients = payload.to;
+    console.log('Using email recipients:', recipients);
     
     // Send the email via Resend
     const emailOptions = {
@@ -226,14 +215,12 @@ Deno.serve(async (req) => {
 
     console.log('Email sent successfully:', data);
     
-    // Add debugging info to response
+    // Add response data
     const responseData = {
       success: true,
       id: data?.id,
       requestId: requestId,
-      sentTo: recipients,
-      wasRedirected: recipients.toString() !== payload.to.toString(),
-      originalRecipients: payload.to
+      sentTo: recipients
     };
 
     return new Response(

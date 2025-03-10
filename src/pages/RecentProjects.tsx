@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -16,7 +15,6 @@ export default function RecentProjects() {
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
   
-  // Only proceed with data fetching once authentication state is stable
   useEffect(() => {
     if (!loading) {
       setAuthReady(true);
@@ -31,20 +29,21 @@ export default function RecentProjects() {
     exportProjects,
     canCreateProject,
     pagination,
+    projectCount,
+    projectLimit,
     refetch
   } = useProjects(authReady ? session?.user || null : null);
   
   const { hasFeature, plan } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
   
-  // Get the current plan's project limit for displaying in the UI
-  const currentPlanLimit = plan ? 
-    SUBSCRIPTION_PLAN_LIMITS[plan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || 
-    SUBSCRIPTION_PLAN_LIMITS.trial : 
-    SUBSCRIPTION_PLAN_LIMITS.trial;
+  useEffect(() => {
+    if (plan) {
+      console.log(`Current plan: ${plan} with project limit: ${projectLimit}`);
+    }
+  }, [plan, projectLimit]);
 
   useEffect(() => {
-    // Reset to first page when component mounts
     pagination.setCurrentPage(1);
   }, []);
 
@@ -56,7 +55,6 @@ export default function RecentProjects() {
     }
   };
   
-  // Show loading state if auth is still being determined
   if (loading) {
     return (
       <div className="container py-10 space-y-8">
@@ -70,7 +68,6 @@ export default function RecentProjects() {
     );
   }
   
-  // Check if we have auth issues
   if (!session?.user) {
     return (
       <div className="container py-10 space-y-8">
@@ -92,8 +89,8 @@ export default function RecentProjects() {
     <div className="container py-10 space-y-8">
       <ProjectsHeader 
         canCreateProject={canCreateProject} 
-        currentPlanLimit={currentPlanLimit}
-        projectCount={projects?.length || 0}
+        currentPlanLimit={projectLimit}
+        projectCount={projectCount}
       />
 
       {isLoading ? (
@@ -117,7 +114,7 @@ export default function RecentProjects() {
               Create your first project to start generating proposal drafts and analyzing RFPs.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Your current plan allows up to {currentPlanLimit} projects.
+              Your current plan allows up to {projectLimit} projects.
             </p>
           </div>
           <Button onClick={() => navigate("/upload-rfp")}>

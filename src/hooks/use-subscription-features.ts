@@ -1,4 +1,3 @@
-
 import { useSubscription } from "./use-subscription";
 import { useCallback, useEffect, useState } from "react";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
@@ -127,11 +126,15 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
         return projectLimitCache.get(cacheKey) as number;
       }
       
+      // Check if subscription has a specific project_limit value
       if (subscription?.project_limit) {
         limit = subscription.project_limit;
       } else {
         // Use the constants defined in types
         limit = SUBSCRIPTION_PLAN_LIMITS[currentPlan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || SUBSCRIPTION_PLAN_LIMITS.trial;
+        
+        // Log for debugging
+        console.log(`Using plan limit from constants: ${currentPlan} -> ${limit}`);
       }
       
       // Cache the result

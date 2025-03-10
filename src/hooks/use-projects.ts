@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -27,7 +26,6 @@ export function useProjects(user: User | null) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   
-  // Ensure user state is properly tracked
   useEffect(() => {
     if (user?.id) {
       console.log("User authenticated:", user.id);
@@ -36,7 +34,6 @@ export function useProjects(user: User | null) {
     }
   }, [user]);
 
-  // Implement a cached fetching function
   const fetchProjects = useCallback(async ({ currentPage, pageSize, userId }: { 
     currentPage: number;
     pageSize: number;
@@ -51,12 +48,10 @@ export function useProjects(user: User | null) {
         return { data: [], totalCount: 0 };
       }
       
-      // Artificial delay removed for production but kept for development feedback
       if (process.env.NODE_ENV === 'development') {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // First, get the total count
       const { count, error: countError } = await supabase
         .from("projects")
         .select("*", { count: "exact", head: true })
@@ -70,11 +65,9 @@ export function useProjects(user: User | null) {
       const totalCount = count || 0;
       console.log("Total project count:", totalCount);
 
-      // Calculate range for pagination
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Then fetch the paginated data
       const { data, error } = await supabase
         .from("projects")
         .select(`
@@ -128,11 +121,10 @@ export function useProjects(user: User | null) {
     enabled: !!user?.id,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
-    staleTime: 60000, // Cache data for 1 minute
-    gcTime: 300000,   // Keep unused data in cache for 5 minutes
+    staleTime: 60000,
+    gcTime: 300000,
   });
 
-  // Log any errors for debugging
   useEffect(() => {
     if (error) {
       console.error("Projects query error:", error);
@@ -141,11 +133,9 @@ export function useProjects(user: User | null) {
 
   const projects = projectsData || [];
 
-  // Debounced function for page size changes to prevent multiple queries
   const debouncedSetPageSize = useCallback(
     debounce((size: number) => {
       setPageSize(size);
-      // Return to first page when changing page size
       setCurrentPage(1);
     }, 300),
     []
@@ -153,7 +143,6 @@ export function useProjects(user: User | null) {
 
   const deleteProject = async (projectId: string) => {
     try {
-      // First, backup the project data before deletion
       const { data: projectData } = await supabase
         .from("projects")
         .select("*")
@@ -161,7 +150,6 @@ export function useProjects(user: User | null) {
         .single();
 
       if (projectData) {
-        // Create a backup entry in local storage
         const backups = JSON.parse(localStorage.getItem("project_backups") || "{}");
         backups[projectId] = {
           data: projectData,
@@ -170,7 +158,6 @@ export function useProjects(user: User | null) {
         localStorage.setItem("project_backups", JSON.stringify(backups));
       }
 
-      // Then delete the project
       const { error } = await supabase
         .from("projects")
         .delete()
@@ -201,7 +188,6 @@ export function useProjects(user: User | null) {
         return;
       }
 
-      // Fetch all projects for export
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -215,10 +201,8 @@ export function useProjects(user: User | null) {
         return;
       }
 
-      // Format data for export
       const exportData = JSON.stringify(data, null, 2);
       
-      // Create a blob and download link
       const blob = new Blob([exportData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -227,10 +211,9 @@ export function useProjects(user: User | null) {
       document.body.appendChild(a);
       a.click();
       
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);  // Corrected from revoObjectURL to revokeObjectURL
+        URL.revokeObjectURL(url);
       }, 100);
       
       toast.success(`Successfully exported ${data.length} projects`);
@@ -243,6 +226,10 @@ export function useProjects(user: User | null) {
   const projectLimit = getProjectLimit();
   const projectCount = totalCount;
   const canCreateProject = projectCount < projectLimit;
+
+  useEffect(() => {
+    console.log(`Project limits: ${projectCount}/${projectLimit}`);
+  }, [projectCount, projectLimit]);
 
   return {
     projects,
@@ -259,7 +246,7 @@ export function useProjects(user: User | null) {
       pageSize,
       totalCount,
       setCurrentPage,
-      setPageSize: debouncedSetPageSize, // Use debounced version
+      setPageSize: debouncedSetPageSize,
     }
   };
 }

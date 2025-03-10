@@ -80,6 +80,7 @@ serve(async (req) => {
 
     let plan = 'trial';
     let isActive = false;
+    let projectLimit = 3; // Default to trial limit
     
     if (subscription) {
       console.log('Found subscription:', subscription);
@@ -87,8 +88,23 @@ serve(async (req) => {
       
       if (subscription.plan_type.includes('starter')) {
         plan = 'starter';
+        projectLimit = 10; // Starter users get 10 projects
       } else if (subscription.plan_type.includes('pro')) {
         plan = 'pro';
+        projectLimit = 30; // Pro users get 30 projects
+      }
+      
+      // If there's a specific project_limit in the subscription, use that
+      if (subscription.project_limit) {
+        projectLimit = subscription.project_limit;
+      }
+      
+      // Make sure plan_type is clearly set for frontend
+      subscription.plan_type = plan;
+      
+      // Ensure project_limit is included
+      if (!subscription.project_limit) {
+        subscription.project_limit = projectLimit;
       }
     } else {
       console.log('No subscription found for user:', user.id);
@@ -97,6 +113,7 @@ serve(async (req) => {
     console.log('Subscription check result:', { 
       subscribed: isActive, 
       plan, 
+      projectLimit,
       userEmail: user.email || 'Not available',
       userId: user.id 
     });

@@ -35,7 +35,7 @@ export interface SubscriptionContextType {
   loading: boolean;
   isLoading: boolean;
   error: Error | null;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: (forceRecheck?: boolean) => Promise<void>;
   renewSubscription: () => Promise<{ url?: string; success?: boolean; error?: any }>;
   isPastGracePeriod: () => boolean;
   isInGracePeriod: () => boolean;

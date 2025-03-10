@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, ArrowLeft } from "lucide-react";
@@ -8,6 +8,7 @@ import { UserManagement } from "./admin/UserManagement";
 import { BetaInvitations } from "./admin/BetaInvitations";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useUserRoles } from "@/hooks/user-roles";
 
 /**
  * AdminDashboard provides an interface for administrators to manage users,
@@ -15,6 +16,7 @@ import { useNavigate } from "react-router-dom";
  */
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { isAdmin: directIsAdmin, forceRoleCheck } = useUserRoles();
   const {
     isAdmin,
     isLoading,
@@ -44,6 +46,20 @@ export default function AdminDashboard() {
     loadInvitations
   } = useAdminDashboard();
 
+  // Force a role check when the component mounts
+  useEffect(() => {
+    console.log("AdminDashboard - Forcing role check");
+    forceRoleCheck();
+  }, [forceRoleCheck]);
+
+  // Debug admin status
+  useEffect(() => {
+    console.log("AdminDashboard - Admin status:", { 
+      directIsAdmin, 
+      hookIsAdmin: isAdmin 
+    });
+  }, [directIsAdmin, isAdmin]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -69,8 +85,9 @@ export default function AdminDashboard() {
     );
   }
 
-  // Access denied state
-  if (!isAdmin) {
+  // Access denied state - use both admin checks for better reliability
+  const hasAccess = isAdmin || directIsAdmin;
+  if (!hasAccess) {
     return (
       <div className="container mx-auto py-10">
         <Alert variant="destructive" className="max-w-xl mx-auto">
@@ -79,6 +96,11 @@ export default function AdminDashboard() {
           <AlertDescription>
             You don't have permission to access the admin dashboard.
             If you believe this is an error, please ensure your account has the admin role assigned.
+            <div className="mt-4">
+              <Button variant="outline" onClick={forceRoleCheck}>
+                Retry Permission Check
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       </div>

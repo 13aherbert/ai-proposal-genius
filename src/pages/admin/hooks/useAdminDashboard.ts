@@ -4,14 +4,16 @@ import { adminService } from '@/services/admin';
 import { UserProfile, UserRole, BetaInvitation } from '@/services/admin/types';
 import { useUserRoles } from '@/hooks/user-roles';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useAdminDashboard() {
   // Role checks
-  const { isAdmin, forceRoleCheck } = useUserRoles();
+  const { isAdmin: userRolesAdmin, forceRoleCheck } = useUserRoles();
   
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // User management state
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -27,12 +29,41 @@ export function useAdminDashboard() {
   const [invitations, setInvitations] = useState<BetaInvitation[]>([]);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   
+  // Check admin status using multiple methods for reliability
+  const checkAdminStatus = useCallback(async () => {
+    try {
+      console.log("useAdminDashboard - Checking admin status");
+      
+      // Method 1: Use userRoles hook value
+      const fromUserRolesHook = userRolesAdmin;
+      console.log("Admin status from userRoles hook:", fromUserRolesHook);
+      
+      // Method 2: Direct RPC call (most reliable)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('is_admin');
+      console.log("Admin status from direct RPC:", { result: rpcResult, error: rpcError });
+      
+      // Method 3: Admin service method
+      const fromAdminService = await adminService.isAdmin();
+      console.log("Admin status from adminService:", fromAdminService);
+      
+      // Use the most reliable result (direct RPC)
+      const isAdminUser = !!rpcResult;
+      
+      setIsAdmin(isAdminUser);
+      return isAdminUser;
+    } catch (err) {
+      console.error('Error checking admin status:', err);
+      return false;
+    }
+  }, [userRolesAdmin]);
+  
   // Load user data on initial render
   useEffect(() => {
     const initialize = async () => {
       try {
         // First check if the user has admin role
-        const adminCheck = await adminService.isAdmin();
+        const adminCheck = await checkAdminStatus();
+        console.log("Initial admin check result:", adminCheck);
         
         if (!adminCheck) {
           setIsLoading(false);
@@ -53,6 +84,13 @@ export function useAdminDashboard() {
     
     initialize();
   }, []);
+  
+  // Re-check admin status when userRolesAdmin changes
+  useEffect(() => {
+    if (!isLoading) {
+      checkAdminStatus();
+    }
+  }, [userRolesAdmin, isLoading, checkAdminStatus]);
   
   // Load users data
   const loadUsers = useCallback(async () => {
@@ -178,7 +216,8 @@ export function useAdminDashboard() {
     loadUsers,
     invitations,
     isLoadingInvitations,
-    loadInvitations
+    loadInvitations,
+    checkAdminStatus
   };
 }
 

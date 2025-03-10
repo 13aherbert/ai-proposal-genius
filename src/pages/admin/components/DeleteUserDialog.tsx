@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,6 @@ export function DeleteUserDialog({
   userName,
   isDeleting
 }: DeleteUserDialogProps) {
-  
   const handleConfirm = async () => {
     await onConfirm();
   };

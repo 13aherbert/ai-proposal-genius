@@ -15,7 +15,25 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json()
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid request body. Make sure to send a valid JSON object with userId.' 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const { userId } = body || {};
 
     if (!userId) {
       return new Response(
@@ -26,6 +44,8 @@ serve(async (req) => {
         }
       )
     }
+
+    console.log(`Received request to delete user: ${userId}`);
 
     // Create a Supabase client with the service role key to bypass RLS
     const supabaseAdmin = createClient(
@@ -67,6 +87,7 @@ serve(async (req) => {
     const { data: user, error: userError } = await authClient.auth.getUser(token)
 
     if (userError || !user.user) {
+      console.error('Auth verification error:', userError);
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid auth credentials' }),
         {
@@ -80,6 +101,7 @@ serve(async (req) => {
     const { data: adminCheck, error: adminCheckError } = await supabaseAdmin.rpc('is_admin_direct')
 
     if (adminCheckError || !adminCheck) {
+      console.error('Admin check error:', adminCheckError);
       return new Response(
         JSON.stringify({ success: false, error: 'Access denied - admin role required' }),
         {
@@ -100,11 +122,13 @@ serve(async (req) => {
       )
     }
 
+    console.log(`Admin ${user.user.email} is attempting to delete user ${userId}`);
+
     // Delete the user
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (deleteError) {
-      console.error('Error deleting user:', deleteError)
+      console.error('Error deleting user:', deleteError);
       return new Response(
         JSON.stringify({ success: false, error: deleteError.message }),
         {
@@ -114,6 +138,7 @@ serve(async (req) => {
       )
     }
 
+    console.log(`User ${userId} successfully deleted`);
     return new Response(
       JSON.stringify({ success: true }),
       {
@@ -122,9 +147,9 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in admin-delete-user function:', error)
+    console.error('Error in admin-delete-user function:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error.message || 'Unknown error occurred' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

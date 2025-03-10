@@ -38,6 +38,7 @@ export function DeleteUserDialog({
         await onConfirm();
         toast.dismiss(toastId);
         toast.success("User account deleted successfully");
+        onClose();
       } catch (err) {
         toast.dismiss(toastId);
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";

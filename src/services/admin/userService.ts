@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -723,17 +722,14 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
       
       console.log("Calling admin-delete-user edge function with:", { userId });
       
-      // Send both as URL parameter and in the body for maximum compatibility
-      const url = new URL(`${supabase.functions.url}/admin-delete-user`);
-      url.searchParams.set('userId', userId);
-      
+      // Call the edge function with proper JSON body
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: { userId }
+        body: JSON.stringify({ userId })
       });
       
       console.log("Edge function response:", data, error);
@@ -775,3 +771,4 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
+

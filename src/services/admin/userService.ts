@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -649,8 +648,8 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
     
     console.log(`Admin deleting user account: ${userId}`);
     
-    // Delete all user data from various tables
     try {
+      // Delete user's data from various tables first
       // Delete user's subscriptions
       const { error: subscriptionError } = await supabase
         .from('subscriptions')
@@ -721,17 +720,14 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
         console.error('Error deleting user profile:', profileError);
       }
       
-      // Finally, delete the user from auth.users using an edge function with admin privileges
       console.log("Calling admin-delete-user edge function with:", { userId });
       
-      // The key fix: Use a simple object with userId property as the body
-      // The Supabase client automatically stringifies this object
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId },
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
       });
       
       console.log("Edge function response:", data, error);

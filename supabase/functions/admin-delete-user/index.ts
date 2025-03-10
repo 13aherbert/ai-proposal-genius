@@ -15,80 +15,14 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Request received:", {
-      method: req.method,
-      headers: Object.fromEntries(req.headers.entries()),
-      url: req.url
-    });
-    
-    // Log the raw request body
-    const clonedRequest = req.clone();
-    const rawBody = await clonedRequest.text();
-    console.log("Raw request body:", rawBody);
-    
     // Parse request body
-    let body;
-    try {
-      // If we have raw body content, parse it
-      if (rawBody && rawBody.trim()) {
-        try {
-          body = JSON.parse(rawBody);
-          console.log("Successfully parsed JSON body:", body);
-        } catch (jsonError) {
-          console.log("Raw body isn't valid JSON, using as-is");
-          // Try to extract userId from raw string if it contains it
-          if (rawBody.includes('userId')) {
-            const match = rawBody.match(/"userId"\s*:\s*"([^"]+)"/);
-            if (match && match[1]) {
-              body = { userId: match[1] };
-              console.log("Extracted userId from raw body:", body);
-            }
-          }
-        }
-      } else {
-        // Try to get from URL search params if body is empty
-        const url = new URL(req.url);
-        const userId = url.searchParams.get('userId');
-        if (userId) {
-          body = { userId };
-          console.log("Retrieved userId from URL params:", body);
-        } else {
-          console.log("No body content and no URL params, trying original req.json()");
-          // Try the original req.json() as fallback
-          try {
-            body = await req.json();
-            console.log("Successfully parsed body via req.json():", body);
-          } catch (jsonError) {
-            console.error("Failed to parse body via req.json():", jsonError);
-            throw new Error("No valid userId found in request");
-          }
-        }
-      }
-    } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Invalid request body. Make sure to send a valid JSON object with userId.',
-          details: parseError.message,
-          rawBody: rawBody
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
-    }
-
-    const { userId } = body || {};
-    console.log("Extracted userId:", userId);
-
+    const { userId } = await req.json()
+    
     if (!userId) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'User ID is required',
-          receivedBody: body 
+          error: 'User ID is required' 
         }),
         {
           status: 400,

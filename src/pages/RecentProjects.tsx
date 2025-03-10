@@ -27,6 +27,7 @@ export default function RecentProjects() {
   // Ensure subscription data is fresh
   useEffect(() => {
     if (session?.user) {
+      console.log("RecentProjects: Checking subscription data");
       checkSubscription();
     }
   }, [session, checkSubscription]);

@@ -12,16 +12,19 @@ export function determineFeatureAccess(
   feature: FeatureName, 
   currentPlan: string
 ): boolean {
+  // Normalize the plan type to lowercase for consistent comparison
+  const normalizedPlan = currentPlan.toLowerCase();
+  
   // Pro tier has access to all features
-  if (currentPlan === 'pro') {
+  if (normalizedPlan === 'pro') {
     return true;
   }
   // Starter tier has access to basic features
-  else if (currentPlan === 'starter') {
+  else if (normalizedPlan === 'starter') {
     return ['rfp_summary', 'proposal_outline', 'proposal_draft', 'data_export'].includes(feature);
   }
   // Trial tier has access to RFP summary, proposal outline, and proposal draft
-  else if (currentPlan === 'trial') {
+  else if (normalizedPlan === 'trial') {
     return ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
   }
 
@@ -32,13 +35,16 @@ export function determineFeatureAccess(
  * Gets human-readable feature name for a given plan
  */
 export function getFeatureName(feature: FeatureName, currentPlan: string): string {
+  // Normalize the plan type to lowercase for consistent comparison
+  const normalizedPlan = currentPlan.toLowerCase();
+  
   switch (feature) {
     case 'rfp_summary':
       return 'Advanced AI RFP Summary';
     case 'proposal_outline':
       return 'Enhanced AI Proposal Outline';
     case 'proposal_draft':
-      return currentPlan === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
+      return normalizedPlan === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
     case 'compiled_draft':
       return 'Compiled Draft Preview';
     case 'evaluation':

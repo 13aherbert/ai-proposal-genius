@@ -84,13 +84,20 @@ serve(async (req) => {
     
     if (subscription) {
       console.log('Found subscription:', subscription);
+      console.log('Plan type:', subscription.plan_type);
+      console.log('Status:', subscription.status);
+      console.log('Current project limit:', subscription.project_limit);
+      
       isActive = subscription.status === 'active';
       
-      if (subscription.plan_type.includes('starter')) {
+      // Normalize the plan type to lowercase for consistent comparison
+      const normalizedPlanType = subscription.plan_type.toLowerCase();
+      
+      if (normalizedPlanType.includes('starter')) {
         plan = 'starter';
         projectLimit = 10; // Explicitly set starter users to get 10 projects
         console.log('Setting starter plan project limit to 10');
-      } else if (subscription.plan_type.includes('pro')) {
+      } else if (normalizedPlanType.includes('pro')) {
         plan = 'pro';
         projectLimit = 30; // Pro users get 30 projects
       }
@@ -108,16 +115,19 @@ serve(async (req) => {
         subscription.project_limit = projectLimit;
       } else {
         // For starter plans, override if the stored limit is incorrect (3 instead of 10)
-        if (plan === 'starter' && subscription.project_limit === 3) {
+        if (plan === 'starter' && subscription.project_limit !== 10) {
           subscription.project_limit = 10;
-          console.log('Corrected starter plan project limit from 3 to 10');
+          console.log('Corrected starter plan project limit from', subscription.project_limit, 'to 10');
           
           // Update the subscription record in the database with the correct limit
           try {
             console.log('Attempting to update subscription record with ID:', subscription.subscription_id);
             const { data: updateData, error: updateError } = await supabaseClient
               .from('subscriptions')
-              .update({ project_limit: 10 })
+              .update({ 
+                project_limit: 10,
+                plan_type: 'starter' // Ensure plan_type is lowercase 'starter'
+              })
               .eq('subscription_id', subscription.subscription_id)
               .select();
               
@@ -167,7 +177,7 @@ serve(async (req) => {
         error: error.message,
         debug: {
           timestamp: new Date().toISOString(),
-          version: '1.3'
+          version: '1.4' // Incremented version for tracking
         }
       }),
       { 

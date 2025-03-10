@@ -42,13 +42,20 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     console.log("useSubscriptionFeatures - Loading:", isLoading);
     console.log("useSubscriptionFeatures - Error:", error);
     console.log("useSubscriptionFeatures - Test mode:", isTestMode);
-    console.log("useSubscriptionFeatures - Plan type:", subscription?.plan_type);
     
-    // Special case: check to ensure starter plans have correct project limit
-    if (subscription?.plan_type === 'starter' && subscription?.project_limit !== 10) {
-      console.log("Detected incorrect project limit for starter plan. Refreshing subscription data.");
-      // Force a subscription check to correct the data
-      checkSubscription();
+    if (subscription) {
+      console.log("useSubscriptionFeatures - Plan type:", subscription.plan_type);
+      console.log("useSubscriptionFeatures - Project limit:", subscription.project_limit);
+      
+      // Special case: normalize plan type strings for comparison
+      const normalizedPlanType = subscription.plan_type.toLowerCase();
+      
+      // Check to ensure starter plans have correct project limit
+      if (normalizedPlanType === 'starter' && subscription.project_limit !== 10) {
+        console.log("Detected incorrect project limit for starter plan. Refreshing subscription data.");
+        // Force a subscription check to correct the data
+        checkSubscription();
+      }
     }
     
     // Debug features
@@ -92,7 +99,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       }
       
       console.log("Using subscription plan:", subscription.plan_type, "with status:", subscription.status);
-      currentPlan = subscription.plan_type || 'trial';
+      // Normalize the plan type to lowercase for consistent comparison
+      currentPlan = subscription.plan_type?.toLowerCase() || 'trial';
     }
     
     // Use cached value if available
@@ -126,7 +134,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     if (testMode) {
       limit = getTestProjectLimit();
     } else {
-      const currentPlan = subscription?.plan_type || 'trial';
+      // Normalize the plan type to lowercase for consistent comparison
+      const currentPlan = subscription?.plan_type?.toLowerCase() || 'trial';
       
       // Use cached value if available
       const cacheKey = `${currentPlan}-limit`;
@@ -142,6 +151,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
           limit = 10;
           if (subscription.project_limit !== 10) {
             console.log('Overriding stored starter plan project limit to correct value of 10');
+            // Trigger a subscription refresh to fix the database value
+            checkSubscription();
           }
         } else {
           limit = subscription.project_limit;
@@ -159,12 +170,12 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     }
     
     return limit;
-  }, [subscription, testMode]);
+  }, [subscription, testMode, checkSubscription]);
 
   const getPlanName = useCallback((feature: FeatureName): string => {
     const currentPlan = testMode 
       ? getTestPlan()
-      : subscription?.plan_type || 'trial';
+      : subscription?.plan_type?.toLowerCase() || 'trial';
       
     return getFeatureName(feature, currentPlan);
   }, [subscription, testMode]);
@@ -187,7 +198,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     getPlanName,
     isLoading: testMode ? false : isLoading,
     error: testMode ? null : error,
-    plan: testMode ? getTestPlan() : subscription?.plan_type,
+    plan: testMode ? getTestPlan() : subscription?.plan_type?.toLowerCase(),
     isTestMode: testMode,
     enableTestMode,
     disableTestMode

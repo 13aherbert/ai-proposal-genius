@@ -32,13 +32,22 @@ export function DeleteUserDialog({
   const handleConfirm = async () => {
     try {
       setError(null);
-      await onConfirm();
+      const toastId = toast.loading(`Deleting ${userName}'s account...`);
+      
+      try {
+        await onConfirm();
+        toast.dismiss(toastId);
+        toast.success("User account deleted successfully");
+      } catch (err) {
+        toast.dismiss(toastId);
+        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+        setError(errorMessage);
+        toast.error("Failed to delete user", { description: errorMessage });
+        console.error("Error in DeleteUserDialog.handleConfirm:", err);
+      }
     } catch (error) {
       console.error("Error in DeleteUserDialog.handleConfirm:", error);
       setError(error instanceof Error ? error.message : "An unknown error occurred");
-      toast.error("Failed to delete user", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
-      });
     }
   };
 

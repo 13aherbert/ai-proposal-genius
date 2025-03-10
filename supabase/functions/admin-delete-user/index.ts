@@ -15,14 +15,47 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    const { userId } = await req.json()
+    // Enhanced logging to debug the request
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    console.log("Request method:", req.method);
+    
+    // Get the URL from the request to check for query parameters
+    const url = new URL(req.url);
+    console.log("Request URL:", url.toString());
+    
+    let userId;
+    
+    // Try to parse the request body first
+    try {
+      const requestText = await req.text();
+      console.log("Raw request body:", requestText);
+      
+      if (requestText && requestText.trim() !== '') {
+        try {
+          const data = JSON.parse(requestText);
+          userId = data.userId;
+          console.log("Parsed userId from JSON body:", userId);
+        } catch (e) {
+          console.log("Could not parse JSON, checking for URL parameters");
+        }
+      }
+    } catch (e) {
+      console.log("Error reading request body:", e);
+    }
+    
+    // If userId is still not found, try URL parameters
+    if (!userId) {
+      userId = url.searchParams.get('userId');
+      if (userId) {
+        console.log("Using userId from URL parameters:", userId);
+      }
+    }
     
     if (!userId) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'User ID is required' 
+          error: 'User ID is required. Please provide it in the request body or as a URL parameter.' 
         }),
         {
           status: 400,

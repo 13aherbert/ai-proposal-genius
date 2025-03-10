@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,37 +34,31 @@ export function ProjectForm({
   isProcessing = false,
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
-  const [formFields, setFormFields] = useState([
-    { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: false },
+  
+  // Memoize the form fields to prevent unnecessary re-renders
+  const formFields = [
+    { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
     { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
     { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
-  ]);
+  ];
   
-  // Update form fields when props change
-  useEffect(() => {
-    setFormFields([
-      { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
-      { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
-      { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
-    ]);
-  }, [projectTitle, clientName, businessName, isTitleValid]);
-
-  const handleFormValidation = (isValid: boolean, validFields: string[]) => {
+  // Optimized form validation handler - only log when debugging is needed
+  const handleFormValidation = useCallback((isValid: boolean, validFields: string[]) => {
     // Form validation logic can be expanded here if needed
-    console.log("Form validation status:", isValid, "Valid fields:", validFields);
-  };
+    // console.log("Form validation status:", isValid, "Valid fields:", validFields);
+  }, []);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setProjectTitle(e.target.value);
-  };
+  }, [setProjectTitle]);
 
-  const handleClientNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setClientName(e.target.value);
-  };
+  }, [setClientName]);
 
-  const handleBusinessNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setBusinessName(e.target.value);
-  };
+  }, [setBusinessName]);
 
   return (
     <div className="space-y-6">
@@ -78,6 +72,8 @@ export function ProjectForm({
             placeholder="Enter a descriptive title for your project"
             rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
             onValidation={setIsTitleValid}
+            validateOnChange={true}
+            validateOnBlur={true}
             required
           />
 
@@ -118,6 +114,8 @@ export function ProjectForm({
             onChange={handleClientNameChange}
             placeholder="Enter the client or organization name"
             rules={[ValidationRules.maxLength(100)]}
+            validateOnChange={false}
+            validateOnBlur={true}
           />
 
           <ValidatedInput
@@ -127,6 +125,8 @@ export function ProjectForm({
             onChange={handleBusinessNameChange}
             placeholder="Enter your business or organization name"
             rules={[ValidationRules.maxLength(100)]}
+            validateOnChange={false}
+            validateOnBlur={true}
           />
         </div>
       </FormValidationGroup>

@@ -2,10 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
+
+// Memoize the UploadDropzone component to prevent unnecessary re-renders
+const MemoizedUploadDropzone = memo(UploadDropzone);
 
 const UploadRFP = () => {
   const navigate = useNavigate();
@@ -22,16 +25,20 @@ const UploadRFP = () => {
     updateProject,
   } = useRFPUpload();
 
-  const handleDrop = async (acceptedFiles: File[]) => {
+  const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       await handleFileUpload(file, deadline);
     }
-  };
+  }, [handleFileUpload, deadline]);
 
-  const handleUpdateProject = () => {
+  const handleUpdateProject = useCallback(() => {
     updateProject(projectTitle, deadline, clientName, businessName);
-  };
+  }, [updateProject, projectTitle, deadline, clientName, businessName]);
+
+  const handleNavigateBack = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -41,7 +48,7 @@ const UploadRFP = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/dashboard")}
+              onClick={handleNavigateBack}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -49,7 +56,7 @@ const UploadRFP = () => {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UploadDropzone
+            <MemoizedUploadDropzone
               onDrop={handleDrop}
               isUploading={isUploading}
               uploadProgress={uploadProgress}

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import React, { useState, useEffect, InputHTMLAttributes, TextareaHTMLAttributes, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -302,41 +301,41 @@ export const FormValidationGroup: React.FC<FormValidationGroupProps> = ({
   const [fieldStatus, setFieldStatus] = useState<Record<string, boolean>>({});
   
   useEffect(() => {
-    // Initialize field status
+    // Initialize field status only once
     const initialStatus: Record<string, boolean> = {};
     fields.forEach(field => {
       initialStatus[field.id] = field.isValid || false;
     });
     setFieldStatus(initialStatus);
-  }, []);
+  }, []); // Empty dependency array to run only once on mount
 
+  // Only trigger validation callback when fieldStatus actually changes
   useEffect(() => {
-    if (Object.keys(fieldStatus).length) {
+    if (Object.keys(fieldStatus).length && onValidation) {
       const isFormValid = Object.values(fieldStatus).every(Boolean) && 
                           Object.keys(fieldStatus).length === fields.length;
       const validFields = Object.entries(fieldStatus)
         .filter(([_, isValid]) => isValid)
         .map(([id]) => id);
       
-      if (onValidation) {
-        onValidation(isFormValid, validFields);
-      }
+      onValidation(isFormValid, validFields);
     }
-  }, [fieldStatus, fields]);
+  }, [fieldStatus, fields.length, onValidation]);
 
-  const handleFieldValidation = (id: string, isValid: boolean) => {
-    setFieldStatus(prev => ({
-      ...prev,
-      [id]: isValid
-    }));
-  };
+  // Memoized handler for field validation to reduce function creation
+  const handleFieldValidation = useCallback((id: string, isValid: boolean) => {
+    setFieldStatus(prev => {
+      // Only update if the value actually changed
+      if (prev[id] === isValid) return prev;
+      return { ...prev, [id]: isValid };
+    });
+  }, []);
 
-  // We need to modify how we add props to children
+  // Clone children with validation props more efficiently
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
       const fieldId = child.props.id;
       if (fieldId && fields.some(f => f.id === fieldId)) {
-        // Clone with a properly typed onValidation prop
         return React.cloneElement(child, {
           onValidation: (isValid: boolean) => handleFieldValidation(fieldId, isValid)
         } as any);

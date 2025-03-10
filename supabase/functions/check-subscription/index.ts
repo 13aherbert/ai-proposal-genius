@@ -114,15 +114,17 @@ serve(async (req) => {
           
           // Update the subscription record in the database with the correct limit
           try {
-            const { error: updateError } = await supabaseClient
+            console.log('Attempting to update subscription record with ID:', subscription.subscription_id);
+            const { data: updateData, error: updateError } = await supabaseClient
               .from('subscriptions')
               .update({ project_limit: 10 })
-              .eq('subscription_id', subscription.subscription_id);
+              .eq('subscription_id', subscription.subscription_id)
+              .select();
               
             if (updateError) {
               console.error('Error updating subscription project limit:', updateError);
             } else {
-              console.log('Successfully updated project limit in database to 10');
+              console.log('Successfully updated project limit in database to 10. Updated data:', updateData);
             }
           } catch (updateError) {
             console.error('Exception updating subscription:', updateError);
@@ -165,7 +167,7 @@ serve(async (req) => {
         error: error.message,
         debug: {
           timestamp: new Date().toISOString(),
-          version: '1.2'
+          version: '1.3'
         }
       }),
       { 

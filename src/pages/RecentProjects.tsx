@@ -10,17 +10,26 @@ import { useProjects } from "@/hooks/use-projects";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export default function RecentProjects() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);
+  const { checkSubscription } = useSubscription();
   
   useEffect(() => {
     if (!loading) {
       setAuthReady(true);
     }
   }, [loading]);
+  
+  // Ensure subscription data is fresh
+  useEffect(() => {
+    if (session?.user) {
+      checkSubscription();
+    }
+  }, [session, checkSubscription]);
   
   const { 
     projects, 
@@ -35,14 +44,20 @@ export default function RecentProjects() {
     refetch
   } = useProjects(authReady ? session?.user || null : null);
   
-  const { hasFeature, plan } = useSubscriptionFeatures();
+  const { hasFeature, plan, getProjectLimit } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
+  
+  // Get the correct project limit directly from useSubscriptionFeatures
+  const correctProjectLimit = getProjectLimit();
   
   useEffect(() => {
     if (plan) {
-      console.log(`Current plan: ${plan} with project limit: ${projectLimit}`);
+      console.log(`Current plan: ${plan} with project limit: ${correctProjectLimit}`);
+      if (projectLimit !== correctProjectLimit) {
+        console.log(`Project limit mismatch: ${projectLimit} vs ${correctProjectLimit}`);
+      }
     }
-  }, [plan, projectLimit]);
+  }, [plan, projectLimit, correctProjectLimit]);
 
   useEffect(() => {
     pagination.setCurrentPage(1);
@@ -90,7 +105,7 @@ export default function RecentProjects() {
     <div className="container py-10 space-y-8">
       <ProjectsHeader 
         canCreateProject={canCreateProject} 
-        currentPlanLimit={projectLimit}
+        currentPlanLimit={correctProjectLimit} 
         projectCount={projectCount}
       />
 
@@ -115,7 +130,7 @@ export default function RecentProjects() {
               Create your first project to start generating proposal drafts and analyzing RFPs.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Your current plan allows up to {projectLimit} projects.
+              Your current plan allows up to {correctProjectLimit} projects.
             </p>
           </div>
           <Button onClick={() => navigate("/upload-rfp")}>

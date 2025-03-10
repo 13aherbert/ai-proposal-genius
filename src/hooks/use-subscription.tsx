@@ -42,8 +42,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
+  const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
 
-  const checkSubscription = async () => {
+  const checkSubscription = async (forceRecheck = false) => {
     try {
       if (!session?.user) {
         console.log("No active session, clearing subscription data");
@@ -53,15 +54,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      if (subscriptionChecked && subscription) {
-        console.log("Subscription already checked, skipping redundant fetch");
+      if (subscriptionChecked && subscription && !forceRecheck) {
+        console.log("Subscription already checked, skipping redundant fetch. Use forceRecheck=true to override.");
         return;
       }
 
       console.log("Checking subscription for user:", session.user.id, session.user.email);
       setLoading(true);
+      setError(null); // Clear any previous errors
 
-      // Query subscriptions table directly
+      // Query subscriptions table directly with no-cache headers
       const { data: directData, error: directError } = await supabase
         .from('subscriptions')
         .select('*')
@@ -115,6 +117,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           cancel_at_period_end: directData.cancel_at_period_end || false
         };
         
+        // For starter plans, ensure the project limit is set to 10
+        if (validatedData.plan_type === 'starter' && validatedData.project_limit !== 10) {
+          console.log(`Correcting starter plan project limit locally from ${validatedData.project_limit} to 10`);
+          validatedData.project_limit = 10;
+        }
+        
         console.log("Processed subscription data:", validatedData);
         setSubscription(validatedData);
         setInitialFetchCompleted(true);
@@ -129,6 +137,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } catch (e) {
       console.error('Error fetching subscription:', e);
       setError(e as Error);
+      // Don't stop loading on error if we haven't completed initial fetch
+      if (initialFetchCompleted) {
+        setLoading(false);
+      }
     } finally {
       setLoading(false);
       setSubscriptionChecked(true);
@@ -167,7 +179,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       );
       
       if (result.success) {
-        await checkSubscription();
+        // Force a recheck of subscription
+        setForceRecheckFlag(prev => prev + 1);
+        await checkSubscription(true);
       }
       
       return result;
@@ -195,6 +209,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session]);
 
+  // Force recheck on flag change
+  useEffect(() => {
+    if (forceRecheckFlag > 0 && session?.user) {
+      console.log("Force rechecking subscription");
+      checkSubscription(true);
+    }
+  }, [forceRecheckFlag]);
+
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -204,7 +226,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (paymentStatus === 'failed' && paymentIntent) {
         console.log("Payment status detected in URL:", paymentStatus);
         
-        await checkSubscription();
+        await checkSubscription(true);
         
         const checkTimes = [1000, 3000, 5000];
         
@@ -212,6 +234,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           setTimeout(() => {
             console.log(`Follow-up subscription check after ${delay}ms`);
             setLastRefresh(Date.now());
+            setForceRecheckFlag(prev => prev + 1);
           }, delay);
         });
       }
@@ -228,7 +251,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         loading,
         isLoading: loading,
         error,
-        checkSubscription,
+        checkSubscription: () => checkSubscription(true),
         renewSubscription,
         isPastGracePeriod: checkIsPastGracePeriod,
         isInGracePeriod: checkIsInGracePeriod,

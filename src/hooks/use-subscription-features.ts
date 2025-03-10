@@ -24,7 +24,7 @@ import {
 export type { FeatureName } from "./subscription/subscription-features-types";
 
 export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
-  const { data: subscription, isLoading, error } = useSubscription();
+  const { data: subscription, isLoading, error, checkSubscription } = useSubscription();
   const [testMode, setTestMode] = useState<boolean>(false);
   
   useEffect(() => {
@@ -44,11 +44,18 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     console.log("useSubscriptionFeatures - Test mode:", isTestMode);
     console.log("useSubscriptionFeatures - Plan type:", subscription?.plan_type);
     
+    // Special case: check to ensure starter plans have correct project limit
+    if (subscription?.plan_type === 'starter' && subscription?.project_limit !== 10) {
+      console.log("Detected incorrect project limit for starter plan. Refreshing subscription data.");
+      // Force a subscription check to correct the data
+      checkSubscription();
+    }
+    
     // Debug features
     if (subscription?.features) {
       console.log("useSubscriptionFeatures - Features:", subscription.features);
     }
-  }, [subscription, isLoading, error, testMode]);
+  }, [subscription, isLoading, error, testMode, checkSubscription]);
 
   // Clear feature cache when subscription changes
   useEffect(() => {
@@ -130,10 +137,12 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // Check if subscription has a specific project_limit value
       if (subscription?.project_limit) {
         console.log(`Using project limit from subscription: ${subscription.project_limit}`);
-        // For starter plans, make sure we're using the correct limit (10, not 3)
-        if (currentPlan === 'starter' && subscription.project_limit === 3) {
+        // For starter plans, ensure the limit is 10
+        if (currentPlan === 'starter') {
           limit = 10;
-          console.log('Correcting starter plan project limit from 3 to 10');
+          if (subscription.project_limit !== 10) {
+            console.log('Overriding stored starter plan project limit to correct value of 10');
+          }
         } else {
           limit = subscription.project_limit;
         }

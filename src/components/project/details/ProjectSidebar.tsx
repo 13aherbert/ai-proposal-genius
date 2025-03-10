@@ -56,9 +56,17 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     if (!feature || hasFeature(feature)) {
       onSectionChange(sectionId);
     } else {
+      // Determine the required plan based on the feature
+      const requiredPlan = 
+        feature === "compiled_draft" || feature === "evaluation" 
+          ? "Professional" 
+          : "Starter";
+      
+      // Show a more informative toast message
       toast.error(
-        `This feature is only available in the ${feature === "compiled_draft" || feature === "evaluation" ? "Professional" : "Starter"} plan`,
+        `This feature is only available in the ${requiredPlan} plan`,
         {
+          description: `Your current plan: ${plan || 'Trial'}`,
           action: {
             label: "Upgrade",
             onClick: () => window.location.href = "/subscription"
@@ -67,6 +75,16 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       );
     }
   };
+
+  // Debug information
+  console.log("Current plan:", plan);
+  console.log("Feature availability:", {
+    rfp_summary: hasFeature("rfp_summary"),
+    proposal_outline: hasFeature("proposal_outline"),
+    proposal_draft: hasFeature("proposal_draft"),
+    compiled_draft: hasFeature("compiled_draft"),
+    evaluation: hasFeature("evaluation")
+  });
 
   return (
     <div className="w-64 border-r bg-background p-4 space-y-2">

@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState } from "./role-check-utils";

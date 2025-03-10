@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_role_checks: {
+        Row: {
+          check_time: string
+          result: boolean
+          user_id: string
+        }
+        Insert: {
+          check_time: string
+          result: boolean
+          user_id: string
+        }
+        Update: {
+          check_time?: string
+          result?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       beta_invitations: {
         Row: {
           accepted_at: string | null
@@ -375,6 +393,12 @@ export type Database = {
         Args: {
           user_id_param: string
           role_param: string
+        }
+        Returns: boolean
+      }
+      direct_admin_check: {
+        Args: {
+          user_id_param: string
         }
         Returns: boolean
       }

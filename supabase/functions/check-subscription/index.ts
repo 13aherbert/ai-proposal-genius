@@ -88,7 +88,8 @@ serve(async (req) => {
       
       if (subscription.plan_type.includes('starter')) {
         plan = 'starter';
-        projectLimit = 10; // Starter users get 10 projects
+        projectLimit = 10; // Explicitly set starter users to get 10 projects
+        console.log('Setting starter plan project limit to 10');
       } else if (subscription.plan_type.includes('pro')) {
         plan = 'pro';
         projectLimit = 30; // Pro users get 30 projects
@@ -105,6 +106,12 @@ serve(async (req) => {
       // Ensure project_limit is included
       if (!subscription.project_limit) {
         subscription.project_limit = projectLimit;
+      } else {
+        // For starter plans, override if the stored limit is incorrect (3 instead of 10)
+        if (plan === 'starter' && subscription.project_limit === 3) {
+          subscription.project_limit = 10;
+          console.log('Corrected starter plan project limit from 3 to 10');
+        }
       }
     } else {
       console.log('No subscription found for user:', user.id);

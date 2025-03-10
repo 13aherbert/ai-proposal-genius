@@ -64,4 +64,3 @@ export const SUBSCRIPTION_PLAN_LIMITS = {
   starter: 10,  // Starter users get 10 projects 
   pro: 30      // Pro users get 30 projects
 };
-

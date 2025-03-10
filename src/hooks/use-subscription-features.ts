@@ -1,3 +1,4 @@
+
 import { useSubscription } from "./use-subscription";
 import { useCallback, useEffect, useState } from "react";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
@@ -128,7 +129,14 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       // Check if subscription has a specific project_limit value
       if (subscription?.project_limit) {
-        limit = subscription.project_limit;
+        console.log(`Using project limit from subscription: ${subscription.project_limit}`);
+        // For starter plans, make sure we're using the correct limit (10, not 3)
+        if (currentPlan === 'starter' && subscription.project_limit === 3) {
+          limit = 10;
+          console.log('Correcting starter plan project limit from 3 to 10');
+        } else {
+          limit = subscription.project_limit;
+        }
       } else {
         // Use the constants defined in types
         limit = SUBSCRIPTION_PLAN_LIMITS[currentPlan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || SUBSCRIPTION_PLAN_LIMITS.trial;

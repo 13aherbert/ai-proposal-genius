@@ -36,6 +36,15 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [isTitleValid, setIsTitleValid] = useState(false);
   
+  // Initialize title validity based on projectTitle
+  useEffect(() => {
+    if (projectTitle.trim().length > 0 && projectTitle.length <= 100) {
+      setIsTitleValid(true);
+    } else {
+      setIsTitleValid(false);
+    }
+  }, [projectTitle]);
+  
   // Use useMemo to avoid recreating the array on every render
   const formFields = useMemo(() => [
     { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
@@ -73,7 +82,7 @@ export function ProjectForm({
             placeholder="Enter a descriptive title for your project"
             rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
             onValidation={setIsTitleValid}
-            validateOnChange={false}
+            validateOnChange={true}
             validateOnBlur={true}
             required
           />
@@ -115,7 +124,7 @@ export function ProjectForm({
             onChange={handleClientNameChange}
             placeholder="Enter the client or organization name"
             rules={[ValidationRules.maxLength(100)]}
-            validateOnChange={false}
+            validateOnChange={true}
             validateOnBlur={true}
           />
 
@@ -126,7 +135,7 @@ export function ProjectForm({
             onChange={handleBusinessNameChange}
             placeholder="Enter your business or organization name"
             rules={[ValidationRules.maxLength(100)]}
-            validateOnChange={false}
+            validateOnChange={true}
             validateOnBlur={true}
           />
         </div>

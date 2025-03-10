@@ -1,32 +1,40 @@
+
 import { useSubscription } from "./use-subscription";
 import { useCallback, useEffect, useState } from "react";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { 
+  FeatureName, 
+  SubscriptionFeaturesResult 
+} from "./subscription/subscription-features-types";
+import { 
+  featureCache, 
+  projectLimitCache, 
+  determineFeatureAccess, 
+  getFeatureName, 
+  clearFeatureCaches 
+} from "./subscription/feature-access";
+import {
+  isTestModeEnabled,
+  getTestPlan,
+  enableTestMode as enableTestModeUtil,
+  disableTestMode as disableTestModeUtil,
+  getTestProjectLimit
+} from "./subscription/test-mode";
 
-export type FeatureName = 
-  | "rfp_summary" 
-  | "proposal_outline" 
-  | "proposal_draft" 
-  | "compiled_draft" 
-  | "evaluation"
-  | "data_export";
+export { FeatureName } from "./subscription/subscription-features-types";
 
-// Cache for feature availability to avoid recalculations
-const featureCache = new Map<string, boolean>();
-const projectLimitCache = new Map<string, number>();
-
-export function useSubscriptionFeatures() {
+export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const { data: subscription, isLoading, error } = useSubscription();
   const [testMode, setTestMode] = useState<boolean>(false);
   
   useEffect(() => {
     // Check if test mode is enabled from localStorage
-    const isTestMode = localStorage.getItem('test_mode') === 'true';
+    const isTestMode = isTestModeEnabled();
     setTestMode(isTestMode);
     
     // Clear cache when component mounts if test mode changes
     if (isTestMode !== testMode) {
-      featureCache.clear();
-      projectLimitCache.clear();
+      clearFeatureCaches();
     }
 
     // Log subscription data for debugging
@@ -48,8 +56,7 @@ export function useSubscriptionFeatures() {
       const cacheKey = `${subscription.subscription_id}-${subscription.plan_type}-${subscription.status}`;
       if (!featureCache.has(cacheKey)) {
         console.log("Clearing feature cache, subscription changed");
-        featureCache.clear();
-        projectLimitCache.clear();
+        clearFeatureCaches();
       }
     }
   }, [subscription]);
@@ -59,7 +66,7 @@ export function useSubscriptionFeatures() {
     let currentPlan: string;
     
     if (testMode) {
-      currentPlan = localStorage.getItem('test_plan') || 'trial';
+      currentPlan = getTestPlan();
       console.log("Using test plan:", currentPlan);
     } else {
       if (isLoading) {
@@ -89,20 +96,8 @@ export function useSubscriptionFeatures() {
       return cachedResult as boolean;
     }
     
-    let hasAccess = false;
-    
-    // Pro tier has access to all features
-    if (currentPlan === 'pro') {
-      hasAccess = true;
-    }
-    // Starter tier has access to basic features
-    else if (currentPlan === 'starter') {
-      hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft', 'data_export'].includes(feature);
-    }
-    // Trial tier now has access to RFP summary, proposal outline, and proposal draft
-    else if (currentPlan === 'trial') {
-      hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
-    }
+    // Determine if the user has access to this feature
+    const hasAccess = determineFeatureAccess(feature, currentPlan);
     
     // For development testing, enable all features
     if (process.env.NODE_ENV === 'development') {
@@ -122,7 +117,7 @@ export function useSubscriptionFeatures() {
     
     // If test mode is enabled, use the test project limit from localStorage
     if (testMode) {
-      limit = parseInt(localStorage.getItem('test_project_limit') || '3');
+      limit = getTestProjectLimit();
     } else {
       const currentPlan = subscription?.plan_type || 'trial';
       
@@ -148,43 +143,22 @@ export function useSubscriptionFeatures() {
 
   const getPlanName = useCallback((feature: FeatureName): string => {
     const currentPlan = testMode 
-      ? localStorage.getItem('test_plan') || 'trial'
+      ? getTestPlan()
       : subscription?.plan_type || 'trial';
       
-    switch (feature) {
-      case 'rfp_summary':
-        return 'Advanced AI RFP Summary';
-      case 'proposal_outline':
-        return 'Enhanced AI Proposal Outline';
-      case 'proposal_draft':
-        return currentPlan === 'pro' ? 'Advanced AI Proposal Draft' : 'Basic AI Proposal Draft';
-      case 'compiled_draft':
-        return 'Compiled Draft Preview';
-      case 'evaluation':
-        return 'AI Proposal Evaluation';
-      case 'data_export':
-        return 'Data Export Feature';
-      default:
-        return '';
-    }
+    return getFeatureName(feature, currentPlan);
   }, [subscription, testMode]);
 
   const enableTestMode = useCallback((planType: 'trial' | 'starter' | 'pro' = 'trial') => {
-    localStorage.setItem('test_mode', 'true');
-    localStorage.setItem('test_plan', planType);
+    enableTestModeUtil(planType);
     setTestMode(true);
-    featureCache.clear();
-    projectLimitCache.clear();
-    console.log(`Test mode enabled with plan: ${planType}`);
+    clearFeatureCaches();
   }, []);
 
   const disableTestMode = useCallback(() => {
-    localStorage.removeItem('test_mode');
-    localStorage.removeItem('test_plan');
+    disableTestModeUtil();
     setTestMode(false);
-    featureCache.clear();
-    projectLimitCache.clear();
-    console.log('Test mode disabled');
+    clearFeatureCaches();
   }, []);
 
   return {
@@ -193,7 +167,7 @@ export function useSubscriptionFeatures() {
     getPlanName,
     isLoading: testMode ? false : isLoading,
     error: testMode ? null : error,
-    plan: testMode ? (localStorage.getItem('test_plan') as string || 'trial') : subscription?.plan_type,
+    plan: testMode ? getTestPlan() : subscription?.plan_type,
     isTestMode: testMode,
     enableTestMode,
     disableTestMode

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -39,9 +40,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [error, setError] = useState<Error | null>(null);
   const { session } = useAuth();
   const [lastRefresh, setLastRefresh] = useState(Date.now());
-  const [pollCount, setPollCount] = useState(0);
-  const [directFetchAttempted, setDirectFetchAttempted] = useState(false);
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
+  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
 
   const checkSubscription = async () => {
     try {
@@ -49,13 +49,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("No active session, clearing subscription data");
         setSubscription(null);
         setLoading(false);
+        setSubscriptionChecked(true);
+        return;
+      }
+
+      if (subscriptionChecked && subscription) {
+        console.log("Subscription already checked, skipping redundant fetch");
         return;
       }
 
       console.log("Checking subscription for user:", session.user.id, session.user.email);
       setLoading(true);
 
-      // Query subscriptions table directly first
+      // Query subscriptions table directly
       const { data: directData, error: directError } = await supabase
         .from('subscriptions')
         .select('*')
@@ -71,12 +77,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       if (directData) {
         console.log("Found subscription data:", directData);
-        setSubscription(directData);
+        // Ensure the status is a valid SubscriptionStatus
+        const validatedStatus = validateSubscriptionStatus(directData.status);
+        const validatedData: SubscriptionPlan = {
+          ...directData,
+          status: validatedStatus
+        };
+        setSubscription(validatedData);
         setInitialFetchCompleted(true);
       } else {
         console.log("No subscription found, creating trial subscription");
         const newSubscription = await createTrialSubscription(session.user.id);
-        setSubscription(newSubscription);
+        if (newSubscription) {
+          setSubscription(newSubscription);
+        }
         setInitialFetchCompleted(true);
       }
     } catch (e) {
@@ -84,7 +98,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setError(e as Error);
     } finally {
       setLoading(false);
+      setSubscriptionChecked(true);
     }
+  };
+
+  // Helper function to validate subscription status
+  const validateSubscriptionStatus = (status: string): SubscriptionStatus => {
+    const validStatuses: SubscriptionStatus[] = [
+      'trialing', 'active', 'canceled', 'incomplete', 
+      'incomplete_expired', 'past_due', 'unpaid'
+    ];
+    
+    return validStatuses.includes(status as SubscriptionStatus) 
+      ? status as SubscriptionStatus 
+      : 'trialing'; // Default fallback
   };
 
   const renewSubscription = async () => {
@@ -125,31 +152,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
-      setDirectFetchAttempted(false); // Reset for fresh fetch
       checkSubscription();
-      
-      const pollInterval = window.setInterval(() => {
-        console.log("Polling for subscription updates");
-        setPollCount(prev => prev + 1);
-      }, 30000); // Poll every 30 seconds (increased from 5 seconds)
-      
-      return () => {
-        window.clearInterval(pollInterval);
-      };
     } else if (!session?.user) {
       console.log("No session available, subscription data cleared");
       setSubscription(null);
       setLoading(false);
       setInitialFetchCompleted(false);
-      setDirectFetchAttempted(false);
+      setSubscriptionChecked(false);
     }
-  }, [session, initialFetchCompleted]);
-
-  useEffect(() => {
-    if (session?.user && initialFetchCompleted) {
-      checkSubscription();
-    }
-  }, [pollCount, lastRefresh, session]);
+  }, [session]);
 
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
@@ -175,10 +186,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     
     handlePaymentStatusParams();
   }, [window.location.search]);
-
-  const forceRefresh = () => {
-    setLastRefresh(Date.now());
-  };
 
   return (
     <SubscriptionContext.Provider 

@@ -31,13 +31,15 @@ export function useSubscriptionFeatures() {
   }, []);
 
   // Clear feature cache when subscription changes
-  if (subscription) {
-    const cacheKey = `${subscription.subscription_id}-${subscription.plan_type}-${subscription.status}`;
-    if (!featureCache.has(cacheKey)) {
-      featureCache.clear();
-      projectLimitCache.clear();
+  useEffect(() => {
+    if (subscription) {
+      const cacheKey = `${subscription.subscription_id}-${subscription.plan_type}-${subscription.status}`;
+      if (!featureCache.has(cacheKey)) {
+        featureCache.clear();
+        projectLimitCache.clear();
+      }
     }
-  }
+  }, [subscription]);
 
   const hasFeature = useCallback((feature: FeatureName): boolean => {
     // If test mode is enabled, use the test plan from localStorage
@@ -45,9 +47,20 @@ export function useSubscriptionFeatures() {
     
     if (testMode) {
       currentPlan = localStorage.getItem('test_plan') || 'trial';
+      console.log("Using test plan:", currentPlan);
     } else {
-      if (isLoading || error) return false;
-      currentPlan = subscription?.plan_type || 'trial';
+      if (isLoading || error) {
+        console.log("Subscription still loading or error:", { isLoading, error });
+        return false;
+      }
+      
+      if (!subscription) {
+        console.log("No subscription data available");
+        return feature === "rfp_summary" || feature === "proposal_outline" || feature === "proposal_draft";
+      }
+      
+      console.log("Using subscription plan:", subscription.plan_type);
+      currentPlan = subscription.plan_type || 'trial';
     }
     
     // Use cached value if available
@@ -70,6 +83,8 @@ export function useSubscriptionFeatures() {
     else if (currentPlan === 'trial') {
       hasAccess = ['rfp_summary', 'proposal_outline', 'proposal_draft'].includes(feature);
     }
+    
+    console.log(`Feature access for ${feature} on plan ${currentPlan}: ${hasAccess}`);
     
     // Cache the result
     featureCache.set(cacheKey, hasAccess);
@@ -144,7 +159,7 @@ export function useSubscriptionFeatures() {
     getPlanName,
     isLoading: testMode ? false : isLoading,
     error: testMode ? null : error,
-    plan: testMode ? localStorage.getItem('test_plan') as string || 'trial' : subscription?.plan_type,
+    plan: testMode ? (localStorage.getItem('test_plan') as string || 'trial') : subscription?.plan_type,
     isTestMode: testMode
   };
 }

@@ -4,6 +4,7 @@ import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen }
 import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 interface ProjectSidebarProps {
   activeSection: string;
@@ -11,7 +12,7 @@ interface ProjectSidebarProps {
 }
 
 export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSidebarProps) {
-  const { hasFeature, plan } = useSubscriptionFeatures();
+  const { hasFeature, plan, isLoading } = useSubscriptionFeatures();
 
   const sections = [
     {
@@ -52,6 +53,18 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     },
   ] as const;
 
+  // Debug information once when component loads
+  useEffect(() => {
+    console.log("ProjectSidebar - Subscription Plan:", plan);
+    console.log("ProjectSidebar - isLoading:", isLoading);
+    
+    sections.forEach(section => {
+      if (section.feature) {
+        console.log(`ProjectSidebar - Feature ${section.feature} available:`, hasFeature(section.feature));
+      }
+    });
+  }, [plan, isLoading]);
+
   const handleSectionChange = (sectionId: string, feature: FeatureName | null) => {
     if (!feature || hasFeature(feature)) {
       onSectionChange(sectionId);
@@ -76,33 +89,27 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     }
   };
 
-  // Debug information
-  console.log("Current plan:", plan);
-  console.log("Feature availability:", {
-    rfp_summary: hasFeature("rfp_summary"),
-    proposal_outline: hasFeature("proposal_outline"),
-    proposal_draft: hasFeature("proposal_draft"),
-    compiled_draft: hasFeature("compiled_draft"),
-    evaluation: hasFeature("evaluation")
-  });
-
   return (
     <div className="w-64 border-r bg-background p-4 space-y-2">
-      {sections.map((section) => (
-        <Button
-          key={section.id}
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-2 hover:bg-brand-green hover:text-white",
-            activeSection === section.id && "bg-muted",
-            section.feature && !hasFeature(section.feature) && "opacity-50"
-          )}
-          onClick={() => handleSectionChange(section.id, section.feature)}
-        >
-          <section.icon className="h-4 w-4" />
-          {section.label}
-        </Button>
-      ))}
+      {sections.map((section) => {
+        const isFeatureAvailable = !section.feature || hasFeature(section.feature);
+        
+        return (
+          <Button
+            key={section.id}
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-2 hover:bg-brand-green hover:text-white",
+              activeSection === section.id && "bg-muted",
+              section.feature && !isFeatureAvailable && "opacity-50"
+            )}
+            onClick={() => handleSectionChange(section.id, section.feature)}
+          >
+            <section.icon className="h-4 w-4" />
+            {section.label}
+          </Button>
+        );
+      })}
     </div>
   );
 }

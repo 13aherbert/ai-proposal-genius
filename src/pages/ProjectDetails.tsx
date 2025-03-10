@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useProjectDetails } from "@/hooks/use-project-details";
@@ -11,12 +12,19 @@ const ProjectDetails = () => {
   const { session } = useAuth();
   const { data: project, isLoading, error } = useProjectDetails(id, session?.user);
 
+  console.log("ProjectDetails - Project ID:", id);
+  console.log("ProjectDetails - User:", session?.user?.id);
+  console.log("ProjectDetails - Loading:", isLoading);
+  console.log("ProjectDetails - Error:", error);
+  console.log("ProjectDetails - Project:", project);
+
   if (isLoading) {
     return <ProjectLoading />;
   }
 
   if (error || !project) {
-    return <ProjectNotFound />;
+    console.error("Project not found or error:", error);
+    return <ProjectNotFound projectId={id} />;
   }
 
   return (

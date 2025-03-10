@@ -49,9 +49,18 @@ export interface SubscriptionContextType {
 export const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
   status: 'trialing',
   plan_type: 'trial',
-  project_limit: 3,
+  project_limit: 3, // Trial users get 3 projects
   features: {},
   current_period_end: null,
   stripe_customer_id: null,
   stripe_subscription_id: null,
+};
+
+/**
+ * Project limits for each subscription plan
+ */
+export const SUBSCRIPTION_PLAN_LIMITS = {
+  trial: 3,     // Trial users get 3 projects
+  starter: 10,  // Starter users get 10 projects
+  pro: 30       // Pro users get 30 projects
 };

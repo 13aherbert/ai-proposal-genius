@@ -1,14 +1,18 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UpgradeButton } from "./UpgradeButton";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+
 export function SubscriptionPlans() {
   const {
     data: subscription
   } = useSubscription();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  
   return <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold mb-4">Subscription Plans</h2>
@@ -30,7 +34,7 @@ export function SubscriptionPlans() {
               ${billingInterval === 'monthly' ? '49' : '499'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
             <ul className="space-y-2">
-              <li>✓ Up to 10 projects</li>
+              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.starter} projects</li>
               <li>✓ AI RFP Summary</li>
               <li>✓ AI Proposal Outline</li>
               <li>✓ AI Proposal Draft</li>
@@ -53,7 +57,7 @@ export function SubscriptionPlans() {
               ${billingInterval === 'monthly' ? '99' : '950'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
             <ul className="space-y-2">
-              <li>✓ Up to 30 projects</li>
+              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.pro} projects</li>
               <li>✓ AI RFP Summary</li>
               <li>✓ AI Proposal Outline</li>
               <li>✓ AI Proposal Draft</li>

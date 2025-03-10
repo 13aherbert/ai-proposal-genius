@@ -9,6 +9,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export default function RecentProjects() {
   const { session, loading } = useAuth();
@@ -33,8 +34,14 @@ export default function RecentProjects() {
     refetch
   } = useProjects(authReady ? session?.user || null : null);
   
-  const { hasFeature } = useSubscriptionFeatures();
+  const { hasFeature, plan } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
+  
+  // Get the current plan's project limit for displaying in the UI
+  const currentPlanLimit = plan ? 
+    SUBSCRIPTION_PLAN_LIMITS[plan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || 
+    SUBSCRIPTION_PLAN_LIMITS.trial : 
+    SUBSCRIPTION_PLAN_LIMITS.trial;
 
   useEffect(() => {
     // Reset to first page when component mounts
@@ -83,7 +90,11 @@ export default function RecentProjects() {
 
   return (
     <div className="container py-10 space-y-8">
-      <ProjectsHeader canCreateProject={canCreateProject} />
+      <ProjectsHeader 
+        canCreateProject={canCreateProject} 
+        currentPlanLimit={currentPlanLimit}
+        projectCount={projects?.length || 0}
+      />
 
       {isLoading ? (
         <div className="flex justify-center items-center h-[400px]">
@@ -104,6 +115,9 @@ export default function RecentProjects() {
             <h3 className="text-2xl font-semibold">No projects yet</h3>
             <p className="text-muted-foreground">
               Create your first project to start generating proposal drafts and analyzing RFPs.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Your current plan allows up to {currentPlanLimit} projects.
             </p>
           </div>
           <Button onClick={() => navigate("/upload-rfp")}>

@@ -1,6 +1,6 @@
-
 import { useSubscription } from "./use-subscription";
 import { useCallback, useEffect, useState } from "react";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export type FeatureName = 
   | "rfp_summary" 
@@ -135,18 +135,8 @@ export function useSubscriptionFeatures() {
       if (subscription?.project_limit) {
         limit = subscription.project_limit;
       } else {
-        switch (currentPlan) {
-          case 'pro':
-            limit = 30;
-            break;
-          case 'starter':
-            limit = 10;
-            break;
-          case 'trial':
-          default:
-            limit = 3;
-            break;
-        }
+        // Use the constants defined in types
+        limit = SUBSCRIPTION_PLAN_LIMITS[currentPlan as keyof typeof SUBSCRIPTION_PLAN_LIMITS] || SUBSCRIPTION_PLAN_LIMITS.trial;
       }
       
       // Cache the result
@@ -179,7 +169,6 @@ export function useSubscriptionFeatures() {
     }
   }, [subscription, testMode]);
 
-  // Add helper to simulate a trial plan for testing
   const enableTestMode = useCallback((planType: 'trial' | 'starter' | 'pro' = 'trial') => {
     localStorage.setItem('test_mode', 'true');
     localStorage.setItem('test_plan', planType);
@@ -189,7 +178,6 @@ export function useSubscriptionFeatures() {
     console.log(`Test mode enabled with plan: ${planType}`);
   }, []);
 
-  // Disable test mode
   const disableTestMode = useCallback(() => {
     localStorage.removeItem('test_mode');
     localStorage.removeItem('test_plan');

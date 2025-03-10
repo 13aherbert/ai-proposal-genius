@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useErrorTracking } from '@/hooks/use-error-tracking';
-import { emailService } from '@/services/EmailService';
+import { emailService } from '@/services/email';
 import { ErrorSeverity } from '@/services/ErrorTrackingService';
 import { useAuth } from '@/components/AuthProvider';
 import { FeedbackType } from '@/components/feedback/types';

@@ -15,47 +15,30 @@ serve(async (req) => {
   }
 
   try {
-    // Enhanced logging to debug the request
-    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
-    console.log("Request method:", req.method);
+    console.log("Admin-delete-user function called");
     
-    // Get the URL from the request to check for query parameters
-    const url = new URL(req.url);
-    console.log("Request URL:", url.toString());
-    
+    // Parse the request body
     let userId;
-    
-    // Try to parse the request body first
     try {
-      const requestText = await req.text();
-      console.log("Raw request body:", requestText);
+      // First try to get userId from request body
+      const requestData = await req.json();
+      console.log("Request body parsed:", requestData);
+      userId = requestData.userId;
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
       
-      if (requestText && requestText.trim() !== '') {
-        try {
-          const data = JSON.parse(requestText);
-          userId = data.userId;
-          console.log("Parsed userId from JSON body:", userId);
-        } catch (e) {
-          console.log("Could not parse JSON, checking for URL parameters");
-        }
-      }
-    } catch (e) {
-      console.log("Error reading request body:", e);
-    }
-    
-    // If userId is still not found, try URL parameters
-    if (!userId) {
+      // Fallback to URL params if body parsing fails
+      const url = new URL(req.url);
       userId = url.searchParams.get('userId');
-      if (userId) {
-        console.log("Using userId from URL parameters:", userId);
-      }
+      console.log("Falling back to URL parameter, userId:", userId);
     }
     
     if (!userId) {
+      console.error("No userId provided in request");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'User ID is required. Please provide it in the request body or as a URL parameter.' 
+          error: 'User ID is required' 
         }),
         {
           status: 400,
@@ -64,7 +47,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Received request to delete user: ${userId}`);
+    console.log(`Processing delete request for user: ${userId}`);
 
     // Create a Supabase client with the service role key to bypass RLS
     const supabaseAdmin = createClient(
@@ -93,6 +76,7 @@ serve(async (req) => {
     // Get the user who made the request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error("Missing Authorization header");
       return new Response(
         JSON.stringify({ success: false, error: 'Missing Authorization header' }),
         {
@@ -116,11 +100,13 @@ serve(async (req) => {
       )
     }
 
+    console.log(`Request authenticated as user: ${user.user.id}`);
+
     // Check if the user is an admin
     const { data: adminCheck, error: adminCheckError } = await supabaseAdmin.rpc('is_admin_direct')
 
     if (adminCheckError || !adminCheck) {
-      console.error('Admin check error:', adminCheckError);
+      console.error('Admin check error:', adminCheckError || "User is not an admin");
       return new Response(
         JSON.stringify({ success: false, error: 'Access denied - admin role required' }),
         {
@@ -132,6 +118,7 @@ serve(async (req) => {
 
     // Prevent admins from deleting their own account through this interface
     if (user.user.id === userId) {
+      console.error("User attempted to delete their own account");
       return new Response(
         JSON.stringify({ success: false, error: 'You cannot delete your own account from the admin interface' }),
         {

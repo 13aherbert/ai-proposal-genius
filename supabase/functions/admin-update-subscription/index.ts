@@ -82,15 +82,23 @@ serve(async (req) => {
     console.log(`Found user with ID: ${foundUser.id} via auth.users`);
     const userId = foundUser.id;
 
-    // Determine project limit based on plan
-    let projectLimit = 3; // Default for trial
-    let planType = plan || 'starter'; // Default to starter if not specified
+    // Normalize plan type to lowercase for consistency
+    let planType = (plan || 'starter').toLowerCase(); // Default to starter if not specified
     let subscriptionStatus = status || 'active'; // Default to active if not specified
     
+    // Determine project limit based on plan
+    let projectLimit;
     if (planType === 'pro') {
       projectLimit = 30;
     } else if (planType === 'starter') {
       projectLimit = 10;
+    } else if (planType === 'trial') {
+      projectLimit = 3;
+    } else {
+      // Default to starter if plan type is not recognized
+      planType = 'starter';
+      projectLimit = 10;
+      console.log(`Unrecognized plan type: ${plan}, defaulting to starter with project limit 10`);
     }
 
     // Check if user has an existing subscription
@@ -110,7 +118,7 @@ serve(async (req) => {
     }
 
     // Log important information about the subscription update
-    console.log(`Plan: ${planType} (${planType.toLowerCase()}), Project Limit: ${projectLimit}`);
+    console.log(`Plan: ${planType}, Project Limit: ${projectLimit}`);
     
     if (existingSub) {
       console.log(`Current plan: ${existingSub.plan_type}, Current limit: ${existingSub.project_limit}`);
@@ -136,7 +144,7 @@ serve(async (req) => {
       result = await supabase
         .from('subscriptions')
         .update({
-          plan_type: planType.toLowerCase(), // Ensure lowercase for consistency
+          plan_type: planType, // Already normalized to lowercase
           status: subscriptionStatus,
           project_limit: projectLimit,
           updated_at: now
@@ -150,7 +158,7 @@ serve(async (req) => {
         .from('subscriptions')
         .insert({
           user_id: userId,
-          plan_type: planType.toLowerCase(), // Ensure lowercase for consistency
+          plan_type: planType, // Already normalized to lowercase
           status: subscriptionStatus,
           project_limit: projectLimit,
           updated_at: now,
@@ -177,9 +185,8 @@ serve(async (req) => {
       
       // Double check plan type and project limit are correct
       if (verifyData) {
-        const normalizedPlanType = planType.toLowerCase();
-        if (verifyData.plan_type !== normalizedPlanType) {
-          console.error(`Plan type mismatch after update: expected ${normalizedPlanType}, got ${verifyData.plan_type}`);
+        if (verifyData.plan_type !== planType) {
+          console.error(`Plan type mismatch after update: expected ${planType}, got ${verifyData.plan_type}`);
         }
         
         if (verifyData.project_limit !== projectLimit) {
@@ -229,7 +236,7 @@ serve(async (req) => {
         success: true, 
         message: `Successfully updated subscription for ${email} to ${planType} plan with status ${subscriptionStatus}`,
         user: userId,
-        plan: planType.toLowerCase(),
+        plan: planType,
         status: subscriptionStatus,
         project_limit: projectLimit
       }),

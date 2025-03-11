@@ -37,7 +37,7 @@ serve(async (req) => {
       throw new Error('Unauthorized: Invalid token');
     }
     
-    console.log("Authenticated user:", user.id);
+    console.log("Authenticated admin user:", user.id);
 
     // Parse request body
     let requestBody;
@@ -99,28 +99,27 @@ serve(async (req) => {
         projectLimit = 10;
     }
 
-    console.log(`Updating subscription - Plan: ${planType}, Status: ${subscriptionStatus}, Limit: ${projectLimit}`);
+    console.log(`Target subscription update - Plan: ${planType}, Status: ${subscriptionStatus}, Limit: ${projectLimit}`);
 
-    // Check existing subscription
-    const { data: existingSub, error: subError } = await supabase
+    // Log existing subscription state
+    const { data: currentSub, error: currentSubError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
-    if (subError) {
-      console.error('Error checking subscription:', subError);
-      throw new Error(`Error checking subscription: ${subError.message}`);
+    if (currentSubError) {
+      console.error("Error fetching current subscription:", currentSubError);
+    } else {
+      console.log("Current subscription state:", currentSub);
     }
 
     const now = new Date().toISOString();
     
     let result;
-    if (existingSub) {
+    if (currentSub) {
       // Update existing subscription
-      console.log(`Updating subscription ${existingSub.subscription_id}`);
+      console.log(`Updating subscription ${currentSub.subscription_id}`);
       result = await supabase
         .from('subscriptions')
         .update({
@@ -129,7 +128,7 @@ serve(async (req) => {
           project_limit: projectLimit,
           updated_at: now
         })
-        .eq('subscription_id', existingSub.subscription_id);
+        .eq('subscription_id', currentSub.subscription_id);
     } else {
       // Create new subscription
       console.log(`Creating new subscription for user ${userId}`);
@@ -150,38 +149,44 @@ serve(async (req) => {
       throw new Error(`Error updating subscription: ${result.error.message}`);
     }
 
-    // Double verify the update
+    // Double verify the update with explicit fields check
     const { data: verifyData, error: verifyError } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('subscription_id, plan_type, status, project_limit, user_id')
       .eq('user_id', userId)
       .maybeSingle();
       
     if (verifyError) {
       console.error('Error verifying subscription update:', verifyError);
-    } else {
-      console.log('Verified subscription data:', verifyData);
-      
-      if (verifyData) {
-        // Check if data matches what we tried to set
-        const isValid = 
-          verifyData.plan_type === planType &&
-          verifyData.status === subscriptionStatus &&
-          verifyData.project_limit === projectLimit;
-          
-        if (!isValid) {
-          console.error('Verification failed - subscription data mismatch:', {
-            expected: { planType, subscriptionStatus, projectLimit },
-            actual: {
-              plan_type: verifyData.plan_type,
-              status: verifyData.status,
-              project_limit: verifyData.project_limit
-            }
-          });
-          throw new Error('Subscription update verification failed');
-        }
-      }
+      throw new Error('Failed to verify subscription update');
     }
+
+    if (!verifyData) {
+      console.error('Verification failed - no subscription found after update');
+      throw new Error('Subscription update verification failed - no data found');
+    }
+
+    // Strict verification of all fields
+    const isValid = 
+      verifyData.plan_type === planType &&
+      verifyData.status === subscriptionStatus &&
+      verifyData.project_limit === projectLimit &&
+      verifyData.user_id === userId;
+
+    if (!isValid) {
+      console.error('Verification failed - subscription data mismatch:', {
+        expected: {
+          plan_type: planType,
+          status: subscriptionStatus,
+          project_limit: projectLimit,
+          user_id: userId
+        },
+        actual: verifyData
+      });
+      throw new Error('Subscription update verification failed - data mismatch');
+    }
+
+    console.log('Subscription update verified successfully:', verifyData);
 
     // Create profile if needed
     const { data: profileData, error: profileError } = await supabase
@@ -202,8 +207,6 @@ serve(async (req) => {
         });
     }
 
-    console.log('Subscription updated and verified successfully');
-
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -211,7 +214,8 @@ serve(async (req) => {
         user: userId,
         plan: planType,
         status: subscriptionStatus,
-        project_limit: projectLimit
+        project_limit: projectLimit,
+        verified_data: verifyData
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

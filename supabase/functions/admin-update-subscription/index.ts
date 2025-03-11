@@ -154,7 +154,7 @@ serve(async (req) => {
       .from('subscriptions')
       .select('subscription_id, plan_type, status, project_limit, user_id')
       .eq('user_id', userId)
-      .maybeSingle();
+      .single();
       
     if (verifyError) {
       console.error('Error verifying subscription update:', verifyError);
@@ -187,6 +187,24 @@ serve(async (req) => {
     }
 
     console.log('Subscription update verified successfully:', verifyData);
+
+    // Force a refresh of the check-subscription edge function cache
+    try {
+      await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        body: { 
+          force_refresh: true,
+          user_id: userId 
+        }
+      });
+      console.log("Triggered subscription cache refresh");
+    } catch (refreshErr) {
+      console.error("Failed to trigger subscription cache refresh:", refreshErr);
+      // Non-critical error, continue with the response
+    }
 
     // Create profile if needed
     const { data: profileData, error: profileError } = await supabase

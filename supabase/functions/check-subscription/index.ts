@@ -22,6 +22,19 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Parse body for any special instructions
+    let forceRefresh = false;
+    let targetUserId = null;
+    
+    try {
+      const body = await req.json();
+      forceRefresh = !!body.force_refresh;
+      targetUserId = body.user_id || null;
+      console.log("Request body:", JSON.stringify(body));
+    } catch (e) {
+      // No body or invalid JSON, continue normally
+    }
+
     // Verify authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -38,12 +51,32 @@ serve(async (req) => {
     }
     
     console.log("Authenticated user:", user.id, user.email);
+    
+    // Use target user ID if provided and requester is an admin
+    let userId = user.id;
+    
+    if (targetUserId && targetUserId !== userId) {
+      // Check if requester is an admin
+      const { data: isAdmin } = await supabase.rpc('is_admin');
+      
+      if (!isAdmin) {
+        console.error("Non-admin user tried to access another user's subscription");
+        throw new Error('Unauthorized: Only admins can check other users\' subscriptions');
+      }
+      
+      console.log(`Admin ${user.id} is checking subscription for user ${targetUserId}`);
+      userId = targetUserId;
+    }
 
-    // Get the user's subscription - use a direct query with cache-control headers
+    // Get the user's subscription with no-cache headers
+    const cacheHeaders = forceRefresh ? 
+      { 'Cache-Control': 'no-cache, no-store, must-revalidate' } : 
+      {};
+      
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -61,7 +94,7 @@ serve(async (req) => {
       const { data: newSubscription, error: createError } = await supabase
         .from('subscriptions')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           plan_type: 'trial',
           status: 'trialing',
           project_limit: 3,
@@ -98,7 +131,7 @@ serve(async (req) => {
     
     // Debug info: Check if subscription data is as expected
     console.log(`Current subscription details:
-      - User ID: ${user.id}
+      - User ID: ${userId}
       - Email: ${user.email}
       - Plan Type: ${subscription.plan_type} (normalized: ${normalizedPlanType})
       - Status: ${subscription.status}

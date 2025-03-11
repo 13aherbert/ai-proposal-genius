@@ -1,187 +1,171 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    console.log("Received request to check-subscription");
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase URL or key');
-      throw new Error('Server configuration error');
+      console.error("Missing Supabase environment variables");
+      throw new Error('Missing Supabase configuration');
     }
     
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get JWT from request
+    // Verify authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No Authorization header provided');
-      throw new Error('No authorization header');
+      console.error("Missing authorization header");
+      throw new Error('Missing authorization header');
     }
-    
+
     const token = authHeader.replace('Bearer ', '');
-    console.log('Using token for JWT auth:', token.substring(0, 10) + '...');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    // Verify the JWT and get the user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError) {
-      console.error('Auth error:', authError);
-      throw new Error(`Authentication error: ${authError.message}`);
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      throw new Error('Unauthorized: Invalid token');
     }
     
-    if (!user) {
-      console.error('No user found after auth');
-      throw new Error('User not found');
-    }
-    
-    console.log('Successfully authenticated user:', user.id);
-    
-    // Continue with subscription check using user ID (which is always available)
-    const { data: subscription, error: subscriptionError } = await supabaseClient
+    console.log("Authenticated user:", user.id);
+
+    // Get the user's subscription
+    const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (subscriptionError) {
-      console.error('Error finding subscription:', subscriptionError);
+    if (subError) {
+      console.error('Error getting subscription:', subError);
+      throw new Error(`Error getting subscription: ${subError.message}`);
+    }
+
+    // Handle case where user has no subscription
+    if (!subscription) {
+      console.log('No subscription found, creating default trial subscription');
+      
+      const now = new Date().toISOString();
+      const { data: newSubscription, error: createError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan_type: 'trial',
+          status: 'trialing',
+          project_limit: 3,
+          features: {},
+          created_at: now,
+          updated_at: now
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error('Error creating trial subscription:', createError);
+        throw new Error(`Error creating trial subscription: ${createError.message}`);
+      }
+      
+      console.log('Created trial subscription:', newSubscription);
+      
       return new Response(
         JSON.stringify({ 
-          subscribed: false,
-          plan: 'trial',
-          error: subscriptionError.message,
-          user: {
-            id: user.id,
-            email: user.email || null
-          }
+          success: true,
+          subscription: newSubscription
         }),
-        {
+        { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+          status: 200 
         }
-      )
+      );
     }
-
-    let plan = 'trial';
-    let isActive = false;
-    let projectLimit = 3; // Default to trial limit
     
-    if (subscription) {
-      console.log('Found subscription:', subscription);
-      console.log('Plan type:', subscription.plan_type);
-      console.log('Status:', subscription.status);
-      console.log('Current project limit:', subscription.project_limit);
-      
-      isActive = subscription.status === 'active';
-      
-      // Normalize the plan type to lowercase for consistent comparison
-      const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
-      
-      if (normalizedPlanType.includes('starter')) {
-        plan = 'starter';
-        projectLimit = 10; // Explicitly set starter users to get 10 projects
-        console.log('Setting starter plan project limit to 10');
-      } else if (normalizedPlanType.includes('pro')) {
-        plan = 'pro';
-        projectLimit = 30; // Pro users get 30 projects
-      }
-      
-      // Always ensure plan_type is clearly set for frontend
-      subscription.plan_type = plan;
-      
-      // Always ensure starter plans have project_limit=10
-      if (plan === 'starter') {
-        subscription.project_limit = 10;
-        
-        // Update the subscription record in the database with the correct limit if needed
-        if (subscription.project_limit !== 10) {
-          try {
-            console.log('Updating starter subscription record with ID:', subscription.subscription_id);
-            const { data: updateData, error: updateError } = await supabaseClient
-              .from('subscriptions')
-              .update({ 
-                project_limit: 10,
-                plan_type: 'starter' // Ensure plan_type is lowercase 'starter'
-              })
-              .eq('subscription_id', subscription.subscription_id)
-              .select();
-              
-            if (updateError) {
-              console.error('Error updating subscription project limit:', updateError);
-            } else {
-              console.log('Successfully updated project limit in database to 10. Updated data:', updateData);
-            }
-          } catch (updateError) {
-            console.error('Exception updating subscription:', updateError);
-          }
-        }
-      } else if (subscription.project_limit) {
-        // For non-starter plans, respect the stored project_limit if it exists
-        projectLimit = subscription.project_limit;
-      }
-    } else {
-      console.log('No subscription found for user:', user.id);
+    console.log("Found subscription:", subscription);
+    
+    // Normalize plan type to lowercase for consistency
+    const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
+    
+    // Ensure project limit is correct based on plan type
+    let projectLimit = subscription.project_limit;
+    let needsUpdate = false;
+    
+    if (normalizedPlanType === 'starter' && projectLimit !== 10) {
+      console.log(`Fixing incorrect starter plan project limit: ${projectLimit} -> 10`);
+      projectLimit = 10;
+      needsUpdate = true;
+    } else if (normalizedPlanType === 'pro' && projectLimit !== 30) {
+      console.log(`Fixing incorrect pro plan project limit: ${projectLimit} -> 30`);
+      projectLimit = 30;
+      needsUpdate = true;
+    } else if (normalizedPlanType === 'trial' && projectLimit !== 3) {
+      console.log(`Fixing incorrect trial plan project limit: ${projectLimit} -> 3`);
+      projectLimit = 3;
+      needsUpdate = true;
     }
-
-    console.log('Subscription check result:', { 
-      subscribed: isActive, 
-      plan, 
-      projectLimit,
-      userEmail: user.email || 'Not available',
-      userId: user.id 
-    });
-
-    return new Response(
-      JSON.stringify({ 
-        subscribed: isActive,
-        plan: plan,
-        subscription: subscription ? {
-          ...subscription,
-          plan_type: plan,
-          project_limit: projectLimit
-        } : null,
-        user: {
-          id: user.id,
-          email: user.email || null
-        }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+    
+    // If plan type was not lowercase or project limit was incorrect, update the record
+    if (normalizedPlanType !== subscription.plan_type || needsUpdate) {
+      console.log(`Updating subscription with correct plan type (${normalizedPlanType}) and project limit (${projectLimit})`);
+      
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          plan_type: normalizedPlanType,
+          project_limit: projectLimit,
+          updated_at: new Date().toISOString()
+        })
+        .eq('subscription_id', subscription.subscription_id);
+        
+      if (updateError) {
+        console.error('Error updating subscription:', updateError);
+      } else {
+        console.log('Successfully updated subscription with normalized values');
       }
-    )
-  } catch (error) {
-    console.error('Error in check-subscription function:', error);
+    }
+    
+    // Return normalized subscription data
+    const normalizedSubscription = {
+      ...subscription,
+      plan_type: normalizedPlanType,
+      project_limit: projectLimit
+    };
+    
+    console.log("Returning normalized subscription:", normalizedSubscription);
+
     return new Response(
       JSON.stringify({ 
-        subscribed: false,
-        plan: 'trial',
-        error: error.message,
-        debug: {
-          timestamp: new Date().toISOString(),
-          version: '1.7' // Incremented version for tracking
-        }
+        success: true,
+        subscription: normalizedSubscription
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 200 
       }
-    )
+    );
+    
+  } catch (error) {
+    console.error('Error in check-subscription:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    );
   }
-})
+});

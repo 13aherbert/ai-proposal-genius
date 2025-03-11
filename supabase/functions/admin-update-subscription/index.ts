@@ -96,7 +96,7 @@ serve(async (req) => {
     // Check if user has an existing subscription
     const { data: existingSub, error: subError } = await supabase
       .from('subscriptions')
-      .select('subscription_id, status, plan_type')
+      .select('subscription_id, status, plan_type, project_limit')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -109,17 +109,34 @@ serve(async (req) => {
       throw new Error(`Error checking subscription: ${subError.message}`);
     }
 
+    // Log important information about the subscription update
+    console.log(`Plan: ${planType} (${planType.toLowerCase()}), Project Limit: ${projectLimit}`);
+    
+    if (existingSub) {
+      console.log(`Current plan: ${existingSub.plan_type}, Current limit: ${existingSub.project_limit}`);
+      
+      // Verify if plan is starter and limit is correct
+      if (existingSub.plan_type && existingSub.plan_type.toLowerCase() === 'starter' && existingSub.project_limit !== 10) {
+        console.log(`WARNING: Starter plan had incorrect project limit (${existingSub.project_limit}). Fixing to 10.`);
+      }
+      
+      // Verify if plan is pro and limit is correct
+      if (existingSub.plan_type && existingSub.plan_type.toLowerCase() === 'pro' && existingSub.project_limit !== 30) {
+        console.log(`WARNING: Pro plan had incorrect project limit (${existingSub.project_limit}). Fixing to 30.`);
+      }
+    }
+
     let result;
     const now = new Date().toISOString();
     
     if (existingSub) {
       // Update the existing subscription
-      console.log(`Updating subscription ${existingSub.subscription_id} to plan ${planType} with status ${subscriptionStatus}`);
+      console.log(`Updating subscription ${existingSub.subscription_id} to plan ${planType} with status ${subscriptionStatus} and project limit ${projectLimit}`);
       
       result = await supabase
         .from('subscriptions')
         .update({
-          plan_type: planType,
+          plan_type: planType.toLowerCase(), // Ensure lowercase for consistency
           status: subscriptionStatus,
           project_limit: projectLimit,
           updated_at: now
@@ -127,13 +144,13 @@ serve(async (req) => {
         .eq('subscription_id', existingSub.subscription_id);
     } else {
       // Create a new subscription
-      console.log(`Creating new ${planType} subscription for user ${userId} with status ${subscriptionStatus}`);
+      console.log(`Creating new ${planType} subscription for user ${userId} with status ${subscriptionStatus} and project limit ${projectLimit}`);
       
       result = await supabase
         .from('subscriptions')
         .insert({
           user_id: userId,
-          plan_type: planType,
+          plan_type: planType.toLowerCase(), // Ensure lowercase for consistency
           status: subscriptionStatus,
           project_limit: projectLimit,
           updated_at: now,
@@ -144,6 +161,31 @@ serve(async (req) => {
     if (result.error) {
       console.error('Error updating subscription:', result.error);
       throw new Error(`Error updating subscription: ${result.error.message}`);
+    }
+
+    // Verify the subscription was updated correctly
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('subscriptions')
+      .select('subscription_id, plan_type, status, project_limit')
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (verifyError) {
+      console.error('Error verifying subscription update:', verifyError);
+    } else {
+      console.log('Verified subscription after update:', verifyData);
+      
+      // Double check plan type and project limit are correct
+      if (verifyData) {
+        const normalizedPlanType = planType.toLowerCase();
+        if (verifyData.plan_type !== normalizedPlanType) {
+          console.error(`Plan type mismatch after update: expected ${normalizedPlanType}, got ${verifyData.plan_type}`);
+        }
+        
+        if (verifyData.project_limit !== projectLimit) {
+          console.error(`Project limit mismatch after update: expected ${projectLimit}, got ${verifyData.project_limit}`);
+        }
+      }
     }
 
     // Now check if the user has a profile and create one if not
@@ -187,8 +229,9 @@ serve(async (req) => {
         success: true, 
         message: `Successfully updated subscription for ${email} to ${planType} plan with status ${subscriptionStatus}`,
         user: userId,
-        plan: planType,
-        status: subscriptionStatus
+        plan: planType.toLowerCase(),
+        status: subscriptionStatus,
+        project_limit: projectLimit
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

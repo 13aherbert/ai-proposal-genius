@@ -149,12 +149,12 @@ serve(async (req) => {
       throw new Error(`Error updating subscription: ${result.error.message}`);
     }
 
-    // Double verify the update with explicit fields check
+    // Force a direct verification of the update with explicit fields check
     const { data: verifyData, error: verifyError } = await supabase
       .from('subscriptions')
       .select('subscription_id, plan_type, status, project_limit, user_id')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
       
     if (verifyError) {
       console.error('Error verifying subscription update:', verifyError);
@@ -188,41 +188,28 @@ serve(async (req) => {
 
     console.log('Subscription update verified successfully:', verifyData);
 
-    // Force a refresh of the check-subscription edge function cache
+    // Force a refresh of the check-subscription edge function cache by calling it directly
     try {
-      await supabase.functions.invoke('check-subscription', {
+      const checkResponse = await fetch(`${supabaseUrl}/functions/v1/check-subscription`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
         },
-        body: { 
+        body: JSON.stringify({ 
           force_refresh: true,
           user_id: userId 
-        }
+        })
       });
-      console.log("Triggered subscription cache refresh");
+
+      if (!checkResponse.ok) {
+        throw new Error(`HTTP error! status: ${checkResponse.status}`);
+      }
+      console.log("Successfully triggered subscription cache refresh");
     } catch (refreshErr) {
       console.error("Failed to trigger subscription cache refresh:", refreshErr);
       // Non-critical error, continue with the response
-    }
-
-    // Create profile if needed
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('profile_id')
-      .eq('profile_id', userId)
-      .maybeSingle();
-
-    if (!profileData && !profileError) {
-      console.log(`Creating profile for user ${userId}`);
-      await supabase
-        .from('profiles')
-        .insert({
-          profile_id: userId,
-          username: email,
-          created_at: now,
-          updated_at: now
-        });
     }
 
     return new Response(

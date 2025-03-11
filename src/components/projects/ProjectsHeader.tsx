@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Update the interface to include the new props
+// Update the interface to include the isSubscriptionLoading prop
 interface ProjectsHeaderProps {
   canCreateProject?: boolean;
   currentPlanLimit?: number;

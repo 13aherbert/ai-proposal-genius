@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -69,7 +68,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("Calling check-subscription edge function for fresh data");
         const { data: edgeFunctionResult, error: edgeFunctionError } = await supabase.functions.invoke('check-subscription', {
           headers: {
-            Authorization: `Bearer ${session.access_token}`
+            Authorization: `Bearer ${session.access_token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
         });
         
@@ -99,6 +99,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             project_limit: projectLimit
           };
           
+          console.log("Final processed subscription data:", validatedData);
           setSubscription(validatedData);
           setInitialFetchCompleted(true);
           setLoading(false);
@@ -283,6 +284,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       checkSubscription(true);
     }
   }, [forceRecheckFlag]);
+
+  // Force a recheck every 60 seconds while the component is mounted
+  useEffect(() => {
+    if (session?.user) {
+      const refreshTimer = setInterval(() => {
+        console.log("Regular refresh timer: rechecking subscription");
+        checkSubscription(true);
+      }, 60000);
+      
+      return () => clearInterval(refreshTimer);
+    }
+  }, [session]);
 
   useEffect(() => {
     const handlePaymentStatusParams = async () => {

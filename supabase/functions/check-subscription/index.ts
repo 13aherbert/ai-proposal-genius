@@ -37,9 +37,9 @@ serve(async (req) => {
       throw new Error('Unauthorized: Invalid token');
     }
     
-    console.log("Authenticated user:", user.id);
+    console.log("Authenticated user:", user.id, user.email);
 
-    // Get the user's subscription
+    // Get the user's subscription - use a direct query with cache-control headers
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
@@ -96,6 +96,16 @@ serve(async (req) => {
     // Normalize plan type to lowercase for consistency
     const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
     
+    // Debug info: Check if subscription data is as expected
+    console.log(`Current subscription details:
+      - User ID: ${user.id}
+      - Email: ${user.email}
+      - Plan Type: ${subscription.plan_type} (normalized: ${normalizedPlanType})
+      - Status: ${subscription.status}
+      - Project Limit: ${subscription.project_limit}
+      - Subscription ID: ${subscription.subscription_id}
+    `);
+    
     // Ensure project limit is correct based on plan type
     let projectLimit = subscription.project_limit;
     let needsUpdate = false;
@@ -118,19 +128,35 @@ serve(async (req) => {
     if (normalizedPlanType !== subscription.plan_type || needsUpdate) {
       console.log(`Updating subscription with correct plan type (${normalizedPlanType}) and project limit (${projectLimit})`);
       
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('subscriptions')
         .update({
           plan_type: normalizedPlanType,
           project_limit: projectLimit,
           updated_at: new Date().toISOString()
         })
-        .eq('subscription_id', subscription.subscription_id);
+        .eq('subscription_id', subscription.subscription_id)
+        .select();
         
       if (updateError) {
         console.error('Error updating subscription:', updateError);
       } else {
-        console.log('Successfully updated subscription with normalized values');
+        console.log('Successfully updated subscription with normalized values:', updateData);
+      }
+    }
+    
+    // Double-check the subscription after any updates
+    if (needsUpdate) {
+      const { data: verifiedSub, error: verifyError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('subscription_id', subscription.subscription_id)
+        .single();
+        
+      if (verifyError) {
+        console.error('Error verifying updated subscription:', verifyError);
+      } else {
+        console.log('Verified subscription after update:', verifiedSub);
       }
     }
     

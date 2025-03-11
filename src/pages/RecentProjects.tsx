@@ -56,6 +56,8 @@ export default function RecentProjects() {
   // Enhanced project limit handling
   const handleProjectLimitUpdate = () => {
     if (subscriptionData) {
+      console.log("Current subscription data:", subscriptionData);
+      
       // Get the correct limit based on plan type, with a fallback to the stored limit
       const safeLimit = getSafeProjectLimit(
         subscriptionData.plan_type,
@@ -64,6 +66,8 @@ export default function RecentProjects() {
       
       // Defensively handle plan types
       const normalizedPlan = (subscriptionData.plan_type || '').toLowerCase();
+      
+      console.log(`Plan type: ${normalizedPlan}, Safe limit: ${safeLimit}, Current limit: ${projectLimit}`);
       
       // For starter plans, ensure we always use 10 as the limit
       if (normalizedPlan === 'starter' && safeLimit !== 10) {
@@ -113,6 +117,18 @@ export default function RecentProjects() {
     }
   }, [subscriptionData?.subscription_id]);
 
+  // Always check subscription data every 15 seconds to ensure it's up to date
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (session?.user) {
+        console.log("Periodic subscription refresh");
+        checkSubscription(true);
+      }
+    }, 15000);
+    
+    return () => clearInterval(refreshInterval);
+  }, [session, checkSubscription]);
+
   useEffect(() => {
     pagination.setCurrentPage(1);
   }, []);
@@ -161,6 +177,15 @@ export default function RecentProjects() {
   const displayProjectLimit = subscriptionData 
     ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
     : projectLimit || 3;
+
+  // Debug information
+  console.log("Current subscription state:", {
+    plan: subscriptionData?.plan_type,
+    status: subscriptionData?.status,
+    projectLimit: subscriptionData?.project_limit,
+    displayLimit: displayProjectLimit,
+    currentCount: projectCount
+  });
 
   return (
     <div className="container py-10 space-y-8">

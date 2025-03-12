@@ -12,6 +12,19 @@ if (typeof window !== 'undefined') {
   window.projectLimitCache = window.projectLimitCache || projectLimitCache;
 }
 
+// The specific user ID that should always have starter plan
+const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+
+/**
+ * Checks if current user is the specific starter user
+ */
+function isStarterUser(): boolean {
+  if (typeof window === 'undefined' || !window.auth || !window.auth.user) {
+    return false;
+  }
+  return window.auth.user.id === STARTER_USER_ID;
+}
+
 /**
  * Normalizes plan type strings for consistent comparison
  */
@@ -106,8 +119,7 @@ export function getProjectLimitForPlan(planType: string): number {
   const normalizedPlan = normalizePlanType(planType);
   
   // Special case for the specific user who should have starter plan
-  if (typeof window !== 'undefined' && window.auth && window.auth.user && 
-      window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+  if (isStarterUser()) {
     console.log("CRITICAL USER DETECTED - Forcing starter plan limit");
     return SUBSCRIPTION_PLAN_LIMITS.starter; // Force 10 projects
   }
@@ -150,8 +162,7 @@ export function getProjectLimitForPlan(planType: string): number {
  */
 export function getSafeProjectLimit(planType: string | undefined, storedLimit: number | undefined): number {
   // Special case for the specific user who should have starter plan
-  if (typeof window !== 'undefined' && window.auth && window.auth.user && 
-      window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+  if (isStarterUser()) {
     console.log("CRITICAL USER DETECTED - Forcing starter plan limit in getSafeProjectLimit");
     return SUBSCRIPTION_PLAN_LIMITS.starter; // Force 10 projects
   }
@@ -235,8 +246,7 @@ export function storeSubscriptionDataLocally(subscription: any): void {
     console.log("Subscription data stored in localStorage:", subscription);
     
     // CRITICAL: Special case - if this is the starter user, make sure we have a starter subscription
-    if (typeof window !== 'undefined' && window.auth && window.auth.user && 
-        window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+    if (isStarterUser()) {
       // Ensure it's a starter subscription
       if (subscription.plan_type !== 'starter' || subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
         const correctedSub = {
@@ -280,8 +290,7 @@ export function getStoredSubscriptionData(): any {
     }
     
     // CRITICAL: Special case - if this is the starter user, make sure we have a starter subscription
-    if (typeof window !== 'undefined' && window.auth && window.auth.user && 
-        window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+    if (isStarterUser()) {
       // Ensure it's a starter subscription
       if (data.plan_type !== 'starter' || data.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
         const correctedData = {

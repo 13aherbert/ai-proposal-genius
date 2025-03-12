@@ -4,6 +4,9 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { SUBSCRIPTION_PLAN_LIMITS } from '../_shared/subscription-limits.ts';
 
+// The specific user ID that should always have starter plan
+const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -55,6 +58,151 @@ serve(async (req) => {
     }
 
     console.log(`Processing subscription check for user: ${user.id}`);
+
+    // Special case: If this is our specific user who needs the starter plan
+    if (user.id === STARTER_USER_ID) {
+      console.log(`CRITICAL USER DETECTED: ${user.id} - Creating starter subscription if none exists`);
+      
+      // First check if they already have a subscription
+      const { data: existingSubscriptions, error: existingSubError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (!existingSubError && existingSubscriptions && existingSubscriptions.length > 0) {
+        // Check if this subscription is already a starter with correct project limit
+        const existingSub = existingSubscriptions[0];
+        const normalizedPlanType = (existingSub.plan_type || '').toLowerCase().trim();
+        
+        if (normalizedPlanType === 'starter' && existingSub.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
+          console.log(`User ${user.id} already has correct starter subscription`);
+          
+          return new Response(
+            JSON.stringify({ 
+              subscription: existingSub,
+              timestamp: Date.now() 
+            }),
+            { 
+              status: 200, 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              } 
+            }
+          );
+        }
+        
+        // Update subscription to correct values if needed
+        console.log(`Updating subscription for user ${user.id} to starter plan`);
+        
+        const { data: updatedSub, error: updateError } = await supabase
+          .from('subscriptions')
+          .update({ 
+            plan_type: 'starter',
+            project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+            status: 'active'
+          })
+          .eq('subscription_id', existingSub.subscription_id)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error(`Error updating subscription: ${updateError.message}`);
+          // Even if update fails, return the starter subscription data to the client
+          return new Response(
+            JSON.stringify({ 
+              subscription: {
+                ...existingSub,
+                plan_type: 'starter',
+                project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+                status: 'active'
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              } 
+            }
+          );
+        }
+        
+        console.log(`Subscription updated successfully for ${user.id}`);
+        return new Response(
+          JSON.stringify({ 
+            subscription: updatedSub || {
+              ...existingSub,
+              plan_type: 'starter',
+              project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+              status: 'active'
+            }
+          }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
+        );
+      }
+      
+      // If no subscription exists, create a new starter subscription
+      console.log(`Creating new starter subscription for user ${user.id}`);
+      
+      const newSubscription = {
+        user_id: user.id,
+        status: 'active',
+        plan_type: 'starter',
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+        created_at: new Date().toISOString()
+      };
+      
+      const { data: insertData, error: insertError } = await supabase
+        .from('subscriptions')
+        .insert([newSubscription])
+        .select();
+        
+      if (insertError) {
+        console.error(`Error creating starter subscription: ${insertError.message}`);
+        // Even if insert fails, return the starter subscription data to the client
+        return new Response(
+          JSON.stringify({ 
+            subscription: {
+              ...newSubscription,
+              subscription_id: crypto.randomUUID(),
+            } 
+          }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
+        );
+      }
+      
+      const createdSubscription = insertData?.[0];
+      console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          subscription: createdSubscription,
+          timestamp: Date.now()
+        }),
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
 
     // Try to handle force refresh parameter
     let forceRefresh = false;
@@ -138,7 +286,10 @@ serve(async (req) => {
       console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
       
       return new Response(
-        JSON.stringify({ subscription: createdSubscription }),
+        JSON.stringify({ 
+          subscription: createdSubscription,
+          timestamp: Date.now()
+        }),
         { 
           status: 200, 
           headers: { 

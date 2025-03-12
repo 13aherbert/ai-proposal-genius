@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useEffect } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
@@ -26,7 +26,13 @@ const UploadRFP = () => {
     setProjectTitle,
     handleFileUpload,
     updateProject,
+    fetchProjectCount
   } = useRFPUpload();
+
+  // Fetch project count when the component mounts
+  useEffect(() => {
+    fetchProjectCount();
+  }, [fetchProjectCount]);
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];

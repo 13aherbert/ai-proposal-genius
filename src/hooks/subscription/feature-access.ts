@@ -92,6 +92,9 @@ export function getProjectLimitForPlan(planType: string): number {
   // Normalize the plan type to lowercase for consistent comparison
   const normalizedPlan = normalizePlanType(planType);
   
+  // Generate consistent console logging for debugging
+  console.log(`Getting project limit for plan type: "${normalizedPlan}"`);
+  
   // Check window cache first for performance
   if (window.projectLimitCache && window.projectLimitCache.has(normalizedPlan)) {
     const cachedLimit = window.projectLimitCache.get(normalizedPlan);
@@ -101,15 +104,16 @@ export function getProjectLimitForPlan(planType: string): number {
   
   let limit: number;
   
-  // CRITICAL: Force exact limits for each plan type from constants
+  // Use constants for exact limits
   if (normalizedPlan === 'pro') {
     limit = SUBSCRIPTION_PLAN_LIMITS.pro;
   } else if (normalizedPlan === 'starter') {
-    // CRITICAL FIX: Always enforce exactly 10 projects for starter plans
-    limit = SUBSCRIPTION_PLAN_LIMITS.starter;  // This is 10 as defined in types/subscription.ts
+    limit = SUBSCRIPTION_PLAN_LIMITS.starter;  // This is 10
   } else {
-    limit = SUBSCRIPTION_PLAN_LIMITS.trial; // Trial or unknown plan
+    limit = SUBSCRIPTION_PLAN_LIMITS.trial; // Trial (3)
   }
+  
+  console.log(`Plan "${normalizedPlan}" has project limit: ${limit}`);
   
   // Cache the result
   if (window.projectLimitCache) {
@@ -124,28 +128,31 @@ export function getProjectLimitForPlan(planType: string): number {
  * This ensures we always have a valid project limit even if subscription data is loading
  */
 export function getSafeProjectLimit(planType: string | undefined, storedLimit: number | undefined): number {
+  console.log(`Getting safe project limit for: planType=${planType}, storedLimit=${storedLimit}`);
+  
   // If we don't have either data point, use trial limit as default
   if (!planType && storedLimit === undefined) {
-    return SUBSCRIPTION_PLAN_LIMITS.trial; // Trial default
+    console.log(`No plan or stored limit, returning trial limit: ${SUBSCRIPTION_PLAN_LIMITS.trial}`);
+    return SUBSCRIPTION_PLAN_LIMITS.trial;
   }
   
   // If we have a plan type, calculate the correct limit
   if (planType) {
     const normalizedPlan = normalizePlanType(planType);
+    console.log(`Normalized plan: ${normalizedPlan}`);
     
-    // CRITICAL FIX: For starter plans, ALWAYS FORCE exactly 10 projects, regardless of stored limit
+    // Force correct limits based on plan types
     if (normalizedPlan === 'starter') {
-      return SUBSCRIPTION_PLAN_LIMITS.starter; // Force to exactly 10 for all starter plans
-    }
-    
-    // For other plans, use the correct limit based on plan type
-    if (normalizedPlan === 'pro') {
+      console.log(`Starter plan, forcing ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit`);
+      return SUBSCRIPTION_PLAN_LIMITS.starter; // Force to 10 for all starter plans
+    } else if (normalizedPlan === 'pro') {
       return SUBSCRIPTION_PLAN_LIMITS.pro;
     } else if (normalizedPlan === 'trial') {
       return SUBSCRIPTION_PLAN_LIMITS.trial;
     }
     
     // Fallback to stored limit if plan doesn't match known types
+    console.log(`Unknown plan type, using stored limit: ${storedLimit}`);
     return storedLimit !== undefined ? storedLimit : SUBSCRIPTION_PLAN_LIMITS.trial;
   }
   
@@ -195,6 +202,7 @@ export function storeSubscriptionDataLocally(subscription: any): void {
       data: subscription,
       timestamp: Date.now()
     };
+    
     localStorage.setItem('subscriptionData', JSON.stringify(storageItem));
     console.log("Subscription data stored in localStorage:", subscription);
   } catch (e) {
@@ -209,18 +217,22 @@ export function storeSubscriptionDataLocally(subscription: any): void {
 export function getStoredSubscriptionData(): any {
   try {
     const storedData = localStorage.getItem('subscriptionData');
-    if (!storedData) return null;
+    if (!storedData) {
+      console.log("No subscription data found in localStorage");
+      return null;
+    }
     
     const { data, timestamp } = JSON.parse(storedData);
     
     // Check if the data is expired (older than 30 minutes)
     const isExpired = Date.now() - timestamp > 30 * 60 * 1000;
     if (isExpired) {
+      console.log("Stored subscription data is expired, removing");
       localStorage.removeItem('subscriptionData');
       return null;
     }
     
-    console.log("Retrieved stored subscription data:", data);
+    console.log("Retrieved valid stored subscription data:", data);
     return data;
   } catch (e) {
     console.error("Error retrieving stored subscription data:", e);

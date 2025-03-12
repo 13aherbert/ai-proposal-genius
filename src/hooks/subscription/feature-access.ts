@@ -101,11 +101,12 @@ export function getProjectLimitForPlan(planType: string): number {
   
   let limit: number;
   
-  // Use the standardized limits from SUBSCRIPTION_PLAN_LIMITS
+  // CRITICAL: Force exact limits for each plan type from constants
   if (normalizedPlan === 'pro') {
     limit = SUBSCRIPTION_PLAN_LIMITS.pro;
   } else if (normalizedPlan === 'starter') {
-    limit = SUBSCRIPTION_PLAN_LIMITS.starter;  // CRITICAL: Starter plans always get 10 projects
+    // CRITICAL FIX: Always enforce exactly 10 projects for starter plans
+    limit = SUBSCRIPTION_PLAN_LIMITS.starter;  // This is 10 as defined in types/subscription.ts
   } else {
     limit = SUBSCRIPTION_PLAN_LIMITS.trial; // Trial or unknown plan
   }
@@ -132,9 +133,9 @@ export function getSafeProjectLimit(planType: string | undefined, storedLimit: n
   if (planType) {
     const normalizedPlan = normalizePlanType(planType);
     
-    // CRITICAL: For starter plans, always return 10 regardless of stored limit
+    // CRITICAL FIX: For starter plans, ALWAYS FORCE exactly 10 projects, regardless of stored limit
     if (normalizedPlan === 'starter') {
-      return SUBSCRIPTION_PLAN_LIMITS.starter;
+      return SUBSCRIPTION_PLAN_LIMITS.starter; // Force to exactly 10 for all starter plans
     }
     
     // For other plans, use the correct limit based on plan type

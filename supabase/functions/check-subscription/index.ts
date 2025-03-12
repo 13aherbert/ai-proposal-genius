@@ -202,7 +202,7 @@ serve(async (req) => {
       let projectLimit = subscription.project_limit;
       let needsUpdate = false;
       
-      // Force correct limits for each plan type regardless of stored value
+      // CRITICAL FIX: Force correct limits for each plan type regardless of stored value
       if (normalizedPlanType === 'starter') {
         if (projectLimit !== 10) {
           console.log(`Fixing incorrect starter plan project limit: ${projectLimit} -> 10`);

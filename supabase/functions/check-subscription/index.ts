@@ -32,7 +32,7 @@ serve(async (req) => {
       targetUserId = body.user_id || null;
       console.log("Request body:", JSON.stringify(body));
     } catch (e) {
-      // No body or invalid JSON, continue normally
+      console.log("No body or invalid JSON, using default parameters");
     }
 
     // Verify authorization
@@ -73,6 +73,8 @@ serve(async (req) => {
       { 'Cache-Control': 'no-cache, no-store, must-revalidate' } : 
       {};
       
+    console.log(`Fetching subscription for user ${userId} with forceRefresh=${forceRefresh}`);
+    
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('*')

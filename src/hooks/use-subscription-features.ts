@@ -30,6 +30,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const [testMode, setTestMode] = useState<boolean>(false);
   const [lastPlanType, setLastPlanType] = useState<string | null>(null);
   const [forceRefreshFlag, setForceRefreshFlag] = useState(0);
+  const [localProjectLimit, setLocalProjectLimit] = useState<number | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
   useEffect(() => {
     // Check if test mode is enabled from localStorage
@@ -54,6 +56,10 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // Special case: normalize plan type strings for comparison
       const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
       
+      // Set local project limit for faster access
+      const safeLimit = getSafeProjectLimit(normalizedPlanType, subscription.project_limit);
+      setLocalProjectLimit(safeLimit);
+      
       // Check to ensure starter plans have correct project limit
       if (normalizedPlanType === 'starter' && subscription.project_limit !== 10) {
         console.log("Detected incorrect project limit for starter plan. Refreshing subscription data.");
@@ -69,12 +75,19 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       // Update last plan type
       setLastPlanType(normalizedPlanType);
+      
+      // Store project limit in window cache for faster access
+      if (window.projectLimitCache) {
+        window.projectLimitCache.set(normalizedPlanType, safeLimit);
+      }
     }
     
     // Debug features
     if (subscription?.features) {
       console.log("useSubscriptionFeatures - Features:", subscription.features);
     }
+    
+    setHasInitialized(true);
   }, [subscription, isLoading, error, testMode, checkSubscription, lastPlanType]);
 
   // Clear feature cache when subscription changes
@@ -109,7 +122,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       currentPlan = getTestPlan();
       console.log("Using test plan:", currentPlan);
     } else {
-      if (isLoading) {
+      if (isLoading && !hasInitialized) {
         console.log("Subscription still loading, deferring feature check");
         
         // For certain features, we can provide default access while loading
@@ -146,23 +159,22 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     // Determine if the user has access to this feature
     const hasAccess = determineFeatureAccess(feature, currentPlan);
     
-    // For development testing, enable all features
-    if (process.env.NODE_ENV === 'development') {
-      // Uncomment next line to enable all features in development
-      // hasAccess = true;
-    }
-    
     console.log(`Feature access for ${feature} on plan ${currentPlan}: ${hasAccess}`);
     
     // Cache the result
     featureCache.set(cacheKey, hasAccess);
     return hasAccess;
-  }, [subscription, isLoading, error, testMode]);
+  }, [subscription, isLoading, error, testMode, hasInitialized]);
 
   const getProjectLimit = useCallback((): number => {
     // If test mode is enabled, use the test project limit from localStorage
     if (testMode) {
       return getTestProjectLimit();
+    }
+    
+    // If we have a local cached value, use it for performance
+    if (localProjectLimit !== null) {
+      return localProjectLimit;
     }
     
     // While loading, we can't determine the exact limit, so return a safe default
@@ -191,7 +203,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     
     // Fallback to trial limit
     return 3;
-  }, [subscription, isLoading, testMode]);
+  }, [subscription, isLoading, testMode, localProjectLimit]);
 
   const getPlanName = useCallback((feature: FeatureName): string => {
     const currentPlan = testMode 
@@ -217,9 +229,33 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const refreshSubscription = useCallback(() => {
     console.log("Manual refresh of subscription data requested");
     clearFeatureCaches();
+    
+    // Clear any local cached values
+    setLocalProjectLimit(null);
+    
+    // Clear localStorage caches
+    try {
+      localStorage.removeItem('projectLimit');
+      if (window.featureCache) {
+        window.featureCache.clear();
+      }
+      if (window.projectLimitCache) {
+        window.projectLimitCache.clear();
+      }
+    } catch (e) {
+      console.error("Error clearing local storage caches:", e);
+    }
+    
+    // Force subscription refresh
     checkSubscription(true);
     setForceRefreshFlag(prev => prev + 1);
-  }, [checkSubscription]);
+    
+    // If the user is on a starter plan, manually update the local limit to 10
+    if (subscription?.plan_type?.toLowerCase() === 'starter') {
+      console.log("Starter plan detected during refresh, manually setting project limit to 10");
+      setLocalProjectLimit(10);
+    }
+  }, [checkSubscription, subscription]);
 
   return {
     hasFeature,

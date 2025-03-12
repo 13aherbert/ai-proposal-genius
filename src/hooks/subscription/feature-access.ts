@@ -1,9 +1,16 @@
 
 import { FeatureName } from "./subscription-features-types";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 // Cache for feature availability to avoid recalculations
 export const featureCache = new Map<string, boolean>();
 export const projectLimitCache = new Map<string, number>();
+
+// Initialize global cache for cross-component access
+if (typeof window !== 'undefined') {
+  window.featureCache = window.featureCache || featureCache;
+  window.projectLimitCache = window.projectLimitCache || projectLimitCache;
+}
 
 /**
  * Determines if a feature is available for a given plan
@@ -63,13 +70,29 @@ export function getProjectLimitForPlan(planType: string): number {
   // Normalize the plan type to lowercase for consistent comparison
   const normalizedPlan = (planType || '').toLowerCase();
   
-  if (normalizedPlan === 'pro') {
-    return 30;
-  } else if (normalizedPlan === 'starter') {
-    return 10;  // CRITICAL FIX: Starter plans always get 10 projects
-  } else {
-    return 3; // Trial or unknown plan
+  // Check window cache first for performance
+  if (window.projectLimitCache && window.projectLimitCache.has(normalizedPlan)) {
+    const cachedLimit = window.projectLimitCache.get(normalizedPlan);
+    console.log(`Using cached project limit for ${normalizedPlan}: ${cachedLimit}`);
+    return cachedLimit as number;
   }
+  
+  let limit: number;
+  
+  if (normalizedPlan === 'pro') {
+    limit = 30;
+  } else if (normalizedPlan === 'starter') {
+    limit = 10;  // CRITICAL FIX: Starter plans always get 10 projects
+  } else {
+    limit = 3; // Trial or unknown plan
+  }
+  
+  // Cache the result
+  if (window.projectLimitCache) {
+    window.projectLimitCache.set(normalizedPlan, limit);
+  }
+  
+  return limit;
 }
 
 /**
@@ -117,4 +140,19 @@ export function clearFeatureCaches(): void {
   console.log("Clearing feature and project limit caches");
   featureCache.clear();
   projectLimitCache.clear();
+  
+  // Clear global caches as well
+  if (window.featureCache) {
+    window.featureCache.clear();
+  }
+  if (window.projectLimitCache) {
+    window.projectLimitCache.clear();
+  }
+  
+  // Clear any localStorage values
+  try {
+    localStorage.removeItem('projectLimit');
+  } catch (e) {
+    console.error("Error clearing localStorage:", e);
+  }
 }

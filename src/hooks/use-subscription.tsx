@@ -1,11 +1,12 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { 
   SubscriptionPlan, 
   SubscriptionContextType, 
   SubscriptionStatus,
-  DEFAULT_TRIAL_SUBSCRIPTION
+  DEFAULT_TRIAL_SUBSCRIPTION,
+  SUBSCRIPTION_PLAN_LIMITS
 } from '@/types/subscription';
 import { 
   isPastGracePeriod, 
@@ -19,6 +20,7 @@ import {
 } from './subscription/use-subscription-actions';
 import { toast } from 'sonner';
 import { getProjectLimitForPlan } from './subscription/feature-access';
+import { withRetry } from '@/utils/network';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -43,6 +45,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+  const checkInProgressRef = useRef(false);
 
   const checkSubscription = async (forceRecheck = false) => {
     try {
@@ -59,35 +64,83 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
 
+      if (checkInProgressRef.current && !forceRecheck) {
+        console.log("Subscription check already in progress, skipping");
+        return;
+      }
+
+      if (abortControllerRef.current) {
+        console.log("Cancelling existing subscription check");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      abortControllerRef.current = new AbortController();
+      checkInProgressRef.current = true;
+
       console.log("Checking subscription for user:", session.user.id, session.user.email);
       setLoading(true);
-      setError(null); // Clear any previous errors
+      setError(null);
 
-      // First attempt to use the edge function with fresh data
+      const timeoutDuration = 10000;
+      timeoutRef.current = window.setTimeout(() => {
+        if (checkInProgressRef.current) {
+          console.log(`Subscription check timed out after ${timeoutDuration}ms`);
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+          }
+          
+          if (subscription) {
+            console.log("Using existing subscription data despite timeout");
+            checkInProgressRef.current = false;
+            setLoading(false);
+          } else {
+            console.log("No existing subscription, creating default trial after timeout");
+            setError(new Error("Subscription check timed out"));
+            createDefaultSubscription();
+          }
+        }
+      }, timeoutDuration);
+
       try {
         console.log("Calling check-subscription edge function for fresh data");
-        const { data: edgeFunctionResult, error: edgeFunctionError } = await supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
-          }
-        });
         
-        if (edgeFunctionError) {
-          console.error("Edge function error:", edgeFunctionError);
-          throw edgeFunctionError;
+        const edgeFunctionResult = await withRetry(async () => {
+          const response = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            },
+            body: { force_refresh: forceRecheck }
+          });
+          
+          console.log("Edge function response:", response);
+          
+          if (response.error) {
+            throw new Error(`Edge function error: ${response.error}`);
+          }
+          
+          return response.data;
+        }, 2);
+
+        if (timeoutRef.current) {
+          window.clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
         }
         
         if (edgeFunctionResult?.subscription) {
           console.log("Edge function returned subscription data:", edgeFunctionResult.subscription);
           
-          // Process the subscription data
           const normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
           
-          // Ensure correct project limit for the plan
           let projectLimit = edgeFunctionResult.subscription.project_limit || getProjectLimitForPlan(normalizedPlanType);
           
-          // For starter plans, ensure the project limit is set to 10
           if (normalizedPlanType === 'starter' && projectLimit !== 10) {
             console.log(`Correcting starter plan project limit from ${projectLimit} to 10`);
             projectLimit = 10;
@@ -104,6 +157,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           setInitialFetchCompleted(true);
           setLoading(false);
           setSubscriptionChecked(true);
+          checkInProgressRef.current = false;
           return;
         }
         
@@ -113,109 +167,169 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.log("Falling back to direct database query");
       }
 
-      // Query subscriptions table directly with no-cache headers
-      const { data: directData, error: directError } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const { data: directData, error: directError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (directError) {
-        console.error("Error fetching subscription:", directError);
-        throw directError;
-      }
-
-      if (directData) {
-        console.log("Found subscription data:", directData);
-        // Ensure the status is a valid SubscriptionStatus
-        const validatedStatus = validateSubscriptionStatus(directData.status);
-        
-        // Convert JSON features to Record<string, any>
-        let parsedFeatures: Record<string, any> = {};
-        if (directData.features) {
-          try {
-            // If features is a string, parse it to an object
-            if (typeof directData.features === 'string') {
-              parsedFeatures = JSON.parse(directData.features);
-            } 
-            // If features is already an object, use it directly
-            else if (typeof directData.features === 'object') {
-              parsedFeatures = directData.features as Record<string, any>;
-            }
-          } catch (e) {
-            console.error("Error parsing features:", e);
-            // Use empty object as fallback
-            parsedFeatures = {};
-          }
+        if (timeoutRef.current) {
+          window.clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
         }
-        
-        // Normalize plan type to lowercase for consistent comparison
-        const normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
-        
-        // Create validated subscription data with correct types
-        const validatedData: SubscriptionPlan = {
-          subscription_id: directData.subscription_id,
-          user_id: directData.user_id,
-          status: validatedStatus,
-          plan_type: normalizedPlanType,
-          current_period_end: directData.current_period_end,
-          created_at: directData.created_at,
-          updated_at: directData.updated_at || directData.created_at,
-          project_limit: directData.project_limit || getProjectLimitForPlan(normalizedPlanType),
-          features: parsedFeatures,
-          stripe_customer_id: directData.stripe_customer_id,
-          stripe_subscription_id: directData.stripe_subscription_id,
-          cancel_at_period_end: directData.cancel_at_period_end || false
-        };
-        
-        // For starter plans, ensure the project limit is set to 10
-        if (normalizedPlanType === 'starter' && validatedData.project_limit !== 10) {
-          console.log(`Correcting starter plan project limit locally from ${validatedData.project_limit} to 10`);
-          validatedData.project_limit = 10;
+
+        if (directError) {
+          console.error("Error fetching subscription:", directError);
+          throw directError;
+        }
+
+        if (directData) {
+          console.log("Found subscription data:", directData);
+          const validatedStatus = validateSubscriptionStatus(directData.status);
           
-          // Update the database with the correct limit
-          const { data: updateData, error: updateError } = await supabase
-            .from('subscriptions')
-            .update({ 
-              project_limit: 10,
-              plan_type: 'starter' // Ensure plan_type is lowercase 'starter'
-            })
-            .eq('subscription_id', directData.subscription_id);
-            
-          if (updateError) {
-            console.error("Error updating project limit in database:", updateError);
-          } else {
-            console.log("Successfully updated project limit in database to 10");
+          let parsedFeatures: Record<string, any> = {};
+          if (directData.features) {
+            try {
+              if (typeof directData.features === 'string') {
+                parsedFeatures = JSON.parse(directData.features);
+              } else if (typeof directData.features === 'object') {
+                parsedFeatures = directData.features as Record<string, any>;
+              }
+            } catch (e) {
+              console.error("Error parsing features:", e);
+              parsedFeatures = {};
+            }
           }
+          
+          const normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
+          
+          const validatedData: SubscriptionPlan = {
+            subscription_id: directData.subscription_id,
+            user_id: directData.user_id,
+            status: validatedStatus,
+            plan_type: normalizedPlanType,
+            current_period_end: directData.current_period_end,
+            created_at: directData.created_at,
+            updated_at: directData.updated_at || directData.created_at,
+            project_limit: directData.project_limit || getProjectLimitForPlan(normalizedPlanType),
+            features: parsedFeatures,
+            stripe_customer_id: directData.stripe_customer_id,
+            stripe_subscription_id: directData.stripe_subscription_id,
+            cancel_at_period_end: directData.cancel_at_period_end || false
+          };
+          
+          if (normalizedPlanType === 'starter' && validatedData.project_limit !== 10) {
+            console.log(`Correcting starter plan project limit locally from ${validatedData.project_limit} to 10`);
+            validatedData.project_limit = 10;
+            
+            try {
+              const { data: updateData, error: updateError } = await supabase
+                .from('subscriptions')
+                .update({ 
+                  project_limit: 10,
+                  plan_type: 'starter'
+                })
+                .eq('subscription_id', directData.subscription_id);
+                
+              if (updateError) {
+                console.error("Error updating project limit in database:", updateError);
+              } else {
+                console.log("Successfully updated project limit in database to 10");
+              }
+            } catch (updateErr) {
+              console.error("Failed to update project limit:", updateErr);
+            }
+          }
+          
+          console.log("Processed subscription data:", validatedData);
+          setSubscription(validatedData);
+          setInitialFetchCompleted(true);
+          setLoading(false);
+          setSubscriptionChecked(true);
+          checkInProgressRef.current = false;
+          return;
+        } else {
+          console.log("No subscription found, creating trial subscription");
+          createDefaultSubscription();
         }
-        
-        console.log("Processed subscription data:", validatedData);
-        setSubscription(validatedData);
-        setInitialFetchCompleted(true);
-      } else {
-        console.log("No subscription found, creating trial subscription");
-        const newSubscription = await createTrialSubscription(session.user.id);
-        if (newSubscription) {
-          setSubscription(newSubscription);
+      } catch (directError) {
+        console.error("Error with direct database query:", directError);
+        if (subscription) {
+          console.log("Using existing subscription data despite error");
+          setLoading(false);
+        } else {
+          createDefaultSubscription();
         }
-        setInitialFetchCompleted(true);
       }
     } catch (e) {
       console.error('Error fetching subscription:', e);
       setError(e as Error);
-      // Don't stop loading on error if we haven't completed initial fetch
-      if (initialFetchCompleted) {
+      
+      if (initialFetchCompleted || subscription) {
         setLoading(false);
+      } else {
+        createDefaultSubscription();
       }
+    } finally {
+      checkInProgressRef.current = false;
+      setTimeout(() => {
+        if (loading) {
+          console.log("Forcing loading state to false after delay");
+          setLoading(false);
+        }
+      }, 1000);
+    }
+  };
+
+  const createDefaultSubscription = async () => {
+    try {
+      console.log("Creating default trial subscription as fallback");
+      const newSubscription = await createTrialSubscription(session?.user?.id || '');
+      if (newSubscription) {
+        setSubscription(newSubscription);
+      } else {
+        console.log("Using hardcoded default trial subscription");
+        setSubscription({
+          subscription_id: crypto.randomUUID(),
+          user_id: session?.user?.id || '',
+          status: 'trialing',
+          plan_type: 'trial',
+          project_limit: 3,
+          features: {},
+          current_period_end: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          cancel_at_period_end: false
+        });
+      }
+      setInitialFetchCompleted(true);
+    } catch (error) {
+      console.error("Failed to create default subscription:", error);
+      setSubscription({
+        subscription_id: crypto.randomUUID(),
+        user_id: session?.user?.id || '',
+        status: 'trialing',
+        plan_type: 'trial',
+        project_limit: 3,
+        features: {},
+        current_period_end: null,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        cancel_at_period_end: false
+      });
     } finally {
       setLoading(false);
       setSubscriptionChecked(true);
     }
   };
 
-  // Helper function to validate subscription status
   const validateSubscriptionStatus = (status: string): SubscriptionStatus => {
     const validStatuses: SubscriptionStatus[] = [
       'trialing', 'active', 'canceled', 'incomplete', 
@@ -224,7 +338,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     
     return validStatuses.includes(status as SubscriptionStatus) 
       ? status as SubscriptionStatus 
-      : 'trialing'; // Default fallback
+      : 'trialing';
   };
 
   const renewSubscription = async () => {
@@ -247,7 +361,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       );
       
       if (result.success) {
-        // Force a recheck of subscription
         setForceRecheckFlag(prev => prev + 1);
         await checkSubscription(true);
       }
@@ -267,7 +380,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
-      checkSubscription(true); // Always force recheck on initial mount
+      checkSubscription(true);
     } else if (!session?.user) {
       console.log("No session available, subscription data cleared");
       setSubscription(null);
@@ -277,7 +390,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session]);
 
-  // Force recheck on flag change
   useEffect(() => {
     if (forceRecheckFlag > 0 && session?.user) {
       console.log("Force rechecking subscription");
@@ -285,7 +397,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [forceRecheckFlag]);
 
-  // Force a recheck every 60 seconds while the component is mounted
   useEffect(() => {
     if (session?.user) {
       const refreshTimer = setInterval(() => {
@@ -296,6 +407,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return () => clearInterval(refreshTimer);
     }
   }, [session]);
+
+  useEffect(() => {
+    if (session?.user && loading) {
+      const fallbackTimer = setTimeout(() => {
+        if (loading && !subscription) {
+          console.log("Loading timeout reached, using fallback subscription data");
+          createDefaultSubscription();
+        }
+      }, 5000);
+      
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [session, loading, subscription]);
 
   useEffect(() => {
     const handlePaymentStatusParams = async () => {
@@ -322,6 +446,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     
     handlePaymentStatusParams();
   }, [window.location.search]);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <SubscriptionContext.Provider 

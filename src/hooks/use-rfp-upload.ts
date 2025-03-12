@@ -1,9 +1,12 @@
-import { useState, useCallback } from "react";
+
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { debounce } from "lodash";
+import { getStoredSubscriptionData } from "./subscription/feature-access";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 // Constants for file upload
 const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
@@ -20,6 +23,8 @@ export function useRFPUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("");
+  const [projectLimit, setProjectLimit] = useState<number | null>(null);
+  const [currentProjectCount, setCurrentProjectCount] = useState<number | null>(null);
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
@@ -27,6 +32,49 @@ export function useRFPUpload() {
   const handleSetProjectTitle = useCallback((title: string) => {
     setProjectTitle(title);
   }, []);
+
+  // Fetch current project count and limit on mount
+  useEffect(() => {
+    if (session?.user?.id) {
+      // First check for stored subscription data
+      const storedSubscription = getStoredSubscriptionData();
+      if (storedSubscription) {
+        // Use stored limit if available
+        const planType = storedSubscription.plan_type?.toLowerCase() || 'trial';
+        let limit = storedSubscription.project_limit;
+        
+        // Ensure the limit is correct for the plan type
+        if (planType === 'starter' && limit !== 10) {
+          limit = 10;
+        } else if (planType === 'pro' && limit !== 30) {
+          limit = 30;
+        } else if (planType === 'trial' && limit !== 3) {
+          limit = 3;
+        }
+        
+        setProjectLimit(limit);
+        console.log(`Using stored subscription data: ${planType} plan with limit of ${limit}`);
+      }
+      
+      // Count current projects
+      const fetchProjectCount = async () => {
+        try {
+          const { count, error } = await supabase
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', session.user.id);
+            
+          if (error) throw error;
+          setCurrentProjectCount(count || 0);
+          console.log(`Current project count: ${count}`);
+        } catch (err) {
+          console.error("Error fetching project count:", err);
+        }
+      };
+      
+      fetchProjectCount();
+    }
+  }, [session?.user?.id]);
 
   const validateFile = (file: File): boolean => {
     // Check file type
@@ -113,6 +161,16 @@ export function useRFPUpload() {
       return;
     }
 
+    // Check project limits before uploading
+    if (currentProjectCount !== null && projectLimit !== null) {
+      if (currentProjectCount >= projectLimit) {
+        toast.error("Project limit reached", {
+          description: `You have reached your plan's limit of ${projectLimit} projects. Please upgrade your plan or delete some projects.`
+        });
+        return;
+      }
+    }
+
     // Validate the file first
     if (!validateFile(file)) {
       return;
@@ -145,6 +203,26 @@ export function useRFPUpload() {
 
       setUploadProgress(60);
       console.log("File uploaded successfully, creating project...");
+
+      // Refresh project count before creating
+      try {
+        const { count, error } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id);
+          
+        if (!error && count !== null) {
+          setCurrentProjectCount(count);
+          
+          // Final check against limit
+          if (projectLimit !== null && count >= projectLimit) {
+            throw new Error(`Project limit of ${projectLimit} reached. Please upgrade your plan or delete some projects.`);
+          }
+        }
+      } catch (countError) {
+        console.error("Error checking project count:", countError);
+        // Continue anyway as the DB will enforce limits
+      }
 
       // Create the project with specific column selection
       const { data: project, error: projectError } = await supabase
@@ -192,6 +270,11 @@ export function useRFPUpload() {
 
       setUploadProgress(100);
       toast.success("File uploaded successfully");
+      
+      // Update current project count
+      if (currentProjectCount !== null) {
+        setCurrentProjectCount(currentProjectCount + 1);
+      }
       
       // Prefetch the project data to improve perceived performance
       queryClient.prefetchQuery({
@@ -293,6 +376,8 @@ export function useRFPUpload() {
     isUploading,
     projectId,
     projectTitle,
+    projectLimit,
+    currentProjectCount,
     setProjectTitle: handleSetProjectTitle,
     handleFileUpload,
     updateProject,

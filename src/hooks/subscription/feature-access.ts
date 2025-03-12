@@ -196,7 +196,7 @@ export function storeSubscriptionDataLocally(subscription: any): void {
       timestamp: Date.now()
     };
     localStorage.setItem('subscriptionData', JSON.stringify(storageItem));
-    console.log("Subscription data stored in localStorage");
+    console.log("Subscription data stored in localStorage:", subscription);
   } catch (e) {
     console.error("Error storing subscription data:", e);
   }
@@ -220,6 +220,7 @@ export function getStoredSubscriptionData(): any {
       return null;
     }
     
+    console.log("Retrieved stored subscription data:", data);
     return data;
   } catch (e) {
     console.error("Error retrieving stored subscription data:", e);

@@ -1,13 +1,13 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarIcon, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ValidatedInput, ValidationRules, FormValidationGroup } from "@/components/form/FormValidation";
-import { debounce } from "lodash";
 
 interface ProjectFormProps {
   projectTitle: string;
@@ -19,10 +19,11 @@ interface ProjectFormProps {
   businessName: string;
   setBusinessName: (name: string) => void;
   onSubmit: () => void;
-  isProcessing?: boolean;
+  isProcessing: boolean;
+  disabled?: boolean;
 }
 
-export function ProjectForm({
+export const ProjectForm = ({
   projectTitle,
   setProjectTitle,
   deadline,
@@ -32,74 +33,44 @@ export function ProjectForm({
   businessName,
   setBusinessName,
   onSubmit,
-  isProcessing = false,
-}: ProjectFormProps) {
-  const [isTitleValid, setIsTitleValid] = useState(false);
-  
-  // Initialize title validity based on projectTitle
-  useEffect(() => {
-    if (projectTitle.trim().length > 0 && projectTitle.length <= 100) {
-      setIsTitleValid(true);
-    } else {
-      setIsTitleValid(false);
-    }
-  }, [projectTitle]);
-  
-  // Use useMemo to avoid recreating the array on every render
-  const formFields = useMemo(() => [
-    { id: 'project-title', value: projectTitle, rules: [ValidationRules.required, ValidationRules.maxLength(100)], isValid: isTitleValid },
-    { id: 'client-name', value: clientName, rules: [ValidationRules.maxLength(100)], isValid: true },
-    { id: 'business-name', value: businessName, rules: [ValidationRules.maxLength(100)], isValid: true }
-  ], [projectTitle, isTitleValid, clientName, businessName]);
-  
-  // Use a memoized handler for form validation with minimal debounce
-  const handleFormValidation = useCallback(debounce((isValid: boolean, validFields: string[]) => {
-    // No need to do anything with validation results here
-  }, 100), []);
-
-  // Direct handlers for immediate UI responsiveness
-  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setProjectTitle(e.target.value);
-  }, [setProjectTitle]);
-
-  const handleClientNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setClientName(e.target.value);
-  }, [setClientName]);
-
-  const handleBusinessNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setBusinessName(e.target.value);
-  }, [setBusinessName]);
+  isProcessing,
+  disabled = false
+}: ProjectFormProps) => {
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <FormValidationGroup fields={formFields} onValidation={handleFormValidation}>
-        <div className="space-y-4">
-          <ValidatedInput
-            id="project-title"
-            label="Project Title *"
-            value={projectTitle}
-            onChange={handleTitleChange}
-            placeholder="Enter a descriptive title for your project"
-            rules={[ValidationRules.required, ValidationRules.maxLength(100)]}
-            onValidation={setIsTitleValid}
-            validateOnChange={true}
-            validateOnBlur={true}
-            required
-          />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ClipboardEdit className="h-5 w-5" />
+          Project Details
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="project-title">Project Title</Label>
+            <Input
+              id="project-title"
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
+              placeholder="Enter a title for your project"
+              disabled={disabled || isProcessing}
+              required
+            />
+          </div>
 
           <div className="space-y-2">
-            <label htmlFor="deadline" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Deadline (Optional)
-            </label>
-            <Popover>
+            <Label htmlFor="deadline">Deadline (Optional)</Label>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  id="deadline"
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !deadline && "text-muted-foreground"
                   )}
+                  disabled={disabled || isProcessing}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {deadline ? format(deadline, "PPP") : "Select a date"}
@@ -109,45 +80,47 @@ export function ProjectForm({
                 <Calendar
                   mode="single"
                   selected={deadline}
-                  onSelect={setDeadline}
+                  onSelect={(date) => {
+                    setDeadline(date);
+                    setCalendarOpen(false);
+                  }}
                   initialFocus
-                  disabled={(date) => date < new Date()}
                 />
               </PopoverContent>
             </Popover>
           </div>
 
-          <ValidatedInput
-            id="client-name"
-            label="Client Name (Optional)"
-            value={clientName}
-            onChange={handleClientNameChange}
-            placeholder="Enter the client or organization name"
-            rules={[ValidationRules.maxLength(100)]}
-            validateOnChange={true}
-            validateOnBlur={true}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="client-name">Client Name (Optional)</Label>
+            <Input
+              id="client-name"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Enter client name"
+              disabled={disabled || isProcessing}
+            />
+          </div>
 
-          <ValidatedInput
-            id="business-name"
-            label="Your Business Name (Optional)"
-            value={businessName}
-            onChange={handleBusinessNameChange}
-            placeholder="Enter your business or organization name"
-            rules={[ValidationRules.maxLength(100)]}
-            validateOnChange={true}
-            validateOnBlur={true}
-          />
-        </div>
-      </FormValidationGroup>
+          <div className="space-y-2">
+            <Label htmlFor="business-name">Business Name (Optional)</Label>
+            <Input
+              id="business-name"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Enter your business name"
+              disabled={disabled || isProcessing}
+            />
+          </div>
 
-      <Button 
-        onClick={onSubmit} 
-        className="w-full" 
-        disabled={isProcessing || !isTitleValid}
-      >
-        {isProcessing ? "Saving..." : "Save Project Details"}
-      </Button>
-    </div>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={disabled || isProcessing || !projectTitle.trim()}
+          >
+            {isProcessing ? "Processing..." : projectTitle ? "Update Project" : "Create Project"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
-}
+};

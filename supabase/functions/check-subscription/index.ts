@@ -268,7 +268,7 @@ serve(async (req) => {
           subscription: normalizedSubscription
         }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' },
           status: 200 
         }
       );

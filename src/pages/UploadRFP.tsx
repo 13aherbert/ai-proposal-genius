@@ -1,11 +1,12 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useCallback, memo } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Memoize the UploadDropzone component to prevent unnecessary re-renders
 const MemoizedUploadDropzone = memo(UploadDropzone);
@@ -20,6 +21,8 @@ const UploadRFP = () => {
     isUploading,
     projectId,
     projectTitle,
+    projectLimit,
+    currentProjectCount,
     setProjectTitle,
     handleFileUpload,
     updateProject,
@@ -46,6 +49,11 @@ const UploadRFP = () => {
     }
   }, [navigate, projectId]);
 
+  // Calculate whether user has reached project limit
+  const hasReachedLimit = projectLimit !== null && 
+                         currentProjectCount !== null && 
+                         currentProjectCount >= projectLimit;
+
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -60,12 +68,36 @@ const UploadRFP = () => {
             </Button>
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
+          
+          {hasReachedLimit && (
+            <Card className="bg-amber-50 border-amber-200">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-2 text-amber-800">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Project limit reached</p>
+                    <p className="text-sm">
+                      You have reached your plan's limit of {projectLimit} projects. 
+                      Please delete some projects or upgrade your plan to continue.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {projectLimit !== null && currentProjectCount !== null && !hasReachedLimit && (
+            <div className="text-sm text-muted-foreground">
+              Project usage: {currentProjectCount} of {projectLimit} projects
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MemoizedUploadDropzone
               onDrop={handleDrop}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
+              disabled={hasReachedLimit}
             />
             <div className="flex flex-col gap-6">
               <ProjectForm
@@ -79,6 +111,7 @@ const UploadRFP = () => {
                 setBusinessName={setBusinessName}
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
+                disabled={hasReachedLimit}
               />
               
               {projectId && (

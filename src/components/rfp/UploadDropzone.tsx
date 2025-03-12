@@ -2,7 +2,7 @@
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, AlertTriangle } from "lucide-react";
+import { Upload, AlertTriangle, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -10,9 +10,15 @@ interface UploadDropzoneProps {
   onDrop: (files: File[]) => void;
   isUploading: boolean;
   uploadProgress: number;
+  disabled?: boolean;
 }
 
-export const UploadDropzone = ({ onDrop, isUploading, uploadProgress }: UploadDropzoneProps) => {
+export const UploadDropzone = ({ 
+  onDrop, 
+  isUploading, 
+  uploadProgress,
+  disabled = false
+}: UploadDropzoneProps) => {
   const [draggedFile, setDraggedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -31,12 +37,16 @@ export const UploadDropzone = ({ onDrop, isUploading, uploadProgress }: UploadDr
   };
   
   const onDropAccepted = (acceptedFiles: File[]) => {
+    if (disabled) return;
+    
     setFileError(null);
     setDraggedFile(acceptedFiles[0]);
     onDrop(acceptedFiles);
   };
 
   const onDropRejected = (fileRejections: any) => {
+    if (disabled) return;
+    
     const rejection = fileRejections[0];
     if (rejection) {
       if (rejection.errors.some((e: any) => e.code === 'file-too-large')) {
@@ -65,7 +75,8 @@ export const UploadDropzone = ({ onDrop, isUploading, uploadProgress }: UploadDr
     },
     maxFiles: 1,
     maxSize: 20 * 1024 * 1024,
-    multiple: false
+    multiple: false,
+    disabled: disabled || isUploading
   });
 
   // Reset file error after 5 seconds
@@ -101,17 +112,27 @@ export const UploadDropzone = ({ onDrop, isUploading, uploadProgress }: UploadDr
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              isDragReject
-                ? "border-red-500 bg-red-50"
-                : isDragAccept
-                ? "border-green-500 bg-green-50"
-                : isDragActive
-                ? "border-primary bg-primary/10"
-                : "border-border hover:border-primary/50"
+              disabled 
+                ? "border-gray-300 bg-gray-50 cursor-not-allowed"
+                : isDragReject
+                  ? "border-red-500 bg-red-50"
+                  : isDragAccept
+                    ? "border-green-500 bg-green-50"
+                    : isDragActive
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
             }`}
           >
-            <input {...getInputProps()} />
-            {!isDragActive && !draggedFile && !isUploading ? (
+            <input {...getInputProps()} disabled={disabled || isUploading} />
+            {disabled ? (
+              <div className="py-4 opacity-60">
+                <Lock className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+                <p>Project limit reached</p>
+                <p className="text-sm text-muted-foreground">
+                  Delete some projects or upgrade your plan to continue
+                </p>
+              </div>
+            ) : !isDragActive && !draggedFile && !isUploading ? (
               <>
                 <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
                 <div className="space-y-2">

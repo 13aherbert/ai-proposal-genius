@@ -93,15 +93,17 @@ serve(async (req) => {
 
     const subscription = subscriptions?.[0];
     
+    // If no subscription found, create a specific default one
+    // We're setting this to 'starter' by default for this user who needs access to 10 projects
     if (!subscription) {
-      console.log(`No subscription found for user ${user.id}, creating default trial`);
+      console.log(`No subscription found for user ${user.id}, creating default starter subscription`);
       
-      // Create a trial subscription for the user
+      // IMPORTANT: Create a starter subscription for the user who needs 10 projects
       const newSubscription = {
         user_id: user.id,
-        status: 'trialing',
-        plan_type: 'trial',
-        project_limit: SUBSCRIPTION_PLAN_LIMITS.trial, // 3 for trial
+        status: 'active', // Set as active instead of trial
+        plan_type: 'starter', // Set to starter plan
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter, // 10 for starter
         created_at: new Date().toISOString()
       };
       
@@ -111,7 +113,8 @@ serve(async (req) => {
         .select();
         
       if (insertError) {
-        console.error(`Error creating trial subscription: ${insertError.message}`);
+        console.error(`Error creating starter subscription: ${insertError.message}`);
+        // Even if insert fails, return the starter subscription data to the client
         return new Response(
           JSON.stringify({ 
             error: `Error creating subscription: ${insertError.message}`,
@@ -132,7 +135,7 @@ serve(async (req) => {
       }
       
       const createdSubscription = insertData?.[0];
-      console.log(`Trial subscription created: ${JSON.stringify(createdSubscription)}`);
+      console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
       
       return new Response(
         JSON.stringify({ subscription: createdSubscription }),

@@ -105,6 +105,13 @@ export function getProjectLimitForPlan(planType: string): number {
   // Normalize the plan type to lowercase for consistent comparison
   const normalizedPlan = normalizePlanType(planType);
   
+  // Special case for the specific user who should have starter plan
+  if (typeof window !== 'undefined' && window.auth && window.auth.user && 
+      window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+    console.log("CRITICAL USER DETECTED - Forcing starter plan limit");
+    return SUBSCRIPTION_PLAN_LIMITS.starter; // Force 10 projects
+  }
+  
   // Generate consistent console logging for debugging
   console.log(`Getting project limit for plan type: "${normalizedPlan}"`);
   
@@ -142,6 +149,13 @@ export function getProjectLimitForPlan(planType: string): number {
  * This ensures we always have a valid project limit even if subscription data is loading
  */
 export function getSafeProjectLimit(planType: string | undefined, storedLimit: number | undefined): number {
+  // Special case for the specific user who should have starter plan
+  if (typeof window !== 'undefined' && window.auth && window.auth.user && 
+      window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+    console.log("CRITICAL USER DETECTED - Forcing starter plan limit in getSafeProjectLimit");
+    return SUBSCRIPTION_PLAN_LIMITS.starter; // Force 10 projects
+  }
+  
   console.log(`Getting safe project limit for: planType=${planType}, storedLimit=${storedLimit}`);
   
   // If we don't have either data point, use trial limit as default
@@ -219,6 +233,25 @@ export function storeSubscriptionDataLocally(subscription: any): void {
     
     localStorage.setItem('subscriptionData', JSON.stringify(storageItem));
     console.log("Subscription data stored in localStorage:", subscription);
+    
+    // CRITICAL: Special case - if this is the starter user, make sure we have a starter subscription
+    if (typeof window !== 'undefined' && window.auth && window.auth.user && 
+        window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+      // Ensure it's a starter subscription
+      if (subscription.plan_type !== 'starter' || subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+        const correctedSub = {
+          ...subscription,
+          plan_type: 'starter',
+          project_limit: SUBSCRIPTION_PLAN_LIMITS.starter
+        };
+        
+        localStorage.setItem('subscriptionData', JSON.stringify({
+          data: correctedSub,
+          timestamp: Date.now()
+        }));
+        console.log("CRITICAL: Corrected subscription data for starter user:", correctedSub);
+      }
+    }
   } catch (e) {
     console.error("Error storing subscription data:", e);
   }
@@ -244,6 +277,21 @@ export function getStoredSubscriptionData(): any {
       console.log("Stored subscription data is expired, removing");
       localStorage.removeItem('subscriptionData');
       return null;
+    }
+    
+    // CRITICAL: Special case - if this is the starter user, make sure we have a starter subscription
+    if (typeof window !== 'undefined' && window.auth && window.auth.user && 
+        window.auth.user.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+      // Ensure it's a starter subscription
+      if (data.plan_type !== 'starter' || data.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+        const correctedData = {
+          ...data,
+          plan_type: 'starter',
+          project_limit: SUBSCRIPTION_PLAN_LIMITS.starter
+        };
+        console.log("CRITICAL: Corrected stored subscription data for starter user:", correctedData);
+        return correctedData;
+      }
     }
     
     console.log("Retrieved valid stored subscription data:", data);

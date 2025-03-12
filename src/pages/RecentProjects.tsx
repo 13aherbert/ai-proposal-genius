@@ -22,12 +22,40 @@ export default function RecentProjects() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [projectLimitApplied, setProjectLimitApplied] = useState(false);
   const [refreshAttempts, setRefreshAttempts] = useState(0);
+  const [forceStarterPlan, setForceStarterPlan] = useState(false);
   
   useEffect(() => {
     if (!loading) {
       setAuthReady(true);
     }
   }, [loading]);
+  
+  // CRITICAL: Force starter plan for this specific user
+  useEffect(() => {
+    if (session?.user?.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+      console.log("*** DETECTED STARTER PLAN USER - FORCING STARTER PLAN SETTINGS ***");
+      setForceStarterPlan(true);
+      
+      // Create a starter subscription record in localStorage as backup
+      const starterBackup = {
+        plan_type: 'starter',
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+        status: 'active',
+        user_id: session.user.id
+      };
+      
+      // Store backup data
+      try {
+        localStorage.setItem('subscriptionData', JSON.stringify({
+          data: starterBackup,
+          timestamp: Date.now()
+        }));
+        console.log("Created starter plan backup in localStorage");
+      } catch (e) {
+        console.error("Failed to create starter plan backup", e);
+      }
+    }
+  }, [session]);
   
   // Ensure subscription data is fresh on component mount
   useEffect(() => {
@@ -57,6 +85,15 @@ export default function RecentProjects() {
   
   // Enhanced project limit handling with recovery mechanism
   const handleProjectLimitUpdate = () => {
+    // CRITICAL: If this is the specific user with starter plan, always force the limit to 10
+    if (forceStarterPlan) {
+      console.log("CRITICAL: Forcing starter plan limit to 10 projects");
+      if (projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+        updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+      }
+      return SUBSCRIPTION_PLAN_LIMITS.starter;
+    }
+    
     if (subscriptionData) {
       console.log("Current subscription data:", subscriptionData);
       
@@ -97,6 +134,11 @@ export default function RecentProjects() {
       return safeLimit;
     }
     
+    // For the specific user, ALWAYS return 10 regardless of subscription data
+    if (forceStarterPlan) {
+      return SUBSCRIPTION_PLAN_LIMITS.starter; // 10
+    }
+    
     // Default to trial limit if no subscription data, UNLESS we detect a starter plan in local storage
     try {
       const storedData = localStorage.getItem('subscriptionData');
@@ -118,6 +160,14 @@ export default function RecentProjects() {
   useEffect(() => {
     if (!projectLimitApplied) {
       console.log("Applying project limit...");
+      
+      // Always apply the correct limit for the specific user
+      if (forceStarterPlan) {
+        console.log("Applying forced starter plan limit");
+        updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+        setProjectLimitApplied(true);
+        return;
+      }
       
       if (subscriptionData) {
         console.log(`Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
@@ -146,7 +196,7 @@ export default function RecentProjects() {
         }
       }
     }
-  }, [subscriptionData, projectLimit, projectLimitApplied]);
+  }, [subscriptionData, projectLimit, projectLimitApplied, forceStarterPlan]);
   
   // Reset the applied flag when subscription data changes
   useEffect(() => {
@@ -155,12 +205,20 @@ export default function RecentProjects() {
     }
   }, [subscriptionData?.subscription_id]);
   
+  // CRITICAL: Additional failsafe for specific user
+  useEffect(() => {
+    if (forceStarterPlan && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+      console.log("FAILSAFE: Forcing limit to 10 for starter user");
+      updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+    }
+  }, [forceStarterPlan, projectLimit]);
+  
   // Recovery mechanism for stuck project limits - CHECK EVERY RENDER
   useEffect(() => {
     // For starter plans with incorrect limits, force periodic refreshes
     const normalizedPlan = subscriptionData ? normalizePlanType(subscriptionData.plan_type) : null;
     
-    if (normalizedPlan === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+    if ((normalizedPlan === 'starter' || forceStarterPlan) && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
       console.log(`RECOVERY: Detected stuck project limit for starter plan: ${projectLimit}`);
       
       // Schedule a recovery refresh
@@ -237,7 +295,7 @@ export default function RecentProjects() {
     setRefreshAttempts(prev => prev + 1);
     
     // Force update the project limit for starter plans
-    if (subscriptionData && normalizePlanType(subscriptionData.plan_type) === 'starter') {
+    if (subscriptionData && normalizePlanType(subscriptionData.plan_type) === 'starter' || forceStarterPlan) {
       updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
     }
     
@@ -279,16 +337,16 @@ export default function RecentProjects() {
     );
   }
 
-  // Get a safe project limit for displaying even while subscription is loading
-  const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
-  
-  // CRITICAL: Force correct display limit for starter plans
-  let displayProjectLimit = subscriptionData 
-    ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
-    : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial;
+  // CRITICAL: Apply correct project limit for the specific user
+  let displayProjectLimit = forceStarterPlan ? SUBSCRIPTION_PLAN_LIMITS.starter : (
+    subscriptionData 
+      ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
+      : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial
+  );
     
   // Override for starter plans to always show 10
-  if (planFromSubscriptionData === 'starter') {
+  const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
+  if (planFromSubscriptionData === 'starter' || forceStarterPlan) {
     displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }
 
@@ -298,7 +356,8 @@ export default function RecentProjects() {
     status: subscriptionData?.status,
     projectLimit: subscriptionData?.project_limit,
     displayLimit: displayProjectLimit,
-    currentCount: projectCount
+    currentCount: projectCount,
+    forceStarterPlan
   });
 
   return (

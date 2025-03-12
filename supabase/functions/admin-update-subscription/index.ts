@@ -80,13 +80,14 @@ serve(async (req) => {
     let planType = (plan || 'starter').toLowerCase(); // Default to starter if not specified
     let subscriptionStatus = status || 'active'; // Default to active if not specified
     
-    // Determine project limit based on plan (enforce strict plan types)
+    // CRITICAL FIX: Determine project limit based on plan (enforce strict plan types)
     let projectLimit;
     switch (planType) {
       case 'pro':
         projectLimit = 30;
         break;
       case 'starter':
+        // IMPORTANT: All starter plans must have 10 projects
         projectLimit = 10;
         break;
       case 'trial':

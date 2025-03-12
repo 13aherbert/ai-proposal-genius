@@ -139,22 +139,29 @@ serve(async (req) => {
       - Subscription ID: ${subscription.subscription_id}
     `);
     
-    // Ensure project limit is correct based on plan type
+    // CRITICAL FIX: Ensure project limit is correct based on plan type
     let projectLimit = subscription.project_limit;
     let needsUpdate = false;
     
-    if (normalizedPlanType === 'starter' && projectLimit !== 10) {
-      console.log(`Fixing incorrect starter plan project limit: ${projectLimit} -> 10`);
-      projectLimit = 10;
-      needsUpdate = true;
-    } else if (normalizedPlanType === 'pro' && projectLimit !== 30) {
-      console.log(`Fixing incorrect pro plan project limit: ${projectLimit} -> 30`);
-      projectLimit = 30;
-      needsUpdate = true;
-    } else if (normalizedPlanType === 'trial' && projectLimit !== 3) {
-      console.log(`Fixing incorrect trial plan project limit: ${projectLimit} -> 3`);
-      projectLimit = 3;
-      needsUpdate = true;
+    // Force correct limits for each plan type regardless of stored value
+    if (normalizedPlanType === 'starter') {
+      if (projectLimit !== 10) {
+        console.log(`Fixing incorrect starter plan project limit: ${projectLimit} -> 10`);
+        projectLimit = 10;
+        needsUpdate = true;
+      }
+    } else if (normalizedPlanType === 'pro') {
+      if (projectLimit !== 30) {
+        console.log(`Fixing incorrect pro plan project limit: ${projectLimit} -> 30`);
+        projectLimit = 30;
+        needsUpdate = true;
+      }
+    } else if (normalizedPlanType === 'trial') {
+      if (projectLimit !== 3) {
+        console.log(`Fixing incorrect trial plan project limit: ${projectLimit} -> 3`);
+        projectLimit = 3;
+        needsUpdate = true;
+      }
     }
     
     // If plan type was not lowercase or project limit was incorrect, update the record

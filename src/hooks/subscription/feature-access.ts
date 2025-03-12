@@ -66,7 +66,7 @@ export function getProjectLimitForPlan(planType: string): number {
   if (normalizedPlan === 'pro') {
     return 30;
   } else if (normalizedPlan === 'starter') {
-    return 10;  // Starter plans always get 10 projects
+    return 10;  // CRITICAL FIX: Starter plans always get 10 projects
   } else {
     return 3; // Trial or unknown plan
   }
@@ -86,7 +86,7 @@ export function getSafeProjectLimit(planType: string | undefined, storedLimit: n
   if (planType) {
     const normalizedPlan = planType.toLowerCase();
     
-    // For starter plans, always return 10 regardless of stored limit
+    // CRITICAL FIX: For starter plans, always return 10 regardless of stored limit
     if (normalizedPlan === 'starter') {
       return 10;
     }

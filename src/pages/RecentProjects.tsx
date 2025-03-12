@@ -9,9 +9,10 @@ import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { getSafeProjectLimit } from "@/hooks/subscription/feature-access";
+import { getSafeProjectLimit, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export default function RecentProjects() {
   const { session, loading } = useAuth();
@@ -60,23 +61,23 @@ export default function RecentProjects() {
       console.log("Current subscription data:", subscriptionData);
       
       // Normalize plan type for safety
-      const normalizedPlan = (subscriptionData.plan_type || '').toLowerCase();
+      const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
       
       // CRITICAL FIX: For starter plans, always enforce 10 project limit
       if (normalizedPlan === 'starter') {
-        console.log(`Starter plan detected, enforcing 10 project limit (stored: ${subscriptionData.project_limit})`);
-        if (projectLimit !== 10) {
-          console.log(`Updating project limit from ${projectLimit} to 10`);
-          updateProjectLimit(10);
+        console.log(`CRITICAL: Starter plan detected, enforcing ${SUBSCRIPTION_PLAN_LIMITS.starter} project limit (stored: ${subscriptionData.project_limit})`);
+        if (projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+          console.log(`Updating project limit from ${projectLimit} to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+          updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
           
           // If the limit is incorrect despite multiple attempts, notify the user
-          if (refreshAttempts > 2 && projectLimit !== 10) {
+          if (refreshAttempts > 2 && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
             toast.info("Subscription refreshed", {
-              description: "Your project limit has been updated to 10"
+              description: `Your project limit has been updated to ${SUBSCRIPTION_PLAN_LIMITS.starter}`
             });
           }
         }
-        return 10;
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
       }
       
       // Get the correct limit based on plan type, with a fallback to the stored limit
@@ -96,30 +97,56 @@ export default function RecentProjects() {
       return safeLimit;
     }
     
-    // Default to trial limit if no subscription data
-    return 3;
+    // Default to trial limit if no subscription data, UNLESS we detect a starter plan in local storage
+    try {
+      const storedData = localStorage.getItem('subscriptionData');
+      if (storedData) {
+        const { data } = JSON.parse(storedData);
+        if (data && normalizePlanType(data.plan_type) === 'starter') {
+          console.log('Using stored starter plan data from localStorage');
+          return SUBSCRIPTION_PLAN_LIMITS.starter;
+        }
+      }
+    } catch (e) {
+      console.error('Error checking localStorage:', e);
+    }
+    
+    return SUBSCRIPTION_PLAN_LIMITS.trial;
   };
   
   // Apply project limit when subscription data changes
   useEffect(() => {
-    if (subscriptionData && !subscriptionLoading && !projectLimitApplied) {
-      console.log(`Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
+    if (!projectLimitApplied) {
+      console.log("Applying project limit...");
       
-      // Apply the correct project limit
-      const correctLimit = handleProjectLimitUpdate();
-      
-      console.log(`Applied project limit: ${correctLimit}`);
-      setProjectLimitApplied(true);
-      
-      // If we applied a different limit, refetch projects
-      if (correctLimit !== projectLimit) {
-        setTimeout(() => {
-          console.log('Refetching projects after updating project limit');
-          refetch();
-        }, 500);
+      if (subscriptionData) {
+        console.log(`Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
+        
+        // Apply the correct project limit
+        const correctLimit = handleProjectLimitUpdate();
+        
+        console.log(`Applied project limit: ${correctLimit}`);
+        setProjectLimitApplied(true);
+        
+        // If we applied a different limit, refetch projects
+        if (correctLimit !== projectLimit) {
+          setTimeout(() => {
+            console.log('Refetching projects after updating project limit');
+            refetch();
+          }, 500);
+        }
+      } else {
+        // Even without subscription data, check if we should enforce a higher limit
+        // This helps when subscription data is still loading
+        const forceUpdateLimit = handleProjectLimitUpdate();
+        if (forceUpdateLimit > projectLimit) {
+          console.log(`Forcing update to project limit: ${forceUpdateLimit}`);
+          updateProjectLimit(forceUpdateLimit);
+          setProjectLimitApplied(true);
+        }
       }
     }
-  }, [subscriptionData, subscriptionLoading, projectLimit, projectLimitApplied]);
+  }, [subscriptionData, projectLimit, projectLimitApplied]);
   
   // Reset the applied flag when subscription data changes
   useEffect(() => {
@@ -128,24 +155,38 @@ export default function RecentProjects() {
     }
   }, [subscriptionData?.subscription_id]);
   
-  // Recovery mechanism for stuck project limits
+  // Recovery mechanism for stuck project limits - CHECK EVERY RENDER
   useEffect(() => {
     // For starter plans with incorrect limits, force periodic refreshes
-    if (subscriptionData?.plan_type?.toLowerCase() === 'starter' && projectLimit !== 10) {
-      console.log(`Detected stuck project limit for starter plan: ${projectLimit}`);
+    const normalizedPlan = subscriptionData ? normalizePlanType(subscriptionData.plan_type) : null;
+    
+    if (normalizedPlan === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+      console.log(`RECOVERY: Detected stuck project limit for starter plan: ${projectLimit}`);
       
       // Schedule a recovery refresh
       const recoveryTimeout = setTimeout(() => {
         console.log("Executing recovery refresh for starter plan limit");
         refreshSubscription();
-        clearFeatureCaches();
+        // Force clear local caches
+        try {
+          localStorage.removeItem('projectLimit');
+          if (window.featureCache) window.featureCache.clear();
+          if (window.projectLimitCache) window.projectLimitCache.clear();
+        } catch (e) {
+          console.error("Error clearing caches:", e);
+        }
+        
+        // Force update the project limit immediately
+        updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+        
+        // Refetch projects with the new limit
         refetch();
         setRefreshAttempts(prev => prev + 1);
-      }, 3000);
+      }, 1000);
       
       return () => clearTimeout(recoveryTimeout);
     }
-  }, [subscriptionData, projectLimit, refreshSubscription, refetch]);
+  });
 
   // Always check subscription data every 15 seconds to ensure it's up to date
   useEffect(() => {
@@ -176,20 +217,9 @@ export default function RecentProjects() {
     toast.info("Refreshing subscription data...");
     // Clear local storage caches
     localStorage.removeItem("projectLimit");
-    clearFeatureCaches();
+    localStorage.removeItem("subscriptionData");
     
-    // Force subscription refresh
-    refreshSubscription();
-    setRefreshAttempts(prev => prev + 1);
-    
-    // Refetch projects after a short delay
-    setTimeout(() => {
-      refetch();
-    }, 1000);
-  };
-  
-  // Add function to clear feature caches
-  const clearFeatureCaches = () => {
+    // Clear feature caches
     try {
       if (window.featureCache && typeof window.featureCache.clear === 'function') {
         window.featureCache.clear();
@@ -201,6 +231,20 @@ export default function RecentProjects() {
     } catch (e) {
       console.error("Error clearing feature caches:", e);
     }
+    
+    // Force subscription refresh
+    refreshSubscription();
+    setRefreshAttempts(prev => prev + 1);
+    
+    // Force update the project limit for starter plans
+    if (subscriptionData && normalizePlanType(subscriptionData.plan_type) === 'starter') {
+      updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+    }
+    
+    // Refetch projects after a short delay
+    setTimeout(() => {
+      refetch();
+    }, 1000);
   };
   
   // Show loading state while we're waiting for authentication to complete
@@ -236,13 +280,21 @@ export default function RecentProjects() {
   }
 
   // Get a safe project limit for displaying even while subscription is loading
-  const displayProjectLimit = subscriptionData 
+  const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
+  
+  // CRITICAL: Force correct display limit for starter plans
+  let displayProjectLimit = subscriptionData 
     ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
-    : projectLimit || 3;
+    : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial;
+    
+  // Override for starter plans to always show 10
+  if (planFromSubscriptionData === 'starter') {
+    displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+  }
 
   // Debug information
   console.log("Current subscription state:", {
-    plan: subscriptionData?.plan_type,
+    plan: planFromSubscriptionData,
     status: subscriptionData?.status,
     projectLimit: subscriptionData?.project_limit,
     displayLimit: displayProjectLimit,

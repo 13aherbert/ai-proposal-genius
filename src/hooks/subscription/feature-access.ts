@@ -16,7 +16,20 @@ if (typeof window !== 'undefined') {
  * Normalizes plan type strings for consistent comparison
  */
 export function normalizePlanType(planType: string | null | undefined): string {
-  return (planType || 'trial').toLowerCase();
+  // Handle null/undefined cases
+  if (!planType) return 'trial';
+  
+  // Convert to lowercase for consistent comparison
+  const normalized = planType.toLowerCase().trim();
+  
+  // Validate against known plan types
+  if (['trial', 'starter', 'pro'].includes(normalized)) {
+    return normalized;
+  }
+  
+  // Default to trial for unknown plans
+  console.log(`Unknown plan type "${planType}" normalized to "trial"`);
+  return 'trial';
 }
 
 /**
@@ -104,13 +117,14 @@ export function getProjectLimitForPlan(planType: string): number {
   
   let limit: number;
   
-  // Use constants for exact limits
+  // CRITICAL: Enforce exact limits based on plan type
   if (normalizedPlan === 'pro') {
-    limit = SUBSCRIPTION_PLAN_LIMITS.pro;
+    limit = SUBSCRIPTION_PLAN_LIMITS.pro; // 30
   } else if (normalizedPlan === 'starter') {
-    limit = SUBSCRIPTION_PLAN_LIMITS.starter;  // This is 10
+    limit = SUBSCRIPTION_PLAN_LIMITS.starter; // 10
+    console.log(`IMPORTANT: Enforcing starter plan limit of ${limit} projects`);
   } else {
-    limit = SUBSCRIPTION_PLAN_LIMITS.trial; // Trial (3)
+    limit = SUBSCRIPTION_PLAN_LIMITS.trial; // 3
   }
   
   console.log(`Plan "${normalizedPlan}" has project limit: ${limit}`);
@@ -141,9 +155,9 @@ export function getSafeProjectLimit(planType: string | undefined, storedLimit: n
     const normalizedPlan = normalizePlanType(planType);
     console.log(`Normalized plan: ${normalizedPlan}`);
     
-    // Force correct limits based on plan types
+    // CRITICAL: Force correct limits based on plan types
     if (normalizedPlan === 'starter') {
-      console.log(`Starter plan, forcing ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit`);
+      console.log(`Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit`);
       return SUBSCRIPTION_PLAN_LIMITS.starter; // Force to 10 for all starter plans
     } else if (normalizedPlan === 'pro') {
       return SUBSCRIPTION_PLAN_LIMITS.pro;

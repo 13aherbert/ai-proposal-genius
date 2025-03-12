@@ -146,12 +146,15 @@ serve(async (req) => {
       );
     }
     
-    // Check if plan_type is 'starter' but project_limit doesn't match
+    // CRITICAL FIX: Check if plan_type is 'starter' but project_limit doesn't match
+    // Normalize plan type to lowercase for safer comparison
+    const normalizedPlanType = (subscription.plan_type || '').toLowerCase().trim();
+    
     if (
-      subscription.plan_type?.toLowerCase() === 'starter' && 
+      normalizedPlanType === 'starter' && 
       subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter
     ) {
-      console.log(`Correcting project limit for starter plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+      console.log(`CRITICAL FIX: Correcting project limit for starter plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
       
       // Update the project limit to match the plan
       const { error: updateError } = await supabase

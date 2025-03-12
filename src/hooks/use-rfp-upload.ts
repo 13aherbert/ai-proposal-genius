@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -74,16 +75,23 @@ export const useRFPUpload = () => {
       // Upload the file to Supabase Storage
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('rfp_documents')
-        .upload(fileName, file, {
-          onUploadProgress: (progress) => {
-            setUploadProgress((progress.loaded / progress.total) * 50); // First 50% is upload
-          },
-        });
-        
+        .upload(fileName, file);
+
+      // Handle upload progress separately
+      let uploadProgress = 0;
+      const interval = setInterval(() => {
+        uploadProgress += 10;
+        if (uploadProgress <= 50) {
+          setUploadProgress(uploadProgress);
+        }
+      }, 100);
+
       if (uploadError) {
+        clearInterval(interval);
         throw uploadError;
       }
       
+      clearInterval(interval);
       setUploadProgress(60);
       
       // Create a project entry in the database
@@ -118,7 +126,7 @@ export const useRFPUpload = () => {
       fetchProjectCount();
       
       // Invalidate projects query cache to refresh project lists
-      queryClient.invalidateQueries(["projects"]);
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       
       setUploadProgress(100);
       toast.success("RFP uploaded successfully");
@@ -135,11 +143,10 @@ export const useRFPUpload = () => {
       }, 500);
     }
   }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount]);
-  
-  // Update project details after upload
+
   const updateProject = useCallback(async (
     title: string, 
-    deadline?: Date | undefined,
+    deadline?: Date,
     clientName?: string,
     businessName?: string
   ) => {
@@ -162,7 +169,7 @@ export const useRFPUpload = () => {
       if (error) throw error;
       
       toast.success("Project updated");
-      queryClient.invalidateQueries(["projects"]);
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       
     } catch (error: any) {
       console.error("Update error:", error);

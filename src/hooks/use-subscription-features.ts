@@ -28,6 +28,8 @@ export type { FeatureName } from "./subscription/subscription-features-types";
 export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const { data: subscription, isLoading, error, checkSubscription } = useSubscription();
   const [testMode, setTestMode] = useState<boolean>(false);
+  const [lastPlanType, setLastPlanType] = useState<string | null>(null);
+  const [forceRefreshFlag, setForceRefreshFlag] = useState(0);
   
   useEffect(() => {
     // Check if test mode is enabled from localStorage
@@ -58,13 +60,22 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
         // Force a subscription check to correct the data
         checkSubscription(true);
       }
+      
+      // Detect subscription plan changes
+      if (lastPlanType !== null && lastPlanType !== normalizedPlanType) {
+        console.log(`Plan type changed from ${lastPlanType} to ${normalizedPlanType}. Clearing caches.`);
+        clearFeatureCaches();
+      }
+      
+      // Update last plan type
+      setLastPlanType(normalizedPlanType);
     }
     
     // Debug features
     if (subscription?.features) {
       console.log("useSubscriptionFeatures - Features:", subscription.features);
     }
-  }, [subscription, isLoading, error, testMode, checkSubscription]);
+  }, [subscription, isLoading, error, testMode, checkSubscription, lastPlanType]);
 
   // Clear feature cache when subscription changes
   useEffect(() => {
@@ -76,6 +87,19 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       }
     }
   }, [subscription]);
+  
+  // Force refresh of subscription data periodically
+  useEffect(() => {
+    if (!testMode) {
+      const refreshInterval = setInterval(() => {
+        console.log("Periodic refresh of subscription data");
+        checkSubscription(true);
+        setForceRefreshFlag(prev => prev + 1);
+      }, 60000); // Every 60 seconds
+      
+      return () => clearInterval(refreshInterval);
+    }
+  }, [testMode, checkSubscription]);
 
   const hasFeature = useCallback((feature: FeatureName): boolean => {
     // If test mode is enabled, use the test plan from localStorage
@@ -152,6 +176,12 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // Normalize plan type to lowercase
       const normalizedPlan = (subscription.plan_type || '').toLowerCase();
       
+      // CRITICAL: For starter plans, always return 10 regardless of stored limit
+      if (normalizedPlan === 'starter') {
+        console.log("Starter plan detected, enforcing 10 project limit");
+        return 10;
+      }
+      
       // Use the safe project limit function to get the correct limit
       const safeLimit = getSafeProjectLimit(normalizedPlan, subscription.project_limit);
       
@@ -182,6 +212,14 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     setTestMode(false);
     clearFeatureCaches();
   }, []);
+  
+  // Force refresh subscription data
+  const refreshSubscription = useCallback(() => {
+    console.log("Manual refresh of subscription data requested");
+    clearFeatureCaches();
+    checkSubscription(true);
+    setForceRefreshFlag(prev => prev + 1);
+  }, [checkSubscription]);
 
   return {
     hasFeature,
@@ -192,6 +230,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     plan: testMode ? getTestPlan() : (subscription?.plan_type || 'trial').toLowerCase(),
     isTestMode: testMode,
     enableTestMode,
-    disableTestMode
+    disableTestMode,
+    refreshSubscription
   };
 }

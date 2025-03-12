@@ -88,7 +88,7 @@ serve(async (req) => {
 
     // Handle case where user has no subscription
     if (!subscription) {
-      console.log('No subscription found, creating default trial subscription');
+      console.log(`No subscription found for user ${userId}, creating default trial subscription`);
       
       const now = new Date().toISOString();
       const { data: newSubscription, error: createError } = await supabase
@@ -124,7 +124,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Found subscription:", subscription);
+    console.log("Found subscription:", JSON.stringify(subscription));
     
     // Normalize plan type to lowercase for consistency
     const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
@@ -207,7 +207,7 @@ serve(async (req) => {
       project_limit: projectLimit
     };
     
-    console.log("Returning normalized subscription:", normalizedSubscription);
+    console.log("Returning normalized subscription:", JSON.stringify(normalizedSubscription));
 
     return new Response(
       JSON.stringify({ 
@@ -215,7 +215,7 @@ serve(async (req) => {
         subscription: normalizedSubscription
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
         status: 200 
       }
     );

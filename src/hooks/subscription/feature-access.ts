@@ -79,10 +79,11 @@ export function getProjectLimitForPlan(planType: string): number {
   
   let limit: number;
   
+  // CRITICAL: Exact plan type matching with fallbacks
   if (normalizedPlan === 'pro') {
     limit = 30;
   } else if (normalizedPlan === 'starter') {
-    limit = 10;  // CRITICAL FIX: Starter plans always get 10 projects
+    limit = 10;  // CRITICAL: Starter plans always get 10 projects
   } else {
     limit = 3; // Trial or unknown plan
   }
@@ -109,7 +110,7 @@ export function getSafeProjectLimit(planType: string | undefined, storedLimit: n
   if (planType) {
     const normalizedPlan = planType.toLowerCase();
     
-    // CRITICAL FIX: For starter plans, always return 10 regardless of stored limit
+    // CRITICAL: For starter plans, always return 10 regardless of stored limit
     if (normalizedPlan === 'starter') {
       return 10;
     }
@@ -120,12 +121,6 @@ export function getSafeProjectLimit(planType: string | undefined, storedLimit: n
   
   // If we only have storedLimit, use it (but correct it for starter plans)
   if (storedLimit !== undefined) {
-    // If stored limit is 3 but we know starter plans should have 10, correct it
-    if (storedLimit === 3) {
-      // We can't determine if this is actually a starter plan without the plan type
-      // so we'll return 3 to be safe
-      return 3;
-    }
     return storedLimit;
   }
   

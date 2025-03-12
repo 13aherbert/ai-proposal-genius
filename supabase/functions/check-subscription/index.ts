@@ -68,7 +68,7 @@ serve(async (req) => {
       userId = targetUserId;
     }
 
-    // Get the user's subscription with no-cache headers
+    // Get the user's subscription with no-cache headers if forced refresh is requested
     const cacheHeaders = forceRefresh ? 
       { 'Cache-Control': 'no-cache, no-store, must-revalidate' } : 
       {};

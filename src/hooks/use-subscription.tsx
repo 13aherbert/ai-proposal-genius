@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -57,7 +56,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkInProgressRef = useRef(false);
   const lastCheckTimestampRef = useRef<number>(0);
 
-  // Load cached subscription data on initial render
   useEffect(() => {
     try {
       if (session?.user && !subscription) {
@@ -78,7 +76,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [session, subscription]);
 
   const checkSubscription = useCallback(async (forceRecheck = false) => {
-    // Don't run if no session exists
     if (!session?.user) {
       console.log("No active session, clearing subscription data");
       setSubscription(null);
@@ -87,20 +84,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    // Don't run if check is in progress
     if (checkInProgressRef.current && !forceRecheck) {
       console.log("Subscription check already in progress, skipping");
       return;
     }
 
-    // Don't run if we've checked recently (unless forced)
     const now = Date.now();
     if (!forceRecheck && now - lastCheckTimestampRef.current < 10000) {
       console.log("Subscription checked recently, skipping");
       return;
     }
 
-    // Clear any existing timeout or abort controller
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -110,7 +104,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       timeoutRef.current = null;
     }
 
-    // Set up new abort controller and mark check as in progress
     abortControllerRef.current = new AbortController();
     checkInProgressRef.current = true;
     lastCheckTimestampRef.current = now;
@@ -120,7 +113,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setLoading(true);
       setError(null);
 
-      // Set up timeout to fallback to cached data if available
       const timeoutDuration = 5000;
       timeoutRef.current = window.setTimeout(() => {
         if (checkInProgressRef.current) {
@@ -131,7 +123,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             abortControllerRef.current = null;
           }
 
-          // Use cached data if available
           const cachedData = getStoredSubscriptionData();
           if (cachedData && cachedData.user_id === session.user.id) {
             console.log("Using cached subscription data after timeout:", cachedData);
@@ -151,7 +142,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
       }, timeoutDuration);
 
-      // Try to get subscription data from edge function first
       console.log("Calling check-subscription edge function");
       const { data: edgeFunctionResult, error: edgeFunctionError } = await supabase.functions.invoke(
         'check-subscription',
@@ -164,26 +154,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         }
       );
 
-      // Clear timeout since we got a response
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
 
-      // Handle edge function error
       if (edgeFunctionError) {
         console.error("Edge function error:", edgeFunctionError);
         throw new Error(`Edge function error: ${edgeFunctionError}`);
       }
 
-      // Process and store subscription data if available
       if (edgeFunctionResult?.subscription) {
         console.log("Edge function returned subscription data:", edgeFunctionResult.subscription);
         
-        // Normalize plan type
         const normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
-        
-        // Ensure correct project limit, particularly for starter plans
         let projectLimit = edgeFunctionResult.subscription.project_limit;
         
         if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
@@ -195,17 +179,26 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
         }
         
-        // Prepare validated subscription data
+        const normalizedStatus = edgeFunctionResult.subscription.status?.toLowerCase() || 'trialing';
+        const validStatus: SubscriptionStatus = 
+          (['trialing', 'active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'unpaid'].includes(normalizedStatus) 
+            ? normalizedStatus as SubscriptionStatus 
+            : 'trialing');
+        
+        const features = typeof edgeFunctionResult.subscription.features === 'object' && edgeFunctionResult.subscription.features !== null
+          ? edgeFunctionResult.subscription.features as Record<string, any>
+          : {};
+        
         const validatedData: SubscriptionPlan = {
           ...edgeFunctionResult.subscription,
           plan_type: normalizedPlanType,
-          project_limit: projectLimit
+          project_limit: projectLimit,
+          status: validStatus,
+          features: features
         };
         
-        // Store in local storage
         storeSubscriptionDataLocally(validatedData);
         
-        // Update state
         setSubscription(validatedData);
         setInitialFetchCompleted(true);
         setLoading(false);
@@ -214,7 +207,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
       
-      // No data from edge function, try direct DB query
       console.log("Edge function did not return subscription data, falling back to direct query");
       const { data: directData, error: directError } = await supabase
         .from('subscriptions')
@@ -232,17 +224,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (directData) {
         console.log("Found subscription data from direct query:", directData);
         
-        // Normalize plan type
         const normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
+        const normalizedStatus = directData.status?.toLowerCase() || 'trialing';
+        const validStatus: SubscriptionStatus = 
+          (['trialing', 'active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'unpaid'].includes(normalizedStatus) 
+            ? normalizedStatus as SubscriptionStatus 
+            : 'trialing');
         
-        // Determine correct project limit
         let projectLimit = directData.project_limit;
         
         if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
           console.log(`Correcting starter plan project limit from ${projectLimit} to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
           projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
           
-          // Update the database with correct limit
           try {
             await supabase
               .from('subscriptions')
@@ -258,26 +252,27 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           }
         }
         
-        // Prepare validated subscription data
+        const features = typeof directData.features === 'object' && directData.features !== null
+          ? directData.features as Record<string, any>
+          : {};
+        
         const validatedData: SubscriptionPlan = {
           subscription_id: directData.subscription_id,
           user_id: directData.user_id,
-          status: directData.status || 'trialing',
+          status: validStatus,
           plan_type: normalizedPlanType,
           current_period_end: directData.current_period_end,
           created_at: directData.created_at,
           updated_at: directData.updated_at || directData.created_at,
           project_limit: projectLimit || getProjectLimitForPlan(normalizedPlanType),
-          features: directData.features || {},
+          features: features,
           stripe_customer_id: directData.stripe_customer_id,
           stripe_subscription_id: directData.stripe_subscription_id,
           cancel_at_period_end: directData.cancel_at_period_end || false
         };
         
-        // Store in local storage
         storeSubscriptionDataLocally(validatedData);
         
-        // Update state
         setSubscription(validatedData);
         setInitialFetchCompleted(true);
         setLoading(false);
@@ -286,7 +281,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
       
-      // No subscription found, create trial subscription
       console.log("No subscription found, creating trial subscription");
       createDefaultSubscription();
       
@@ -294,7 +288,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       console.error('Error fetching subscription:', e);
       setError(e as Error);
       
-      // Use cached data if available
       const cachedData = getStoredSubscriptionData();
       if (cachedData && cachedData.user_id === session.user.id) {
         console.log("Using cached subscription data after error:", cachedData);
@@ -308,7 +301,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } finally {
       checkInProgressRef.current = false;
       
-      // Ensure loading is set to false
       setTimeout(() => {
         if (loading) {
           console.log("Forcing loading state to false after delay");
@@ -318,7 +310,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session, initialFetchCompleted, subscription]);
 
-  // Create a default trial subscription
   const createDefaultSubscription = async () => {
     try {
       console.log("Creating default trial subscription");
@@ -373,7 +364,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Renew a subscription
   const renewSubscription = async () => {
     try {
       console.log("Attempting subscription renewal with data:", subscription);
@@ -400,13 +390,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Status check functions
   const checkIsPastGracePeriod = () => isPastGracePeriod(subscription);
   const checkIsInGracePeriod = () => isInGracePeriod(subscription);
   const checkIsActive = () => isActive(subscription);
   const checkHasFailedPayment = () => hasFailedPayment(subscription);
 
-  // Initial check when session becomes available
   useEffect(() => {
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
@@ -420,7 +408,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session, checkSubscription, initialFetchCompleted]);
 
-  // Force recheck when flag changes
   useEffect(() => {
     if (forceRecheckFlag > 0 && session?.user) {
       console.log("Force rechecking subscription");
@@ -428,7 +415,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [forceRecheckFlag, session, checkSubscription]);
 
-  // Regular refresh on an interval (much less frequent)
   useEffect(() => {
     if (session?.user) {
       const refreshTimer = setInterval(() => {
@@ -440,7 +426,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session, checkSubscription]);
 
-  // Cleanup function
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {

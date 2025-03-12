@@ -177,7 +177,52 @@ export function clearFeatureCaches(): void {
   // Clear any localStorage values
   try {
     localStorage.removeItem('projectLimit');
+    localStorage.removeItem('subscriptionData');
   } catch (e) {
     console.error("Error clearing localStorage:", e);
+  }
+}
+
+/**
+ * Store subscription data in localStorage for faster access and offline fallback
+ */
+export function storeSubscriptionDataLocally(subscription: any): void {
+  if (!subscription) return;
+  
+  try {
+    // Store the subscription data with timestamp
+    const storageItem = {
+      data: subscription,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('subscriptionData', JSON.stringify(storageItem));
+    console.log("Subscription data stored in localStorage");
+  } catch (e) {
+    console.error("Error storing subscription data:", e);
+  }
+}
+
+/**
+ * Get subscription data from localStorage
+ * @returns The stored subscription data if available and not expired, null otherwise
+ */
+export function getStoredSubscriptionData(): any {
+  try {
+    const storedData = localStorage.getItem('subscriptionData');
+    if (!storedData) return null;
+    
+    const { data, timestamp } = JSON.parse(storedData);
+    
+    // Check if the data is expired (older than 30 minutes)
+    const isExpired = Date.now() - timestamp > 30 * 60 * 1000;
+    if (isExpired) {
+      localStorage.removeItem('subscriptionData');
+      return null;
+    }
+    
+    return data;
+  } catch (e) {
+    console.error("Error retrieving stored subscription data:", e);
+    return null;
   }
 }

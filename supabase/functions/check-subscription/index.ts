@@ -63,7 +63,7 @@ serve(async (req) => {
     
     // Add timeout for auth verification
     const controller = new AbortController();
-    const authTimeout = setTimeout(() => controller.abort(), 2000);
+    const authTimeout = setTimeout(() => controller.abort(), 3000); // Increased from 2000
     
     let user;
     
@@ -90,7 +90,7 @@ serve(async (req) => {
     if (targetUserId && targetUserId !== userId) {
       // Quick check if requester is an admin (with timeout)
       const adminCheckController = new AbortController();
-      const adminCheckTimeout = setTimeout(() => adminCheckController.abort(), 1000);
+      const adminCheckTimeout = setTimeout(() => adminCheckController.abort(), 2000); // Increased from 1000
       
       try {
         const { data: isAdmin } = await supabase.rpc('is_admin', {}, {
@@ -125,7 +125,7 @@ serve(async (req) => {
     
     // Set overall query timeout
     const queryController = new AbortController();
-    const queryTimeout = setTimeout(() => queryController.abort(), 3000);
+    const queryTimeout = setTimeout(() => queryController.abort(), 4000); // Increased from 3000
     
     try {
       const { data: subscription, error: subError } = await supabase
@@ -177,7 +177,7 @@ serve(async (req) => {
             subscription: newSubscription
           }),
           { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
             status: 200 
           }
         );
@@ -294,7 +294,7 @@ serve(async (req) => {
         error: errorMessage 
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
         status: 400 
       }
     );

@@ -48,6 +48,30 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const checkInProgressRef = useRef(false);
+  const localStorageCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (!localStorageCheckedRef.current && session?.user && !subscription) {
+      try {
+        const storedDataStr = localStorage.getItem('subscriptionData');
+        if (storedDataStr) {
+          const { data, timestamp } = JSON.parse(storedDataStr);
+          const isFresh = Date.now() - timestamp < 30 * 60 * 1000;
+          
+          if (isFresh && data && data.user_id === session.user.id) {
+            console.log("Using cached subscription data from localStorage", data);
+            setSubscription(data);
+            setLoading(false);
+            setInitialFetchCompleted(true);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading subscription from localStorage:", e);
+      }
+      
+      localStorageCheckedRef.current = true;
+    }
+  }, [session, subscription]);
 
   const checkSubscription = async (forceRecheck = false) => {
     try {
@@ -87,7 +111,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setLoading(true);
       setError(null);
 
-      const timeoutDuration = 10000;
+      const timeoutDuration = 8000;
       timeoutRef.current = window.setTimeout(() => {
         if (checkInProgressRef.current) {
           console.log(`Subscription check timed out after ${timeoutDuration}ms`);
@@ -127,7 +151,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           }
           
           return response.data;
-        }, 2);
+        }, 3);
 
         if (timeoutRef.current) {
           window.clearTimeout(timeoutRef.current);
@@ -151,6 +175,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             plan_type: normalizedPlanType,
             project_limit: projectLimit
           };
+          
+          try {
+            localStorage.setItem('subscriptionData', JSON.stringify({
+              data: validatedData,
+              timestamp: Date.now()
+            }));
+          } catch (e) {
+            console.error("Error storing subscription in localStorage:", e);
+          }
           
           console.log("Final processed subscription data:", validatedData);
           setSubscription(validatedData);

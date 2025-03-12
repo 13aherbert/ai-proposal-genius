@@ -13,7 +13,9 @@ import {
   getFeatureName, 
   clearFeatureCaches,
   getProjectLimitForPlan,
-  getSafeProjectLimit
+  getSafeProjectLimit,
+  storeSubscriptionDataLocally,
+  getStoredSubscriptionData
 } from "./subscription/feature-access";
 import {
   isTestModeEnabled,
@@ -32,6 +34,21 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const [forceRefreshFlag, setForceRefreshFlag] = useState(0);
   const [localProjectLimit, setLocalProjectLimit] = useState<number | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [fallbackSubscription, setFallbackSubscription] = useState<any>(null);
+  
+  // Initialize with stored data on mount
+  useEffect(() => {
+    const storedData = getStoredSubscriptionData();
+    if (storedData && !fallbackSubscription) {
+      console.log("Using stored subscription data as fallback:", storedData);
+      setFallbackSubscription(storedData);
+      
+      // Set initial project limit from stored data
+      const normalizedPlan = (storedData.plan_type || '').toLowerCase();
+      const safeLimit = getSafeProjectLimit(normalizedPlan, storedData.project_limit);
+      setLocalProjectLimit(safeLimit);
+    }
+  }, []);
   
   useEffect(() => {
     // Check if test mode is enabled from localStorage
@@ -49,9 +66,13 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     console.log("useSubscriptionFeatures - Error:", error);
     console.log("useSubscriptionFeatures - Test mode:", isTestMode);
     
+    // Store subscription data in localStorage when it's available
     if (subscription) {
       console.log("useSubscriptionFeatures - Plan type:", subscription.plan_type);
       console.log("useSubscriptionFeatures - Project limit:", subscription.project_limit);
+      
+      // Store subscription data for offline access and faster loading
+      storeSubscriptionDataLocally(subscription);
       
       // Special case: normalize plan type strings for comparison
       const normalizedPlanType = (subscription.plan_type || '').toLowerCase();
@@ -101,14 +122,14 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     }
   }, [subscription]);
   
-  // Force refresh of subscription data periodically
+  // Force refresh of subscription data periodically but less frequently
   useEffect(() => {
     if (!testMode) {
       const refreshInterval = setInterval(() => {
         console.log("Periodic refresh of subscription data");
         checkSubscription(true);
         setForceRefreshFlag(prev => prev + 1);
-      }, 60000); // Every 60 seconds
+      }, 120000); // Every 2 minutes instead of 1 minute
       
       return () => clearInterval(refreshInterval);
     }
@@ -123,7 +144,17 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       console.log("Using test plan:", currentPlan);
     } else {
       if (isLoading && !hasInitialized) {
-        console.log("Subscription still loading, deferring feature check");
+        console.log("Subscription still loading, checking for fallback data");
+        
+        // Try to use fallback subscription data
+        if (fallbackSubscription) {
+          const fallbackPlan = (fallbackSubscription.plan_type || '').toLowerCase();
+          console.log("Using fallback subscription data with plan:", fallbackPlan);
+          
+          // Determine if the user has access to this feature based on fallback data
+          const hasAccess = determineFeatureAccess(feature, fallbackPlan);
+          return hasAccess;
+        }
         
         // For certain features, we can provide default access while loading
         if (feature === 'rfp_summary' || feature === 'proposal_outline' || feature === 'proposal_draft') {
@@ -135,11 +166,25 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       if (error) {
         console.error("Error loading subscription:", error);
+        // Try to use fallback subscription data if there's an error
+        if (fallbackSubscription) {
+          const fallbackPlan = (fallbackSubscription.plan_type || '').toLowerCase();
+          const hasAccess = determineFeatureAccess(feature, fallbackPlan);
+          return hasAccess;
+        }
         return false;
       }
       
       if (!subscription) {
-        console.log("No subscription data available, using trial defaults");
+        console.log("No subscription data available, using fallback or trial defaults");
+        
+        // Try to use fallback subscription data
+        if (fallbackSubscription) {
+          const fallbackPlan = (fallbackSubscription.plan_type || '').toLowerCase();
+          const hasAccess = determineFeatureAccess(feature, fallbackPlan);
+          return hasAccess;
+        }
+        
         return feature === "rfp_summary" || feature === "proposal_outline" || feature === "proposal_draft";
       }
       
@@ -164,7 +209,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     // Cache the result
     featureCache.set(cacheKey, hasAccess);
     return hasAccess;
-  }, [subscription, isLoading, error, testMode, hasInitialized]);
+  }, [subscription, isLoading, error, testMode, hasInitialized, fallbackSubscription]);
 
   const getProjectLimit = useCallback((): number => {
     // If test mode is enabled, use the test project limit from localStorage
@@ -177,8 +222,23 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       return localProjectLimit;
     }
     
-    // While loading, we can't determine the exact limit, so return a safe default
-    if (isLoading) {
+    // Use fallback subscription data if available and if still loading
+    if (isLoading && fallbackSubscription) {
+      const normalizedPlan = (fallbackSubscription.plan_type || '').toLowerCase();
+      
+      // For starter plans, enforce 10 project limit
+      if (normalizedPlan === 'starter') {
+        return SUBSCRIPTION_PLAN_LIMITS.starter; // 10
+      }
+      
+      // Use the safe project limit function to get the correct limit from fallback
+      const safeLimit = getSafeProjectLimit(normalizedPlan, fallbackSubscription.project_limit);
+      console.log(`Using fallback project limit for ${normalizedPlan}: ${safeLimit}`);
+      return safeLimit;
+    }
+    
+    // While loading with no fallback, we can't determine the exact limit, so return a safe default
+    if (isLoading && !fallbackSubscription) {
       console.log("Subscription loading, returning default project limit");
       return 3; // Trial default
     }
@@ -203,15 +263,23 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     
     // Fallback to trial limit
     return 3;
-  }, [subscription, isLoading, testMode, localProjectLimit]);
+  }, [subscription, isLoading, testMode, localProjectLimit, fallbackSubscription]);
 
   const getPlanName = useCallback((feature: FeatureName): string => {
-    const currentPlan = testMode 
-      ? getTestPlan()
-      : (subscription?.plan_type || 'trial').toLowerCase();
+    let currentPlan: string;
+    
+    if (testMode) {
+      currentPlan = getTestPlan();
+    } else if (subscription) {
+      currentPlan = (subscription.plan_type || 'trial').toLowerCase();
+    } else if (fallbackSubscription) {
+      currentPlan = (fallbackSubscription.plan_type || 'trial').toLowerCase();
+    } else {
+      currentPlan = 'trial';
+    }
       
     return getFeatureName(feature, currentPlan);
-  }, [subscription, testMode]);
+  }, [subscription, testMode, fallbackSubscription]);
 
   const enableTestMode = useCallback((planType: 'trial' | 'starter' | 'pro' = 'trial') => {
     enableTestModeUtil(planType);
@@ -236,6 +304,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     // Clear localStorage caches
     try {
       localStorage.removeItem('projectLimit');
+      localStorage.removeItem('subscriptionData');
       if (window.featureCache) {
         window.featureCache.clear();
       }
@@ -261,9 +330,12 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     hasFeature,
     getProjectLimit,
     getPlanName,
-    isLoading: testMode ? false : isLoading,
+    isLoading: testMode ? false : (isLoading && !fallbackSubscription),
     error: testMode ? null : error,
-    plan: testMode ? getTestPlan() : (subscription?.plan_type || 'trial').toLowerCase(),
+    plan: testMode ? getTestPlan() : 
+          subscription ? (subscription.plan_type || 'trial').toLowerCase() : 
+          fallbackSubscription ? (fallbackSubscription.plan_type || 'trial').toLowerCase() : 
+          'trial',
     isTestMode: testMode,
     enableTestMode,
     disableTestMode,

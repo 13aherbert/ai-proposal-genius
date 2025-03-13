@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { KnowledgeEntry } from "../types";
 import { debounce } from "lodash";
+import { useAuth } from "@/components/AuthProvider";
 
 /**
  * Custom hook to manage knowledge entries data and operations
@@ -17,6 +18,7 @@ export const useEntries = (selectedCategory: string | null) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { toast } = useToast();
+  const { session } = useAuth();
   const [cache, setCache] = useState<Record<string, { data: KnowledgeEntry[], timestamp: number, totalCount: number }>>({});
   
   // Cache expiration time (5 minutes)
@@ -41,7 +43,8 @@ export const useEntries = (selectedCategory: string | null) => {
   );
 
   const getCacheKey = () => {
-    return `${selectedCategory || 'all'}-${currentPage}-${pageSize}`;
+    const userId = session?.user?.id || 'anonymous';
+    return `${userId}-${selectedCategory || 'all'}-${currentPage}-${pageSize}`;
   };
 
   const isCacheValid = (cacheKey: string) => {
@@ -54,6 +57,14 @@ export const useEntries = (selectedCategory: string | null) => {
 
   const fetchEntries = async () => {
     try {
+      if (!session?.user?.id) {
+        console.log('No authenticated user, cannot fetch entries');
+        setEntries([]);
+        setTotalCount(0);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       console.log('Fetching entries with selected category:', selectedCategory);
       
@@ -76,7 +87,8 @@ export const useEntries = (selectedCategory: string | null) => {
       // Count query for total entries
       let countQuery = supabase
         .from('knowledge_entries')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id);
         
       if (selectedCategory) {
         const formattedCategory = formatCategoryForQuery(selectedCategory);
@@ -95,6 +107,7 @@ export const useEntries = (selectedCategory: string | null) => {
       let query = supabase
         .from('knowledge_entries')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false })
         .range(from, to);
 

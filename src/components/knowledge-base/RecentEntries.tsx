@@ -1,9 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KnowledgeEntry, KnowledgeCategory } from "./types";
 import { ViewEntryDialog } from "./ViewEntryDialog";
 import { useEntries } from "./entries/useEntries";
 import { EntryList } from "./entries/EntryList";
+import { useAuth } from "@/components/AuthProvider";
 
 interface RecentEntriesProps {
   selectedCategory: string | null;
@@ -17,10 +19,13 @@ interface RecentEntriesProps {
 export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesProps) => {
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
   const { entries, isLoading, fetchEntries } = useEntries(selectedCategory);
+  const { session } = useAuth();
 
   useEffect(() => {
-    fetchEntries();
-  }, [selectedCategory]);
+    if (session?.user) {
+      fetchEntries();
+    }
+  }, [selectedCategory, session?.user, fetchEntries]);
 
   if (isLoading) {
     return (
@@ -34,6 +39,19 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
           <div className="space-y-4">
             <p className="text-muted-foreground">Loading entries...</p>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <Card className="bg-secondary/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle>Authentication Required</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Please sign in to view your knowledge base entries.</p>
         </CardContent>
       </Card>
     );

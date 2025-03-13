@@ -1,6 +1,6 @@
 
 import { BookOpen, FileText, Folder, List, Scale, DollarSign, LineChart, ArrowLeft, Building } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
@@ -8,11 +8,13 @@ import { SearchBar } from "@/components/knowledge-base/SearchBar";
 import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
 import { KnowledgeCategory } from "@/components/knowledge-base/types";
+import { useAuth } from "@/components/AuthProvider";
 
 const KnowledgeBase = () => {
   const [open, setOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const categories: KnowledgeCategory[] = [
     { icon: <BookOpen className="h-4 w-4" />, name: "Company Boilerplates" },

@@ -62,27 +62,20 @@ export function ActionButtons({
       )}
       
       {showBetaBadge && (
-        <>
-          <Button 
-            variant="outline" 
-            className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
-            onClick={() => {
-              console.log("Navigating to beta dashboard", {
-                timestamp: new Date().toISOString(),
-                showBetaBadge
-              });
-              navigate('/beta');
-            }}
-          >
-            <Beaker className="h-5 w-5 mr-2" />
-            Beta Dashboard
-          </Button>
-          
-          <Badge variant="outline" className="py-2 px-3 border-purple-400 bg-purple-900/20">
-            <Crown className="h-4 w-4 mr-1" />
-            Beta Tester
-          </Badge>
-        </>
+        <Button 
+          variant="outline" 
+          className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
+          onClick={() => {
+            console.log("Navigating to beta dashboard", {
+              timestamp: new Date().toISOString(),
+              showBetaBadge
+            });
+            navigate('/beta');
+          }}
+        >
+          <Beaker className="h-5 w-5 mr-2" />
+          Beta Dashboard
+        </Button>
       )}
       
       {import.meta.env.DEV && (

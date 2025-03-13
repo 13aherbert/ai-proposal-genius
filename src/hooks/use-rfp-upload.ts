@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
@@ -8,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "./use-subscription";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { STARTER_USER_ID, isStarterUser } from "./subscription/feature-access";
 
 export const useRFPUpload = () => {
   const { session } = useAuth();
@@ -19,9 +19,16 @@ export const useRFPUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("");
+  const [fetchError, setFetchError] = useState<Error | null>(null);
 
+  // Check if this is the starter user
+  const isUserStarter = session?.user?.id === STARTER_USER_ID || isStarterUser();
+  
   // Get project limit from subscription data, with fallback to trial limit
-  const projectLimit = subscriptionData?.project_limit || SUBSCRIPTION_PLAN_LIMITS.trial;
+  // Force the starter limit for starter users
+  const projectLimit = isUserStarter
+    ? SUBSCRIPTION_PLAN_LIMITS.starter
+    : subscriptionData?.project_limit || SUBSCRIPTION_PLAN_LIMITS.trial;
   
   // Get current project count from database
   const [currentProjectCount, setCurrentProjectCount] = useState<number | null>(null);
@@ -31,6 +38,7 @@ export const useRFPUpload = () => {
     if (!session?.user) return;
     
     try {
+      setFetchError(null);
       const { count, error } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
@@ -40,20 +48,27 @@ export const useRFPUpload = () => {
       setCurrentProjectCount(count || 0);
     } catch (error) {
       console.error('Error fetching project count:', error);
-      setCurrentProjectCount(0);
+      setFetchError(error as Error);
+      // Don't reset the count to 0 on error, keep previous value
+      // This prevents UI flashing between states on network errors
     }
   }, [session]);
 
   // Call fetch project count when session changes
-  useState(() => {
-    fetchProjectCount();
-  });
+  useEffect(() => {
+    if (session?.user) {
+      fetchProjectCount();
+    }
+  }, [session, fetchProjectCount]);
 
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {
       toast.error("Please sign in to upload RFPs");
       return;
     }
+    
+    // Fetch the latest count before checking limits
+    await fetchProjectCount();
     
     // Check if user has reached their project limit
     if (currentProjectCount !== null && projectLimit !== null && currentProjectCount >= projectLimit) {
@@ -186,6 +201,7 @@ export const useRFPUpload = () => {
     projectTitle,
     projectLimit,
     currentProjectCount,
+    fetchError,
     setProjectTitle,
     handleFileUpload,
     updateProject,

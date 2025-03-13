@@ -7,21 +7,28 @@ import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
+import { useProjectLimits } from "@/hooks/use-project-limits";
+import { useAuth } from "@/components/AuthProvider";
 
 // Memoize the UploadDropzone component to prevent unnecessary re-renders
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
 const UploadRFP = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [deadline, setDeadline] = useState<Date>();
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  
+  // Use the project limits hook for consistent limit management
+  const { determineDisplayLimit } = useProjectLimits(session?.user || null);
+  
   const {
     uploadProgress,
     isUploading,
     projectId,
     projectTitle,
-    projectLimit,
+    projectLimit: rawProjectLimit,
     currentProjectCount,
     setProjectTitle,
     handleFileUpload,
@@ -29,9 +36,20 @@ const UploadRFP = () => {
     fetchProjectCount
   } = useRFPUpload();
 
+  // Calculate the correct project limit 
+  const projectLimit = determineDisplayLimit(rawProjectLimit);
+
   // Fetch project count when the component mounts
   useEffect(() => {
     fetchProjectCount();
+    
+    // Set up an interval to periodically refresh the count
+    // This helps prevent flashing if the backend is slow to respond
+    const interval = setInterval(() => {
+      fetchProjectCount();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [fetchProjectCount]);
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -56,9 +74,14 @@ const UploadRFP = () => {
   }, [navigate, projectId]);
 
   // Calculate whether user has reached project limit
-  const hasReachedLimit = projectLimit !== null && 
-                         currentProjectCount !== null && 
-                         currentProjectCount >= projectLimit;
+  // Only show limit reached if we have valid data for both count and limit
+  const hasReachedLimit = 
+    projectLimit !== null && 
+    currentProjectCount !== null && 
+    currentProjectCount >= projectLimit;
+
+  // In loading state, don't show limit reached warning
+  const isLoading = currentProjectCount === null;
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -75,7 +98,7 @@ const UploadRFP = () => {
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
           
-          {hasReachedLimit && (
+          {!isLoading && hasReachedLimit && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">
@@ -92,7 +115,7 @@ const UploadRFP = () => {
             </Card>
           )}
 
-          {projectLimit !== null && currentProjectCount !== null && !hasReachedLimit && (
+          {!isLoading && projectLimit !== null && currentProjectCount !== null && !hasReachedLimit && (
             <div className="text-sm text-muted-foreground">
               Project usage: {currentProjectCount} of {projectLimit} projects
             </div>

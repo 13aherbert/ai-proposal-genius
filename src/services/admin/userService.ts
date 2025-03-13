@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
-import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimit } from "@/utils/network";
+import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimitByKey } from "@/utils/network";
 
 /**
  * ==================================
@@ -447,7 +447,7 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
   const updateKey = `update-subscription-${email}`;
   
-  return withRateLimit(updateKey, async () => {
+  return withRateLimitByKey(updateKey, async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -773,3 +773,4 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
+

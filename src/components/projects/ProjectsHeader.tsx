@@ -38,13 +38,7 @@ export function ProjectsHeader({
           </div>
         )}
       </div>
-      <Button 
-        onClick={() => navigate("/upload-rfp")}
-        className="bg-brand-green hover:bg-brand-green-dark"
-        disabled={!canCreateProject}
-      >
-        New Project
-      </Button>
+      {/* The New Project button has been removed from here */}
     </header>
   );
 }

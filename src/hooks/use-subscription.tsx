@@ -3,6 +3,7 @@ import { useSubscription as useSubscriptionHook, SubscriptionProvider } from './
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SubscriptionPlan, SubscriptionStatus } from '@/types/subscription';
 
 // Enhanced hook with fallback mechanism
 const useSubscriptionWithFallback = () => {
@@ -51,6 +52,20 @@ const useSubscriptionWithFallback = () => {
         console.error("Error in direct subscription fetch:", error);
       } else if (data) {
         console.log("Successfully fetched subscription directly:", data);
+        // Properly type the data before storing
+        const typedData: SubscriptionPlan = {
+          ...data,
+          status: data.status as SubscriptionStatus,
+          features: data.features || {},
+        };
+        
+        // Store in localStorage for future use
+        try {
+          localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+        } catch (e) {
+          console.error("Error storing subscription data locally:", e);
+        }
+        
         // Force a subscription check to update the context
         subscriptionData.checkSubscription(true).catch(err => {
           console.error("Error during second forced check:", err);

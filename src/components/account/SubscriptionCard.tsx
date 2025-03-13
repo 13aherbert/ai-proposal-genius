@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SubscriptionPlan } from "@/types/subscription";
+import type { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -44,6 +45,63 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const subscription = localSubscription || subscriptionFromContext;
   const isLoading = (isContextLoading && !subscription) || loadingTimeout;
   
+  // Direct database fetch function
+  const tryDirectFetch = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData?.session?.user?.id) {
+        console.log("No authenticated user for direct fetch");
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+        
+      if (error) {
+        console.error("Error in direct fetch:", error);
+      } else if (data) {
+        console.log("Fetched subscription directly:", data);
+        // Convert string status to SubscriptionStatus type
+        const typedData: SubscriptionPlan = {
+          ...data,
+          status: data.status as SubscriptionStatus,
+          features: data.features || {}
+        };
+        setLocalSubscription(typedData);
+        try {
+          localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+        } catch (e) {
+          console.error("Error storing data:", e);
+        }
+      }
+    } catch (err) {
+      console.error("Exception in direct fetch:", err);
+    }
+  };
+  
+  /**
+   * Manually refresh subscription data
+   */
+  const handleRefreshSubscription = async () => {
+    try {
+      setIsRefreshing(true);
+      await checkSubscription(true);
+      toast.success("Subscription data refreshed");
+    } catch (error) {
+      console.error("Error refreshing subscription:", error);
+      toast.error("Failed to refresh subscription data");
+      
+      // Try direct database fetch as fallback
+      await tryDirectFetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
   // Show loading timeout message after 5 seconds
   useEffect(() => {
     if (isContextLoading && !subscription) {
@@ -78,7 +136,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         if (storedData) {
           const parsedData = JSON.parse(storedData);
           console.log("Loaded subscription from localStorage:", parsedData);
-          setLocalSubscription(parsedData);
+          // Convert string status to SubscriptionStatus type
+          const typedData: SubscriptionPlan = {
+            ...parsedData,
+            status: parsedData.status as SubscriptionStatus,
+            features: parsedData.features || {}
+          };
+          setLocalSubscription(typedData);
         }
       } catch (e) {
         console.error("Error loading subscription from localStorage:", e);
@@ -101,7 +165,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           if (storedData) {
             const parsedData = JSON.parse(storedData);
             console.log("Loaded subscription from localStorage fallback:", parsedData);
-            setLocalSubscription(parsedData);
+            // Convert string status to SubscriptionStatus type
+            const typedData: SubscriptionPlan = {
+              ...parsedData,
+              status: parsedData.status as SubscriptionStatus,
+              features: parsedData.features || {}
+            };
+            setLocalSubscription(typedData);
           }
         } catch (e) {
           console.error("Error loading subscription from localStorage:", e);
@@ -203,57 +273,6 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   // Check if subscription has failed payment
   const hasFailedPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
 
-  /**
-   * Manually refresh subscription data
-   */
-  const handleRefreshSubscription = async () => {
-    try {
-      setIsRefreshing(true);
-      await checkSubscription(true);
-      toast.success("Subscription data refreshed");
-    } catch (error) {
-      console.error("Error refreshing subscription:", error);
-      toast.error("Failed to refresh subscription data");
-      
-      // Try direct database fetch as fallback
-      await tryDirectFetch();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-  
-  // Direct database fetch function
-  const tryDirectFetch = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session?.user?.id) {
-        console.log("No authenticated user for direct fetch");
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', sessionData.session.user.id)
-        .single();
-        
-      if (error) {
-        console.error("Error in direct fetch:", error);
-      } else if (data) {
-        console.log("Fetched subscription directly:", data);
-        setLocalSubscription(data);
-        try {
-          localStorage.setItem('subscriptionData', JSON.stringify(data));
-        } catch (e) {
-          console.error("Error storing data:", e);
-        }
-      }
-    } catch (err) {
-      console.error("Exception in direct fetch:", err);
-    }
-  };
-  
   /**
    * Gets a human-readable plan name based on the plan type
    */
@@ -608,4 +627,3 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     </Card>
   );
 }
-

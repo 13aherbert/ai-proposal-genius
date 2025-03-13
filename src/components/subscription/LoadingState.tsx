@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
 
 export function LoadingState() {
   const [retryCount, setRetryCount] = useState(0);
@@ -43,9 +44,14 @@ export function LoadingState() {
           }
         } else if (data) {
           console.log("Successfully fetched subscription data directly:", data);
-          // Store in localStorage as a fallback
+          // Store in localStorage as a fallback with proper typing
           try {
-            localStorage.setItem('subscriptionData', JSON.stringify(data));
+            const typedData: SubscriptionPlan = {
+              ...data,
+              status: data.status as SubscriptionStatus,
+              features: data.features || {},
+            };
+            localStorage.setItem('subscriptionData', JSON.stringify(typedData));
             toast.success("Subscription data loaded", { duration: 2000 });
           } catch (e) {
             console.error("Error storing subscription data locally:", e);

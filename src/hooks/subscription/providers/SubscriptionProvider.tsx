@@ -17,7 +17,6 @@ import {
 import { withRetry } from '@/utils/network/retry';
 import { withRateLimitByKey } from '@/utils/network/rate-limit';
 import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -79,6 +78,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (data) {
         console.log("Subscription data received:", data);
         
+        // Properly cast the status to SubscriptionStatus type and ensure features is an object
         const typedSubscription: SubscriptionPlan = {
           ...data,
           status: data.status as SubscriptionStatus,

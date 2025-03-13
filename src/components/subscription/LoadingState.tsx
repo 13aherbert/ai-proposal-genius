@@ -44,6 +44,28 @@ export function LoadingState() {
     }
   }, []);
 
+  // Set up listener for subscription data events
+  useEffect(() => {
+    const handleCacheLoaded = (event: CustomEvent) => {
+      console.log("Received subscriptionCacheLoaded event", event.detail);
+      setLoadedFromLocal(true);
+    };
+    
+    const handleDataLoaded = (event: CustomEvent) => {
+      console.log("Received subscriptionLoaded event", event.detail);
+      setLoadedFromLocal(true);
+      // Could update UI to indicate fresh data is loaded
+    };
+    
+    window.addEventListener('subscriptionCacheLoaded', handleCacheLoaded as EventListener);
+    window.addEventListener('subscriptionLoaded', handleDataLoaded as EventListener);
+    
+    return () => {
+      window.removeEventListener('subscriptionCacheLoaded', handleCacheLoaded as EventListener);
+      window.removeEventListener('subscriptionLoaded', handleDataLoaded as EventListener);
+    };
+  }, []);
+
   // Try to directly fetch subscription data if edge function fails
   useEffect(() => {
     if (isAttempting.current || retryCount > 2 || loadedFromLocal) return;
@@ -92,6 +114,33 @@ export function LoadingState() {
           } else if (error.code === 'PGRST116') {
             // No row found, this is a new user
             console.log("No subscription found, user may need a trial subscription created");
+            
+            // Create default trial subscription
+            const defaultTrial: SubscriptionPlan = {
+              subscription_id: crypto.randomUUID(),
+              user_id: sessionData.session.user.id,
+              status: 'trialing',
+              plan_type: 'trial',
+              project_limit: 3,
+              features: {},
+              current_period_end: null,
+              stripe_customer_id: null,
+              stripe_subscription_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            // Store and dispatch
+            try {
+              localStorage.setItem('subscriptionData', JSON.stringify(defaultTrial));
+              window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
+                detail: { data: defaultTrial } 
+              }));
+              setLoadedFromLocal(true);
+            } catch (e) {
+              console.error("Error storing default trial data:", e);
+            }
+            
             toast.info("Setting up your account...");
           } else {
             toast.error("Error loading subscription data");
@@ -115,6 +164,7 @@ export function LoadingState() {
               detail: { data: typedData } 
             }));
             
+            setLoadedFromLocal(true);
             toast.success("Subscription data loaded", { duration: 2000 });
           } catch (e) {
             console.error("Error storing subscription data locally:", e);

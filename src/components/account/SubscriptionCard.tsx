@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,10 +42,15 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [hasFetchedFromLocal, setHasFetchedFromLocal] = useState(false);
+  const [directFetchAttempted, setDirectFetchAttempted] = useState(false);
   
-  // Direct database fetch function
+  // Direct database fetch function with retry mechanism
   const tryDirectFetch = async () => {
+    if (directFetchAttempted) return;
+    setDirectFetchAttempted(true);
+    
     try {
+      console.log("Attempting direct database fetch for subscription data");
       const { data: sessionData } = await supabase.auth.getSession();
       
       if (!sessionData?.session?.user?.id) {
@@ -76,7 +82,37 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         };
         setLocalSubscription(typedData);
         try {
-          localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+          localStorage.setItem('subscriptionData', JSON.stringify({
+            ...typedData,
+            updated_at: new Date().toISOString()
+          }));
+        } catch (e) {
+          console.error("Error storing data:", e);
+        }
+      } else {
+        console.log("No subscription found in direct fetch, creating default trial data");
+        
+        // Create a default trial subscription object if nothing was found
+        const defaultTrial: SubscriptionPlan = {
+          subscription_id: crypto.randomUUID(),
+          user_id: sessionData.session.user.id,
+          status: 'trialing',
+          plan_type: 'trial',
+          project_limit: 3,
+          features: {},
+          current_period_end: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setLocalSubscription(defaultTrial);
+        try {
+          localStorage.setItem('subscriptionData', JSON.stringify({
+            ...defaultTrial,
+            updated_at: new Date().toISOString()
+          }));
         } catch (e) {
           console.error("Error storing data:", e);
         }
@@ -120,7 +156,17 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const handleRefreshSubscription = async () => {
     try {
       setIsRefreshing(true);
+      
+      // Try to refresh through context first
       await checkSubscription(true);
+      
+      // If that doesn't work, fall back to direct fetch
+      setTimeout(() => {
+        if (!subscriptionFromContext) {
+          tryDirectFetch();
+        }
+      }, 1500);
+      
       toast.success("Subscription data refreshed");
     } catch (error) {
       console.error("Error refreshing subscription:", error);
@@ -133,12 +179,11 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     }
   };
   
-  // Use subscription from either prop or context
+  // Use subscription from either prop, context, or local state
   const subscription = localSubscription || subscriptionFromContext;
   
-  // Improved loading state detection - only show loading when we don't have any subscription data
-  // and the context is still loading, and we haven't tried loading from localStorage yet
-  const isLoading = (isContextLoading && !subscription && !hasFetchedFromLocal);
+  // Improved loading state detection
+  const isLoading = (isContextLoading && !subscription && !hasFetchedFromLocal && !directFetchAttempted);
   
   // Show loading timeout message after 5 seconds
   useEffect(() => {
@@ -157,13 +202,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       // Try to load from localStorage after a short delay if context is still loading
       const timer = setTimeout(() => {
         loadFromLocalStorage();
-      }, 1000);
+      }, 800);
       
       return () => clearTimeout(timer);
     }
   }, [isContextLoading, subscription, hasFetchedFromLocal]);
   
-  // Debug logging to help diagnose why subscription data is not displaying correctly
+  // Debug logging for subscription data
   useEffect(() => {
     console.log("Current subscription data in SubscriptionCard:", { 
       initialSubscription, 
@@ -173,7 +218,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       isContextLoading,
       hasFetchedFromLocal,
       subscriptionError,
-      loadingTimeout
+      loadingTimeout,
+      directFetchAttempted
     });
     
     // Update local subscription state if context data becomes available
@@ -181,10 +227,10 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       setLocalSubscription(subscriptionFromContext);
     }
     
-    // If there's an error with subscription, try to load from localStorage
-    if (subscriptionError && !subscription && !hasFetchedFromLocal) {
-      console.log("Error detected, loading from localStorage");
-      loadFromLocalStorage();
+    // If there's an error with subscription or loading has taken too long, try direct fetch
+    if ((subscriptionError || (loadingTimeout && !subscription)) && !directFetchAttempted) {
+      console.log("Error or timeout detected, trying direct fetch");
+      tryDirectFetch();
       
       // If error is network-related, show a toast
       if (isNetworkError(subscriptionError)) {
@@ -193,7 +239,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         });
       }
     }
-  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading, subscriptionError, hasFetchedFromLocal]);
+  }, [initialSubscription, subscriptionFromContext, localSubscription, 
+      isContextLoading, subscriptionError, hasFetchedFromLocal, loadingTimeout, directFetchAttempted]);
   
   // Force subscription check when component mounts
   useEffect(() => {
@@ -201,10 +248,18 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       try {
         console.log("SubscriptionCard: Forcing subscription check on mount");
         await checkSubscription(true);
+        
+        // If after 2 seconds we still don't have subscription data, try direct fetch
+        setTimeout(() => {
+          if (!subscriptionFromContext && !localSubscription) {
+            console.log("No subscription data after 2s, trying direct fetch");
+            tryDirectFetch();
+          }
+        }, 2000);
       } catch (error) {
         console.error("Error checking subscription on SubscriptionCard mount:", error);
         
-        // If this is a network error, try direct fetch first
+        // If this is a network error, try direct fetch
         if (isNetworkError(error)) {
           try {
             await tryDirectFetch();
@@ -213,15 +268,15 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             loadFromLocalStorage();
           }
         } else {
-          // For non-network errors, just try localStorage fallback
-          loadFromLocalStorage();
+          // For non-network errors, first try direct fetch then localStorage
+          tryDirectFetch();
         }
       }
     };
     
     loadSubscriptionData();
-  }, [checkSubscription]);
-  
+  }, []);
+
   // Early return for loading state
   if (isLoading) {
     return (
@@ -241,16 +296,16 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                 <p className="text-sm text-muted-foreground mb-2">This is taking longer than expected.</p>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => window.location.reload()}
+                    onClick={handleRefreshSubscription}
                     className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
                   >
-                    Refresh Page
+                    Retry Loading
                   </button>
                   <button 
-                    onClick={loadFromLocalStorage}
+                    onClick={tryDirectFetch}
                     className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300"
                   >
-                    Use Cached Data
+                    Try Direct Fetch
                   </button>
                 </div>
               </div>

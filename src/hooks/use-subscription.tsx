@@ -30,6 +30,10 @@ const useSubscriptionWithFallback = () => {
             
           if (parsedData.subscription_id && isRecent) {
             setFallbackLoaded(true);
+            // Dispatch event to let components know we have cached data
+            window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
+              detail: { data: parsedData } 
+            }));
           }
         }
       } catch (err) {
@@ -52,11 +56,9 @@ const useSubscriptionWithFallback = () => {
           // Check if this is a network error
           if (isNetworkError(err)) {
             const errorMessage = getNetworkErrorMessage(err);
-            toast.error("Network issue detected", {
-              description: errorMessage
-            });
+            console.log("Network error detected:", errorMessage);
           } else {
-            toast.error("Could not load subscription data");
+            console.log("Non-network error during subscription check:", err);
           }
           
           setHasTriedForceRefresh(true);
@@ -126,6 +128,11 @@ const useSubscriptionWithFallback = () => {
         typedData.updated_at = new Date().toISOString();
         try {
           localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+          
+          // Dispatch event to let components know we have fresh data
+          window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
+            detail: { data: typedData } 
+          }));
         } catch (e) {
           console.error("Error storing subscription data locally:", e);
         }
@@ -135,8 +142,34 @@ const useSubscriptionWithFallback = () => {
           console.error("Error during second forced check:", err);
         });
       } else {
-        // No data returned, try localStorage
-        useLocalStorageFallback(sessionData.session.user.id);
+        console.log("No subscription data found in direct fetch");
+        
+        // Create a default trial subscription
+        const defaultTrial: SubscriptionPlan = {
+          subscription_id: crypto.randomUUID(),
+          user_id: sessionData.session.user.id,
+          status: 'trialing',
+          plan_type: 'trial',
+          project_limit: 3,
+          features: {},
+          current_period_end: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        // Store in localStorage
+        try {
+          localStorage.setItem('subscriptionData', JSON.stringify(defaultTrial));
+          
+          // Dispatch event with default trial data
+          window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
+            detail: { data: defaultTrial } 
+          }));
+        } catch (e) {
+          console.error("Error storing default trial data locally:", e);
+        }
       }
     } catch (err) {
       console.error("Exception in direct fetch:", err);
@@ -176,6 +209,11 @@ const useSubscriptionWithFallback = () => {
           // Store back with updated timestamp
           typedData.updated_at = new Date().toISOString();
           localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+          
+          // Dispatch event with localStorage data
+          window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
+            detail: { data: typedData } 
+          }));
         }
       }
     } catch (err) {
@@ -185,7 +223,15 @@ const useSubscriptionWithFallback = () => {
   
   return {
     ...subscriptionData,
-    fallbackLoaded
+    fallbackLoaded,
+    refreshWithFallbacks: async () => {
+      try {
+        await subscriptionData.checkSubscription(true);
+      } catch (err) {
+        console.error("Error in subscription refresh:", err);
+        await tryDirectDatabaseFetch();
+      }
+    }
   };
 };
 

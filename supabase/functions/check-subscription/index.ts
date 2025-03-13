@@ -1,4 +1,3 @@
-
 // @ts-ignore: Supabase Edge function doesn't use TypeScript directly
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -21,7 +20,7 @@ serve(async (req) => {
     // Initialize the client with the request's authorization header
     const authHeader = req.headers.get('Authorization') || '';
     
-    console.log(`Authentication header present: ${Boolean(authHeader)}`);
+    console.log(`Request received: ${req.method} | Auth header present: ${Boolean(authHeader)}`);
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
@@ -37,7 +36,8 @@ serve(async (req) => {
       return addCorsHeaders(new Response(
         JSON.stringify({ 
           error: 'Not authenticated', 
-          status: 401 
+          status: 401,
+          message: userError?.message || 'Authentication required'
         }),
         { 
           status: 401, 
@@ -47,6 +47,26 @@ serve(async (req) => {
     }
 
     console.log(`Processing subscription check for user: ${user.id}`);
+
+    // Try to handle force refresh parameter
+    let forceRefresh = false;
+    try {
+      const url = new URL(req.url);
+      forceRefresh = url.searchParams.get('force') === 'true';
+      
+      if (!forceRefresh) {
+        // Also try from JSON body
+        const body = await req.json().catch(() => ({}));
+        forceRefresh = Boolean(body?.force_refresh);
+      }
+    } catch (e) {
+      // If URL or JSON parsing fails, assume no force refresh
+      console.log("No force refresh parameter or invalid format");
+    }
+    
+    if (forceRefresh) {
+      console.log("Force refresh requested");
+    }
 
     // Special case: If this is our specific user who needs the starter plan
     if (user.id === STARTER_USER_ID) {
@@ -179,17 +199,8 @@ serve(async (req) => {
       ));
     }
 
-    // Try to handle force refresh parameter
-    let forceRefresh = false;
-    try {
-      const { force_refresh } = await req.json();
-      forceRefresh = Boolean(force_refresh);
-    } catch (e) {
-      // If JSON parsing fails, assume no force refresh
-      console.log("No force refresh parameter or invalid JSON");
-    }
-
     // Query the subscriptions table for the user's subscription
+    console.log(`Querying subscriptions table for user ${user.id}`);
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
@@ -202,7 +213,8 @@ serve(async (req) => {
       return addCorsHeaders(new Response(
         JSON.stringify({ 
           error: `Database error: ${subError.message}`,
-          status: 500 
+          status: 500,
+          timestamp: Date.now()
         }),
         { 
           status: 500, 
@@ -212,6 +224,7 @@ serve(async (req) => {
     }
 
     const subscription = subscriptions?.[0];
+    console.log(`Subscription data: ${subscription ? 'Found' : 'Not found'}`);
     
     // If no subscription found, create a trial one
     if (!subscription) {
@@ -242,7 +255,8 @@ serve(async (req) => {
             subscription: {
               ...newSubscription
             },
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            message: "Created default trial subscription (not saved due to error)"
           }),
           { 
             status: 200, 
@@ -257,7 +271,8 @@ serve(async (req) => {
       return addCorsHeaders(new Response(
         JSON.stringify({ 
           subscription: createdSubscription || newSubscription,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          message: "Created new trial subscription"
         }),
         { 
           status: 200, 
@@ -290,7 +305,7 @@ serve(async (req) => {
       }
     }
     
-    console.log(`Found subscription: ${JSON.stringify({
+    console.log(`Returning subscription data for user ${user.id}: ${JSON.stringify({
       id: subscription.subscription_id,
       plan: subscription.plan_type,
       status: subscription.status,
@@ -312,7 +327,8 @@ serve(async (req) => {
     return addCorsHeaders(new Response(
       JSON.stringify({ 
         error: `Server error: ${error.message || 'Unknown error'}`,
-        status: 500 
+        status: 500,
+        timestamp: Date.now()
       }),
       { 
         status: 500, 

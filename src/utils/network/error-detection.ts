@@ -20,14 +20,10 @@ export function isNetworkError(error: unknown): boolean {
     errorString.includes('aborted') ||
     errorString.includes('timeout') ||
     errorString.includes('cors') ||
-    // Resource errors
-    errorString.includes('err_insufficient_resources') ||
     // HTTP errors that might be network related
-    errorString.includes('401') ||
-    errorString.includes('403') ||
-    errorString.includes('429') ||
     errorString.includes('503') ||
-    errorString.includes('504')
+    errorString.includes('504') ||
+    errorString.includes('429')
   );
 }
 
@@ -47,16 +43,8 @@ export function getNetworkErrorMessage(error: unknown): string {
     return 'The request timed out. Please try again.';
   }
   
-  if (errorString.includes('429') || errorString.includes('too many') || errorString.includes('rate limit')) {
+  if (errorString.includes('429') || errorString.includes('too many')) {
     return 'Too many requests. Please try again in a moment.';
-  }
-  
-  if (errorString.includes('401') || errorString.includes('unauthorized')) {
-    return 'Session expired. Please sign in again.';
-  }
-  
-  if (errorString.includes('403') || errorString.includes('forbidden')) {
-    return 'You don\'t have permission to access this resource.';
   }
   
   if (errorString.includes('503') || errorString.includes('504') || errorString.includes('unavailable')) {

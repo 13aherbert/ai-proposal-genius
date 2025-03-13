@@ -10,7 +10,6 @@ import { isNetworkError, getNetworkErrorMessage } from '@/utils/network';
 export function NetworkStatusIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [resourceError, setResourceError] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(0);
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkingRef = useRef(false);
@@ -29,7 +28,6 @@ export function NetworkStatusIndicator() {
     try {
       setIsReconnecting(true);
       checkingRef.current = true;
-      setResourceError(false);
       setLastCheckTime(now);
       
       const controller = new AbortController();
@@ -62,16 +60,6 @@ export function NetworkStatusIndicator() {
     } catch (error: any) {
       console.error("Network check error:", error);
       setIsOnline(false);
-      
-      if (error.name !== 'AbortError') {
-        if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
-          setResourceError(true);
-          toast.error("Browser resource limit reached", {
-            id: "resource-error",
-            description: "Try refreshing the page or closing unused tabs"
-          });
-        }
-      }
     } finally {
       setIsReconnecting(false);
       checkingRef.current = false;
@@ -92,30 +80,6 @@ export function NetworkStatusIndicator() {
       id: "network-status",
       description: "Some features may not work properly until connection is restored"
     });
-  }, []);
-
-  // Monitor for ERR_INSUFFICIENT_RESOURCES errors
-  useEffect(() => {
-    const originalFetch = window.fetch;
-    
-    window.fetch = async function(...args) {
-      try {
-        return await originalFetch.apply(this, args);
-      } catch (error: any) {
-        if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
-          setResourceError(true);
-          toast.error("Browser resource limit reached", {
-            id: "resource-error",
-            description: "Try refreshing the page or closing unused tabs"
-          });
-        }
-        throw error;
-      }
-    };
-    
-    return () => {
-      window.fetch = originalFetch;
-    };
   }, []);
 
   useEffect(() => {
@@ -150,29 +114,17 @@ export function NetworkStatusIndicator() {
       clearTimeout(checkTimeoutRef.current);
     }
     
-    // If there was a resource error, wait a bit longer before retrying
-    if (resourceError) {
-      toast.info("Waiting for browser resources to free up...", {
-        duration: 5000
-      });
-      checkTimeoutRef.current = setTimeout(() => {
-        checkConnection();
-      }, 5000);
-    } else {
-      checkConnection();
-    }
+    checkConnection();
   };
 
-  if (isOnline && !resourceError) {
+  if (isOnline) {
     return null; // Don't show anything when online
   }
 
   return (
     <div className="fixed bottom-4 right-4 bg-destructive/90 text-white p-2 rounded-md shadow-lg z-50 flex items-center space-x-2">
       <WifiOff className="h-4 w-4" />
-      <span className="text-sm">
-        {resourceError ? "Resource Limit" : "Offline"}
-      </span>
+      <span className="text-sm">Offline</span>
       {isReconnecting ? (
         <RefreshCw className="h-4 w-4 animate-spin" />
       ) : (

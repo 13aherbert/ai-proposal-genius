@@ -1,24 +1,62 @@
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
+import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
 
 export function LoadingState() {
   const [retryCount, setRetryCount] = useState(0);
   const [errorOccurred, setErrorOccurred] = useState(false);
   const [loadingTooLong, setLoadingTooLong] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
+  const [localDataLoaded, setLocalDataLoaded] = useState(false);
+  const isAttempting = useRef(false);
+
+  // First try to load from localStorage
+  useEffect(() => {
+    try {
+      const storedData = localStorage.getItem('subscriptionData');
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        // Verify this is valid subscription data
+        if (parsedData.subscription_id) {
+          console.log("Found cached subscription data:", parsedData);
+          setLocalDataLoaded(true);
+        }
+      }
+    } catch (e) {
+      console.error("Error checking local storage:", e);
+    }
+  }, []);
 
   // Try to directly fetch subscription data if edge function fails
   useEffect(() => {
+    if (isAttempting.current || retryCount > 2) return;
+    
     const fetchSubscriptionDirect = async () => {
+      if (isAttempting.current) return;
+      
       try {
+        isAttempting.current = true;
+        
         // Get the current session
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          if (isNetworkError(sessionError)) {
+            setNetworkError(true);
+            toast.error(getNetworkErrorMessage(sessionError));
+          }
+          isAttempting.current = false;
+          return;
+        }
         
         if (!sessionData?.session?.user?.id) {
           console.log("No authenticated user found for direct subscription fetch");
+          isAttempting.current = false;
           return;
         }
         
@@ -29,13 +67,16 @@ export function LoadingState() {
           .from('subscriptions')
           .select('*')
           .eq('user_id', sessionData.session.user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error("Error in direct subscription fetch:", error);
           setErrorOccurred(true);
           
-          if (error.code === 'PGRST116') {
+          if (isNetworkError(error)) {
+            setNetworkError(true);
+            toast.error(getNetworkErrorMessage(error));
+          } else if (error.code === 'PGRST116') {
             // No row found, this is a new user
             console.log("No subscription found, user may need a trial subscription created");
             toast.info("Setting up your account...");
@@ -53,6 +94,7 @@ export function LoadingState() {
                 ? data.features as Record<string, any> 
                 : {}
             };
+            typedData.updated_at = new Date().toISOString();
             localStorage.setItem('subscriptionData', JSON.stringify(typedData));
             toast.success("Subscription data loaded", { duration: 2000 });
           } catch (e) {
@@ -62,7 +104,17 @@ export function LoadingState() {
       } catch (err) {
         console.error("Exception in direct subscription fetch:", err);
         setErrorOccurred(true);
-        toast.error("Could not load subscription data");
+        
+        if (isNetworkError(err)) {
+          setNetworkError(true);
+          toast.error(getNetworkErrorMessage(err), {
+            description: "Using cached data if available"
+          });
+        } else {
+          toast.error("Could not load subscription data");
+        }
+      } finally {
+        isAttempting.current = false;
       }
     };
     
@@ -81,35 +133,60 @@ export function LoadingState() {
       return () => {
         clearTimeout(timer);
         clearTimeout(timeoutId);
+        isAttempting.current = false;
       };
     }
     
     return () => clearTimeout(timeoutId);
   }, [retryCount]);
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
       <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
       <p className="text-muted-foreground">Loading your subscription...</p>
       
-      {loadingTooLong && !errorOccurred && (
+      {loadingTooLong && !errorOccurred && !networkError && (
         <p className="text-muted-foreground mt-2 text-sm">
           This is taking longer than usual. Please wait...
         </p>
       )}
       
-      {errorOccurred && (
+      {networkError && (
+        <div className="mt-4 text-center max-w-md">
+          <p className="text-muted-foreground text-sm">
+            Network connectivity issues detected. We're using cached data if available.
+          </p>
+          <button 
+            onClick={handleRefresh}
+            className="mt-2 px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
+      
+      {errorOccurred && !networkError && (
         <div className="mt-4 text-center max-w-md">
           <p className="text-muted-foreground text-sm">
             Having trouble loading subscription data. Please refresh the page or try again later.
           </p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={handleRefresh}
             className="mt-2 px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
           >
             Refresh Page
           </button>
         </div>
+      )}
+      
+      {localDataLoaded && (loadingTooLong || errorOccurred || networkError) && (
+        <p className="text-muted-foreground mt-4 text-sm">
+          Using cached subscription data
+        </p>
       )}
     </div>
   );

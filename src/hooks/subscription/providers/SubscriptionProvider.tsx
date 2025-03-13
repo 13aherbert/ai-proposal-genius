@@ -37,6 +37,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
+  const initialCheckCompleted = useRef(false);
 
   // Store refs that need to persist between renders
   const isUserStarter = useRef<boolean>(false);
@@ -66,8 +67,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     setForceRecheckFlag
   });
 
-  // Check for cached subscription data on mount
+  // Check for cached subscription data on mount - only once
   useEffect(() => {
+    if (initialCheckCompleted.current) return;
+    
     try {
       if (session?.user && !subscription) {
         console.log("Checking for cached subscription data");
@@ -79,6 +82,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           setLoading(false);
           setInitialFetchCompleted(true);
           setSubscriptionChecked(true);
+          initialCheckCompleted.current = true;
         }
       }
     } catch (e) {
@@ -86,19 +90,25 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session, subscription]);
 
-  // Determine if user is a starter user on mount
+  // Determine if user is a starter user on mount - only once
   useEffect(() => {
+    if (initialCheckCompleted.current) return;
+    
     if (session?.user) {
       isUserStarter.current = isStarterUser();
       console.log(`SubscriptionProvider: User is ${isUserStarter.current ? 'STARTER' : 'regular'}`);
+      initialCheckCompleted.current = true;
     }
   }, [session]);
 
-  // Initial subscription check when session becomes available
+  // Initial subscription check when session becomes available - only once
   useEffect(() => {
+    if (initialCheckCompleted.current) return;
+    
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
       checkSubscription(true);
+      initialCheckCompleted.current = true;
     } else if (!session?.user) {
       console.log("No session available, clearing subscription data");
       setSubscription(null);

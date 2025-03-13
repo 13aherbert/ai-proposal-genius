@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -7,7 +6,7 @@ import {
   SubscriptionStatus
 } from '@/types/subscription';
 import { useSubscriptionCheckers } from '../hooks/useSubscriptionCheckers';
-import { useSubscriptionActions } from '../hooks/useSubscriptionActions';
+import { createCheckoutSession, createTrialSubscription, renewSubscription } from '../hooks/useSubscriptionActions';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { 
   storeSubscriptionDataLocally, 
@@ -39,13 +38,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
   
-  // Store refs to prevent unnecessary re-renders and track state between renders
   const initialCheckCompleted = useRef(false);
   const isUserStarter = useRef<boolean>(false);
   const subscriptionCheckInProgress = useRef<boolean>(false);
   const lastCheckTime = useRef<number>(0);
   
-  // Initialize subscription checkers (isPastGracePeriod, isInGracePeriod, etc.)
   const { 
     checkIsPastGracePeriod, 
     checkIsInGracePeriod, 
@@ -53,7 +50,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     checkHasFailedPayment 
   } = useSubscriptionCheckers(subscription);
 
-  // Get subscription actions (check, renew, etc.)
   const { 
     checkSubscription: rawCheckSubscription, 
     renewSubscription
@@ -70,15 +66,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     setForceRecheckFlag
   });
   
-  // Wrap the checkSubscription to add debouncing and retries
   const checkSubscription = async (forceRecheck?: boolean) => {
-    // If a check is already in progress, skip this one unless forced
     if (subscriptionCheckInProgress.current && !forceRecheck) {
       console.log("Subscription check already in progress, skipping");
       return;
     }
     
-    // Implement time-based throttling - minimum 10 seconds between checks unless forced
     const now = Date.now();
     if (!forceRecheck && now - lastCheckTime.current < 10000) {
       console.log("Skipping subscription check - too soon since last check");
@@ -89,16 +82,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       subscriptionCheckInProgress.current = true;
       lastCheckTime.current = now;
       
-      // Use the withRetry utility to add automatic retries
       await withRetry(
         () => rawCheckSubscription(forceRecheck),
-        3,  // Max 3 retries
-        1000 // Start with 1s delay
+        3,
+        1000
       );
     } catch (err) {
       console.error("Final error after retries in subscription check:", err);
       
-      // Fallback to cached data if all retries fail
       const cachedData = getStoredSubscriptionData();
       if (cachedData && !subscription) {
         console.log("Using cached subscription data after failed retries");
@@ -110,7 +101,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Check for cached subscription data on mount - only once
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -131,9 +121,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } catch (e) {
       console.error("Error loading from cache:", e);
     }
-  }, [session?.user?.id, subscription]); // Only depend on user ID, not the entire session object
+  }, [session?.user?.id, subscription]);
 
-  // Determine if user is a starter user on mount - only once
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -142,15 +131,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       console.log(`SubscriptionProvider: User is ${isUserStarter.current ? 'STARTER' : 'regular'}`);
       initialCheckCompleted.current = true;
     }
-  }, [session?.user?.id]); // Only depend on user ID, not the entire session object
+  }, [session?.user?.id]);
 
-  // Initial subscription check when session becomes available - only once
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
     if (session?.user && !initialFetchCompleted) {
       console.log("Session available, checking subscription");
-      // Use a setTimeout to prevent immediate execution and give other effects time to run
       setTimeout(() => {
         checkSubscription(true).catch(err => {
           console.error("Error during initial subscription check:", err);
@@ -164,9 +151,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setInitialFetchCompleted(false);
       setSubscriptionChecked(false);
     }
-  }, [session?.user?.id, initialFetchCompleted]); // Only depend on user ID, not the entire session object
+  }, [session?.user?.id, initialFetchCompleted]);
 
-  // Handle force recheck
   useEffect(() => {
     if (forceRecheckFlag > 0 && session?.user) {
       console.log("Force rechecking subscription");
@@ -174,9 +160,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         console.error("Error during forced subscription check:", err);
       });
     }
-  }, [forceRecheckFlag, session?.user?.id]); // Only depend on user ID, not the entire session object
+  }, [forceRecheckFlag, session?.user?.id]);
 
-  // Setup auto-refresh of subscription data
   useAutoRefresh(session, checkSubscription);
 
   return (

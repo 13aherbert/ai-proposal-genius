@@ -122,8 +122,8 @@ export const renewSubscription = async (
     
     // Use rate limiting with appropriate callback function 
     const renewKey = `renew-subscription-${subscriptionId || customerId}`;
-    const data = await withRateLimitByKey(renewKey, async () => {
-      const { data, error } = await supabase.functions.invoke('renew-subscription', {
+    const { data, error } = await withRateLimitByKey(renewKey, async () => {
+      return supabase.functions.invoke('renew-subscription', {
         body: { 
           subscriptionId, 
           customerId 
@@ -132,15 +132,14 @@ export const renewSubscription = async (
           Authorization: `Bearer ${session.access_token}`
         }
       });
-      
-      if (error) {
-        throw new Error(`Edge function error: ${error.message || JSON.stringify(error)}`);
-      }
-      
-      return data;
     });
     
     console.log("Edge function response:", data);
+    
+    if (error) {
+      console.error("Edge function error:", error);
+      throw new Error(`Edge function error: ${error.message || JSON.stringify(error)}`);
+    }
     
     if (!data) {
       console.error("No data returned from edge function");

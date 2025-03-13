@@ -445,7 +445,9 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
  * @returns Promise<boolean> - True if subscription was updated successfully
  */
 export async function updateUserSubscription(email: string, plan: string, status: string = 'active'): Promise<boolean> {
-  return withRateLimit(`update-subscription-${email}`, async () => {
+  const updateKey = `update-subscription-${email}`;
+  
+  return withRateLimit(updateKey, async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -771,4 +773,3 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
-

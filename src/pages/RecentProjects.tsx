@@ -18,12 +18,12 @@ const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 const LOG_LEVEL = 'error'; // Can be 'debug', 'info', 'warn', 'error'
 
 // Helper function to conditionally log based on level
-const conditionalLog = (level: string, ...args: any[]) => {
+const conditionalLog = (level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]) => {
   if (LOG_LEVEL === 'debug' || 
      (LOG_LEVEL === 'info' && level !== 'debug') ||
      (LOG_LEVEL === 'warn' && (level === 'warn' || level === 'error')) ||
      (LOG_LEVEL === 'error' && level === 'error')) {
-    console[level as 'log' | 'info' | 'warn' | 'error'](...args);
+    console[level](...args);
   }
 };
 

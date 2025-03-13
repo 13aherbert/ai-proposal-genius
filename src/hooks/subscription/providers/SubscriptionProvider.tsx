@@ -81,6 +81,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         const typedSubscription: SubscriptionPlan = {
           ...data,
           status: data.status as SubscriptionStatus,
+          features: (typeof data.features === 'object' && data.features !== null) 
+            ? data.features as Record<string, any> 
+            : {}
         };
         
         storeSubscriptionDataLocally(typedSubscription);

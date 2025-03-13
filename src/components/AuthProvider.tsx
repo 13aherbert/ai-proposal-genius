@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
@@ -31,9 +30,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Helper functions for authentication
   const signOut = async () => {
     try {
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('subscriptionData');
+      localStorage.removeItem('userRoles');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       navigate("/");
@@ -54,7 +56,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       if (error) throw error;
       
-      // Send custom password reset email
       await emailService.sendPasswordResetEmail(email, resetUrl);
       
       toast.success("Password reset email sent", {
@@ -170,6 +171,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
         setSession(data.session);
+        
+        if (data.session?.access_token) {
+          localStorage.setItem('userToken', data.session.access_token);
+        }
       } catch (e) {
         console.error('Network error getting session:', e);
         toast.error("Network error", {
@@ -190,6 +195,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
           setSession(currentSession);
+          
+          if (currentSession?.access_token) {
+            localStorage.setItem('userToken', currentSession.access_token);
+            
+            try {
+              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+              if (!roleError && roleData?.roles) {
+                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+              }
+            } catch (roleErr) {
+              console.error("Failed to fetch user roles:", roleErr);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('subscriptionData');
+            localStorage.removeItem('userRoles');
+          }
         }
         setLoading(false);
 

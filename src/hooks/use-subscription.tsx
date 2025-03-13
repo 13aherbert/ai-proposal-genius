@@ -42,6 +42,23 @@ const useSubscriptionWithFallback = () => {
     }
   }, [subscriptionData.data, fallbackLoaded]);
   
+  // Store subscription data in localStorage whenever it's updated
+  useEffect(() => {
+    if (subscriptionData.data) {
+      try {
+        // Add timestamp for freshness check
+        const dataToStore = {
+          ...subscriptionData.data,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem('subscriptionData', JSON.stringify(dataToStore));
+        console.log("Subscription data stored in localStorage for persistence");
+      } catch (err) {
+        console.error("Error storing subscription data:", err);
+      }
+    }
+  }, [subscriptionData.data]);
+  
   useEffect(() => {
     // If the subscription data is not available and we're not loading, try to force a refresh
     if (!subscriptionData.data && !subscriptionData.loading && !hasTriedForceRefresh && !isAttemptingFallback.current) {
@@ -85,6 +102,17 @@ const useSubscriptionWithFallback = () => {
       console.log("Attempting direct subscription fetch as last resort");
       isAttemptingFallback.current = true;
       setHasTriedDirectFetch(true);
+      
+      // Try to use stored token if available
+      const authToken = localStorage.getItem('userToken');
+      let headers = {};
+      
+      if (authToken) {
+        console.log("Using stored auth token for direct fetch");
+        headers = {
+          Authorization: `Bearer ${authToken}`
+        };
+      }
       
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       

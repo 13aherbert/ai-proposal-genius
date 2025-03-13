@@ -1,3 +1,4 @@
+
 // @ts-ignore: Supabase Edge function doesn't use TypeScript directly
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -96,16 +97,40 @@ serve(async (req) => {
         if (normalizedPlanType === 'starter' && existingSub.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
           console.log(`User ${user.id} already has correct starter subscription`);
           
-          return addCorsHeaders(new Response(
-            JSON.stringify({ 
-              subscription: existingSub,
-              timestamp: Date.now() 
-            }),
-            { 
-              status: 200, 
-              headers: { 'Content-Type': 'application/json' } 
-            }
-          ));
+          // Also fetch user roles for complete data
+          try {
+            const { data: userRoles } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+              
+            const roles = userRoles?.map(r => r.role) || [];
+            
+            return addCorsHeaders(new Response(
+              JSON.stringify({ 
+                subscription: existingSub,
+                roles,
+                timestamp: Date.now() 
+              }),
+              { 
+                status: 200, 
+                headers: { 'Content-Type': 'application/json' } 
+              }
+            ));
+          } catch (e) {
+            console.error("Error fetching user roles:", e);
+            
+            return addCorsHeaders(new Response(
+              JSON.stringify({ 
+                subscription: existingSub,
+                timestamp: Date.now() 
+              }),
+              { 
+                status: 200, 
+                headers: { 'Content-Type': 'application/json' } 
+              }
+            ));
+          }
         }
         
         // Update subscription to correct values if needed
@@ -128,22 +153,52 @@ serve(async (req) => {
           console.log(`Successfully updated subscription for ${user.id}`);
         }
         
-        // Even if update fails, return the starter subscription data to the client
-        return addCorsHeaders(new Response(
-          JSON.stringify({ 
-            subscription: updatedSub || {
-              ...existingSub,
-              plan_type: 'starter',
-              project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
-              status: 'active'
-            },
-            timestamp: Date.now()
-          }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json' } 
-          }
-        ));
+        // Fetch user roles
+        try {
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
+            
+          const roles = userRoles?.map(r => r.role) || [];
+          
+          // Even if update fails, return the starter subscription data to the client
+          return addCorsHeaders(new Response(
+            JSON.stringify({ 
+              subscription: updatedSub || {
+                ...existingSub,
+                plan_type: 'starter',
+                project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+                status: 'active'
+              },
+              roles,
+              timestamp: Date.now()
+            }),
+            { 
+              status: 200, 
+              headers: { 'Content-Type': 'application/json' } 
+            }
+          ));
+        } catch (e) {
+          console.error("Error fetching user roles:", e);
+          
+          // Return without roles if there was an error
+          return addCorsHeaders(new Response(
+            JSON.stringify({ 
+              subscription: updatedSub || {
+                ...existingSub,
+                plan_type: 'starter',
+                project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+                status: 'active'
+              },
+              timestamp: Date.now()
+            }),
+            { 
+              status: 200, 
+              headers: { 'Content-Type': 'application/json' } 
+            }
+          ));
+        }
       }
       
       // If no subscription exists, create a new starter subscription
@@ -187,16 +242,40 @@ serve(async (req) => {
       const createdSubscription = insertData?.[0];
       console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
       
-      return addCorsHeaders(new Response(
-        JSON.stringify({ 
-          subscription: createdSubscription || newSubscription,
-          timestamp: Date.now()
-        }),
-        { 
-          status: 200, 
-          headers: { 'Content-Type': 'application/json' } 
-        }
-      ));
+      // Fetch user roles
+      try {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+          
+        const roles = userRoles?.map(r => r.role) || [];
+        
+        return addCorsHeaders(new Response(
+          JSON.stringify({ 
+            subscription: createdSubscription || newSubscription,
+            roles,
+            timestamp: Date.now()
+          }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json' } 
+          }
+        ));
+      } catch (e) {
+        console.error("Error fetching user roles:", e);
+        
+        return addCorsHeaders(new Response(
+          JSON.stringify({ 
+            subscription: createdSubscription || newSubscription,
+            timestamp: Date.now()
+          }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json' } 
+          }
+        ));
+      }
     }
 
     // Query the subscriptions table for the user's subscription
@@ -225,6 +304,24 @@ serve(async (req) => {
 
     const subscription = subscriptions?.[0];
     console.log(`Subscription data: ${subscription ? 'Found' : 'Not found'}`);
+    
+    // Fetch user roles
+    let roles: string[] = [];
+    try {
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+        
+      if (rolesError) {
+        console.error(`Error fetching user roles: ${rolesError.message}`);
+      } else {
+        roles = userRoles?.map(r => r.role) || [];
+        console.log(`User roles: ${roles.join(', ') || 'None'}`);
+      }
+    } catch (e) {
+      console.error("Exception fetching user roles:", e);
+    }
     
     // If no subscription found, create a trial one
     if (!subscription) {
@@ -255,6 +352,7 @@ serve(async (req) => {
             subscription: {
               ...newSubscription
             },
+            roles,
             timestamp: Date.now(),
             message: "Created default trial subscription (not saved due to error)"
           }),
@@ -271,6 +369,7 @@ serve(async (req) => {
       return addCorsHeaders(new Response(
         JSON.stringify({ 
           subscription: createdSubscription || newSubscription,
+          roles,
           timestamp: Date.now(),
           message: "Created new trial subscription"
         }),
@@ -315,6 +414,7 @@ serve(async (req) => {
     return addCorsHeaders(new Response(
       JSON.stringify({ 
         subscription,
+        roles,
         timestamp: Date.now() 
       }),
       { 

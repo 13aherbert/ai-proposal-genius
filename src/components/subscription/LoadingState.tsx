@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
 import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
+import { getUserRolesFromStorage } from "@/hooks/use-user-roles";
 
 export function LoadingState() {
   const [retryCount, setRetryCount] = useState(0);
@@ -13,11 +14,26 @@ export function LoadingState() {
   const [networkError, setNetworkError] = useState(false);
   const [localDataLoaded, setLocalDataLoaded] = useState(false);
   const [loadedFromLocal, setLoadedFromLocal] = useState(false);
+  const [hasUserRoles, setHasUserRoles] = useState(false);
   const isAttempting = useRef(false);
 
   // First try to load from localStorage
   useEffect(() => {
     try {
+      // Check for stored token
+      const userToken = localStorage.getItem('userToken');
+      if (userToken) {
+        console.log("Found stored auth token");
+      }
+      
+      // Check for stored roles
+      const userRoles = getUserRolesFromStorage();
+      if (userRoles) {
+        console.log("Found cached user roles:", userRoles);
+        setHasUserRoles(true);
+      }
+      
+      // Check for stored subscription data
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
@@ -76,6 +92,17 @@ export function LoadingState() {
       try {
         isAttempting.current = true;
         
+        // Use stored token if available
+        const authToken = localStorage.getItem('userToken');
+        let authHeaders = {};
+        
+        if (authToken) {
+          console.log("Using stored auth token for subscription fetch");
+          authHeaders = {
+            Authorization: `Bearer ${authToken}`
+          };
+        }
+        
         // Get the current session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
@@ -93,6 +120,11 @@ export function LoadingState() {
           console.log("No authenticated user found for direct subscription fetch");
           isAttempting.current = false;
           return;
+        }
+        
+        // Refresh auth token in storage
+        if (sessionData?.session?.access_token) {
+          localStorage.setItem('userToken', sessionData.session.access_token);
         }
         
         console.log("Attempting direct subscription fetch from database");
@@ -170,6 +202,24 @@ export function LoadingState() {
             console.error("Error storing subscription data locally:", e);
           }
         }
+        
+        // Also try to fetch user roles if we don't have them yet
+        if (!hasUserRoles) {
+          try {
+            console.log("Attempting to fetch user roles");
+            const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+            
+            if (roleError) {
+              console.error("Error fetching user roles:", roleError);
+            } else if (roleData?.roles) {
+              console.log("Successfully fetched user roles:", roleData.roles);
+              localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+              setHasUserRoles(true);
+            }
+          } catch (roleErr) {
+            console.error("Exception fetching user roles:", roleErr);
+          }
+        }
       } catch (err) {
         console.error("Exception in direct subscription fetch:", err);
         setErrorOccurred(true);
@@ -207,7 +257,7 @@ export function LoadingState() {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [retryCount, loadedFromLocal]);
+  }, [retryCount, loadedFromLocal, hasUserRoles]);
 
   const handleRefresh = () => {
     window.location.reload();
@@ -252,9 +302,9 @@ export function LoadingState() {
         </div>
       )}
       
-      {localDataLoaded && (loadingTooLong || errorOccurred || networkError) && (
+      {(localDataLoaded || hasUserRoles) && (loadingTooLong || errorOccurred || networkError) && (
         <p className="text-muted-foreground mt-4 text-sm">
-          Using cached subscription data
+          Using cached user data
         </p>
       )}
     </div>

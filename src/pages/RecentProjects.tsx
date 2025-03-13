@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -14,6 +15,17 @@ import { toast } from "sonner";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+const LOG_LEVEL = 'error'; // Can be 'debug', 'info', 'warn', 'error'
+
+// Helper function to conditionally log based on level
+const conditionalLog = (level: string, ...args: any[]) => {
+  if (LOG_LEVEL === 'debug' || 
+     (LOG_LEVEL === 'info' && level !== 'debug') ||
+     (LOG_LEVEL === 'warn' && (level === 'warn' || level === 'error')) ||
+     (LOG_LEVEL === 'error' && level === 'error')) {
+    console[level as 'log' | 'info' | 'warn' | 'error'](...args);
+  }
+};
 
 export default function RecentProjects() {
   const { session, loading } = useAuth();
@@ -25,6 +37,8 @@ export default function RecentProjects() {
   const [refreshAttempts, setRefreshAttempts] = useState(0);
   const [forceStarterPlan, setForceStarterPlan] = useState(false);
   const hasRunInitialChecksRef = useRef(false);
+  const lastProjectLimitUpdateTime = useRef<number>(0);
+  const isStarterUserRef = useRef<boolean | null>(null);
   
   useEffect(() => {
     if (!loading) {
@@ -32,13 +46,15 @@ export default function RecentProjects() {
     }
   }, [loading]);
   
+  // Initialize starter user check - run this only once
   useEffect(() => {
-    if (hasRunInitialChecksRef.current) return;
+    if (hasRunInitialChecksRef.current || !session?.user) return;
     
     const isUserStarter = session?.user?.id === STARTER_USER_ID || isStarterUser();
+    isStarterUserRef.current = isUserStarter;
     
     if (isUserStarter) {
-      console.log("*** DETECTED STARTER PLAN USER - FORCING STARTER PLAN SETTINGS ***");
+      conditionalLog('info', "*** DETECTED STARTER PLAN USER - FORCING STARTER PLAN SETTINGS ***");
       setForceStarterPlan(true);
       
       const starterBackup = {
@@ -53,9 +69,9 @@ export default function RecentProjects() {
           data: starterBackup,
           timestamp: Date.now()
         }));
-        console.log("Created starter plan backup in localStorage");
+        conditionalLog('info', "Created starter plan backup in localStorage");
       } catch (e) {
-        console.error("Failed to create starter plan backup", e);
+        conditionalLog('error', "Failed to create starter plan backup", e);
       }
       
       try {
@@ -63,23 +79,27 @@ export default function RecentProjects() {
         localStorage.setItem('userIsStarter', 'true');
         localStorage.setItem('projectLimit', SUBSCRIPTION_PLAN_LIMITS.starter.toString());
       } catch (e) {
-        console.error("Failed to store starter flags in storage", e);
+        conditionalLog('error', "Failed to store starter flags in storage", e);
       }
-      
-      hasRunInitialChecksRef.current = true;
     }
-  }, [session]);
+    
+    hasRunInitialChecksRef.current = true;
+  }, [session?.user?.id]);
   
+  // Initial subscription check - only run once
   useEffect(() => {
-    if (session?.user && !initialLoadComplete && !hasRunInitialChecksRef.current) {
-      console.log("RecentProjects: Initial mount, checking subscription data");
-      setTimeout(() => {
-        checkSubscription(true);
-        setInitialLoadComplete(true);
-        hasRunInitialChecksRef.current = true;
-      }, 500);
-    }
-  }, [session, checkSubscription, initialLoadComplete]);
+    if (!session?.user || initialLoadComplete || hasRunInitialChecksRef.current) return;
+    
+    conditionalLog('info', "RecentProjects: Initial mount, checking subscription data");
+    const timer = setTimeout(() => {
+      checkSubscription(true).catch(err => {
+        conditionalLog('error', "Error checking subscription:", err);
+      });
+      setInitialLoadComplete(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [session?.user?.id, checkSubscription, initialLoadComplete]);
   
   const { 
     projects, 
@@ -99,8 +119,17 @@ export default function RecentProjects() {
   const hasExportFeature = hasFeature("data_export");
   
   const handleProjectLimitUpdate = () => {
-    if (forceStarterPlan || isStarterUser()) {
-      console.log("CRITICAL: Forcing starter plan limit to 10 projects");
+    // Debounce project limit updates to prevent rapid consecutive updates
+    const now = Date.now();
+    if (now - lastProjectLimitUpdateTime.current < 5000) {
+      conditionalLog('info', "Skipping project limit update - too soon since last update");
+      return projectLimit; // Return current limit without updates
+    }
+    
+    lastProjectLimitUpdateTime.current = now;
+    
+    if (forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
+      conditionalLog('info', "CRITICAL: Forcing starter plan limit to 10 projects");
       if (projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
         updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       }
@@ -108,23 +137,20 @@ export default function RecentProjects() {
     }
     
     if (subscriptionData) {
-      console.log("Current subscription data:", subscriptionData);
+      conditionalLog('debug', "Current subscription data:", subscriptionData);
       
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
       
       if (normalizedPlan === 'starter') {
-        console.log(`CRITICAL: Starter plan detected, enforcing ${SUBSCRIPTION_PLAN_LIMITS.starter} project limit (stored: ${subscriptionData.project_limit})`);
+        conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         if (projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
-          console.log(`Updating project limit from ${projectLimit} to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
           updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
-          
-          if (refreshAttempts > 2 && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
-            toast.info("Subscription refreshed", {
-              description: `Your project limit has been updated to ${SUBSCRIPTION_PLAN_LIMITS.starter}`
-            });
-          }
         }
         return SUBSCRIPTION_PLAN_LIMITS.starter;
+      } else if (normalizedPlan === 'pro') {
+        return SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (normalizedPlan === 'trial') {
+        return SUBSCRIPTION_PLAN_LIMITS.trial;
       }
       
       const safeLimit = getSafeProjectLimit(
@@ -132,17 +158,17 @@ export default function RecentProjects() {
         subscriptionData.project_limit
       );
       
-      console.log(`Plan type: ${normalizedPlan}, Safe limit: ${safeLimit}, Current limit: ${projectLimit}`);
+      conditionalLog('debug', `Plan type: ${normalizedPlan}, Safe limit: ${safeLimit}, Current limit: ${projectLimit}`);
       
       if (projectLimit !== safeLimit) {
-        console.log(`Updating project limit from ${projectLimit} to ${safeLimit}`);
         updateProjectLimit(safeLimit);
       }
       
       return safeLimit;
     }
     
-    if (forceStarterPlan || isStarterUser()) {
+    // Fallback checks without a full subscription record
+    if (forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
       return SUBSCRIPTION_PLAN_LIMITS.starter;
     }
     
@@ -151,126 +177,111 @@ export default function RecentProjects() {
       if (storedData) {
         const { data } = JSON.parse(storedData);
         if (data && normalizePlanType(data.plan_type) === 'starter') {
-          console.log('Using stored starter plan data from localStorage');
+          conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
         }
       }
       
       if (localStorage.getItem('userIsStarter') === 'true' || 
           sessionStorage.getItem('userIsStarter') === 'true') {
-        console.log('Found userIsStarter flag, using starter plan limit');
+        conditionalLog('info', 'Found userIsStarter flag, using starter plan limit');
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       }
       
       const storedLimit = localStorage.getItem('projectLimit');
       if (storedLimit === `${SUBSCRIPTION_PLAN_LIMITS.starter}`) {
-        console.log('Found projectLimit=10 in localStorage, using starter plan limit');
+        conditionalLog('info', 'Found projectLimit=10 in localStorage, using starter plan limit');
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       }
     } catch (e) {
-      console.error('Error checking localStorage:', e);
+      conditionalLog('error', 'Error checking localStorage:', e);
     }
     
     return SUBSCRIPTION_PLAN_LIMITS.trial;
   };
   
+  // Apply project limit when subscription data is available - throttled to not run too often
   useEffect(() => {
-    if (!projectLimitApplied && (subscriptionData || forceStarterPlan)) {
-      console.log("Applying project limit...");
+    // Skip if already applied or no user
+    if (projectLimitApplied || !session?.user) return;
+    
+    // Skip if subscription is still loading and we don't have forced starter plan
+    if (!subscriptionData && !forceStarterPlan && !isStarterUserRef.current) return;
+    
+    // Debounce updates
+    const now = Date.now();
+    if (now - lastProjectLimitUpdateTime.current < 5000) {
+      return;
+    }
+    
+    conditionalLog('info', "Applying project limit...");
+    
+    if (forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
+      conditionalLog('info', "Applying forced starter plan limit");
+      updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+      setProjectLimitApplied(true);
+      return;
+    }
+    
+    if (subscriptionData) {
+      conditionalLog('debug', `Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
       
-      if (forceStarterPlan || isStarterUser()) {
-        console.log("Applying forced starter plan limit");
-        updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
-        setProjectLimitApplied(true);
-        return;
+      const correctLimit = handleProjectLimitUpdate();
+      
+      conditionalLog('debug', `Applied project limit: ${correctLimit}`);
+      setProjectLimitApplied(true);
+      
+      if (correctLimit !== projectLimit) {
+        setTimeout(() => {
+          conditionalLog('info', 'Refetching projects after updating project limit');
+          refetch();
+        }, 1000);
       }
-      
-      if (subscriptionData) {
-        console.log(`Current plan: ${subscriptionData.plan_type} with stored project limit: ${subscriptionData.project_limit}`);
-        
-        const correctLimit = handleProjectLimitUpdate();
-        
-        console.log(`Applied project limit: ${correctLimit}`);
+    } else {
+      const forceUpdateLimit = handleProjectLimitUpdate();
+      if (forceUpdateLimit !== projectLimit) {
+        conditionalLog('info', `Forcing update to project limit: ${forceUpdateLimit}`);
+        updateProjectLimit(forceUpdateLimit);
         setProjectLimitApplied(true);
-        
-        if (correctLimit !== projectLimit) {
-          setTimeout(() => {
-            console.log('Refetching projects after updating project limit');
-            refetch();
-          }, 500);
-        }
-      } else {
-        const forceUpdateLimit = handleProjectLimitUpdate();
-        if (forceUpdateLimit > projectLimit) {
-          console.log(`Forcing update to project limit: ${forceUpdateLimit}`);
-          updateProjectLimit(forceUpdateLimit);
-          setProjectLimitApplied(true);
-        }
       }
     }
-  }, [subscriptionData, projectLimit, projectLimitApplied, forceStarterPlan]);
+  }, [subscriptionData, projectLimit, projectLimitApplied, forceStarterPlan, session?.user]);
   
+  // Reset project limit flag when subscription ID changes
   useEffect(() => {
     if (subscriptionData && subscriptionData.subscription_id) {
       setProjectLimitApplied(false);
     }
   }, [subscriptionData?.subscription_id]);
   
+  // If we've initialized everything, log the current state once
   useEffect(() => {
-    if (!projectLimitApplied && (forceStarterPlan || isStarterUser()) && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
-      console.log("FAILSAFE: Forcing limit to 10 for starter user");
-      updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
-      setProjectLimitApplied(true);
-    }
-  }, [forceStarterPlan, projectLimit, projectLimitApplied]);
-  
-  useEffect(() => {
-    if (projectLimitApplied) return;
+    if (!hasRunInitialChecksRef.current || !session?.user) return;
     
-    const normalizedPlan = subscriptionData ? normalizePlanType(subscriptionData.plan_type) : null;
+    const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
+    const displayProjectLimit = (forceStarterPlan || isStarterUserRef.current || isStarterUser()) ? 
+      SUBSCRIPTION_PLAN_LIMITS.starter : 
+      (subscriptionData ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit) : 
+      projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial);
     
-    if ((normalizedPlan === 'starter' || forceStarterPlan || isStarterUser()) && 
-        projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
-      console.log(`RECOVERY: Detected stuck project limit for starter plan: ${projectLimit}`);
-      
-      const recoveryTimeout = setTimeout(() => {
-        console.log("Executing recovery refresh for starter plan limit");
-        refreshSubscription();
-        
-        try {
-          localStorage.removeItem('projectLimit');
-          localStorage.setItem('projectLimit', SUBSCRIPTION_PLAN_LIMITS.starter.toString());
-          localStorage.setItem('userIsStarter', 'true');
-          sessionStorage.setItem('userIsStarter', 'true');
-          
-          if (window.featureCache) window.featureCache.clear();
-          if (window.projectLimitCache) window.projectLimitCache.clear();
-        } catch (e) {
-          console.error("Error clearing caches:", e);
-        }
-        
-        updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
-        refetch();
-        setRefreshAttempts(prev => prev + 1);
-        setProjectLimitApplied(true);
-      }, 100);
-      
-      return () => clearTimeout(recoveryTimeout);
-    }
-  }, [projectLimit, forceStarterPlan, subscriptionData, projectLimitApplied]);
+    conditionalLog('info', "Current subscription state:", {
+      plan: planFromSubscriptionData,
+      status: subscriptionData?.status,
+      projectLimit: subscriptionData?.project_limit,
+      displayLimit: displayProjectLimit,
+      currentCount: projectCount,
+      forceStarterPlan
+    });
+  }, [
+    session?.user, 
+    forceStarterPlan, 
+    subscriptionData, 
+    projectLimit, 
+    projectCount, 
+    projectLimitApplied
+  ]);
   
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      if (session?.user && !hasRunInitialChecksRef.current) {
-        console.log("Periodic subscription refresh");
-        checkSubscription(false);
-        hasRunInitialChecksRef.current = true;
-      }
-    }, 60000);
-    
-    return () => clearInterval(refreshInterval);
-  }, [session, checkSubscription]);
-  
+  // Set page to 1 on initial load
   useEffect(() => {
     pagination.setCurrentPage(1);
   }, []);
@@ -301,9 +312,9 @@ export default function RecentProjects() {
       if (window.projectLimitCache && typeof window.projectLimitCache.clear === 'function') {
         window.projectLimitCache.clear();
       }
-      console.log("Feature caches cleared");
+      conditionalLog('info', "Feature caches cleared");
     } catch (e) {
-      console.error("Error clearing feature caches:", e);
+      conditionalLog('error', "Error clearing feature caches:", e);
     }
     
     refreshSubscription();
@@ -352,28 +363,18 @@ export default function RecentProjects() {
     );
   }
 
-  let displayProjectLimit = (forceStarterPlan || isStarterUser()) ? SUBSCRIPTION_PLAN_LIMITS.starter : (
+  let displayProjectLimit = (forceStarterPlan || isStarterUserRef.current || isStarterUser()) ? SUBSCRIPTION_PLAN_LIMITS.starter : (
     subscriptionData 
       ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
       : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial
   );
     
   const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
-  if (planFromSubscriptionData === 'starter' || forceStarterPlan || isStarterUser()) {
+  if (planFromSubscriptionData === 'starter' || forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
     displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }
 
-  if (!hasRunInitialChecksRef.current) {
-    console.log("Current subscription state:", {
-      plan: planFromSubscriptionData,
-      status: subscriptionData?.status,
-      projectLimit: subscriptionData?.project_limit,
-      displayLimit: displayProjectLimit,
-      currentCount: projectCount,
-      forceStarterPlan
-    });
-    hasRunInitialChecksRef.current = true;
-  }
+  conditionalLog('debug', "Project limits:", `${projectCount}/${displayProjectLimit}`);
 
   return (
     <div className="container py-10 space-y-8">

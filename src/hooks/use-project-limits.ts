@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { getSafeProjectLimit, normalizePlanType, isStarterUser, STARTER_USER_ID } from "@/hooks/subscription/feature-access";
@@ -97,7 +98,7 @@ export function useProjectLimits(user: User | null) {
     try {
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
-        const { data } = JSON.parse(storedData);
+        const data = JSON.parse(storedData);
         if (data && normalizePlanType(data.plan_type) === 'starter') {
           conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;

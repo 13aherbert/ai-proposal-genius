@@ -34,3 +34,15 @@ export async function withRateLimit<T>(
   operationTimestamps.set(key, Date.now());
   return operation();
 }
+
+/**
+ * Wrapper for withRateLimit that creates an operation function from a key
+ * This is for backward compatibility with code that passes a string key
+ */
+export async function withRateLimitByKey<T>(
+  key: string,
+  asyncCallback: () => Promise<T>,
+  minInterval: number = 5000
+): Promise<T> {
+  return withRateLimit(() => asyncCallback(), key, minInterval);
+}

@@ -3,6 +3,9 @@ export type FeatureName =
   | 'rfp_summary'
   | 'proposal_outline'
   | 'proposal_draft'
+  | 'compiled_draft'  // Adding missing feature
+  | 'evaluation'      // Adding missing feature
+  | 'data_export'     // Adding missing feature
   | 'ai_editor'
   | 'team_collaboration'
   | 'advanced_analytics'

@@ -1,12 +1,15 @@
 
 import { FeatureName } from "./subscription-features-types";
-import { SUBSCRIPTION_PLAN_LIMITS, SubscriptionPlan } from "@/types/subscription";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 // Create a cache for faster feature access checks
 export const featureCache = new Map<string, boolean>();
 
 // Create a cache for project limit checks
 export const projectLimitCache = new Map<string, number>();
+
+// Special starter user ID for enforcing starter plan limits
+export const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 
 // Initialize global caches for faster access across components
 if (typeof window !== 'undefined') {
@@ -17,6 +20,11 @@ if (typeof window !== 'undefined') {
   if (!window.projectLimitCache) {
     window.projectLimitCache = projectLimitCache;
   }
+}
+
+// Normalize plan type to lowercase for consistent comparison
+export function normalizePlanType(planType: string | undefined): string {
+  return (planType || 'trial').toLowerCase().trim();
 }
 
 // Clear all feature and project limit caches
@@ -67,7 +75,7 @@ export function getSafeProjectLimit(planType: string, storedLimit: number): numb
 }
 
 // Store subscription data in localStorage for faster access
-export function storeSubscriptionDataLocally(subscription: SubscriptionPlan) {
+export function storeSubscriptionDataLocally(subscription: any) {
   if (!subscription) return;
   
   try {
@@ -81,12 +89,12 @@ export function storeSubscriptionDataLocally(subscription: SubscriptionPlan) {
 }
 
 // Get subscription data from localStorage
-export function getStoredSubscriptionData(): SubscriptionPlan | null {
+export function getStoredSubscriptionData(): any | null {
   try {
     const data = localStorage.getItem('subscriptionData');
     if (!data) return null;
     
-    return JSON.parse(data) as SubscriptionPlan;
+    return JSON.parse(data);
   } catch (e) {
     console.error("Error retrieving subscription data from localStorage:", e);
     return null;
@@ -98,6 +106,9 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   rfp_summary: ['trial', 'starter', 'pro'],  // All plans have access
   proposal_outline: ['trial', 'starter', 'pro'],  // All plans have access
   proposal_draft: ['trial', 'starter', 'pro'],  // All plans have access
+  compiled_draft: ['pro'],  // Only pro has access
+  evaluation: ['pro'],  // Only pro has access
+  data_export: ['pro'],  // Only pro has access
   ai_editor: ['starter', 'pro'],  // Only starter and pro have access
   team_collaboration: ['pro'],  // Only pro has access
   advanced_analytics: ['pro'],  // Only pro has access
@@ -114,7 +125,7 @@ export function isStarterUser(): boolean {
     if (!data) return false;
     
     const { user } = JSON.parse(data);
-    return user?.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+    return user?.id === STARTER_USER_ID;
   } catch (e) {
     return false;
   }

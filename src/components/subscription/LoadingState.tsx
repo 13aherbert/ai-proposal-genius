@@ -12,6 +12,7 @@ export function LoadingState() {
   const [loadingTooLong, setLoadingTooLong] = useState(false);
   const [networkError, setNetworkError] = useState(false);
   const [localDataLoaded, setLocalDataLoaded] = useState(false);
+  const [loadedFromLocal, setLoadedFromLocal] = useState(false);
   const isAttempting = useRef(false);
 
   // First try to load from localStorage
@@ -24,6 +25,18 @@ export function LoadingState() {
         if (parsedData.subscription_id) {
           console.log("Found cached subscription data:", parsedData);
           setLocalDataLoaded(true);
+          
+          // If data is recent (last 24 hours), use it immediately
+          const updatedAt = parsedData.updated_at ? new Date(parsedData.updated_at).getTime() : 0;
+          const isRecent = Date.now() - updatedAt < 86400000; // 24 hours
+          
+          if (isRecent) {
+            // Dispatch an event that subscription data was loaded from cache
+            window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
+              detail: { data: parsedData } 
+            }));
+            setLoadedFromLocal(true);
+          }
         }
       }
     } catch (e) {
@@ -33,7 +46,7 @@ export function LoadingState() {
 
   // Try to directly fetch subscription data if edge function fails
   useEffect(() => {
-    if (isAttempting.current || retryCount > 2) return;
+    if (isAttempting.current || retryCount > 2 || loadedFromLocal) return;
     
     const fetchSubscriptionDirect = async () => {
       if (isAttempting.current) return;
@@ -96,6 +109,12 @@ export function LoadingState() {
             };
             typedData.updated_at = new Date().toISOString();
             localStorage.setItem('subscriptionData', JSON.stringify(typedData));
+            
+            // Dispatch an event that subscription data was loaded
+            window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
+              detail: { data: typedData } 
+            }));
+            
             toast.success("Subscription data loaded", { duration: 2000 });
           } catch (e) {
             console.error("Error storing subscription data locally:", e);
@@ -138,7 +157,7 @@ export function LoadingState() {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [retryCount]);
+  }, [retryCount, loadedFromLocal]);
 
   const handleRefresh = () => {
     window.location.reload();

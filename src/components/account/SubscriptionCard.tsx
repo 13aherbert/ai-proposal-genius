@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import {
 import { UpgradeButton } from "@/components/subscription/UpgradeButton";
 import { format, isPast, addDays } from "date-fns";
 import { useSubscription } from "@/hooks/use-subscription";
+import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
 
 interface SubscriptionCardProps {
   subscription?: SubscriptionPlan | null;
@@ -40,6 +40,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading, error: subscriptionError } = useSubscription();
   const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [hasFetchedFromLocal, setHasFetchedFromLocal] = useState(false);
   
   // Direct database fetch function
   const tryDirectFetch = async () => {
@@ -55,10 +56,14 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         .from('subscriptions')
         .select('*')
         .eq('user_id', sessionData.session.user.id)
-        .single();
+        .maybeSingle();
         
       if (error) {
         console.error("Error in direct fetch:", error);
+        // If this is a network error, try to load from localStorage
+        if (isNetworkError(error)) {
+          loadFromLocalStorage();
+        }
       } else if (data) {
         console.log("Fetched subscription directly:", data);
         // Convert string status to SubscriptionStatus type and ensure features is an object
@@ -78,6 +83,34 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       }
     } catch (err) {
       console.error("Exception in direct fetch:", err);
+      // Try to load from localStorage on any error
+      loadFromLocalStorage();
+    }
+  };
+  
+  // Load subscription data from localStorage
+  const loadFromLocalStorage = () => {
+    if (hasFetchedFromLocal) return;
+    
+    try {
+      const storedData = localStorage.getItem('subscriptionData');
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log("Loaded subscription from localStorage:", parsedData);
+        
+        // Convert string status to SubscriptionStatus type
+        const typedData: SubscriptionPlan = {
+          ...parsedData,
+          status: parsedData.status as SubscriptionStatus,
+          features: typeof parsedData.features === 'object' && parsedData.features !== null 
+            ? parsedData.features as Record<string, any>
+            : {}
+        };
+        setLocalSubscription(typedData);
+        setHasFetchedFromLocal(true);
+      }
+    } catch (e) {
+      console.error("Error loading subscription from localStorage:", e);
     }
   };
   
@@ -102,7 +135,10 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   
   // Use subscription from either prop or context
   const subscription = localSubscription || subscriptionFromContext;
-  const isLoading = (isContextLoading && !subscription) || loadingTimeout;
+  
+  // Improved loading state detection - only show loading when we don't have any subscription data
+  // and the context is still loading, and we haven't tried loading from localStorage yet
+  const isLoading = (isContextLoading && !subscription && !hasFetchedFromLocal);
   
   // Show loading timeout message after 5 seconds
   useEffect(() => {
@@ -115,13 +151,27 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     }
   }, [isContextLoading, subscription]);
   
+  // Try to load from localStorage early if context is taking too long
+  useEffect(() => {
+    if (isContextLoading && !subscription && !hasFetchedFromLocal) {
+      // Try to load from localStorage after a short delay if context is still loading
+      const timer = setTimeout(() => {
+        loadFromLocalStorage();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isContextLoading, subscription, hasFetchedFromLocal]);
+  
   // Debug logging to help diagnose why subscription data is not displaying correctly
   useEffect(() => {
     console.log("Current subscription data in SubscriptionCard:", { 
       initialSubscription, 
       subscriptionFromContext,
+      localSubscription,
       subscription,
       isContextLoading,
+      hasFetchedFromLocal,
       subscriptionError,
       loadingTimeout
     });
@@ -132,27 +182,18 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     }
     
     // If there's an error with subscription, try to load from localStorage
-    if (subscriptionError && !subscription) {
-      try {
-        const storedData = localStorage.getItem('subscriptionData');
-        if (storedData) {
-          const parsedData = JSON.parse(storedData);
-          console.log("Loaded subscription from localStorage:", parsedData);
-          // Convert string status to SubscriptionStatus type
-          const typedData: SubscriptionPlan = {
-            ...parsedData,
-            status: parsedData.status as SubscriptionStatus,
-            features: typeof parsedData.features === 'object' && parsedData.features !== null 
-              ? parsedData.features as Record<string, any>
-              : {}
-          };
-          setLocalSubscription(typedData);
-        }
-      } catch (e) {
-        console.error("Error loading subscription from localStorage:", e);
+    if (subscriptionError && !subscription && !hasFetchedFromLocal) {
+      console.log("Error detected, loading from localStorage");
+      loadFromLocalStorage();
+      
+      // If error is network-related, show a toast
+      if (isNetworkError(subscriptionError)) {
+        toast.error(getNetworkErrorMessage(subscriptionError), {
+          description: "Using cached data if available"
+        });
       }
     }
-  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading, subscriptionError]);
+  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading, subscriptionError, hasFetchedFromLocal]);
   
   // Force subscription check when component mounts
   useEffect(() => {
@@ -163,24 +204,17 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       } catch (error) {
         console.error("Error checking subscription on SubscriptionCard mount:", error);
         
-        // Try to get subscription from localStorage as fallback
-        try {
-          const storedData = localStorage.getItem('subscriptionData');
-          if (storedData) {
-            const parsedData = JSON.parse(storedData);
-            console.log("Loaded subscription from localStorage fallback:", parsedData);
-            // Convert string status to SubscriptionStatus type
-            const typedData: SubscriptionPlan = {
-              ...parsedData,
-              status: parsedData.status as SubscriptionStatus,
-              features: typeof parsedData.features === 'object' && parsedData.features !== null 
-                ? parsedData.features as Record<string, any>
-                : {}
-            };
-            setLocalSubscription(typedData);
+        // If this is a network error, try direct fetch first
+        if (isNetworkError(error)) {
+          try {
+            await tryDirectFetch();
+          } catch (directFetchError) {
+            console.error("Direct fetch also failed:", directFetchError);
+            loadFromLocalStorage();
           }
-        } catch (e) {
-          console.error("Error loading subscription from localStorage:", e);
+        } else {
+          // For non-network errors, just try localStorage fallback
+          loadFromLocalStorage();
         }
       }
     };
@@ -203,12 +237,23 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">Loading subscription details...</p>
             {loadingTimeout && (
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
-              >
-                Refresh Page
-              </button>
+              <div className="mt-4 flex flex-col items-center">
+                <p className="text-sm text-muted-foreground mb-2">This is taking longer than expected.</p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
+                  >
+                    Refresh Page
+                  </button>
+                  <button 
+                    onClick={loadFromLocalStorage}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300"
+                  >
+                    Use Cached Data
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>
@@ -230,7 +275,9 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           <div className="p-4 bg-destructive/10 rounded-md">
             <h3 className="font-medium text-destructive mb-2">Error Loading Subscription</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              We couldn't load your subscription information. Please try refreshing the page.
+              {isNetworkError(subscriptionError) 
+                ? getNetworkErrorMessage(subscriptionError)
+                : "We couldn't load your subscription information. Please try refreshing the page."}
             </p>
             <div className="flex space-x-4">
               <Button 

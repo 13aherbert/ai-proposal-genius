@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { withRateLimit } from "@/utils/network";
+import { withRateLimitByKey } from "@/utils/network";
 import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
 import { toast } from "sonner";
 
@@ -34,7 +34,7 @@ export class WebhookService {
       }
       
       // Apply rate limiting to webhook calls (max 5 per minute)
-      return await withRateLimit("support-webhook", async () => {
+      return await withRateLimitByKey("support-webhook", async () => {
         // Call the email-webhooks edge function
         const { data, error } = await supabase.functions.invoke("email-webhooks", {
           body: {

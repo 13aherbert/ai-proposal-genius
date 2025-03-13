@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { withRateLimit } from '@/utils/network/rate-limit';
+import { withRateLimitByKey } from '@/utils/network/rate-limit';
 import { withRetry } from '@/utils/network/retry';
 import { SendEmailResponse } from './types';
 
@@ -26,7 +26,7 @@ export class BaseEmailService {
       }
       
       // Use rate limiting to prevent duplicate emails
-      return await withRateLimit(emailKey, async () => {
+      return await withRateLimitByKey(emailKey, async () => {
         // Call the edge function with authorization and retry with backoff
         console.log('Invoking send-email function with session token');
         

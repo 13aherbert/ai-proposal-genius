@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emailService } from "@/services/EmailService";
-import { withRateLimit } from "@/utils/network/rate-limit";
+import { withRateLimitByKey } from "@/utils/network/rate-limit";
 
 /**
  * Send an invitation email to a beta tester
@@ -33,7 +33,7 @@ export async function sendInvitationEmail(
     });
     
     // Use rate limiting for email sending to prevent duplicates
-    return await withRateLimit(`email:${email}`, async () => {
+    return await withRateLimitByKey(`email:${email}`, async () => {
       // Use the general email service instead of direct edge function call
       const { success, error } = await emailService.sendBetaInviteEmail(
         email,

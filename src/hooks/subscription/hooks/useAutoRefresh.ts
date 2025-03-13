@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 
@@ -18,10 +19,32 @@ export function useAutoRefresh(
     initialCheck: NodeJS.Timeout | null;
     refreshTimer: NodeJS.Timeout | null;
   }>({ initialCheck: null, refreshTimer: null });
+  // Track whether the component is mounted
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    // Set mounted state
+    isMountedRef.current = true;
+    
+    // Cleanup function to run on unmount
+    return () => {
+      isMountedRef.current = false;
+      
+      if (timersRef.current.initialCheck) {
+        clearTimeout(timersRef.current.initialCheck);
+        timersRef.current.initialCheck = null;
+      }
+      
+      if (timersRef.current.refreshTimer) {
+        clearInterval(timersRef.current.refreshTimer);
+        timersRef.current.refreshTimer = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Only proceed if we have a valid session and haven't done the initial check
-    if (!session?.user) {
+    if (!session?.user || !isMountedRef.current) {
       return;
     }
 
@@ -39,13 +62,20 @@ export function useAutoRefresh(
     // Initial check with a small delay to allow other effects to settle
     // But only if we haven't done the initial check yet
     if (!initialCheckDoneRef.current) {
-      console.log("Setting up initial subscription check (once)");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Setting up initial subscription check (once)");
+      }
       
       timersRef.current.initialCheck = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        
         const now = Date.now();
         // Only check if we haven't checked recently (within last 60 seconds)
         if (now - lastRefreshTimeRef.current > 60000) {
-          console.log("Performing initial subscription check");
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Performing initial subscription check");
+          }
+          
           checkSubscription(false).catch(err => {
             console.error("Error during initial subscription check:", err);
           });
@@ -57,21 +87,28 @@ export function useAutoRefresh(
 
     // Set up the regular refresh timer with a longer interval, but only if it's not already set
     if (!timersRef.current.refreshTimer) {
-      console.log("Setting up subscription refresh timer (once)");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Setting up subscription refresh timer (once)");
+      }
       
       timersRef.current.refreshTimer = setInterval(() => {
+        if (!isMountedRef.current) return;
+        
         const now = Date.now();
-        // Increased minimum interval between checks to 5 minutes
-        if (now - lastRefreshTimeRef.current > 5 * 60 * 1000) {
-          console.log("Regular refresh timer: rechecking subscription");
+        // Increased minimum interval between checks to 15 minutes
+        if (now - lastRefreshTimeRef.current > 15 * 60 * 1000) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Regular refresh timer: rechecking subscription");
+          }
+          
           checkSubscription(false).catch(err => {
             console.error("Error during scheduled subscription check:", err);
           });
           lastRefreshTimeRef.current = now;
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.log("Skipping scheduled check - too soon since last check");
         }
-      }, 15 * 60 * 1000); // Increased from 5 minutes to 15 minutes
+      }, 30 * 60 * 1000); // Increased from 15 minutes to 30 minutes
     }
     
     // Return cleanup function

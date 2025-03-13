@@ -483,7 +483,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return newSubscription;
       }
       
-      console.log("Successfully created starter subscription");
+      console.log("Successfully created starter subscription\");
       storeSubscriptionDataLocally(newSubscription);
       return newSubscription;
     } catch (e) {

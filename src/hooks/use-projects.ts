@@ -30,6 +30,7 @@ export function useProjects(user: User | null) {
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
+  // Check for starter user on mount and enforce limits
   useEffect(() => {
     // Check if this is our starter user and force the correct limit
     const isStarter = user?.id === STARTER_USER_ID || isStarterUser();
@@ -39,11 +40,12 @@ export function useProjects(user: User | null) {
     setCachedProjectLimit(limit);
   }, [getProjectLimit, user?.id]);
   
+  // Double-check starter user status when user changes
   useEffect(() => {
     if (user?.id) {
       console.log("User authenticated:", user.id);
       // Explicitly check if this is the starter user
-      if (user.id === STARTER_USER_ID) {
+      if (user.id === STARTER_USER_ID || isStarterUser()) {
         console.log("STARTER USER authenticated - enforcing starter limits");
         setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       }

@@ -16,6 +16,7 @@ import {
 import { withRetry } from '@/utils/network/retry';
 import { withRateLimitByKey } from '@/utils/network/rate-limit';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -52,10 +53,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     checkHasFailedPayment 
   } = useSubscriptionCheckers(subscription);
 
-  // Define subscription actions directly in this component
   const rawCheckSubscription = async (forceRecheck?: boolean) => {
-    // Implementation of checkSubscription function
-    // This would be the contents from the previous useSubscriptionActions hook
     console.log("Checking subscription, force:", forceRecheck);
 
     if (!session?.user?.id) {
@@ -79,8 +77,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       if (data) {
         console.log("Subscription data received:", data);
-        storeSubscriptionDataLocally(data);
-        setSubscription(data);
+        
+        const typedSubscription: SubscriptionPlan = {
+          ...data,
+          status: data.status as SubscriptionStatus,
+        };
+        
+        storeSubscriptionDataLocally(typedSubscription);
+        setSubscription(typedSubscription);
       } else {
         console.log("No subscription data found, creating trial subscription");
         const trialSubscription = await createTrialSubscription(session.user.id);
@@ -139,7 +143,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Implementing renewSubscription to match the expected signature in SubscriptionContextType
   const renewSubscription = async (): Promise<{ success?: boolean; url?: string; error?: any }> => {
     try {
       if (!subscription) {
@@ -152,7 +155,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       
       console.log("Initiating renewal with subscription data:", subscription);
       
-      // Use the subscription data to get the IDs needed for renewal
       const subscriptionId = subscription.stripe_subscription_id;
       const customerId = subscription.stripe_customer_id;
       
@@ -164,7 +166,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         };
       }
       
-      // Call the edge function with rate limiting
       const renewKey = `renew-subscription-${subscriptionId || customerId}`;
       const result = await withRateLimitByKey(renewKey, async () => {
         console.log("Getting current session");

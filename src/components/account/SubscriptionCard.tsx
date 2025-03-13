@@ -36,12 +36,24 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
-  const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading } = useSubscription();
+  const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading, error: subscriptionError } = useSubscription();
   const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   // Use subscription from either prop or context
   const subscription = localSubscription || subscriptionFromContext;
-  const isLoading = isContextLoading && !subscription;
+  const isLoading = (isContextLoading && !subscription) || loadingTimeout;
+  
+  // Show loading timeout message after 5 seconds
+  useEffect(() => {
+    if (isContextLoading && !subscription) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isContextLoading, subscription]);
   
   // Debug logging to help diagnose why subscription data is not displaying correctly
   useEffect(() => {
@@ -49,14 +61,30 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       initialSubscription, 
       subscriptionFromContext,
       subscription,
-      isContextLoading
+      isContextLoading,
+      subscriptionError,
+      loadingTimeout
     });
     
     // Update local subscription state if context data becomes available
     if (!localSubscription && subscriptionFromContext) {
       setLocalSubscription(subscriptionFromContext);
     }
-  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading]);
+    
+    // If there's an error with subscription, try to load from localStorage
+    if (subscriptionError && !subscription) {
+      try {
+        const storedData = localStorage.getItem('subscriptionData');
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          console.log("Loaded subscription from localStorage:", parsedData);
+          setLocalSubscription(parsedData);
+        }
+      } catch (e) {
+        console.error("Error loading subscription from localStorage:", e);
+      }
+    }
+  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading, subscriptionError]);
   
   // Force subscription check when component mounts
   useEffect(() => {
@@ -66,6 +94,18 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         await checkSubscription(true);
       } catch (error) {
         console.error("Error checking subscription on SubscriptionCard mount:", error);
+        
+        // Try to get subscription from localStorage as fallback
+        try {
+          const storedData = localStorage.getItem('subscriptionData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            console.log("Loaded subscription from localStorage fallback:", parsedData);
+            setLocalSubscription(parsedData);
+          }
+        } catch (e) {
+          console.error("Error loading subscription from localStorage:", e);
+        }
       }
     };
     
@@ -83,8 +123,60 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Loading subscription details...</p>
+            {loadingTimeout && (
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
+              >
+                Refresh Page
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Show error state if there's a subscription error and no data
+  if (subscriptionError && !subscription) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Subscription
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-destructive/10 rounded-md">
+            <h3 className="font-medium text-destructive mb-2">Error Loading Subscription</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              We couldn't load your subscription information. Please try refreshing the page.
+            </p>
+            <div className="flex space-x-4">
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                Refresh Page
+              </Button>
+              <Button 
+                variant="default" 
+                onClick={handleRefreshSubscription}
+                className="w-full"
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Try Again"
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -122,8 +214,43 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     } catch (error) {
       console.error("Error refreshing subscription:", error);
       toast.error("Failed to refresh subscription data");
+      
+      // Try direct database fetch as fallback
+      await tryDirectFetch();
     } finally {
       setIsRefreshing(false);
+    }
+  };
+  
+  // Direct database fetch function
+  const tryDirectFetch = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData?.session?.user?.id) {
+        console.log("No authenticated user for direct fetch");
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+        
+      if (error) {
+        console.error("Error in direct fetch:", error);
+      } else if (data) {
+        console.log("Fetched subscription directly:", data);
+        setLocalSubscription(data);
+        try {
+          localStorage.setItem('subscriptionData', JSON.stringify(data));
+        } catch (e) {
+          console.error("Error storing data:", e);
+        }
+      }
+    } catch (err) {
+      console.error("Exception in direct fetch:", err);
     }
   };
   
@@ -481,3 +608,4 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     </Card>
   );
 }
+

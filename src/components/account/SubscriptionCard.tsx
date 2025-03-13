@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +22,7 @@ import { format, isPast, addDays } from "date-fns";
 import { useSubscription } from "@/hooks/use-subscription";
 
 interface SubscriptionCardProps {
-  subscription: SubscriptionPlan | null;
+  subscription?: SubscriptionPlan | null;
 }
 
 /**
@@ -37,64 +36,44 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
-  const { checkSubscription, data: subscriptionFromContext } = useSubscription();
-  const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription);
+  const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading } = useSubscription();
+  const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
   
   // Use subscription from either prop or context
   const subscription = localSubscription || subscriptionFromContext;
+  const isLoading = isContextLoading && !subscription;
   
   // Debug logging to help diagnose why subscription data is not displaying correctly
   useEffect(() => {
     console.log("Current subscription data in SubscriptionCard:", { 
       initialSubscription, 
       subscriptionFromContext,
-      subscription 
+      subscription,
+      isContextLoading
     });
     
     // Update local subscription state if context data becomes available
     if (!localSubscription && subscriptionFromContext) {
       setLocalSubscription(subscriptionFromContext);
     }
-  }, [initialSubscription, subscriptionFromContext, localSubscription]);
+  }, [initialSubscription, subscriptionFromContext, localSubscription, isContextLoading]);
   
-  // Add additional check to directly fetch from API if subscription is null
+  // Force subscription check when component mounts
   useEffect(() => {
-    const fetchDirectSubscriptionData = async () => {
-      if (!subscription) {
-        console.log("No subscription data available in SubscriptionCard, attempting direct fetch");
-        try {
-          const { data: session } = await supabase.auth.getSession();
-          if (!session?.session?.user?.id) {
-            console.log("No authenticated user found");
-            return;
-          }
-          
-          // Call the edge function directly to get subscription status
-          const { data, error } = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${session.session.access_token}`
-            }
-          });
-          
-          if (error) {
-            console.error("Error fetching subscription directly:", error);
-          } else {
-            console.log("Direct subscription fetch result:", data);
-            if (data?.subscription) {
-              setLocalSubscription(data.subscription);
-            }
-          }
-        } catch (error) {
-          console.error("Exception during direct subscription fetch:", error);
-        }
+    const loadSubscriptionData = async () => {
+      try {
+        console.log("SubscriptionCard: Forcing subscription check on mount");
+        await checkSubscription(true);
+      } catch (error) {
+        console.error("Error checking subscription on SubscriptionCard mount:", error);
       }
     };
     
-    fetchDirectSubscriptionData();
-  }, [subscription]);
+    loadSubscriptionData();
+  }, [checkSubscription]);
   
   // Early return for loading state
-  if (!subscription) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -138,7 +117,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const handleRefreshSubscription = async () => {
     try {
       setIsRefreshing(true);
-      await checkSubscription();
+      await checkSubscription(true);
       toast.success("Subscription data refreshed");
     } catch (error) {
       console.error("Error refreshing subscription:", error);

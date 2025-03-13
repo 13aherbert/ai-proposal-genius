@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -208,6 +209,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
+  // Load cached subscription data on mount
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -230,6 +232,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id, subscription]);
 
+  // Check if user is a starter user
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -240,6 +243,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id]);
 
+  // Perform initial subscription check
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -260,6 +264,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id, initialFetchCompleted]);
 
+  // Handle force recheck
   useEffect(() => {
     if (forceRecheckFlag > 0 && session?.user) {
       console.log("Force rechecking subscription");
@@ -269,6 +274,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [forceRecheckFlag, session?.user?.id]);
 
+  // Set up auto-refresh
   useAutoRefresh(session, checkSubscription);
 
   return (

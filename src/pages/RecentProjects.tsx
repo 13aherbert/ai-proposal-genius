@@ -45,6 +45,20 @@ export default function RecentProjects() {
   const lastProjectLimitUpdateTime = useRef<number>(0);
   const isStarterUserRef = useRef<boolean | null>(null);
   
+  // Force check if user is starter user on component mount
+  useEffect(() => {
+    if (!session?.user) return;
+    
+    // Explicitly check if this is our starter user ID
+    const isUserStarter = session.user.id === STARTER_USER_ID || isStarterUser();
+    isStarterUserRef.current = isUserStarter;
+    
+    if (isUserStarter) {
+      conditionalLog('info', `*** STARTER USER DETECTED (${session.user.id}) - SETTING STARTER PLAN ***`);
+      setForceStarterPlan(true);
+    }
+  }, [session?.user]);
+  
   useEffect(() => {
     if (!loading) {
       setAuthReady(true);
@@ -368,15 +382,24 @@ export default function RecentProjects() {
     );
   }
 
-  let displayProjectLimit = (forceStarterPlan || isStarterUserRef.current || isStarterUser()) ? SUBSCRIPTION_PLAN_LIMITS.starter : (
-    subscriptionData 
-      ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
-      : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial
-  );
-    
-  const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
-  if (planFromSubscriptionData === 'starter' || forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
-    displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+  // Calculate final display limit with extra safety checks
+  let displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.trial; // Default fallback
+  
+  // Check for starter user - highest priority
+  if (session?.user?.id === STARTER_USER_ID || forceStarterPlan || isStarterUserRef.current || isStarterUser()) {
+    displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
+    conditionalLog('debug', "Using STARTER plan limit: 10 projects");
+  }
+  // Otherwise use subscription data if available
+  else if (subscriptionData) {
+    const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
+    displayProjectLimit = getSafeProjectLimit(normalizedPlan, subscriptionData.project_limit);
+    conditionalLog('debug', `Using subscription-based limit for ${normalizedPlan} plan: ${displayProjectLimit} projects`);
+  }
+  // Use hook value as fallback
+  else if (projectLimit) {
+    displayProjectLimit = projectLimit;
+    conditionalLog('debug', `Using fallback project limit: ${displayProjectLimit} projects`);
   }
 
   conditionalLog('debug', "Project limits:", `${projectCount}/${displayProjectLimit}`);

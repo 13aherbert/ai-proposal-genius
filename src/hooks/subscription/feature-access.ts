@@ -1,4 +1,3 @@
-
 import { FeatureName } from "./subscription-features-types";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
@@ -13,7 +12,7 @@ if (typeof window !== 'undefined') {
 }
 
 // The specific user ID that should always have starter plan
-const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+export const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 
 /**
  * Checks if current user is the specific starter user
@@ -26,7 +25,6 @@ export function isStarterUser(): boolean {
       const parsedData = JSON.parse(storedAuthData);
       const userId = parsedData?.currentSession?.user?.id;
       if (userId && userId === STARTER_USER_ID) {
-        console.log("STARTER USER detected from localStorage");
         return true;
       }
     }
@@ -37,7 +35,6 @@ export function isStarterUser(): boolean {
   // Then try window.auth object if available
   if (typeof window !== 'undefined' && window.auth && window.auth.user) {
     if (window.auth.user.id === STARTER_USER_ID) {
-      console.log("STARTER USER detected from window.auth");
       return true;
     }
   }
@@ -49,7 +46,6 @@ export function isStarterUser(): boolean {
       const parsedData = JSON.parse(sessionData);
       const userId = parsedData?.currentSession?.user?.id;
       if (userId && userId === STARTER_USER_ID) {
-        console.log("STARTER USER detected from sessionStorage");
         return true;
       }
     }

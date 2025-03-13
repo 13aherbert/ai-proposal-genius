@@ -7,6 +7,8 @@ import { useSubscriptionFeatures } from "./use-subscription-features";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
+import { isStarterUser, STARTER_USER_ID } from "./subscription/feature-access";
+import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export type Project = {
   project_id: string;
@@ -29,14 +31,22 @@ export function useProjects(user: User | null) {
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
   useEffect(() => {
-    const limit = getProjectLimit();
-    console.log("useProjects: Current project limit from useSubscriptionFeatures:", limit);
+    // Check if this is our starter user and force the correct limit
+    const isStarter = user?.id === STARTER_USER_ID || isStarterUser();
+    const limit = isStarter ? SUBSCRIPTION_PLAN_LIMITS.starter : getProjectLimit();
+    
+    console.log(`useProjects: Current project limit ${isStarter ? '(STARTER USER)' : ''}: ${limit}`);
     setCachedProjectLimit(limit);
-  }, [getProjectLimit]);
+  }, [getProjectLimit, user?.id]);
   
   useEffect(() => {
     if (user?.id) {
       console.log("User authenticated:", user.id);
+      // Explicitly check if this is the starter user
+      if (user.id === STARTER_USER_ID) {
+        console.log("STARTER USER authenticated - enforcing starter limits");
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+      }
     } else {
       console.log("No user authenticated");
     }
@@ -233,10 +243,24 @@ export function useProjects(user: User | null) {
 
   const updateProjectLimit = useCallback((newLimit: number) => {
     console.log(`Updating project limit to ${newLimit}`);
-    setCachedProjectLimit(newLimit);
-  }, []);
+    
+    // Special case: if this is our starter user, always enforce the starter limit
+    if (user?.id === STARTER_USER_ID || isStarterUser()) {
+      console.log("CRITICAL: Enforcing starter project limit (10) for starter user");
+      setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+    } else {
+      setCachedProjectLimit(newLimit);
+    }
+  }, [user?.id]);
 
-  const projectLimit = cachedProjectLimit || getProjectLimit();
+  // Calculate the final project limit with startup user check as a safeguard
+  let projectLimit = cachedProjectLimit || getProjectLimit();
+  
+  // Final safety check - if user ID matches starter ID, enforce starter limit
+  if (user?.id === STARTER_USER_ID || isStarterUser()) {
+    projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+  }
+  
   const projectCount = totalCount;
   const canCreateProject = projectCount < projectLimit;
 

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -20,10 +19,15 @@ const LOG_LEVEL: LogLevel = 'error'; // Can be 'debug', 'info', 'warn', 'error'
 
 // Helper function to conditionally log based on level
 const conditionalLog = (level: LogLevel, ...args: any[]) => {
-  if (LOG_LEVEL === 'debug' || 
-     (LOG_LEVEL === 'info' && level !== 'debug') ||
-     (LOG_LEVEL === 'warn' && (level === 'warn' || level === 'error')) ||
-     (LOG_LEVEL === 'error' && level === 'error')) {
+  const logLevelMap = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3
+  };
+
+  // Only log if the current level is greater than or equal to the configured level
+  if (logLevelMap[level] >= logLevelMap[LOG_LEVEL]) {
     console[level](...args);
   }
 };

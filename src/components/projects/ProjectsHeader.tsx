@@ -37,12 +37,6 @@ export function ProjectsHeader({
             {projectCount} of {currentPlanLimit} projects
           </div>
         )}
-        
-        {isSubscriptionLoading && (
-          <div className="ml-2 text-sm text-muted-foreground">
-            Loading project usage...
-          </div>
-        )}
       </div>
       <Button 
         onClick={() => navigate("/upload-rfp")}

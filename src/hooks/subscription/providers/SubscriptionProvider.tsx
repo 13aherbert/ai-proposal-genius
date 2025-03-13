@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -7,7 +6,7 @@ import {
   SubscriptionStatus
 } from '@/types/subscription';
 import { useSubscriptionCheckers } from '../hooks/useSubscriptionCheckers';
-import { createCheckoutSession, createTrialSubscription, renewSubscription } from '../hooks/useSubscriptionActions';
+import { createCheckoutSession, createTrialSubscription } from '../hooks/useSubscriptionActions';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { 
   storeSubscriptionDataLocally, 
@@ -15,6 +14,8 @@ import {
   isStarterUser
 } from '../feature-access';
 import { withRetry } from '@/utils/network/retry';
+import { withRateLimitByKey } from '@/utils/network/rate-limit';
+import { supabase } from '@/integrations/supabase/client';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -56,7 +57,50 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     // Implementation of checkSubscription function
     // This would be the contents from the previous useSubscriptionActions hook
     console.log("Checking subscription, force:", forceRecheck);
-    // ... implementation details
+
+    if (!session?.user?.id) {
+      console.error("No user ID found, cannot check subscription");
+      return null;
+    }
+
+    try {
+      console.log("Fetching subscription data from Supabase");
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching subscription data:", error);
+        setError(error);
+        return null;
+      }
+
+      if (data) {
+        console.log("Subscription data received:", data);
+        storeSubscriptionDataLocally(data);
+        setSubscription(data);
+      } else {
+        console.log("No subscription data found, creating trial subscription");
+        const trialSubscription = await createTrialSubscription(session.user.id);
+        if (trialSubscription) {
+          console.log("Trial subscription created:", trialSubscription);
+          storeSubscriptionDataLocally(trialSubscription);
+          setSubscription(trialSubscription);
+        } else {
+          console.error("Failed to create trial subscription");
+        }
+      }
+    } catch (err) {
+      console.error("Error during subscription check:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+      setInitialFetchCompleted(true);
+      setSubscriptionChecked(true);
+    }
+    
     return null;
   };
   
@@ -92,6 +136,71 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }
     } finally {
       subscriptionCheckInProgress.current = false;
+    }
+  };
+
+  // Implementing renewSubscription to match the expected signature in SubscriptionContextType
+  const renewSubscription = async (): Promise<{ success?: boolean; url?: string; error?: any }> => {
+    try {
+      if (!subscription) {
+        console.error("Cannot renew: No subscription data available");
+        return { 
+          success: false, 
+          error: { message: "No subscription information found" } 
+        };
+      }
+      
+      console.log("Initiating renewal with subscription data:", subscription);
+      
+      // Use the subscription data to get the IDs needed for renewal
+      const subscriptionId = subscription.stripe_subscription_id;
+      const customerId = subscription.stripe_customer_id;
+      
+      if (!subscriptionId && !customerId) {
+        console.error("Missing required subscription IDs");
+        return { 
+          success: false, 
+          error: { message: "No active subscription or customer found" } 
+        };
+      }
+      
+      // Call the edge function with rate limiting
+      const renewKey = `renew-subscription-${subscriptionId || customerId}`;
+      const result = await withRateLimitByKey(renewKey, async () => {
+        console.log("Getting current session");
+        const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !authSession) {
+          throw new Error(sessionError?.message || "No active session found");
+        }
+        
+        console.log("Invoking renew-subscription edge function");
+        return supabase.functions.invoke('renew-subscription', {
+          body: { 
+            subscriptionId, 
+            customerId 
+          },
+          headers: {
+            Authorization: `Bearer ${authSession.access_token}`
+          }
+        });
+      });
+      
+      if (result.error) {
+        throw new Error(result.error.message || JSON.stringify(result.error));
+      }
+      
+      return { 
+        success: true, 
+        url: result.data?.url,
+        error: result.data?.error
+      };
+    } catch (error: any) {
+      console.error('Error in renewSubscription:', error);
+      return { 
+        success: false, 
+        error 
+      };
     }
   };
 

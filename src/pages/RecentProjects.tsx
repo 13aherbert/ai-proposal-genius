@@ -9,7 +9,7 @@ import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { getSafeProjectLimit, normalizePlanType } from "@/hooks/subscription/feature-access";
+import { getSafeProjectLimit, normalizePlanType, isStarterUser } from "@/hooks/subscription/feature-access";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
@@ -30,9 +30,13 @@ export default function RecentProjects() {
     }
   }, [loading]);
   
-  // CRITICAL: Force starter plan for this specific user
+  // CRITICAL: Force starter plan for this specific user immediately on component mount
+  // This ensures the check happens before any other subscription logic
   useEffect(() => {
-    if (session?.user?.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c") {
+    // Using direct ID check AND isStarterUser function for redundancy
+    const isUserStarter = session?.user?.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c" || isStarterUser();
+    
+    if (isUserStarter) {
       console.log("*** DETECTED STARTER PLAN USER - FORCING STARTER PLAN SETTINGS ***");
       setForceStarterPlan(true);
       
@@ -41,7 +45,7 @@ export default function RecentProjects() {
         plan_type: 'starter',
         project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
         status: 'active',
-        user_id: session.user.id
+        user_id: session?.user?.id
       };
       
       // Store backup data
@@ -54,15 +58,27 @@ export default function RecentProjects() {
       } catch (e) {
         console.error("Failed to create starter plan backup", e);
       }
+      
+      // Try to store this data in both session and local storage for maximum redundancy
+      try {
+        sessionStorage.setItem('userIsStarter', 'true');
+        localStorage.setItem('userIsStarter', 'true');
+        localStorage.setItem('projectLimit', SUBSCRIPTION_PLAN_LIMITS.starter.toString());
+      } catch (e) {
+        console.error("Failed to store starter flags in storage", e);
+      }
     }
   }, [session]);
   
-  // Ensure subscription data is fresh on component mount
+  // Force an immediate subscription check on mount
   useEffect(() => {
     if (session?.user && !initialLoadComplete) {
       console.log("RecentProjects: Initial mount, checking subscription data");
-      checkSubscription(true); // Force a refresh to ensure we have the latest data
-      setInitialLoadComplete(true);
+      // Set a short timeout to ensure UI renders first
+      setTimeout(() => {
+        checkSubscription(true); // Force a refresh to ensure we have the latest data
+        setInitialLoadComplete(true);
+      }, 100);
     }
   }, [session, checkSubscription, initialLoadComplete]);
   
@@ -86,7 +102,7 @@ export default function RecentProjects() {
   // Enhanced project limit handling with recovery mechanism
   const handleProjectLimitUpdate = () => {
     // CRITICAL: If this is the specific user with starter plan, always force the limit to 10
-    if (forceStarterPlan) {
+    if (forceStarterPlan || isStarterUser()) {
       console.log("CRITICAL: Forcing starter plan limit to 10 projects");
       if (projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
         updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
@@ -135,7 +151,7 @@ export default function RecentProjects() {
     }
     
     // For the specific user, ALWAYS return 10 regardless of subscription data
-    if (forceStarterPlan) {
+    if (forceStarterPlan || isStarterUser()) {
       return SUBSCRIPTION_PLAN_LIMITS.starter; // 10
     }
     
@@ -148,6 +164,20 @@ export default function RecentProjects() {
           console.log('Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
         }
+      }
+      
+      // Also check for the userIsStarter flag as a last resort
+      if (localStorage.getItem('userIsStarter') === 'true' || 
+          sessionStorage.getItem('userIsStarter') === 'true') {
+        console.log('Found userIsStarter flag, using starter plan limit');
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
+      }
+      
+      // Check projectLimit directly in localStorage
+      const storedLimit = localStorage.getItem('projectLimit');
+      if (storedLimit === `${SUBSCRIPTION_PLAN_LIMITS.starter}`) {
+        console.log('Found projectLimit=10 in localStorage, using starter plan limit');
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
       }
     } catch (e) {
       console.error('Error checking localStorage:', e);
@@ -162,7 +192,7 @@ export default function RecentProjects() {
       console.log("Applying project limit...");
       
       // Always apply the correct limit for the specific user
-      if (forceStarterPlan) {
+      if (forceStarterPlan || isStarterUser()) {
         console.log("Applying forced starter plan limit");
         updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
         setProjectLimitApplied(true);
@@ -207,18 +237,19 @@ export default function RecentProjects() {
   
   // CRITICAL: Additional failsafe for specific user
   useEffect(() => {
-    if (forceStarterPlan && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+    if ((forceStarterPlan || isStarterUser()) && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
       console.log("FAILSAFE: Forcing limit to 10 for starter user");
       updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
     }
   }, [forceStarterPlan, projectLimit]);
   
-  // Recovery mechanism for stuck project limits - CHECK EVERY RENDER
+  // Recovery mechanism for stuck project limits
   useEffect(() => {
     // For starter plans with incorrect limits, force periodic refreshes
     const normalizedPlan = subscriptionData ? normalizePlanType(subscriptionData.plan_type) : null;
     
-    if ((normalizedPlan === 'starter' || forceStarterPlan) && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+    if ((normalizedPlan === 'starter' || forceStarterPlan || isStarterUser()) && 
+        projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
       console.log(`RECOVERY: Detected stuck project limit for starter plan: ${projectLimit}`);
       
       // Schedule a recovery refresh
@@ -228,6 +259,10 @@ export default function RecentProjects() {
         // Force clear local caches
         try {
           localStorage.removeItem('projectLimit');
+          localStorage.setItem('projectLimit', SUBSCRIPTION_PLAN_LIMITS.starter.toString());
+          localStorage.setItem('userIsStarter', 'true');
+          sessionStorage.setItem('userIsStarter', 'true');
+          
           if (window.featureCache) window.featureCache.clear();
           if (window.projectLimitCache) window.projectLimitCache.clear();
         } catch (e) {
@@ -240,13 +275,13 @@ export default function RecentProjects() {
         // Refetch projects with the new limit
         refetch();
         setRefreshAttempts(prev => prev + 1);
-      }, 1000);
+      }, 100);
       
       return () => clearTimeout(recoveryTimeout);
     }
   });
 
-  // Always check subscription data every 15 seconds to ensure it's up to date
+  // Always check subscription data periodically to ensure it's up to date
   useEffect(() => {
     const refreshInterval = setInterval(() => {
       if (session?.user) {
@@ -277,6 +312,13 @@ export default function RecentProjects() {
     localStorage.removeItem("projectLimit");
     localStorage.removeItem("subscriptionData");
     
+    // Set starter user flags if applicable
+    if (isStarterUser() || forceStarterPlan || session?.user?.id === STARTER_USER_ID) {
+      localStorage.setItem('projectLimit', SUBSCRIPTION_PLAN_LIMITS.starter.toString());
+      localStorage.setItem('userIsStarter', 'true');
+      sessionStorage.setItem('userIsStarter', 'true');
+    }
+    
     // Clear feature caches
     try {
       if (window.featureCache && typeof window.featureCache.clear === 'function') {
@@ -295,7 +337,9 @@ export default function RecentProjects() {
     setRefreshAttempts(prev => prev + 1);
     
     // Force update the project limit for starter plans
-    if (subscriptionData && normalizePlanType(subscriptionData.plan_type) === 'starter' || forceStarterPlan) {
+    if (isStarterUser() || forceStarterPlan) {
+      updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+    } else if (subscriptionData && normalizePlanType(subscriptionData.plan_type) === 'starter') {
       updateProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
     }
     
@@ -338,7 +382,7 @@ export default function RecentProjects() {
   }
 
   // CRITICAL: Apply correct project limit for the specific user
-  let displayProjectLimit = forceStarterPlan ? SUBSCRIPTION_PLAN_LIMITS.starter : (
+  let displayProjectLimit = (forceStarterPlan || isStarterUser()) ? SUBSCRIPTION_PLAN_LIMITS.starter : (
     subscriptionData 
       ? getSafeProjectLimit(subscriptionData.plan_type, subscriptionData.project_limit)
       : projectLimit || SUBSCRIPTION_PLAN_LIMITS.trial
@@ -346,7 +390,7 @@ export default function RecentProjects() {
     
   // Override for starter plans to always show 10
   const planFromSubscriptionData = subscriptionData?.plan_type ? normalizePlanType(subscriptionData.plan_type) : null;
-  if (planFromSubscriptionData === 'starter' || forceStarterPlan) {
+  if (planFromSubscriptionData === 'starter' || forceStarterPlan || isStarterUser()) {
     displayProjectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }
 

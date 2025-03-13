@@ -18,17 +18,57 @@ const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 /**
  * Checks if current user is the specific starter user
  */
-function isStarterUser(): boolean {
-  if (typeof window === 'undefined' || !window.auth || !window.auth.user) {
-    return false;
+export function isStarterUser(): boolean {
+  // First check if localStorage is available
+  try {
+    const storedAuthData = localStorage.getItem('supabase.auth.token');
+    if (storedAuthData) {
+      const parsedData = JSON.parse(storedAuthData);
+      const userId = parsedData?.currentSession?.user?.id;
+      if (userId && userId === STARTER_USER_ID) {
+        console.log("STARTER USER detected from localStorage");
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error("Error checking localStorage for auth data:", e);
   }
-  return window.auth.user.id === STARTER_USER_ID;
+  
+  // Then try window.auth object if available
+  if (typeof window !== 'undefined' && window.auth && window.auth.user) {
+    if (window.auth.user.id === STARTER_USER_ID) {
+      console.log("STARTER USER detected from window.auth");
+      return true;
+    }
+  }
+  
+  // Finally check sessionStorage
+  try {
+    const sessionData = sessionStorage.getItem('supabase.auth.token');
+    if (sessionData) {
+      const parsedData = JSON.parse(sessionData);
+      const userId = parsedData?.currentSession?.user?.id;
+      if (userId && userId === STARTER_USER_ID) {
+        console.log("STARTER USER detected from sessionStorage");
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error("Error checking sessionStorage for auth data:", e);
+  }
+  
+  return false;
 }
 
 /**
  * Normalizes plan type strings for consistent comparison
  */
 export function normalizePlanType(planType: string | null | undefined): string {
+  // If this is the starter user, always return 'starter'
+  if (isStarterUser()) {
+    return 'starter';
+  }
+  
   // Handle null/undefined cases
   if (!planType) return 'trial';
   
@@ -52,6 +92,11 @@ export function determineFeatureAccess(
   feature: FeatureName, 
   currentPlan: string
 ): boolean {
+  // If this is the starter user, always use 'starter' as the plan
+  if (isStarterUser()) {
+    currentPlan = 'starter';
+  }
+  
   // Normalize the plan type to lowercase for consistent comparison
   const normalizedPlan = normalizePlanType(currentPlan);
   
@@ -115,14 +160,14 @@ export function getFeatureName(feature: FeatureName, currentPlan: string): strin
  * Gets the correct project limit for a plan type
  */
 export function getProjectLimitForPlan(planType: string): number {
-  // Normalize the plan type to lowercase for consistent comparison
-  const normalizedPlan = normalizePlanType(planType);
-  
   // Special case for the specific user who should have starter plan
   if (isStarterUser()) {
     console.log("CRITICAL USER DETECTED - Forcing starter plan limit");
     return SUBSCRIPTION_PLAN_LIMITS.starter; // Force 10 projects
   }
+  
+  // Normalize the plan type to lowercase for consistent comparison
+  const normalizedPlan = normalizePlanType(planType);
   
   // Generate consistent console logging for debugging
   console.log(`Getting project limit for plan type: "${normalizedPlan}"`);

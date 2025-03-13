@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -21,9 +22,9 @@ import { toast } from 'sonner';
 import { 
   getProjectLimitForPlan, 
   storeSubscriptionDataLocally, 
-  getStoredSubscriptionData 
+  getStoredSubscriptionData,
+  isStarterUser
 } from './subscription/feature-access';
-import { withRetry } from '@/utils/network';
 
 const LOCAL_STORAGE_KEY = 'subscriptionData';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
@@ -56,6 +57,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const checkInProgressRef = useRef(false);
   const lastCheckTimestampRef = useRef<number>(0);
 
+  // Check if this is the specific starter user once on mount
+  const isUserStarter = useRef<boolean>(false);
+  useEffect(() => {
+    if (session?.user) {
+      isUserStarter.current = isStarterUser();
+      console.log(`SubscriptionProvider: User is ${isUserStarter.current ? 'STARTER' : 'regular'}`);
+    }
+  }, [session]);
+
   useEffect(() => {
     try {
       if (session?.user && !subscription) {
@@ -82,6 +92,46 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setLoading(false);
       setSubscriptionChecked(true);
       return;
+    }
+
+    // CRITICAL: If this is the specific starter user, always ensure starter plan
+    if (isUserStarter.current && !forceRecheck) {
+      console.log("STARTER USER DETECTED: Using cached starter plan");
+      
+      const cachedData = getStoredSubscriptionData();
+      const starterPlan = {
+        subscription_id: cachedData?.subscription_id || crypto.randomUUID(),
+        user_id: session.user.id,
+        status: 'active' as SubscriptionStatus,
+        plan_type: 'starter',
+        current_period_end: null,
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+        features: {},
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        created_at: cachedData?.created_at || new Date().toISOString(),
+        updated_at: cachedData?.updated_at || new Date().toISOString()
+      };
+      
+      // Only use cached data if not forcing a recheck
+      if (cachedData && !forceRecheck) {
+        // Ensure the cached data has starter plan settings
+        if (cachedData.plan_type?.toLowerCase() === 'starter' && 
+            cachedData.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
+          console.log("Using correctly cached starter plan data");
+          setSubscription(cachedData);
+          setLoading(false);
+          setSubscriptionChecked(true);
+          return;
+        }
+      }
+      
+      // If we're here, either we're forcing a recheck or the cached data isn't valid
+      console.log("Setting default starter plan data and requesting fresh data");
+      setSubscription(starterPlan);
+      storeSubscriptionDataLocally(starterPlan);
+      
+      // Continue with the check to update from the server
     }
 
     if (checkInProgressRef.current && !forceRecheck) {
@@ -121,6 +171,31 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
             abortControllerRef.current = null;
+          }
+
+          // If this is the starter user, ensure they have a starter plan even on timeout
+          if (isUserStarter.current) {
+            console.log("TIMEOUT - Force setting starter plan for specific user");
+            const starterPlan = {
+              subscription_id: crypto.randomUUID(),
+              user_id: session.user.id,
+              status: 'active' as SubscriptionStatus,
+              plan_type: 'starter',
+              current_period_end: null,
+              project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+              features: {},
+              stripe_customer_id: null,
+              stripe_subscription_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            setSubscription(starterPlan);
+            storeSubscriptionDataLocally(starterPlan);
+            setLoading(false);
+            setSubscriptionChecked(true);
+            checkInProgressRef.current = false;
+            return;
           }
 
           const cachedData = getStoredSubscriptionData();
@@ -170,7 +245,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         const normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
         let projectLimit = edgeFunctionResult.subscription.project_limit;
         
-        if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+        // CRITICAL: If this is the starter user, ensure they have a starter plan
+        if (isUserStarter.current) {
+          console.log("CRITICAL USER - Force setting starter plan values");
+          edgeFunctionResult.subscription.plan_type = 'starter';
+          edgeFunctionResult.subscription.project_limit = SUBSCRIPTION_PLAN_LIMITS.starter;
+          normalizedPlanType = 'starter';
+          projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+        }
+        // Regular plan checks
+        else if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
           console.log(`Correcting starter plan project limit from ${projectLimit} to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
           projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
         } else if (normalizedPlanType === 'pro' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.pro) {
@@ -224,7 +308,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (directData) {
         console.log("Found subscription data from direct query:", directData);
         
-        const normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
+        let normalizedPlanType = directData.plan_type?.toLowerCase() || 'trial';
         const normalizedStatus = directData.status?.toLowerCase() || 'trialing';
         const validStatus: SubscriptionStatus = 
           (['trialing', 'active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'unpaid'].includes(normalizedStatus) 
@@ -233,7 +317,29 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         
         let projectLimit = directData.project_limit;
         
-        if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+        // CRITICAL: If this is the starter user, ensure they have a starter plan
+        if (isUserStarter.current) {
+          console.log("CRITICAL USER from direct query - Force setting starter plan values");
+          normalizedPlanType = 'starter';
+          projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+          
+          try {
+            await supabase
+              .from('subscriptions')
+              .update({ 
+                project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+                plan_type: 'starter',
+                status: 'active'
+              })
+              .eq('subscription_id', directData.subscription_id);
+            
+            console.log("Successfully updated project limit in database to starter values");
+          } catch (updateErr) {
+            console.error("Failed to update project limit:", updateErr);
+          }
+        }
+        // Regular starter plan check
+        else if (normalizedPlanType === 'starter' && projectLimit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
           console.log(`Correcting starter plan project limit from ${projectLimit} to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
           projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
           
@@ -281,12 +387,51 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return;
       }
       
+      // If we reach here and this is the starter user, create a starter subscription
+      if (isUserStarter.current) {
+        console.log("No subscription found but this is starter user - creating starter subscription");
+        const starterSub = await createStarterSubscription(session.user.id);
+        if (starterSub) {
+          setSubscription(starterSub);
+          setInitialFetchCompleted(true);
+          setLoading(false);
+          setSubscriptionChecked(true);
+          checkInProgressRef.current = false;
+          return;
+        }
+      }
+      
       console.log("No subscription found, creating trial subscription");
       createDefaultSubscription();
       
     } catch (e) {
       console.error('Error fetching subscription:', e);
       setError(e as Error);
+      
+      // If this is the starter user, ensure they have a starter plan even on error
+      if (isUserStarter.current) {
+        console.log("ERROR - Force setting starter plan for specific user");
+        const starterPlan = {
+          subscription_id: crypto.randomUUID(),
+          user_id: session.user.id,
+          status: 'active' as SubscriptionStatus,
+          plan_type: 'starter',
+          current_period_end: null,
+          project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+          features: {},
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setSubscription(starterPlan);
+        storeSubscriptionDataLocally(starterPlan);
+        setLoading(false);
+        setSubscriptionChecked(true);
+        checkInProgressRef.current = false;
+        return;
+      }
       
       const cachedData = getStoredSubscriptionData();
       if (cachedData && cachedData.user_id === session.user.id) {
@@ -309,6 +454,44 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }, 500);
     }
   }, [session, initialFetchCompleted, subscription]);
+
+  const createStarterSubscription = async (userId: string): Promise<SubscriptionPlan | null> => {
+    try {
+      console.log("Creating starter subscription for user:", userId);
+      const subscriptionId = crypto.randomUUID();
+      const newSubscription: SubscriptionPlan = {
+        subscription_id: subscriptionId,
+        user_id: userId,
+        status: 'active',
+        plan_type: 'starter',
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
+        features: {},
+        current_period_end: null,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      const { error: insertError } = await supabase
+        .from('subscriptions')
+        .insert([newSubscription]);
+      
+      if (insertError) {
+        console.error("Failed to insert starter subscription:", insertError);
+        // Still return the subscription object even if insert fails
+        storeSubscriptionDataLocally(newSubscription);
+        return newSubscription;
+      }
+      
+      console.log("Successfully created starter subscription");
+      storeSubscriptionDataLocally(newSubscription);
+      return newSubscription;
+    } catch (e) {
+      console.error("Error creating starter subscription:", e);
+      return null;
+    }
+  };
 
   const createDefaultSubscription = async () => {
     try {

@@ -61,7 +61,7 @@ serve(async (req) => {
 
     // Special case: If this is our specific user who needs the starter plan
     if (user.id === STARTER_USER_ID) {
-      console.log(`CRITICAL USER DETECTED: ${user.id} - Creating starter subscription if none exists`);
+      console.log(`CRITICAL USER DETECTED: ${user.id} - Force creating starter subscription`);
       
       // First check if they already have a subscription
       const { data: existingSubscriptions, error: existingSubError } = await supabase
@@ -71,6 +71,14 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(1);
         
+      // Log the result of the subscription query
+      console.log(`Subscription query for ${user.id}: ${existingSubError ? 'Error' : 'Success'}`);
+      if (existingSubError) {
+        console.error(`Error checking for existing subscription: ${existingSubError.message}`);
+      } else {
+        console.log(`Found ${existingSubscriptions?.length || 0} subscriptions for ${user.id}`);
+      }
+      
       if (!existingSubError && existingSubscriptions && existingSubscriptions.length > 0) {
         // Check if this subscription is already a starter with correct project limit
         const existingSub = existingSubscriptions[0];
@@ -110,27 +118,11 @@ serve(async (req) => {
           
         if (updateError) {
           console.error(`Error updating subscription: ${updateError.message}`);
-          // Even if update fails, return the starter subscription data to the client
-          return new Response(
-            JSON.stringify({ 
-              subscription: {
-                ...existingSub,
-                plan_type: 'starter',
-                project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
-                status: 'active'
-              }
-            }),
-            { 
-              status: 200, 
-              headers: { 
-                'Content-Type': 'application/json',
-                ...corsHeaders 
-              } 
-            }
-          );
+        } else {
+          console.log(`Successfully updated subscription for ${user.id}`);
         }
         
-        console.log(`Subscription updated successfully for ${user.id}`);
+        // Even if update fails, return the starter subscription data to the client
         return new Response(
           JSON.stringify({ 
             subscription: updatedSub || {
@@ -138,7 +130,8 @@ serve(async (req) => {
               plan_type: 'starter',
               project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
               status: 'active'
-            }
+            },
+            timestamp: Date.now()
           }),
           { 
             status: 200, 
@@ -153,12 +146,16 @@ serve(async (req) => {
       // If no subscription exists, create a new starter subscription
       console.log(`Creating new starter subscription for user ${user.id}`);
       
+      const subscriptionId = crypto.randomUUID();
       const newSubscription = {
+        subscription_id: subscriptionId,
         user_id: user.id,
         status: 'active',
         plan_type: 'starter',
         project_limit: SUBSCRIPTION_PLAN_LIMITS.starter,
-        created_at: new Date().toISOString()
+        features: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       const { data: insertData, error: insertError } = await supabase
@@ -168,13 +165,14 @@ serve(async (req) => {
         
       if (insertError) {
         console.error(`Error creating starter subscription: ${insertError.message}`);
+        
         // Even if insert fails, return the starter subscription data to the client
         return new Response(
           JSON.stringify({ 
             subscription: {
-              ...newSubscription,
-              subscription_id: crypto.randomUUID(),
-            } 
+              ...newSubscription
+            },
+            timestamp: Date.now()
           }),
           { 
             status: 200, 
@@ -191,7 +189,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          subscription: createdSubscription,
+          subscription: createdSubscription || newSubscription,
           timestamp: Date.now()
         }),
         { 
@@ -241,18 +239,20 @@ serve(async (req) => {
 
     const subscription = subscriptions?.[0];
     
-    // If no subscription found, create a specific default one
-    // We're setting this to 'starter' by default for this user who needs access to 10 projects
+    // If no subscription found, create a trial one
     if (!subscription) {
-      console.log(`No subscription found for user ${user.id}, creating default starter subscription`);
+      console.log(`No subscription found for user ${user.id}, creating default trial subscription`);
       
-      // IMPORTANT: Create a starter subscription for the user who needs 10 projects
+      const subscriptionId = crypto.randomUUID();
       const newSubscription = {
+        subscription_id: subscriptionId,
         user_id: user.id,
-        status: 'active', // Set as active instead of trial
-        plan_type: 'starter', // Set to starter plan
-        project_limit: SUBSCRIPTION_PLAN_LIMITS.starter, // 10 for starter
-        created_at: new Date().toISOString()
+        status: 'trialing',
+        plan_type: 'trial',
+        project_limit: SUBSCRIPTION_PLAN_LIMITS.trial,
+        features: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       const { data: insertData, error: insertError } = await supabase
@@ -261,19 +261,17 @@ serve(async (req) => {
         .select();
         
       if (insertError) {
-        console.error(`Error creating starter subscription: ${insertError.message}`);
-        // Even if insert fails, return the starter subscription data to the client
+        console.error(`Error creating trial subscription: ${insertError.message}`);
+        // Even if insert fails, return the trial subscription data to the client
         return new Response(
           JSON.stringify({ 
-            error: `Error creating subscription: ${insertError.message}`,
-            status: 500,
             subscription: {
-              ...newSubscription,
-              subscription_id: crypto.randomUUID(),
-            } 
+              ...newSubscription
+            },
+            timestamp: Date.now()
           }),
           { 
-            status: 200, // Return 200 so the client still gets the subscription 
+            status: 200, 
             headers: { 
               'Content-Type': 'application/json',
               ...corsHeaders 
@@ -283,11 +281,11 @@ serve(async (req) => {
       }
       
       const createdSubscription = insertData?.[0];
-      console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
+      console.log(`Trial subscription created: ${JSON.stringify(createdSubscription)}`);
       
       return new Response(
         JSON.stringify({ 
-          subscription: createdSubscription,
+          subscription: createdSubscription || newSubscription,
           timestamp: Date.now()
         }),
         { 

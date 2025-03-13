@@ -40,7 +40,7 @@ export function ProjectsHeader({
         
         {isSubscriptionLoading && (
           <div className="ml-2 text-sm text-muted-foreground">
-            Loading project limits...
+            Loading project usage...
           </div>
         )}
       </div>

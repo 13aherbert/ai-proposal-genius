@@ -3,30 +3,22 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { SUBSCRIPTION_PLAN_LIMITS } from '../_shared/subscription-limits.ts';
+import { corsHeaders, handleCors, addCorsHeaders } from '../_shared/cors.ts';
 
 // The specific user ID that should always have starter plan
 const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Cache-Control': 'no-cache, no-store, must-revalidate',
-  'Pragma': 'no-cache',
-  'Expires': '0'
-};
-
 serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS preflight requests first
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     // Create a Supabase client with the auth context of the request
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
     
-    // Initialize the client with the request's authorization
+    // Initialize the client with the request's authorization header
     const authHeader = req.headers.get('Authorization') || '';
     
     console.log(`Authentication header present: ${Boolean(authHeader)}`);
@@ -42,19 +34,16 @@ serve(async (req) => {
 
     if (userError || !user) {
       console.error('User not authenticated:', userError);
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ 
           error: 'Not authenticated', 
           status: 401 
         }),
         { 
           status: 401, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
+          headers: { 'Content-Type': 'application/json' } 
         }
-      );
+      ));
     }
 
     console.log(`Processing subscription check for user: ${user.id}`);
@@ -87,19 +76,16 @@ serve(async (req) => {
         if (normalizedPlanType === 'starter' && existingSub.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
           console.log(`User ${user.id} already has correct starter subscription`);
           
-          return new Response(
+          return addCorsHeaders(new Response(
             JSON.stringify({ 
               subscription: existingSub,
               timestamp: Date.now() 
             }),
             { 
               status: 200, 
-              headers: { 
-                'Content-Type': 'application/json',
-                ...corsHeaders 
-              } 
+              headers: { 'Content-Type': 'application/json' } 
             }
-          );
+          ));
         }
         
         // Update subscription to correct values if needed
@@ -123,7 +109,7 @@ serve(async (req) => {
         }
         
         // Even if update fails, return the starter subscription data to the client
-        return new Response(
+        return addCorsHeaders(new Response(
           JSON.stringify({ 
             subscription: updatedSub || {
               ...existingSub,
@@ -135,12 +121,9 @@ serve(async (req) => {
           }),
           { 
             status: 200, 
-            headers: { 
-              'Content-Type': 'application/json',
-              ...corsHeaders 
-            } 
+            headers: { 'Content-Type': 'application/json' } 
           }
-        );
+        ));
       }
       
       // If no subscription exists, create a new starter subscription
@@ -167,7 +150,7 @@ serve(async (req) => {
         console.error(`Error creating starter subscription: ${insertError.message}`);
         
         // Even if insert fails, return the starter subscription data to the client
-        return new Response(
+        return addCorsHeaders(new Response(
           JSON.stringify({ 
             subscription: {
               ...newSubscription
@@ -176,30 +159,24 @@ serve(async (req) => {
           }),
           { 
             status: 200, 
-            headers: { 
-              'Content-Type': 'application/json',
-              ...corsHeaders 
-            } 
+            headers: { 'Content-Type': 'application/json' } 
           }
-        );
+        ));
       }
       
       const createdSubscription = insertData?.[0];
       console.log(`Starter subscription created: ${JSON.stringify(createdSubscription)}`);
       
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ 
           subscription: createdSubscription || newSubscription,
           timestamp: Date.now()
         }),
         { 
           status: 200, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
+          headers: { 'Content-Type': 'application/json' } 
         }
-      );
+      ));
     }
 
     // Try to handle force refresh parameter
@@ -222,19 +199,16 @@ serve(async (req) => {
       
     if (subError) {
       console.error(`Error fetching subscription from database: ${subError.message}`);
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ 
           error: `Database error: ${subError.message}`,
           status: 500 
         }),
         { 
           status: 500, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
+          headers: { 'Content-Type': 'application/json' } 
         }
-      );
+      ));
     }
 
     const subscription = subscriptions?.[0];
@@ -263,7 +237,7 @@ serve(async (req) => {
       if (insertError) {
         console.error(`Error creating trial subscription: ${insertError.message}`);
         // Even if insert fails, return the trial subscription data to the client
-        return new Response(
+        return addCorsHeaders(new Response(
           JSON.stringify({ 
             subscription: {
               ...newSubscription
@@ -272,30 +246,24 @@ serve(async (req) => {
           }),
           { 
             status: 200, 
-            headers: { 
-              'Content-Type': 'application/json',
-              ...corsHeaders 
-            } 
+            headers: { 'Content-Type': 'application/json' } 
           }
-        );
+        ));
       }
       
       const createdSubscription = insertData?.[0];
       console.log(`Trial subscription created: ${JSON.stringify(createdSubscription)}`);
       
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ 
           subscription: createdSubscription || newSubscription,
           timestamp: Date.now()
         }),
         { 
           status: 200, 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          } 
+          headers: { 'Content-Type': 'application/json' } 
         }
-      );
+      ));
     }
     
     // CRITICAL FIX: Check if plan_type is 'starter' but project_limit doesn't match
@@ -329,33 +297,27 @@ serve(async (req) => {
       limit: subscription.project_limit
     })}`);
 
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify({ 
         subscription,
         timestamp: Date.now() 
       }),
       { 
         status: 200, 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
+        headers: { 'Content-Type': 'application/json' } 
       }
-    );
+    ));
   } catch (error) {
     console.error(`Unexpected error: ${error.message || error}`);
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify({ 
         error: `Server error: ${error.message || 'Unknown error'}`,
         status: 500 
       }),
       { 
         status: 500, 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
+        headers: { 'Content-Type': 'application/json' } 
       }
-    );
+    ));
   }
 });

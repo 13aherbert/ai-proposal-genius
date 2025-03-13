@@ -1,5 +1,15 @@
 
-export type FeatureName = 'rfp_summary' | 'proposal_outline' | 'proposal_draft' | 'compiled_draft' | 'evaluation' | 'data_export';
+export type FeatureName = 
+  | 'rfp_summary'
+  | 'proposal_outline'
+  | 'proposal_draft'
+  | 'ai_editor'
+  | 'team_collaboration'
+  | 'advanced_analytics'
+  | 'api_access'
+  | 'white_labeling'
+  | 'priority_support'
+  | 'custom_templates';
 
 export interface SubscriptionFeaturesResult {
   hasFeature: (feature: FeatureName) => boolean;

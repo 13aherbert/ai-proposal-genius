@@ -14,6 +14,7 @@ import {
   getStoredSubscriptionData,
   isStarterUser
 } from '../feature-access';
+import { withRetry } from '@/utils/network/retry';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -69,7 +70,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     setForceRecheckFlag
   });
   
-  // Wrap the checkSubscription to add debouncing
+  // Wrap the checkSubscription to add debouncing and retries
   const checkSubscription = async (forceRecheck?: boolean) => {
     // If a check is already in progress, skip this one unless forced
     if (subscriptionCheckInProgress.current && !forceRecheck) {
@@ -87,7 +88,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       subscriptionCheckInProgress.current = true;
       lastCheckTime.current = now;
-      await rawCheckSubscription(forceRecheck);
+      
+      // Use the withRetry utility to add automatic retries
+      await withRetry(
+        () => rawCheckSubscription(forceRecheck),
+        3,  // Max 3 retries
+        1000 // Start with 1s delay
+      );
+    } catch (err) {
+      console.error("Final error after retries in subscription check:", err);
+      
+      // Fallback to cached data if all retries fail
+      const cachedData = getStoredSubscriptionData();
+      if (cachedData && !subscription) {
+        console.log("Using cached subscription data after failed retries");
+        setSubscription(cachedData);
+        setLoading(false);
+      }
     } finally {
       subscriptionCheckInProgress.current = false;
     }

@@ -1,11 +1,13 @@
 
-// Type definition for API responses from Edge Functions
+/**
+ * Response type for Supabase Edge Functions
+ */
 export interface EdgeFunctionResponse<T = any> {
   data?: T;
   error?: {
     message: string;
-    details?: string;
-    statusCode?: number;
-  };
-  success?: boolean;
+    status?: number;
+    details?: any;
+  } | null;
+  timestamp?: number;
 }

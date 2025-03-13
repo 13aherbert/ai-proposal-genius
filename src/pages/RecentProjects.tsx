@@ -14,6 +14,9 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
+// Define the specific starter user ID
+const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
+
 export default function RecentProjects() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +37,7 @@ export default function RecentProjects() {
   // This ensures the check happens before any other subscription logic
   useEffect(() => {
     // Using direct ID check AND isStarterUser function for redundancy
-    const isUserStarter = session?.user?.id === "315f2366-4b3e-4c20-83bf-e59d5b80ad4c" || isStarterUser();
+    const isUserStarter = session?.user?.id === STARTER_USER_ID || isStarterUser();
     
     if (isUserStarter) {
       console.log("*** DETECTED STARTER PLAN USER - FORCING STARTER PLAN SETTINGS ***");

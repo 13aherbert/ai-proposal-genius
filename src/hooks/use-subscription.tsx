@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -242,7 +241,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (edgeFunctionResult?.subscription) {
         console.log("Edge function returned subscription data:", edgeFunctionResult.subscription);
         
-        const normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
+        let normalizedPlanType = edgeFunctionResult.subscription.plan_type?.toLowerCase() || 'trial';
         let projectLimit = edgeFunctionResult.subscription.project_limit;
         
         // CRITICAL: If this is the starter user, ensure they have a starter plan

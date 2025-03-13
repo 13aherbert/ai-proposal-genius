@@ -49,7 +49,9 @@ export function LoadingState() {
             const typedData: SubscriptionPlan = {
               ...data,
               status: data.status as SubscriptionStatus,
-              features: data.features || {},
+              features: typeof data.features === 'object' && data.features !== null 
+                ? data.features as Record<string, any> 
+                : {}
             };
             localStorage.setItem('subscriptionData', JSON.stringify(typedData));
             toast.success("Subscription data loaded", { duration: 2000 });

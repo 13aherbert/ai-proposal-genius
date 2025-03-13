@@ -41,10 +41,6 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   
-  // Use subscription from either prop or context
-  const subscription = localSubscription || subscriptionFromContext;
-  const isLoading = (isContextLoading && !subscription) || loadingTimeout;
-  
   // Direct database fetch function
   const tryDirectFetch = async () => {
     try {
@@ -65,11 +61,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         console.error("Error in direct fetch:", error);
       } else if (data) {
         console.log("Fetched subscription directly:", data);
-        // Convert string status to SubscriptionStatus type
+        // Convert string status to SubscriptionStatus type and ensure features is an object
         const typedData: SubscriptionPlan = {
           ...data,
           status: data.status as SubscriptionStatus,
-          features: data.features || {}
+          features: typeof data.features === 'object' && data.features !== null 
+            ? data.features as Record<string, any> 
+            : {}
         };
         setLocalSubscription(typedData);
         try {
@@ -101,6 +99,10 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       setIsRefreshing(false);
     }
   };
+  
+  // Use subscription from either prop or context
+  const subscription = localSubscription || subscriptionFromContext;
+  const isLoading = (isContextLoading && !subscription) || loadingTimeout;
   
   // Show loading timeout message after 5 seconds
   useEffect(() => {
@@ -140,7 +142,9 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           const typedData: SubscriptionPlan = {
             ...parsedData,
             status: parsedData.status as SubscriptionStatus,
-            features: parsedData.features || {}
+            features: typeof parsedData.features === 'object' && parsedData.features !== null 
+              ? parsedData.features as Record<string, any>
+              : {}
           };
           setLocalSubscription(typedData);
         }
@@ -169,7 +173,9 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             const typedData: SubscriptionPlan = {
               ...parsedData,
               status: parsedData.status as SubscriptionStatus,
-              features: parsedData.features || {}
+              features: typeof parsedData.features === 'object' && parsedData.features !== null 
+                ? parsedData.features as Record<string, any>
+                : {}
             };
             setLocalSubscription(typedData);
           }

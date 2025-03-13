@@ -56,7 +56,9 @@ const useSubscriptionWithFallback = () => {
         const typedData: SubscriptionPlan = {
           ...data,
           status: data.status as SubscriptionStatus,
-          features: data.features || {},
+          features: typeof data.features === 'object' && data.features !== null 
+            ? data.features as Record<string, any>
+            : {}
         };
         
         // Store in localStorage for future use

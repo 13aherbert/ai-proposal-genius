@@ -6,7 +6,7 @@ import { useSubscriptionFeatures } from "./use-subscription-features";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
-import { getStoredSubscriptionData, STARTER_USER_ID } from "./subscription/feature-access";
+import { getStoredSubscriptionData, isUserOfPlanType } from "./subscription/feature-access";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export type Project = {
@@ -47,10 +47,9 @@ export function useProjects(user: User | null) {
       console.log(`useProjects: Current project limit (${planType.toUpperCase()}): ${limit}`);
       setCachedProjectLimit(limit);
     } else {
-      const isStarter = user?.id === STARTER_USER_ID;
-      const limit = isStarter ? SUBSCRIPTION_PLAN_LIMITS.starter : getProjectLimit();
+      const limit = getProjectLimit();
       
-      console.log(`useProjects: Current project limit ${isStarter ? '(STARTER USER)' : ''}: ${limit}`);
+      console.log(`useProjects: Current project limit: ${limit}`);
       setCachedProjectLimit(limit);
     }
   }, [getProjectLimit, user?.id]);
@@ -78,9 +77,6 @@ export function useProjects(user: User | null) {
           console.log("TRIAL USER authenticated - using trial limits:", limit);
           setCachedProjectLimit(limit);
         }
-      } else if (user.id === STARTER_USER_ID) {
-        console.log("STARTER USER authenticated (from user ID) - enforcing starter limits");
-        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       }
     } else {
       console.log("No user authenticated");
@@ -293,13 +289,10 @@ export function useProjects(user: User | null) {
       } else {
         setCachedProjectLimit(newLimit);
       }
-    } else if (user?.id === STARTER_USER_ID) {
-      console.log("CRITICAL: Enforcing starter project limit (10) for starter user");
-      setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
     } else {
       setCachedProjectLimit(newLimit);
     }
-  }, [user?.id]);
+  }, []);
 
   let projectLimit = cachedProjectLimit || getProjectLimit();
   
@@ -315,8 +308,6 @@ export function useProjects(user: User | null) {
     } else if (planType === 'trial') {
       projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
     }
-  } else if (user?.id === STARTER_USER_ID) {
-    projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }
   
   const projectCount = totalCount;

@@ -8,9 +8,6 @@ export const featureCache = new Map<string, boolean>();
 // Create a cache for project limit checks
 export const projectLimitCache = new Map<string, number>();
 
-// Special starter user ID for enforcing starter plan limits - only used as fallback
-export const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
-
 // Initialize global caches for faster access across components
 if (typeof window !== 'undefined') {
   if (!window.featureCache) {
@@ -118,25 +115,16 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   custom_templates: ['pro']  // Only pro has access
 };
 
-// Check if user was originally a starter user - this is now used only as a fallback
-// and should not override actual subscription data
-export function isStarterUser(): boolean {
+// Check if user has a specific plan type based on subscription data
+export function isUserOfPlanType(planType: string): boolean {
   try {
-    const data = localStorage.getItem('sb-bmopbbkfxkgzlbmhhgox-auth-token');
-    if (!data) return false;
-    
-    // Check stored subscription data first - this takes precedence
     const subscriptionData = getStoredSubscriptionData();
     if (subscriptionData && subscriptionData.plan_type) {
-      // If we have subscription data, use that instead of the hardcoded ID
-      return subscriptionData.plan_type.toLowerCase() === 'starter';
+      return subscriptionData.plan_type.toLowerCase() === planType.toLowerCase();
     }
-    
-    // Fallback to checking user ID only if no subscription data
-    const { user } = JSON.parse(data);
-    return user?.id === STARTER_USER_ID;
+    return false;
   } catch (e) {
-    console.error("Error checking starter user status:", e);
+    console.error(`Error checking if user has plan type ${planType}:`, e);
     return false;
   }
 }

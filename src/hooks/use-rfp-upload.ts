@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "./use-subscription";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
-import { getStoredSubscriptionData, STARTER_USER_ID } from "./subscription/feature-access";
+import { getStoredSubscriptionData, isUserOfPlanType } from "./subscription/feature-access";
 
 export const useRFPUpload = () => {
   const { session } = useAuth();
@@ -21,7 +21,7 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  // Check subscription data first, fall back to user ID check only if needed
+  // Check subscription data for determining plan type and project limits
   const storedSubscriptionData = getStoredSubscriptionData();
   
   let isUserPro = false;
@@ -31,9 +31,11 @@ export const useRFPUpload = () => {
     const planType = storedSubscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
     isUserStarter = planType === 'starter';
-  } else {
-    // Only check user ID if no subscription data is available
-    isUserStarter = session?.user?.id === STARTER_USER_ID;
+  } else if (subscriptionData && subscriptionData.plan_type) {
+    // Fallback to live subscription data
+    const planType = subscriptionData.plan_type.toLowerCase();
+    isUserPro = planType === 'pro';
+    isUserStarter = planType === 'starter';
   }
   
   // Determine the project limit based on user's subscription plan

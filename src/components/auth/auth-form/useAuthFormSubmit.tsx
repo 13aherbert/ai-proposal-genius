@@ -25,6 +25,42 @@ export const useAuthFormSubmit = () => {
     }
   };
 
+  const storeUserSession = async (token: string) => {
+    localStorage.setItem('userToken', token);
+    console.log("Auth token stored in localStorage");
+    
+    // Prefetch and store user roles for offline access
+    try {
+      await withRetry(async () => {
+        const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+        if (!roleError && roleData?.roles) {
+          localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+          console.log("User roles stored in localStorage");
+        }
+      }, 3, 1000); // Try up to 3 times with 1 second delay between attempts
+    } catch (roleErr) {
+      console.error("Failed to fetch user roles after auth:", roleErr);
+    }
+    
+    // Prefetch subscription data for offline access
+    try {
+      const { data: subData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .single();
+        
+      if (!subError && subData) {
+        localStorage.setItem('subscriptionData', JSON.stringify({
+          ...subData,
+          updated_at: new Date().toISOString()
+        }));
+        console.log("Subscription data stored in localStorage");
+      }
+    } catch (subErr) {
+      console.error("Failed to fetch subscription data after auth:", subErr);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -53,23 +89,9 @@ export const useAuthFormSubmit = () => {
         
         if (error) throw error;
         
-        // Store token immediately if available (some configurations don't require email verification)
+        // Store token immediately if available
         if (data?.session?.access_token) {
-          localStorage.setItem('userToken', data.session.access_token);
-          console.log("Auth token stored in localStorage after signup");
-          
-          // Prefetch user roles immediately to improve UX
-          try {
-            await withRetry(async () => {
-              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
-              if (!roleError && roleData?.roles) {
-                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-                console.log("User roles stored in localStorage after signup");
-              }
-            }, 2);
-          } catch (roleErr) {
-            console.error("Failed to fetch user roles after signup:", roleErr);
-          }
+          await storeUserSession(data.session.access_token);
         }
         
         // Send welcome email after successful signup
@@ -91,23 +113,9 @@ export const useAuthFormSubmit = () => {
         
         if (error) throw error;
         
-        // Ensure token is stored in localStorage
+        // Store token in localStorage
         if (data?.session?.access_token) {
-          localStorage.setItem('userToken', data.session.access_token);
-          console.log("Auth token stored in localStorage after signin");
-          
-          // Prefetch user roles to improve UX with retry for reliability
-          try {
-            await withRetry(async () => {
-              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
-              if (!roleError && roleData?.roles) {
-                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-                console.log("User roles stored in localStorage after signin");
-              }
-            }, 2);
-          } catch (roleErr) {
-            console.error("Failed to fetch user roles after signin:", roleErr);
-          }
+          await storeUserSession(data.session.access_token);
         }
       }
     } catch (error) {

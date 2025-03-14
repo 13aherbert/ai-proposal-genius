@@ -64,84 +64,40 @@ export const useUserRoles = () => {
       
       setRoleCheckError(null);
       
-      let token = session?.access_token;
-      
-      // Try to get token from localStorage if session is not available
-      if (!token) {
-        token = localStorage.getItem('userToken');
-        console.log("No session token, using token from localStorage:", !!token);
-      }
-      
-      if (!token) {
-        console.error("No access token available for role check");
-        setIsCheckingRoles(false);
-        refs.checkingInProgress = false;
-        return;
-      }
-      
-      // Store token in localStorage for future use
-      localStorage.setItem('userToken', token);
-      
-      // Try calling the edge function with the token in the header
+      // Try to get all user roles using RPC functions first - these bypass RLS policies
       try {
-        const { data, error } = await supabase.functions.invoke('get-user-roles', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        // Try admin check
+        const { data: adminCheck } = await supabase.rpc('is_admin_direct');
+        refs.adminStatus = !!adminCheck;
+        setIsAdmin(refs.adminStatus);
         
-        if (error) {
-          console.error("Error fetching user roles with header token:", error);
-          throw error;
+        // Try beta tester check
+        if (session?.user?.id) {
+          const { data: betaCheck } = await supabase.rpc('check_beta_tester_role', {
+            user_id_param: session.user.id
+          });
+          refs.betaTesterStatus = !!betaCheck;
+          setIsBetaTester(refs.betaTesterStatus);
+          
+          // Try user role check  
+          const { data: userCheck } = await supabase.rpc('check_user_role', {
+            user_id_param: session.user.id,
+            role_param: 'user'
+          });
+          refs.userStatus = !!userCheck;
+          setIsUser(refs.userStatus);
         }
         
-        if (data && data.roles) {
-          // Store roles in localStorage
-          localStorage.setItem('userRoles', JSON.stringify(data.roles));
-          
-          const adminRole = data.roles.some(role => role.role === 'admin');
-          const betaRole = data.roles.some(role => role.role === 'beta_tester');
-          const userRole = data.roles.some(role => role.role === 'user');
-          
-          setIsAdmin(adminRole);
-          setIsBetaTester(betaRole);
-          setIsUser(userRole);
-          
-          refs.adminStatus = adminRole;
-          refs.betaTesterStatus = betaRole;
-          refs.userStatus = userRole;
-          refs.rolesInitialized = true;
-        }
-      } catch (headerError) {
-        // If header method fails, try with token in the body
-        console.log("Trying fallback method with token in body");
+        // Even if the RPC calls succeed, also try the edge function to ensure
+        // we have a complete list of roles for other purposes
+        await fetchRolesViaEdgeFunction();
         
-        const { data, error } = await supabase.functions.invoke('get-user-roles', {
-          body: { token }
-        });
+        refs.rolesInitialized = true;
+      } catch (rpcError) {
+        console.error("Error checking roles via RPC:", rpcError);
         
-        if (error) {
-          console.error("Fallback method also failed:", error);
-          throw error;
-        }
-        
-        if (data && data.roles) {
-          console.log("Fallback method succeeded:", data);
-          localStorage.setItem('userRoles', JSON.stringify(data.roles));
-          
-          const adminRole = data.roles.some(role => role.role === 'admin');
-          const betaRole = data.roles.some(role => role.role === 'beta_tester');
-          const userRole = data.roles.some(role => role.role === 'user');
-          
-          setIsAdmin(adminRole);
-          setIsBetaTester(betaRole);
-          setIsUser(userRole);
-          
-          refs.adminStatus = adminRole;
-          refs.betaTesterStatus = betaRole;
-          refs.userStatus = userRole;
-          refs.rolesInitialized = true;
-        }
+        // If RPC fails, try the edge function as fallback
+        await fetchRolesViaEdgeFunction();
       }
     } catch (err) {
       console.error("Error checking user roles:", err);
@@ -164,6 +120,59 @@ export const useUserRoles = () => {
       refs.checkingInProgress = false;
     }
   }, [session, refs, getUserRolesFromStorage]);
+  
+  // Helper function to fetch roles via the edge function
+  const fetchRolesViaEdgeFunction = async () => {
+    let token = session?.access_token;
+      
+    // Try to get token from localStorage if session is not available
+    if (!token) {
+      token = localStorage.getItem('userToken');
+      console.log("No session token, using token from localStorage:", !!token);
+    }
+    
+    if (!token) {
+      console.error("No access token available for role check");
+      return;
+    }
+    
+    try {
+      // Always send the token in the body, even if we're using the Authorization header
+      // This provides a fallback mechanism
+      const { data, error } = await supabase.functions.invoke('get-user-roles', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: { token } // Always include token in body as well
+      });
+      
+      if (error) {
+        console.error("Error fetching user roles:", error);
+        throw error;
+      }
+      
+      if (data && data.roles) {
+        // Store roles in localStorage
+        localStorage.setItem('userRoles', JSON.stringify(data.roles));
+        
+        const adminRole = data.roles.some(role => role.role === 'admin');
+        const betaRole = data.roles.some(role => role.role === 'beta_tester');
+        const userRole = data.roles.some(role => role.role === 'user');
+        
+        setIsAdmin(adminRole);
+        setIsBetaTester(betaRole);
+        setIsUser(userRole);
+        
+        refs.adminStatus = adminRole;
+        refs.betaTesterStatus = betaRole;
+        refs.userStatus = userRole;
+        refs.rolesInitialized = true;
+      }
+    } catch (edgeFunctionError) {
+      console.error("Edge function error:", edgeFunctionError);
+      throw edgeFunctionError;
+    }
+  };
 
   const forceRoleCheck = useCallback(() => {
     const now = Date.now();

@@ -23,11 +23,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Auth header present:", !!req.headers.get('Authorization'));
+  
   try {
     // Get authorization header
     const authHeader = req.headers.get('Authorization');
-    console.log("Auth header present:", !!authHeader);
-    
     let token = null;
     let userId = null;
     
@@ -50,17 +50,28 @@ serve(async (req) => {
           }
         } else {
           console.log("Request has no body, cannot retrieve token");
+          
+          // Try to get user from auth context
+          const authUser = req.headers.get('x-supabase-auth-user');
+          if (authUser) {
+            try {
+              userId = JSON.parse(authUser).id;
+              console.log("Retrieved user ID from auth context:", userId);
+            } catch (e) {
+              console.error("Failed to parse auth user:", e);
+            }
+          }
         }
       } catch (e) {
         console.error("Error parsing request body:", e);
       }
     }
     
-    // Return error if no token is provided
-    if (!token) {
-      console.error("No authorization header or token provided");
+    // Return error if no token or userId is provided
+    if (!token && !userId) {
+      console.error("No authorization header, token, or user ID provided");
       return new Response(
-        JSON.stringify({ error: "Authorization header or token required" }),
+        JSON.stringify({ error: "Authorization header, token, or user ID required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -68,6 +79,7 @@ serve(async (req) => {
     // Create Supabase client with admin privileges
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     
     if (!supabaseUrl || !supabaseKey) {
       console.error("Missing Supabase environment variables");
@@ -77,24 +89,38 @@ serve(async (req) => {
       );
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role key to bypass RLS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseKey);
     
-    // Verify the user
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    // Verify the user if we don't have userId yet
+    if (!userId && token) {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-    if (userError || !user) {
-      console.error("Error getting user:", userError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized", details: userError }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        if (userError || !user) {
+          console.error("Error getting user:", userError);
+          return new Response(
+            JSON.stringify({ error: "Unauthorized", details: userError }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        userId = user.id;
+      } catch (err) {
+        console.error("Failed to verify user token:", err);
+        return new Response(
+          JSON.stringify({ error: "Failed to verify user", details: err.message }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
     
-    userId = user.id;
     console.log("Authenticated user ID:", userId);
 
-    // Get all user roles for this user
+    // Get all user roles for this user using a direct query to bypass RLS
     console.log("Fetching user roles");
+    
+    // Using direct SQL to avoid RLS recursion issues
     const { data: roleRecords, error: getRolesError } = await supabase
       .from('user_roles')
       .select('*')
@@ -102,6 +128,29 @@ serve(async (req) => {
 
     if (getRolesError) {
       console.error("Error fetching user roles:", getRolesError);
+      
+      if (getRolesError.message.includes("infinite recursion")) {
+        console.log("Detected recursion issue, trying alternative query approach");
+        
+        // Alternative approach: use RPC function that's set to SECURITY DEFINER
+        const { data: rpcRoleRecords, error: rpcError } = await supabase
+          .rpc('get_all_user_roles_by_id', { user_id_param: userId });
+          
+        if (rpcError) {
+          console.error("RPC fallback also failed:", rpcError);
+          return new Response(
+            JSON.stringify({ error: "Error fetching user roles", details: rpcError }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        console.log(`Successfully fetched ${rpcRoleRecords?.length || 0} user roles via RPC`);
+        return new Response(
+          JSON.stringify({ roles: rpcRoleRecords || [] }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: "Error fetching user roles", details: getRolesError }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

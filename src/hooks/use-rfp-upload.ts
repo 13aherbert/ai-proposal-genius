@@ -13,7 +13,7 @@ export const useRFPUpload = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: subscriptionData } = useSubscription();
+  const { data: subscriptionData, loading: subscriptionLoading } = useSubscription();
   
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -21,37 +21,77 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  const isUserStarter = session?.user?.id === STARTER_USER_ID || isStarterUser();
+  const isUserStarter = isStarterUser();
   
-  const projectLimit = isUserStarter
+  const projectLimit = isUserStarter 
     ? SUBSCRIPTION_PLAN_LIMITS.starter
-    : subscriptionData?.project_limit || SUBSCRIPTION_PLAN_LIMITS.trial;
-  
+    : subscriptionData?.project_limit || 
+      (subscriptionData?.plan_type === 'pro' ? SUBSCRIPTION_PLAN_LIMITS.pro :
+      (subscriptionData?.plan_type === 'starter' ? SUBSCRIPTION_PLAN_LIMITS.starter :
+      SUBSCRIPTION_PLAN_LIMITS.trial));
+
   const [currentProjectCount, setCurrentProjectCount] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchProjectCount = useCallback(async () => {
     if (!session?.user) return;
     
     try {
+      setIsRefreshing(true);
       setFetchError(null);
+      
+      console.log(`Fetching project count for user: ${session.user.id}`);
+      
       const { count, error } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id);
       
       if (error) throw error;
+      
+      console.log(`Project count result: ${count}`);
       setCurrentProjectCount(count || 0);
+      
+      console.log(`Project limits: ${count || 0}/${projectLimit}`);
     } catch (error) {
       console.error('Error fetching project count:', error);
       setFetchError(error as Error);
+      
+      try {
+        const cachedCount = localStorage.getItem('projectCount');
+        if (cachedCount) {
+          setCurrentProjectCount(parseInt(cachedCount, 10));
+          console.log(`Using cached project count: ${cachedCount}`);
+        }
+      } catch (e) {
+        console.error('Error reading cached project count:', e);
+      }
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [session]);
+  }, [session, projectLimit]);
+
+  useEffect(() => {
+    if (currentProjectCount !== null) {
+      try {
+        localStorage.setItem('projectCount', currentProjectCount.toString());
+      } catch (e) {
+        console.error('Error caching project count:', e);
+      }
+    }
+  }, [currentProjectCount]);
 
   useEffect(() => {
     if (session?.user) {
       fetchProjectCount();
     }
   }, [session, fetchProjectCount]);
+  
+  useEffect(() => {
+    if (!subscriptionLoading && subscriptionData) {
+      fetchProjectCount();
+    }
+  }, [subscriptionData, subscriptionLoading, fetchProjectCount]);
 
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {
@@ -175,7 +215,7 @@ export const useRFPUpload = () => {
       });
     }
   }, [projectId, session, queryClient]);
-  
+
   return {
     uploadProgress,
     isUploading,
@@ -184,6 +224,7 @@ export const useRFPUpload = () => {
     projectLimit,
     currentProjectCount,
     fetchError,
+    isRefreshing,
     setProjectTitle,
     handleFileUpload,
     updateProject,

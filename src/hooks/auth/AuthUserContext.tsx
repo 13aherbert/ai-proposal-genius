@@ -57,12 +57,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     getSubscriptionStatus,
   } = useUserStatus();
   
-  const {
-    isActive,
-    isInGracePeriod,
-    isPastGracePeriod,
-    hasFailedPayment,
-  } = useSubscription();
+  const subscriptionHelpers = useSubscription();
   
   useEffect(() => {
     if (!isInitialized && session?.user && !isLoadingStatus) {
@@ -101,10 +96,11 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         isLoadingStatus,
         subscription,
         
-        isActive,
-        isInGracePeriod,
-        isPastGracePeriod,
-        hasFailedPayment,
+        // Wrap these in functions to match the expected type
+        isActive: () => subscriptionHelpers.isActive(),
+        isInGracePeriod: () => subscriptionHelpers.isInGracePeriod(),
+        isPastGracePeriod: () => subscriptionHelpers.isPastGracePeriod(),
+        hasFailedPayment: () => subscriptionHelpers.hasFailedPayment(),
         
         refreshUserStatus,
         getProjectLimit,

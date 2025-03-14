@@ -38,10 +38,18 @@ serve(async (req) => {
     } else {
       // Try to get token from JSON body if not in headers
       try {
-        const body = await req.json().catch(() => ({}));
-        if (body?.token) {
-          token = body.token;
-          console.log("Found token in request body");
+        // Check if there's a body first
+        const contentLength = req.headers.get('content-length');
+        const hasBody = contentLength && parseInt(contentLength) > 0;
+        
+        if (hasBody) {
+          const body = await req.json();
+          if (body?.token) {
+            token = body.token;
+            console.log("Found token in request body");
+          }
+        } else {
+          console.log("Request has no body, cannot retrieve token");
         }
       } catch (e) {
         console.error("Error parsing request body:", e);
@@ -60,6 +68,15 @@ serve(async (req) => {
     // Create Supabase client with admin privileges
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Verify the user

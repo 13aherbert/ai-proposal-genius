@@ -21,11 +21,10 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 
 // Components
-import { AuthProvider } from "@/components/AuthProvider";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect, BetaInviteRedirect } from "./components/routing/Redirects";
+import { AuthGuard } from "./components/AuthGuard";
 
 export default function App() {
   return (
@@ -36,17 +35,17 @@ export default function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <Dashboard />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/upload-rfp"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <UploadRFP />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           
@@ -54,17 +53,17 @@ export default function App() {
           <Route
             path="/projects"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <RecentProjects />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/projects/:projectId"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <ProjectDetails />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           
@@ -72,42 +71,42 @@ export default function App() {
           <Route
             path="/recent-projects"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <RecentProjectsRedirect />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/project/:projectId"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <ProjectDetailsRedirect />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           
           <Route
             path="/subscription"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <Subscription />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/knowledge-base"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <KnowledgeBase />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/account-settings"
             element={
-              <ProtectedRoute>
+              <AuthGuard>
                 <AccountSettings />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           
@@ -116,17 +115,17 @@ export default function App() {
           <Route
             path="/beta/dashboard"
             element={
-              <ProtectedRoute>
+              <AuthGuard requiredRoles={['beta_tester']}>
                 <BetaProgram />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/beta/roadmap"
             element={
-              <ProtectedRoute>
+              <AuthGuard requiredRoles={['beta_tester']}>
                 <BetaRoadmap />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           
@@ -137,17 +136,17 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <AuthGuard requiredRoles={['admin']}>
                 <AdminDashboard />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           <Route
             path="/admin/setup"
             element={
-              <ProtectedRoute>
+              <AuthGuard requiredRoles={['admin']}>
                 <SetInitialAdmin />
-              </ProtectedRoute>
+              </AuthGuard>
             }
           />
           

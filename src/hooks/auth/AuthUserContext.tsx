@@ -23,7 +23,7 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status
+  // Subscription status functions
   isActive: () => boolean;
   isInGracePeriod: () => boolean;
   isPastGracePeriod: () => boolean;
@@ -106,7 +106,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         isLoadingStatus,
         subscription,
         
-        // Subscription status
+        // Subscription status functions
         isActive,
         isInGracePeriod,
         isPastGracePeriod,

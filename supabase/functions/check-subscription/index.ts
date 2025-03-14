@@ -384,23 +384,37 @@ serve(async (req) => {
     // Normalize plan type to lowercase for safer comparison
     const normalizedPlanType = (subscription.plan_type || '').toLowerCase().trim();
     
-    if (
-      normalizedPlanType === 'starter' && 
-      subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter
-    ) {
+    // Check for plan type and project limit mismatches, and fix them
+    let projectLimitMismatch = false;
+    let correctedLimit = subscription.project_limit;
+    
+    if (normalizedPlanType === 'starter' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
       console.log(`CRITICAL FIX: Correcting project limit for starter plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
-      
+      projectLimitMismatch = true;
+      correctedLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+    } else if (normalizedPlanType === 'pro' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.pro) {
+      console.log(`CRITICAL FIX: Correcting project limit for pro plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.pro}`);
+      projectLimitMismatch = true;
+      correctedLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
+    } else if (normalizedPlanType === 'trial' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.trial) {
+      console.log(`CRITICAL FIX: Correcting project limit for trial plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.trial}`);
+      projectLimitMismatch = true;
+      correctedLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
+    }
+    
+    // Update the project limit if it doesn't match the plan type
+    if (projectLimitMismatch) {
       // Update the project limit to match the plan
       const { error: updateError } = await supabase
         .from('subscriptions')
-        .update({ project_limit: SUBSCRIPTION_PLAN_LIMITS.starter })
+        .update({ project_limit: correctedLimit })
         .eq('subscription_id', subscription.subscription_id);
         
       if (updateError) {
         console.error(`Error updating project limit: ${updateError.message}`);
       } else {
-        subscription.project_limit = SUBSCRIPTION_PLAN_LIMITS.starter;
-        console.log(`Project limit updated to ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+        subscription.project_limit = correctedLimit;
+        console.log(`Project limit updated to ${correctedLimit}`);
       }
     }
     

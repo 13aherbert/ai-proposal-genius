@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
 import { corsHeaders } from "../_shared/cors.ts";
+import { SUBSCRIPTION_PLAN_LIMITS } from "../_shared/subscription-limits.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -82,22 +83,24 @@ serve(async (req) => {
     
     // CRITICAL FIX: Determine project limit based on plan (enforce strict plan types)
     let projectLimit;
+    
+    // Always use the constant values from subscription limits
     switch (planType) {
       case 'pro':
-        projectLimit = 30;
+        projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro; // 30 projects
         break;
       case 'starter':
         // IMPORTANT: All starter plans must have 10 projects
-        projectLimit = 10;
+        projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
         break;
       case 'trial':
-        projectLimit = 3;
+        projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial; // 3 projects
         break;
       default:
         // Force valid plan type
-        console.log(`Invalid plan type: ${plan}, forcing to 'starter' with limit 10`);
+        console.log(`Invalid plan type: ${plan}, forcing to 'starter' with limit ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
         planType = 'starter';
-        projectLimit = 10;
+        projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
     }
 
     console.log(`Target subscription update - Plan: ${planType}, Status: ${subscriptionStatus}, Limit: ${projectLimit}`);

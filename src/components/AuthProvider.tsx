@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -157,11 +158,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let isSubscribed = true;
+    const timeoutId = setTimeout(() => {
+      if (loading && !authInitialized) {
+        console.warn("Auth initialization timeout reached. Force completing auth init.");
+        if (isSubscribed) {
+          setAuthInitialized(true);
+          setLoading(false);
+        }
+      }
+    }, 10000);
+
     const fetchSession = async () => {
       try {
+        console.log("Fetching session...");
         const { data, error } = await supabase.auth.getSession();
+        
         if (error) {
-          setError(error);
+          if (isSubscribed) {
+            setError(error);
+          }
           console.error('Error getting session:', error);
           
           if (error.message !== "Not authenticated") {
@@ -169,11 +185,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               description: "There was a problem connecting to the authentication service"
             });
           }
+        } else {
+          console.log("Session fetch complete:", data.session ? "Session found" : "No session");
         }
-        setSession(data.session);
         
-        if (data.session?.access_token) {
-          localStorage.setItem('userToken', data.session.access_token);
+        if (isSubscribed) {
+          setSession(data.session);
+          
+          if (data.session?.access_token) {
+            localStorage.setItem('userToken', data.session.access_token);
+          }
         }
       } catch (e) {
         console.error('Network error getting session:', e);
@@ -181,7 +202,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Could not connect to authentication service. Please check your internet connection."
         });
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+          setAuthInitialized(true);
+        }
       }
     };
 
@@ -193,7 +217,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed:', event);
       
       try {
-        if (JSON.stringify(session) !== JSON.stringify(currentSession)) {
+        if (isSubscribed && JSON.stringify(session) !== JSON.stringify(currentSession)) {
           setSession(currentSession);
           
           if (currentSession?.access_token) {
@@ -213,7 +237,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.removeItem('userRoles');
           }
         }
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+          setAuthInitialized(true);
+        }
 
         switch (event) {
           case 'SIGNED_IN':
@@ -257,6 +284,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         toast.error("Authentication error", {
           description: "There was a problem updating your authentication state"
         });
+        if (isSubscribed) {
+          setLoading(false);
+          setAuthInitialized(true);
+        }
       }
     });
 
@@ -271,8 +302,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, 60000);
 
     return () => {
+      isSubscribed = false;
       subscription.unsubscribe();
       clearInterval(sessionTimeoutCheck);
+      clearTimeout(timeoutId);
     };
   }, [navigate, location.pathname, session]); 
 

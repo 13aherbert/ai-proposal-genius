@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -24,6 +25,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { data: subscription } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
+  const [timeoutOccurred, setTimeoutOccurred] = useState(false);
+
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn("Auth loading timeout occurred, user might be stuck");
+        setTimeoutOccurred(true);
+      }
+    }, 8000); // 8 second timeout
+
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
 
   useEffect(() => {
     // If we're done loading and there's no session, redirect to login
@@ -76,6 +90,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       <div className="min-h-screen flex flex-col items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
         <p className="text-muted-foreground">Loading your session...</p>
+        
+        {timeoutOccurred && (
+          <div className="mt-4 text-center">
+            <p className="text-muted-foreground text-sm mb-2">
+              This is taking longer than expected. You can try:
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
+            >
+              Refresh the page
+            </button>
+          </div>
+        )}
       </div>
     );
   }

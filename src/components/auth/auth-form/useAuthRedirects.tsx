@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthForm } from "./AuthFormContext";
+import { toast } from "sonner";
 
 export const useAuthRedirects = () => {
   const { setIsSignUp, setError } = useAuthForm();
@@ -34,11 +35,29 @@ export const useAuthRedirects = () => {
   }, [location, setIsSignUp]);
 
   useEffect(() => {
+    // Set a timeout to detect potential auth state hang
+    const timeoutId = setTimeout(() => {
+      console.log("Auth redirect timeout reached - no state change detected");
+    }, 10000);
+    
     // Check current session
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        handleRedirect(session);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session in redirects:", error);
+          return;
+        }
+        
+        if (session) {
+          console.log("Session found in redirects check, handling redirect");
+          handleRedirect(session);
+        } else {
+          console.log("No session found in redirects check");
+        }
+      } catch (e) {
+        console.error("Exception checking session in redirects:", e);
       }
     };
     
@@ -47,6 +66,8 @@ export const useAuthRedirects = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed in redirects:", event);
+      
       if (event === "SIGNED_IN" && session) {
         handleRedirect(session);
         setError("");
@@ -67,10 +88,25 @@ export const useAuthRedirects = () => {
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, [navigate, location.search, setError]);
   
   const handleRedirect = (session: any) => {
+    // Ensure we have the token in localStorage
+    if (session?.access_token) {
+      localStorage.setItem('userToken', session.access_token);
+      
+      // Prefetch user roles for faster access later
+      supabase.functions.invoke('get-user-roles')
+        .then(({ data, error }) => {
+          if (!error && data?.roles) {
+            localStorage.setItem('userRoles', JSON.stringify(data.roles));
+          }
+        })
+        .catch(err => console.error("Failed to prefetch user roles:", err));
+    }
+    
     // Check for invite code in session storage first, then URL
     const storedInvite = sessionStorage.getItem('beta_invite_code');
     const searchParams = new URLSearchParams(location.search);
@@ -86,10 +122,14 @@ export const useAuthRedirects = () => {
       // Check if we have a redirect path stored
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
       if (redirectPath) {
+        console.log("Redirecting to stored path:", redirectPath);
         sessionStorage.removeItem('redirectAfterLogin');
         navigate(redirectPath);
+        toast.success("Successfully logged in");
       } else {
+        console.log("Redirecting to dashboard (default)");
         navigate("/dashboard");
+        toast.success("Successfully logged in");
       }
     }
   };

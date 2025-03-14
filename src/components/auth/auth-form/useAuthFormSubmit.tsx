@@ -27,6 +27,11 @@ export const useAuthFormSubmit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
+    // Show loading toast for better UX
+    const loadingToastId = toast.loading(
+      isSignUp ? "Creating your account..." : "Signing you in..."
+    );
 
     try {
       if (isSignUp) {
@@ -43,6 +48,8 @@ export const useAuthFormSubmit = () => {
           }
         });
         
+        toast.dismiss(loadingToastId);
+        
         if (error) throw error;
         
         // Send welcome email after successful signup
@@ -55,15 +62,41 @@ export const useAuthFormSubmit = () => {
           }
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
+        toast.dismiss(loadingToastId);
+        
         if (error) throw error;
+        
+        // Ensure token is stored in localStorage
+        if (data?.session?.access_token) {
+          localStorage.setItem('userToken', data.session.access_token);
+          console.log("Auth token stored in localStorage");
+          
+          // Prefetch user roles to improve UX
+          try {
+            const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+            if (!roleError && roleData?.roles) {
+              localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+              console.log("User roles stored in localStorage");
+            }
+          } catch (roleErr) {
+            console.error("Failed to fetch user roles:", roleErr);
+          }
+        }
       }
     } catch (error) {
+      toast.dismiss(loadingToastId);
+      
       if (error instanceof Error) {
-        setError(getErrorMessage(error as AuthError));
+        const errorMessage = getErrorMessage(error as AuthError);
+        setError(errorMessage);
+        toast.error(isSignUp ? "Sign up failed" : "Sign in failed", {
+          description: errorMessage
+        });
       }
     }
   };

@@ -35,15 +35,25 @@ export const useAuthRedirects = () => {
   }, [location, setIsSignUp]);
 
   useEffect(() => {
-    // Set a timeout to detect potential auth state hang
+    // Set a shorter timeout to detect potential auth state hang
     const timeoutId = setTimeout(() => {
       console.log("Auth redirect timeout reached - no state change detected");
-    }, 10000);
+    }, 5000); // Reduced from 10s to 5s for faster detection
     
-    // Check current session
+    // Check current session with a timeout
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        
+        // Add timeout to prevent hanging operation
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Session check timed out")), 3000);
+        });
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           console.error("Error getting session in redirects:", error);
@@ -58,6 +68,12 @@ export const useAuthRedirects = () => {
         }
       } catch (e) {
         console.error("Exception checking session in redirects:", e);
+        
+        // If timeout occurred, check localStorage as fallback
+        const token = localStorage.getItem('userToken');
+        if (token) {
+          console.log("Session check timed out, but token found in localStorage");
+        }
       }
     };
     
@@ -67,6 +83,9 @@ export const useAuthRedirects = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed in redirects:", event);
+      
+      // Clear timeout when auth state changes
+      clearTimeout(timeoutId);
       
       if (event === "SIGNED_IN" && session) {
         handleRedirect(session);
@@ -97,7 +116,7 @@ export const useAuthRedirects = () => {
     if (session?.access_token) {
       localStorage.setItem('userToken', session.access_token);
       
-      // Prefetch user roles for faster access later
+      // Prefetch user roles for faster access later, but don't wait for it
       supabase.functions.invoke('get-user-roles')
         .then(({ data, error }) => {
           if (!error && data?.roles) {

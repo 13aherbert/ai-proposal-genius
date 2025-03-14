@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AuthError } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthForm } from "./AuthFormContext";
+import { withRetry } from "@/utils/network/retry";
 
 export const useAuthFormSubmit = () => {
   const { isSignUp, email, password, firstName, lastName, companyName, birthday, setError } = useAuthForm();
@@ -52,6 +53,25 @@ export const useAuthFormSubmit = () => {
         
         if (error) throw error;
         
+        // Store token immediately if available (some configurations don't require email verification)
+        if (data?.session?.access_token) {
+          localStorage.setItem('userToken', data.session.access_token);
+          console.log("Auth token stored in localStorage after signup");
+          
+          // Prefetch user roles immediately to improve UX
+          try {
+            await withRetry(async () => {
+              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+              if (!roleError && roleData?.roles) {
+                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+                console.log("User roles stored in localStorage after signup");
+              }
+            }, 2);
+          } catch (roleErr) {
+            console.error("Failed to fetch user roles after signup:", roleErr);
+          }
+        }
+        
         // Send welcome email after successful signup
         if (data?.user) {
           try {
@@ -74,17 +94,19 @@ export const useAuthFormSubmit = () => {
         // Ensure token is stored in localStorage
         if (data?.session?.access_token) {
           localStorage.setItem('userToken', data.session.access_token);
-          console.log("Auth token stored in localStorage");
+          console.log("Auth token stored in localStorage after signin");
           
-          // Prefetch user roles to improve UX
+          // Prefetch user roles to improve UX with retry for reliability
           try {
-            const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
-            if (!roleError && roleData?.roles) {
-              localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-              console.log("User roles stored in localStorage");
-            }
+            await withRetry(async () => {
+              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+              if (!roleError && roleData?.roles) {
+                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+                console.log("User roles stored in localStorage after signin");
+              }
+            }, 2);
           } catch (roleErr) {
-            console.error("Failed to fetch user roles:", roleErr);
+            console.error("Failed to fetch user roles after signin:", roleErr);
           }
         }
       }

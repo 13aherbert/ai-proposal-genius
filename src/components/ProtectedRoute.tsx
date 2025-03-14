@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useSubscriptionNotifications } from "@/hooks/use-subscription-notifications";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -26,17 +26,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [timeoutOccurred, setTimeoutOccurred] = useState(false);
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
 
-  // Add a timeout to prevent infinite loading
+  // Add a progressive timeout to show more information as time passes
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn("Auth loading timeout occurred, user might be stuck");
-        setTimeoutOccurred(true);
-      }
-    }, 8000); // 8 second timeout
+    if (!loading) return;
+    
+    const stepInterval = setInterval(() => {
+      setLoadingElapsed(prev => {
+        const newValue = prev + 1;
+        
+        // Show timeout message at 5 seconds
+        if (newValue === 5 && loading) {
+          setTimeoutOccurred(true);
+        }
+        
+        return newValue;
+      });
+    }, 1000);
 
-    return () => clearTimeout(timeoutId);
+    return () => clearInterval(stepInterval);
+  }, [loading]);
+
+  // Reset loading elapsed when loading state changes
+  useEffect(() => {
+    if (!loading) {
+      setLoadingElapsed(0);
+      setTimeoutOccurred(false);
+    }
   }, [loading]);
 
   useEffect(() => {
@@ -89,19 +106,39 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
-        <p className="text-muted-foreground">Loading your session...</p>
+        <p className="text-muted-foreground">Loading your session... {loadingElapsed > 2 ? `(${loadingElapsed}s)` : ''}</p>
         
         {timeoutOccurred && (
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center max-w-md">
             <p className="text-muted-foreground text-sm mb-2">
               This is taking longer than expected. You can try:
             </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
-            >
-              Refresh the page
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90 flex items-center justify-center"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh the page
+              </button>
+              <button
+                onClick={() => {
+                  // Clear auth data and reload
+                  localStorage.removeItem('userToken');
+                  localStorage.removeItem('userRoles');
+                  sessionStorage.removeItem('redirectAfterLogin');
+                  window.location.href = '/';
+                }}
+                className="px-4 py-2 bg-destructive/60 text-white rounded-md text-sm hover:bg-destructive/80 flex items-center justify-center"
+              >
+                Sign out and try again
+              </button>
+            </div>
+            {loadingElapsed > 8 && (
+              <p className="text-muted-foreground text-sm mt-4">
+                Using cached data where possible. Check your network connection if issues persist.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -115,12 +152,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="bg-destructive/10 p-6 rounded-lg max-w-md text-center">
           <h2 className="text-lg font-semibold text-destructive mb-2">Authentication Error</h2>
           <p className="text-muted-foreground mb-4">{error.message}</p>
-          <button 
-            onClick={() => navigate("/")}
-            className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-brand-green/90"
-          >
-            Return to Login
-          </button>
+          <div className="flex gap-2 justify-center">
+            <button 
+              onClick={() => navigate("/")}
+              className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-brand-green/90"
+            >
+              Return to Login
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userRoles');
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-secondary text-primary rounded-md hover:bg-secondary/80"
+            >
+              Clear Cache & Retry
+            </button>
+          </div>
         </div>
       </div>
     );

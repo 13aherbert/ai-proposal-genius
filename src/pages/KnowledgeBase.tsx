@@ -1,31 +1,33 @@
 
-import { BookOpen, FileText, Folder, List, Scale, DollarSign, LineChart, ArrowLeft, Building } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
 import { SearchBar } from "@/components/knowledge-base/SearchBar";
 import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
-import { KnowledgeCategory } from "@/components/knowledge-base/types";
 import { useAuth } from "@/components/AuthProvider";
+import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 
+/**
+ * KnowledgeBase page component
+ * 
+ * Provides a user interface for managing and accessing knowledge base entries
+ * organized by categories. Includes:
+ * - Category navigation sidebar
+ * - Search functionality
+ * - Viewing and adding entries
+ */
 const KnowledgeBase = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const navigate = useNavigate();
   const { session } = useAuth();
-
-  const categories: KnowledgeCategory[] = [
-    { icon: <BookOpen className="h-4 w-4" />, name: "Company Boilerplates" },
-    { icon: <Scale className="h-4 w-4" />, name: "Legal Disclaimers" },
-    { icon: <FileText className="h-4 w-4" />, name: "Prior RFP Responses" },
-    { icon: <LineChart className="h-4 w-4" />, name: "Industry Benchmarks" },
-    { icon: <Folder className="h-4 w-4" />, name: "Competitive Insights" },
-    { icon: <DollarSign className="h-4 w-4" />, name: "Pricing Templates" },
-    { icon: <FileText className="h-4 w-4" />, name: "Estimation Tools" },
-    { icon: <Building className="h-4 w-4" />, name: "Other Company Information" },
-  ];
+  const { 
+    open, 
+    setOpen, 
+    selectedCategory, 
+    setSelectedCategory, 
+    categories 
+  } = useKnowledgeBase();
 
   return (
     <div className="min-h-screen w-full bg-background">

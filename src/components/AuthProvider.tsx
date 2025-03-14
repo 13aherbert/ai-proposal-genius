@@ -251,10 +251,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 new Promise((_, reject) => setTimeout(() => reject(new Error("Roles fetch timeout")), 3000))
               ]).then(({ data: roleData, error: roleError }: any) => {
                 if (!roleError && roleData) {
-                  localStorage.setItem('userRoles', JSON.stringify(roleData));
+                  localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
                 }
               }).catch(err => {
                 console.error("Failed to fetch user roles (non-blocking):", err);
+                
+                // Try the fallback method with token in body
+                supabase.functions.invoke('get-user-roles', {
+                  body: { token: currentSession.access_token }
+                }).then(({ data: roleData, error: roleError }: any) => {
+                  if (!roleError && roleData) {
+                    localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+                  }
+                }).catch(err2 => {
+                  console.error("Fallback roles fetch also failed:", err2);
+                });
               });
             } catch (roleErr) {
               console.error("Exception in background roles fetch:", roleErr);

@@ -55,25 +55,47 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const rawCheckSubscription = async (forceRecheck?: boolean) => {
     console.log("Checking subscription, force:", forceRecheck);
 
-    if (!session?.user?.id) {
-      console.error("No user ID found, cannot check subscription");
-      return null;
-    }
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const authToken = sessionData?.session?.access_token;
+      let userId = sessionData?.session?.user?.id;
+      let authToken = sessionData?.session?.access_token;
+      
+      if (!userId || !authToken) {
+        authToken = localStorage.getItem('userToken');
+        console.log("No session available, using token from localStorage:", !!authToken);
+        
+        if (authToken) {
+          try {
+            const { data: userData, error: userError } = await supabase.auth.getUser(authToken);
+            if (!userError && userData?.user) {
+              userId = userData.user.id;
+              console.log("Retrieved user ID from localStorage token:", userId);
+            } else {
+              console.error("Error verifying localStorage token:", userError);
+            }
+          } catch (e) {
+            console.error("Error verifying localStorage token:", e);
+          }
+        }
+      }
+      
+      if (!userId) {
+        console.error("No user ID available for subscription check");
+        return null;
+      }
       
       if (!authToken) {
         console.error("No authentication token available");
         return null;
       }
       
+      localStorage.setItem('userToken', authToken);
+      
       console.log("Fetching subscription data from Supabase");
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .single();
 
       if (error) {
@@ -97,7 +119,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         setSubscription(typedSubscription);
       } else {
         console.log("No subscription data found, creating trial subscription");
-        const trialSubscription = await createTrialSubscription(session.user.id);
+        const trialSubscription = await createTrialSubscription(userId);
         if (trialSubscription) {
           console.log("Trial subscription created:", trialSubscription);
           storeSubscriptionDataLocally(trialSubscription);
@@ -219,11 +241,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (initialCheckCompleted.current) return;
     
     try {
-      if (session?.user && !subscription) {
+      if (session?.user || localStorage.getItem('userToken')) {
         console.log("Checking for cached subscription data");
         const storedData = getStoredSubscriptionData();
         
-        if (storedData && storedData.user_id === session.user.id) {
+        if (storedData && (storedData.user_id === session?.user?.id || !session?.user)) {
           console.log("Using cached subscription data:", storedData);
           setSubscription(storedData);
           setLoading(false);

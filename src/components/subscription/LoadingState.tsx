@@ -1,4 +1,3 @@
-
 import { Loader2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +20,6 @@ export function LoadingState() {
   const [loadingTime, setLoadingTime] = useState(0);
   const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
 
-  // Track loading time
   useEffect(() => {
     const interval = setInterval(() => {
       setLoadingTime(prev => prev + 1);
@@ -30,13 +28,10 @@ export function LoadingState() {
     return () => clearInterval(interval);
   }, []);
 
-  // Check network status faster and more efficiently
   useEffect(() => {
     const checkNetwork = async () => {
       try {
-        // Try to ping Supabase - using the URL from integrations/supabase/client.ts
         const start = Date.now();
-        // Use a direct URL instead of accessing the protected supabaseUrl property
         await fetch("https://bmopbbkfxkgzlbmhhgox.supabase.co/auth/v1/health", {
           method: 'GET',
           cache: 'no-store',
@@ -45,15 +40,12 @@ export function LoadingState() {
             'Pragma': 'no-cache',
             'Expires': '0',
           },
-          // Add timeout for faster network detection
-          signal: AbortSignal.timeout(2000) // 2 second timeout
+          signal: AbortSignal.timeout(2000)
         });
         const end = Date.now();
         
-        // Network is available
         setNetworkStatus('online');
         
-        // If ping took too long, that might explain the loading time
         if (end - start > 500) {
           console.log(`Network latency is high: ${end - start}ms`);
         }
@@ -62,45 +54,46 @@ export function LoadingState() {
         setNetworkStatus('offline');
         setNetworkError(true);
         
-        // Try to use cached data immediately when offline
         tryLoadingFromCache();
       }
     };
     
     checkNetwork();
     
-    // Set up periodic network checks with longer interval
-    const intervalId = setInterval(checkNetwork, 15000); // Changed from 10s to 15s
+    const intervalId = setInterval(checkNetwork, 15000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // First try to load from localStorage - do this immediately
   useEffect(() => {
     try {
-      // Check for stored token
       const userToken = localStorage.getItem('userToken');
       if (userToken) {
         console.log("Found stored auth token");
+        
+        if (!supabase.auth.getSession()) {
+          console.log("No active session but token found, attempting to initialize");
+          supabase.auth.setSession({
+            access_token: userToken,
+            refresh_token: '',
+          }).catch(err => {
+            console.error("Error initializing session from stored token:", err);
+          });
+        }
       }
       
-      // Check for stored roles
       const userRoles = getUserRolesFromStorage();
       if (userRoles) {
         console.log("Found cached user roles:", userRoles);
         setHasUserRoles(true);
       }
       
-      // Check for stored subscription data
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        // Verify this is valid subscription data
         if (parsedData.subscription_id) {
           console.log("Found cached subscription data");
           setLocalDataLoaded(true);
           
-          // Use cached data immediately regardless of age
-          // since we'll refresh in background
           window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
             detail: { data: parsedData } 
           }));
@@ -112,7 +105,6 @@ export function LoadingState() {
     }
   }, []);
 
-  // Set up listener for subscription data events
   useEffect(() => {
     const handleCacheLoaded = (event: CustomEvent) => {
       console.log("Received subscriptionCacheLoaded event");
@@ -133,20 +125,17 @@ export function LoadingState() {
     };
   }, []);
 
-  // Try to directly fetch subscription data if edge function fails - do this faster
   useEffect(() => {
     if (isAttempting.current || retryCount > 2 || loadedFromLocal) return;
     
-    // After 2 seconds try direct fetch (reduced from 3s)
     const timeoutId = setTimeout(() => {
       fetchSubscriptionDirect();
       setRetryCount(prev => prev + 1);
-    }, retryCount === 0 ? 2000 : 750); // Faster retries
+    }, retryCount === 0 ? 1000 : 500);
     
-    // Set a timeout to show "loading too long" message after 3 seconds (reduced from 5s)
     const loadingTooLongId = setTimeout(() => {
       setLoadingTooLong(true);
-    }, 3000);
+    }, 2000);
     
     return () => {
       clearTimeout(timeoutId);
@@ -160,58 +149,75 @@ export function LoadingState() {
     try {
       isAttempting.current = true;
       
-      // Use stored token if available
       const authToken = localStorage.getItem('userToken') || cachedTokenRef.current;
-      let authHeaders = {};
+      let userId = null;
+      let sessionHeaders = {};
       
       if (authToken) {
         console.log("Using stored auth token for subscription fetch");
-        authHeaders = {
+        sessionHeaders = {
           Authorization: `Bearer ${authToken}`
         };
-      }
-      
-      // Get the current session with faster timeout (3s → 2s)
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Session fetch timed out")), 2000);
-      });
-      
-      const { data: sessionData, error: sessionError } = await Promise.race([
-        sessionPromise,
-        timeoutPromise
-      ]) as any;
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        if (isNetworkError(sessionError)) {
-          setNetworkError(true);
-          setNetworkStatus('offline');
-          toast.error(getNetworkErrorMessage(sessionError));
+        
+        try {
+          const { data: userData, error: userError } = await supabase.auth.getUser(authToken);
+          if (!userError && userData?.user) {
+            userId = userData.user.id;
+            console.log("Retrieved user ID from token:", userId);
+          }
+        } catch (e) {
+          console.error("Error getting user from token:", e);
         }
-        tryLoadingFromCache();
-        return;
       }
       
-      if (!sessionData?.session?.user?.id) {
-        console.log("No authenticated user found for direct subscription fetch");
+      if (!userId) {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Session fetch timed out")), 2000);
+        });
+        
+        const { data: sessionData, error: sessionError } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          if (isNetworkError(sessionError)) {
+            setNetworkError(true);
+            setNetworkStatus('offline');
+            toast.error(getNetworkErrorMessage(sessionError));
+          }
+          tryLoadingFromCache();
+          return;
+        }
+        
+        if (!sessionData?.session?.user?.id) {
+          console.log("No authenticated user found for direct subscription fetch");
+          isAttempting.current = false;
+          return;
+        }
+        
+        userId = sessionData.session.user.id;
+        
+        if (sessionData?.session?.access_token) {
+          localStorage.setItem('userToken', sessionData.session.access_token);
+          cachedTokenRef.current = sessionData.session.access_token;
+        }
+      }
+      
+      if (!userId) {
+        console.log("Could not determine user ID for subscription fetch");
         isAttempting.current = false;
         return;
       }
       
-      // Refresh auth token in storage
-      if (sessionData?.session?.access_token) {
-        localStorage.setItem('userToken', sessionData.session.access_token);
-        cachedTokenRef.current = sessionData.session.access_token;
-      }
+      console.log("Attempting direct subscription fetch from database for user", userId);
       
-      console.log("Attempting direct subscription fetch from database");
-      
-      // Query the database directly instead of using the edge function
       const fetchPromise = supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', sessionData.session.user.id)
+        .eq('user_id', userId)
         .maybeSingle();
         
       const fetchTimeoutPromise = new Promise((_, reject) => {
@@ -237,7 +243,6 @@ export function LoadingState() {
       } else if (data) {
         console.log("Successfully fetched subscription data directly");
         
-        // Store in localStorage as a fallback with proper typing
         try {
           const typedData: SubscriptionPlan = {
             ...data,
@@ -249,7 +254,6 @@ export function LoadingState() {
           typedData.updated_at = new Date().toISOString();
           localStorage.setItem('subscriptionData', JSON.stringify(typedData));
           
-          // Dispatch an event that subscription data was loaded
           window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
             detail: { data: typedData } 
           }));
@@ -260,24 +264,32 @@ export function LoadingState() {
           console.error("Error storing subscription data locally:", e);
         }
       } else {
-        // Create default trial subscription if no data
-        createDefaultSubscription(sessionData.session.user.id);
+        createDefaultSubscription(userId);
       }
       
-      // Also try to fetch user roles if we don't have them yet
-      if (!hasUserRoles) {
+      if (!hasUserRoles && authToken) {
         try {
-          withRetry(async () => {
-            const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
+          const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles', {
+            headers: { Authorization: `Bearer ${authToken}` }
+          });
+          
+          if (roleError) {
+            console.error("Error fetching user roles:", roleError);
             
-            if (roleError) {
-              console.error("Error fetching user roles:", roleError);
-            } else if (roleData?.roles) {
-              console.log("Successfully fetched user roles");
-              localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+            const { data: fallbackRoleData, error: fallbackRoleError } = await supabase.functions.invoke('get-user-roles', {
+              body: { token: authToken }
+            });
+            
+            if (!fallbackRoleError && fallbackRoleData?.roles) {
+              console.log("Successfully fetched user roles with fallback method");
+              localStorage.setItem('userRoles', JSON.stringify(fallbackRoleData.roles));
               setHasUserRoles(true);
             }
-          }, 2, 500, 1500); // Faster retry timeout
+          } else if (roleData?.roles) {
+            console.log("Successfully fetched user roles");
+            localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+            setHasUserRoles(true);
+          }
         } catch (roleErr) {
           console.error("Exception fetching user roles:", roleErr);
         }
@@ -301,7 +313,7 @@ export function LoadingState() {
       isAttempting.current = false;
     }
   };
-  
+
   const tryLoadingFromCache = () => {
     try {
       const storedData = localStorage.getItem('subscriptionData');
@@ -319,11 +331,10 @@ export function LoadingState() {
       console.error("Error loading from cache:", e);
     }
   };
-  
+
   const createDefaultSubscription = (userId: string) => {
     console.log("No subscription found, creating default trial");
     
-    // Create default trial subscription
     const defaultTrial: SubscriptionPlan = {
       subscription_id: crypto.randomUUID(),
       user_id: userId,
@@ -338,7 +349,6 @@ export function LoadingState() {
       updated_at: new Date().toISOString()
     };
     
-    // Store and dispatch
     try {
       localStorage.setItem('subscriptionData', JSON.stringify(defaultTrial));
       window.dispatchEvent(new CustomEvent('subscriptionLoaded', { 
@@ -361,7 +371,6 @@ export function LoadingState() {
       <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
       <p className="text-muted-foreground">Loading your subscription... {loadingTime > 2 ? `(${loadingTime}s)` : ''}</p>
       
-      {/* Network status indicator */}
       {networkStatus !== 'checking' && (
         <div className="flex items-center text-sm mt-2 mb-4">
           {networkStatus === 'online' ? (
@@ -384,7 +393,7 @@ export function LoadingState() {
         </p>
       )}
       
-      {(networkError || loadingTime > 5) && ( // Reduced from 8s to 5s
+      {(networkError || loadingTime > 5) && (
         <div className="mt-4 text-center max-w-md">
           <p className="text-muted-foreground text-sm">
             {networkError ? 
@@ -399,7 +408,7 @@ export function LoadingState() {
               <RefreshCw className="mr-2 h-4 w-4" />
               Retry Connection
             </button>
-            {loadingTime > 10 && ( // Reduced from 15s to 10s
+            {loadingTime > 10 && (
               <button
                 onClick={() => {
                   localStorage.removeItem('userToken');

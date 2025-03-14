@@ -129,6 +129,11 @@ export function isUserOfPlanType(planType: string): boolean {
   }
 }
 
+// Add a new function to check if a user is a starter user
+export function isStarterUser(): boolean {
+  return isUserOfPlanType('starter');
+}
+
 // Determine if a user has access to a feature based on their plan
 export function determineFeatureAccess(
   feature: FeatureName,

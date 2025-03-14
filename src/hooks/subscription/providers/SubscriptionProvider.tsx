@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -46,11 +47,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const lastCheckTime = useRef<number>(0);
   
   const { 
-    checkIsPastGracePeriod, 
-    checkIsInGracePeriod, 
-    checkIsActive, 
-    checkHasFailedPayment 
-  } = useSubscriptionCheckers(subscription);
+    isPastGracePeriod, 
+    isInGracePeriod, 
+    isActive, 
+    hasFailedPayment 
+  } = useSubscriptionCheckers();
 
   const rawCheckSubscription = async (forceRecheck?: boolean) => {
     console.log("Checking subscription, force:", forceRecheck);
@@ -317,10 +318,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         error,
         checkSubscription,
         renewSubscription,
-        isPastGracePeriod: checkIsPastGracePeriod,
-        isInGracePeriod: checkIsInGracePeriod,
-        isActive: checkIsActive,
-        hasFailedPayment: checkHasFailedPayment
+        isPastGracePeriod,
+        isInGracePeriod,
+        isActive,
+        hasFailedPayment
       }}
     >
       {children}

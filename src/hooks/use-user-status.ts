@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,8 +104,7 @@ export function useUserStatus() {
       const { data, error } = await supabase.functions.invoke('get-user-status', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
-        },
-        signal: requestRef.current.signal
+        }
       });
       
       if (error) {
@@ -234,3 +232,4 @@ export function useUserStatus() {
 }
 
 export default useUserStatus;
+

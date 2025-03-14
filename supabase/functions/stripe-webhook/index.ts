@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
 import Stripe from 'https://esm.sh/stripe@12.5.0';
+import { SUBSCRIPTION_PLAN_LIMITS } from '../_shared/subscription-limits.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -54,8 +55,13 @@ serve(async (req) => {
           }
           console.log('Plan type determined as:', planType);
           
-          // Set project limit based on plan
-          const projectLimit = planType.includes('pro') ? 30 : 10;
+          // Set project limit based on plan using constants
+          let projectLimit;
+          if (planType.includes('pro')) {
+            projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro; // 30 projects
+          } else {
+            projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
+          }
           
           console.log('Updating subscription in database with:', {
             user_id: session.client_reference_id,

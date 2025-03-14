@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -21,8 +22,10 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
+  // Check if user is on the starter plan
   const isUserStarter = isStarterUser();
   
+  // Determine the project limit based on user's subscription plan
   const projectLimit = isUserStarter 
     ? SUBSCRIPTION_PLAN_LIMITS.starter
     : subscriptionData?.project_limit || 

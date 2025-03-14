@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -30,9 +29,7 @@ export function useProjects(user: User | null) {
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
-  // Check for starter user on mount and enforce limits
   useEffect(() => {
-    // Check if this is our starter user and force the correct limit
     const isStarter = user?.id === STARTER_USER_ID || isStarterUser();
     const limit = isStarter ? SUBSCRIPTION_PLAN_LIMITS.starter : getProjectLimit();
     
@@ -40,11 +37,9 @@ export function useProjects(user: User | null) {
     setCachedProjectLimit(limit);
   }, [getProjectLimit, user?.id]);
   
-  // Double-check starter user status when user changes
   useEffect(() => {
     if (user?.id) {
       console.log("User authenticated:", user.id);
-      // Explicitly check if this is the starter user
       if (user.id === STARTER_USER_ID || isStarterUser()) {
         console.log("STARTER USER authenticated - enforcing starter limits");
         setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
@@ -246,7 +241,6 @@ export function useProjects(user: User | null) {
   const updateProjectLimit = useCallback((newLimit: number) => {
     console.log(`Updating project limit to ${newLimit}`);
     
-    // Special case: if this is our starter user, always enforce the starter limit
     if (user?.id === STARTER_USER_ID || isStarterUser()) {
       console.log("CRITICAL: Enforcing starter project limit (10) for starter user");
       setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
@@ -255,10 +249,8 @@ export function useProjects(user: User | null) {
     }
   }, [user?.id]);
 
-  // Calculate the final project limit with startup user check as a safeguard
   let projectLimit = cachedProjectLimit || getProjectLimit();
   
-  // Final safety check - if user ID matches starter ID, enforce starter limit
   if (user?.id === STARTER_USER_ID || isStarterUser()) {
     projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }

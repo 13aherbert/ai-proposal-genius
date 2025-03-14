@@ -106,7 +106,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         isLoadingStatus,
         subscription,
         
-        // Subscription status functions
+        // Subscription status functions - Pass the functions directly
         isActive,
         isInGracePeriod,
         isPastGracePeriod,

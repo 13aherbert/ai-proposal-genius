@@ -16,75 +16,90 @@ serve(async (req) => {
   }
 
   try {
-    // Get user ID from auth context or headers
+    // Get the authenticated user ID
     const userId = await extractUserId(req);
     
-    // Return error if no userId is provided
     if (!userId) {
-      console.error("Unable to determine user ID from request");
       return new Response(
-        JSON.stringify({ error: "User ID could not be determined", details: "No valid auth context or token provided" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: "Authentication required", 
+          details: "User ID could not be determined" 
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
       );
     }
+
+    console.log(`Fetching user status for user ID: ${userId}`);
     
-    // Create Supabase client with admin privileges to bypass RLS
+    // Setup admin client to bypass RLS
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase service role key or URL");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error", details: "Missing environment variables" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error("Missing Supabase configuration");
     }
     
-    // Use service role key to bypass RLS
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log("Fetching user roles for user ID:", userId);
+    // Get comprehensive user status (roles + subscription) using the new function
+    const { data: userStatus, error: statusError } = await adminClient.rpc(
+      'get_user_permissions',
+      { user_id_param: userId }
+    );
     
-    // Get user roles using our new optimized function
-    const { data: roleRecords, error: getRolesError } = await adminClient.rpc(
+    if (statusError) {
+      console.error("Error fetching user permissions:", statusError);
+      throw new Error(`Database error: ${statusError.message}`);
+    }
+    
+    // Get roles for backwards compatibility
+    const { data: roleRecords, error: rolesError } = await adminClient.rpc(
       'get_all_user_roles_by_id',
       { user_id_param: userId }
     );
-
-    if (getRolesError) {
-      throw new Error(`Error fetching user roles: ${getRolesError.message}`);
+    
+    if (rolesError) {
+      console.warn("Error fetching roles:", rolesError);
     }
-
-    // Get user status for admin check and other roles
-    const { data: userStatus, error: statusError } = await adminClient.rpc(
-      'check_user_status',
+    
+    // Get subscription details for complete data
+    const { data: subscriptionData, error: subError } = await adminClient.rpc(
+      'get_subscription_details',
       { user_id_param: userId }
     );
-
-    if (statusError) {
-      console.warn(`Status check error: ${statusError.message}, continuing with roles only`);
+    
+    if (subError) {
+      console.warn("Error fetching subscription details:", subError);
     }
 
-    console.log(`Successfully fetched ${roleRecords?.length || 0} user roles`);
+    // Return comprehensive user data
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
+        status: userStatus,
         roles: roleRecords || [],
-        status: userStatus || null,
-        timestamp: Date.now()
+        subscription: subscriptionData,
+        timestamp: Date.now(),
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   } catch (error) {
     console.error("Server error:", error);
     
-    // Return detailed error for easier debugging
     return new Response(
       JSON.stringify({ 
-        error: "Failed to fetch user roles", 
+        error: "Failed to fetch user status", 
         details: error.message,
-        stack: error.stack
+        stack: error.stack 
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 });

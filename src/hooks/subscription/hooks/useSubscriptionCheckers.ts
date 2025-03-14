@@ -1,72 +1,80 @@
 
 import { useCallback } from 'react';
+import { useUserStatus } from '@/hooks/use-user-status';
 import { SubscriptionPlan } from '@/types/subscription';
-import { isPast, addDays } from 'date-fns';
 
-export function useSubscriptionCheckers(subscription: SubscriptionPlan | null) {
-  // Check if subscription is past grace period
-  const checkIsPastGracePeriod = useCallback(() => {
-    if (!subscription?.current_period_end) return false;
+export function useSubscriptionCheckers() {
+  const { status, subscription } = useUserStatus();
+  
+  const isPastGracePeriod = useCallback(() => {
+    // Get subscription data from most reliable source
+    const subData = subscription || {};
     
-    // Status check - only cancelled/past_due/unpaid subscriptions can be in grace period
-    if (!['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
+    // If we have no plan or no period end, we can't be past grace period
+    if (!subData.subscription_id || !subData.current_period_end) {
       return false;
     }
-    
-    const endDate = new Date(subscription.current_period_end);
-    const gracePeriodEnd = addDays(endDate, 3); // 3-day grace period
-    
-    return isPast(gracePeriodEnd);
-  }, [subscription]);
-  
-  // Check if subscription is in grace period
-  const checkIsInGracePeriod = useCallback(() => {
-    if (!subscription?.current_period_end) return false;
-    
-    // Status check - only cancelled/past_due/unpaid subscriptions can be in grace period
-    if (!['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
+
+    // Check for failed payment statuses
+    const failedStatuses = ['past_due', 'unpaid', 'incomplete_expired'];
+    if (!failedStatuses.includes(subData.status)) {
       return false;
     }
-    
-    const endDate = new Date(subscription.current_period_end);
-    const gracePeriodEnd = addDays(endDate, 3); // 3-day grace period
-    
-    return isPast(endDate) && !isPast(gracePeriodEnd);
+
+    // Calculate grace period (7 days after period end)
+    const periodEndDate = new Date(subData.current_period_end);
+    const gracePeriodEnd = new Date(periodEndDate);
+    gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
+
+    return new Date() > gracePeriodEnd;
   }, [subscription]);
-  
-  // Check if subscription is active
-  const checkIsActive = useCallback(() => {
-    if (!subscription) return false;
+
+  const isInGracePeriod = useCallback(() => {
+    // Get subscription data from most reliable source
+    const subData = subscription || {};
     
-    // Trial is considered active
-    if (subscription.status === 'trialing') return true;
-    
-    // Normal active check
-    if (subscription.status === 'active') {
-      // If it has an end date, check if it's still valid
-      if (subscription.current_period_end) {
-        return !isPast(new Date(subscription.current_period_end));
-      }
-      
-      // If no end date, it's considered active
-      return true;
+    // If we have no plan or no period end, we can't be in grace period
+    if (!subData.subscription_id || !subData.current_period_end) {
+      return false;
     }
-    
-    // Check grace period for other statuses
-    return checkIsInGracePeriod();
-  }, [subscription, checkIsInGracePeriod]);
-  
-  // Check if subscription has failed payment
-  const checkHasFailedPayment = useCallback(() => {
-    if (!subscription) return false;
-    
-    return subscription.status === 'past_due' || subscription.status === 'unpaid';
+
+    // Check for failed payment statuses
+    const failedStatuses = ['past_due', 'unpaid', 'incomplete_expired'];
+    if (!failedStatuses.includes(subData.status)) {
+      return false;
+    }
+
+    // Calculate grace period (7 days after period end)
+    const periodEndDate = new Date(subData.current_period_end);
+    const gracePeriodEnd = new Date(periodEndDate);
+    gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
+
+    const now = new Date();
+    return now > periodEndDate && now <= gracePeriodEnd;
   }, [subscription]);
-  
+
+  const isActive = useCallback(() => {
+    // Get subscription status from most reliable source
+    const subStatus = status?.subscription_status || subscription?.status || 'trialing';
+    
+    // Active subscriptions include trial period
+    const activeStatuses = ['trialing', 'active'];
+    return activeStatuses.includes(subStatus);
+  }, [status, subscription]);
+
+  const hasFailedPayment = useCallback(() => {
+    // Get subscription status from most reliable source
+    const subStatus = status?.subscription_status || subscription?.status || 'trialing';
+    
+    // Failed payment statuses
+    const failedStatuses = ['past_due', 'unpaid', 'incomplete_expired', 'incomplete'];
+    return failedStatuses.includes(subStatus);
+  }, [status, subscription]);
+
   return {
-    checkIsPastGracePeriod,
-    checkIsInGracePeriod,
-    checkIsActive,
-    checkHasFailedPayment,
+    isPastGracePeriod,
+    isInGracePeriod,
+    isActive,
+    hasFailedPayment,
   };
 }

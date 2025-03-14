@@ -22,10 +22,11 @@ export default function RecentProjects() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [refreshAttempts, setRefreshAttempts] = useState(0);
   const hasRunInitialChecksRef = useRef(false);
+  const userTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
   
-  // Set auth ready when authentication loading is complete
+  // Set auth ready when authentication loading is complete or we have a cached token
   useEffect(() => {
-    if (!loading) {
+    if (!loading || userTokenRef.current) {
       setAuthReady(true);
     }
   }, [loading]);
@@ -39,16 +40,23 @@ export default function RecentProjects() {
     determineDisplayLimit
   } = useProjectLimits(authReady ? session?.user || null : null);
   
-  // Initial subscription check - only run once
+  // Initial subscription check - only run once and with fast timeout
   useEffect(() => {
     if (!session?.user || initialLoadComplete || hasRunInitialChecksRef.current) return;
     
     const timer = setTimeout(() => {
-      checkSubscription(true).catch(err => {
-        console.error("Error checking subscription:", err);
+      // Set a timeout for the subscription check
+      Promise.race([
+        checkSubscription(true),
+        new Promise((resolve) => setTimeout(resolve, 2000)) // 2 second timeout
+      ]).catch(err => {
+        console.error("Error or timeout checking subscription:", err);
+      }).finally(() => {
+        setInitialLoadComplete(true);
       });
-      setInitialLoadComplete(true);
-    }, 1000);
+      
+      hasRunInitialChecksRef.current = true;
+    }, 500); // Reduced from 1000ms to 500ms
     
     return () => clearTimeout(timer);
   }, [session?.user?.id, checkSubscription, initialLoadComplete]);
@@ -70,10 +78,10 @@ export default function RecentProjects() {
   const { hasFeature, refreshSubscription } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
   
-  // Apply project limit when subscription data is available
+  // Apply project limit when subscription data is available - with faster checking
   useEffect(() => {
     // Skip if already applied or no user
-    if (projectLimitApplied || !session?.user) return;
+    if (projectLimitApplied || (!session?.user && !userTokenRef.current)) return;
     
     // Skip if subscription is still loading and we don't have forced starter plan
     if (!subscriptionData && !forceStarterPlan) return;
@@ -83,9 +91,10 @@ export default function RecentProjects() {
       updateProjectLimit(correctLimit);
       setProjectLimitApplied(true);
       
+      // Faster refetch
       setTimeout(() => {
         refetch();
-      }, 1000);
+      }, 300); // Reduced from 1000ms to 300ms
     }
   }, [
     subscriptionData, 
@@ -122,7 +131,6 @@ export default function RecentProjects() {
   const handleManualRefresh = () => {
     toast.info("Refreshing subscription data...");
     localStorage.removeItem("projectLimit");
-    localStorage.removeItem("subscriptionData");
     
     try {
       if (window.featureCache && typeof window.featureCache.clear === 'function') {
@@ -142,11 +150,14 @@ export default function RecentProjects() {
     
     setTimeout(() => {
       refetch();
-    }, 1000);
+    }, 500); // Reduced from 1000ms to 500ms
   };
   
+  // If we have a cached token but auth is still loading, show content with cached data
+  const shouldSkipLoadingState = userTokenRef.current && loading && authReady;
+  
   // Show loading state while authentication is being verified
-  if (loading) {
+  if (loading && !shouldSkipLoadingState) {
     return (
       <div className="container py-10 space-y-8">
         <ProjectsLoadingState message="Verifying your authentication..." />
@@ -155,7 +166,7 @@ export default function RecentProjects() {
   }
   
   // Show error if user is not authenticated
-  if (!session?.user) {
+  if (!session?.user && !userTokenRef.current) {
     return <ProjectsAuthError />;
   }
 

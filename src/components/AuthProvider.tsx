@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const sessionFetchAttempted = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -159,6 +161,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let isSubscribed = true;
+    
+    // Reduce timeout from 10 seconds to 7 seconds for faster fallback
     const timeoutId = setTimeout(() => {
       if (loading && !authInitialized) {
         console.warn("Auth initialization timeout reached. Force completing auth init.");
@@ -167,18 +171,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         }
       }
-    }, 10000);
+    }, 7000);
 
     const fetchSession = async () => {
+      if (sessionFetchAttempted.current) return;
+      sessionFetchAttempted.current = true;
+      
       try {
         console.log("Fetching session...");
-        const { data, error } = await supabase.auth.getSession();
+        
+        // Set up a timeout for the session fetch to prevent hanging
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Session fetch timed out")), 3000);
+        });
+        
+        // Race the session fetch against a timeout
+        const { data, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           if (isSubscribed) {
             setError(error);
           }
           console.error('Error getting session:', error);
+          
+          // Check if we have a cached token that we can use
+          const cachedToken = localStorage.getItem('userToken');
+          if (cachedToken && error.message === 'Session fetch timed out') {
+            console.log('Session check timed out, but token found in localStorage');
+          }
           
           if (error.message !== "Not authenticated") {
             toast.error("Authentication error", {
@@ -224,12 +248,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem('userToken', currentSession.access_token);
             
             try {
-              const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
-              if (!roleError && roleData?.roles) {
-                localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-              }
+              // Don't block the UI on roles fetch - use a background fetch with timeout
+              Promise.race([
+                supabase.functions.invoke('get-user-roles'),
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Roles fetch timeout")), 3000))
+              ]).then(({ data: roleData, error: roleError }: any) => {
+                if (!roleError && roleData?.roles) {
+                  localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
+                }
+              }).catch(err => {
+                console.error("Failed to fetch user roles (non-blocking):", err);
+              });
             } catch (roleErr) {
-              console.error("Failed to fetch user roles:", roleErr);
+              console.error("Exception in background roles fetch:", roleErr);
             }
           } else if (event === 'SIGNED_OUT') {
             localStorage.removeItem('userToken');
@@ -237,6 +268,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.removeItem('userRoles');
           }
         }
+        
         if (isSubscribed) {
           setLoading(false);
           setAuthInitialized(true);
@@ -254,9 +286,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 navigate("/subscription", { replace: true });
                 toast.success("Welcome! Please choose your subscription plan");
               } else {
-                console.log('Existing user detected, redirecting to dashboard');
-                navigate("/dashboard", { replace: true });
+                // Use the saved redirect or fallback to dashboard
+                const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+                console.log(`Existing user detected, redirecting to ${redirectPath}`);
+                navigate(redirectPath, { replace: true });
                 toast.success("Successfully signed in");
+                
+                // Clear the redirect after using it
+                sessionStorage.removeItem('redirectAfterLogin');
               }
             }
             break;
@@ -268,6 +305,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             break;
           case 'TOKEN_REFRESHED':
             console.log('Token refreshed successfully');
+            if (currentSession?.access_token) {
+              localStorage.setItem('userToken', currentSession.access_token);
+            }
             break;
           case 'USER_UPDATED':
             toast.success("Profile updated");

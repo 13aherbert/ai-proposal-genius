@@ -19,6 +19,7 @@ export function LoadingState() {
   const [networkStatus, setNetworkStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const isAttempting = useRef(false);
   const [loadingTime, setLoadingTime] = useState(0);
+  const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
 
   // Track loading time
   useEffect(() => {
@@ -29,7 +30,7 @@ export function LoadingState() {
     return () => clearInterval(interval);
   }, []);
 
-  // Check network status
+  // Check network status faster and more efficiently
   useEffect(() => {
     const checkNetwork = async () => {
       try {
@@ -43,7 +44,9 @@ export function LoadingState() {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
             'Expires': '0',
-          }
+          },
+          // Add timeout for faster network detection
+          signal: AbortSignal.timeout(2000) // 2 second timeout
         });
         const end = Date.now();
         
@@ -51,24 +54,27 @@ export function LoadingState() {
         setNetworkStatus('online');
         
         // If ping took too long, that might explain the loading time
-        if (end - start > 1000) {
+        if (end - start > 500) {
           console.log(`Network latency is high: ${end - start}ms`);
         }
       } catch (e) {
         console.error("Network check failed:", e);
         setNetworkStatus('offline');
         setNetworkError(true);
+        
+        // Try to use cached data immediately when offline
+        tryLoadingFromCache();
       }
     };
     
     checkNetwork();
     
-    // Set up periodic network checks
-    const intervalId = setInterval(checkNetwork, 10000);
+    // Set up periodic network checks with longer interval
+    const intervalId = setInterval(checkNetwork, 15000); // Changed from 10s to 15s
     return () => clearInterval(intervalId);
   }, []);
 
-  // First try to load from localStorage
+  // First try to load from localStorage - do this immediately
   useEffect(() => {
     try {
       // Check for stored token
@@ -93,17 +99,12 @@ export function LoadingState() {
           console.log("Found cached subscription data");
           setLocalDataLoaded(true);
           
-          // If data is recent (last 24 hours), use it immediately
-          const updatedAt = parsedData.updated_at ? new Date(parsedData.updated_at).getTime() : 0;
-          const isRecent = Date.now() - updatedAt < 86400000; // 24 hours
-          
-          if (isRecent) {
-            // Dispatch an event that subscription data was loaded from cache
-            window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
-              detail: { data: parsedData } 
-            }));
-            setLoadedFromLocal(true);
-          }
+          // Use cached data immediately regardless of age
+          // since we'll refresh in background
+          window.dispatchEvent(new CustomEvent('subscriptionCacheLoaded', { 
+            detail: { data: parsedData } 
+          }));
+          setLoadedFromLocal(true);
         }
       }
     } catch (e) {
@@ -132,20 +133,20 @@ export function LoadingState() {
     };
   }, []);
 
-  // Try to directly fetch subscription data if edge function fails
+  // Try to directly fetch subscription data if edge function fails - do this faster
   useEffect(() => {
     if (isAttempting.current || retryCount > 2 || loadedFromLocal) return;
     
-    // After 3 seconds try direct fetch
+    // After 2 seconds try direct fetch (reduced from 3s)
     const timeoutId = setTimeout(() => {
       fetchSubscriptionDirect();
       setRetryCount(prev => prev + 1);
-    }, retryCount === 0 ? 3000 : 1000);
+    }, retryCount === 0 ? 2000 : 750); // Faster retries
     
-    // Set a timeout to show "loading too long" message after 5 seconds
+    // Set a timeout to show "loading too long" message after 3 seconds (reduced from 5s)
     const loadingTooLongId = setTimeout(() => {
       setLoadingTooLong(true);
-    }, 5000);
+    }, 3000);
     
     return () => {
       clearTimeout(timeoutId);
@@ -160,7 +161,7 @@ export function LoadingState() {
       isAttempting.current = true;
       
       // Use stored token if available
-      const authToken = localStorage.getItem('userToken');
+      const authToken = localStorage.getItem('userToken') || cachedTokenRef.current;
       let authHeaders = {};
       
       if (authToken) {
@@ -170,10 +171,10 @@ export function LoadingState() {
         };
       }
       
-      // Get the current session with timeout
+      // Get the current session with faster timeout (3s → 2s)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Session fetch timed out")), 5000);
+        setTimeout(() => reject(new Error("Session fetch timed out")), 2000);
       });
       
       const { data: sessionData, error: sessionError } = await Promise.race([
@@ -201,6 +202,7 @@ export function LoadingState() {
       // Refresh auth token in storage
       if (sessionData?.session?.access_token) {
         localStorage.setItem('userToken', sessionData.session.access_token);
+        cachedTokenRef.current = sessionData.session.access_token;
       }
       
       console.log("Attempting direct subscription fetch from database");
@@ -213,7 +215,7 @@ export function LoadingState() {
         .maybeSingle();
         
       const fetchTimeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Database fetch timed out")), 5000);
+        setTimeout(() => reject(new Error("Database fetch timed out")), 3000);
       });
       
       const { data, error } = await Promise.race([
@@ -275,7 +277,7 @@ export function LoadingState() {
               localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
               setHasUserRoles(true);
             }
-          }, 2, 500, 2000);
+          }, 2, 500, 1500); // Faster retry timeout
         } catch (roleErr) {
           console.error("Exception fetching user roles:", roleErr);
         }
@@ -382,7 +384,7 @@ export function LoadingState() {
         </p>
       )}
       
-      {(networkError || loadingTime > 8) && (
+      {(networkError || loadingTime > 5) && ( // Reduced from 8s to 5s
         <div className="mt-4 text-center max-w-md">
           <p className="text-muted-foreground text-sm">
             {networkError ? 
@@ -397,7 +399,7 @@ export function LoadingState() {
               <RefreshCw className="mr-2 h-4 w-4" />
               Retry Connection
             </button>
-            {loadingTime > 15 && (
+            {loadingTime > 10 && ( // Reduced from 15s to 10s
               <button
                 onClick={() => {
                   localStorage.removeItem('userToken');

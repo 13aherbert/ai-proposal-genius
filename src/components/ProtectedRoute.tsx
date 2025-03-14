@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
@@ -27,6 +27,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [timeoutOccurred, setTimeoutOccurred] = useState(false);
   const [loadingElapsed, setLoadingElapsed] = useState(0);
+  const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
 
   // Add a progressive timeout to show more information as time passes
   useEffect(() => {
@@ -36,8 +37,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       setLoadingElapsed(prev => {
         const newValue = prev + 1;
         
-        // Show timeout message at 5 seconds
-        if (newValue === 5 && loading) {
+        // Show timeout message earlier at 3 seconds
+        if (newValue === 3 && loading) {
           setTimeoutOccurred(true);
         }
         
@@ -55,6 +56,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       setTimeoutOccurred(false);
     }
   }, [loading]);
+
+  // Attempt early navigation if we have a cached token
+  useEffect(() => {
+    if (loading && cachedTokenRef.current && loadingElapsed >= 2 && !session) {
+      console.log("Using cached token for early access while full auth completes");
+      // Don't redirect away from subscription page when using cached token
+      if (location.pathname !== '/' && !location.pathname.includes('/subscription')) {
+        return; // Already on a valid page
+      }
+      
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [loading, loadingElapsed, session, navigate, location.pathname]);
 
   useEffect(() => {
     // If we're done loading and there's no session, redirect to login
@@ -134,7 +149,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                 Sign out and try again
               </button>
             </div>
-            {loadingElapsed > 8 && (
+            {loadingElapsed > 5 && (
               <p className="text-muted-foreground text-sm mt-4">
                 Using cached data where possible. Check your network connection if issues persist.
               </p>

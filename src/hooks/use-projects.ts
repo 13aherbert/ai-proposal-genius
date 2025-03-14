@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,7 +6,7 @@ import { useSubscriptionFeatures } from "./use-subscription-features";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
-import { isStarterUser, STARTER_USER_ID } from "./subscription/feature-access";
+import { getStoredSubscriptionData, STARTER_USER_ID } from "./subscription/feature-access";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export type Project = {
@@ -31,20 +30,56 @@ export function useProjects(user: User | null) {
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
   useEffect(() => {
-    // Only consider the user as starter if they match the exact ID
-    const isStarter = user?.id === STARTER_USER_ID;
-    const limit = isStarter ? SUBSCRIPTION_PLAN_LIMITS.starter : getProjectLimit();
+    const subscriptionData = getStoredSubscriptionData();
     
-    console.log(`useProjects: Current project limit ${isStarter ? '(STARTER USER)' : ''}: ${limit}`);
-    setCachedProjectLimit(limit);
+    if (subscriptionData && subscriptionData.plan_type) {
+      const planType = subscriptionData.plan_type.toLowerCase();
+      let limit;
+      
+      if (planType === 'pro') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (planType === 'starter') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.starter;
+      } else {
+        limit = SUBSCRIPTION_PLAN_LIMITS.trial;
+      }
+      
+      console.log(`useProjects: Current project limit (${planType.toUpperCase()}): ${limit}`);
+      setCachedProjectLimit(limit);
+    } else {
+      const isStarter = user?.id === STARTER_USER_ID;
+      const limit = isStarter ? SUBSCRIPTION_PLAN_LIMITS.starter : getProjectLimit();
+      
+      console.log(`useProjects: Current project limit ${isStarter ? '(STARTER USER)' : ''}: ${limit}`);
+      setCachedProjectLimit(limit);
+    }
   }, [getProjectLimit, user?.id]);
   
   useEffect(() => {
     if (user?.id) {
       console.log("User authenticated:", user.id);
-      // Only apply starter limits if it's the exact starter user ID
-      if (user.id === STARTER_USER_ID) {
-        console.log("STARTER USER authenticated - enforcing starter limits");
+      
+      const subscriptionData = getStoredSubscriptionData();
+      
+      if (subscriptionData && subscriptionData.plan_type) {
+        const planType = subscriptionData.plan_type.toLowerCase();
+        let limit;
+        
+        if (planType === 'pro') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.pro;
+          console.log("PRO USER authenticated - using pro limits:", limit);
+          setCachedProjectLimit(limit);
+        } else if (planType === 'starter') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.starter;
+          console.log("STARTER USER authenticated (from subscription) - using starter limits:", limit);
+          setCachedProjectLimit(limit);
+        } else {
+          limit = SUBSCRIPTION_PLAN_LIMITS.trial;
+          console.log("TRIAL USER authenticated - using trial limits:", limit);
+          setCachedProjectLimit(limit);
+        }
+      } else if (user.id === STARTER_USER_ID) {
+        console.log("STARTER USER authenticated (from user ID) - enforcing starter limits");
         setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       }
     } else {
@@ -244,8 +279,21 @@ export function useProjects(user: User | null) {
   const updateProjectLimit = useCallback((newLimit: number) => {
     console.log(`Updating project limit to ${newLimit}`);
     
-    // Only enforce starter limit for the specific starter user ID
-    if (user?.id === STARTER_USER_ID) {
+    const subscriptionData = getStoredSubscriptionData();
+    
+    if (subscriptionData && subscriptionData.plan_type) {
+      const planType = subscriptionData.plan_type.toLowerCase();
+      
+      if (planType === 'pro') {
+        console.log("Setting pro project limit (30) for pro user");
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.pro);
+      } else if (planType === 'starter') {
+        console.log("Setting starter project limit (10) for starter user");
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
+      } else {
+        setCachedProjectLimit(newLimit);
+      }
+    } else if (user?.id === STARTER_USER_ID) {
       console.log("CRITICAL: Enforcing starter project limit (10) for starter user");
       setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
     } else {
@@ -255,8 +303,19 @@ export function useProjects(user: User | null) {
 
   let projectLimit = cachedProjectLimit || getProjectLimit();
   
-  // Final check - only enforce starter limit for the specific starter user ID
-  if (user?.id === STARTER_USER_ID) {
+  const subscriptionData = getStoredSubscriptionData();
+  
+  if (subscriptionData && subscriptionData.plan_type) {
+    const planType = subscriptionData.plan_type.toLowerCase();
+    
+    if (planType === 'pro') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
+    } else if (planType === 'starter') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+    } else if (planType === 'trial') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
+    }
+  } else if (user?.id === STARTER_USER_ID) {
     projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
   }
   

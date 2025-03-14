@@ -209,6 +209,22 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       return getTestProjectLimit();
     }
     
+    // Check subscription data first
+    const subscriptionData = getStoredSubscriptionData();
+    
+    if (subscriptionData && subscriptionData.plan_type) {
+      const planType = subscriptionData.plan_type.toLowerCase();
+      
+      // Use explicit limits based on plan type
+      if (planType === 'pro') {
+        return SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (planType === 'starter') {
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
+      } else if (planType === 'trial') {
+        return SUBSCRIPTION_PLAN_LIMITS.trial;
+      }
+    }
+    
     // If we have a local cached value, use it for performance
     if (localProjectLimit !== null) {
       return localProjectLimit;
@@ -221,6 +237,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // For starter plans, enforce 10 project limit
       if (normalizedPlan === 'starter') {
         return SUBSCRIPTION_PLAN_LIMITS.starter; // 10
+      } else if (normalizedPlan === 'pro') {
+        return SUBSCRIPTION_PLAN_LIMITS.pro; // 30
       }
       
       // Use the safe project limit function to get the correct limit from fallback
@@ -238,9 +256,13 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       // Normalize plan type to lowercase
       const normalizedPlan = (subscription.plan_type || '').toLowerCase();
       
-      // CRITICAL: For starter plans, always return 10 regardless of stored limit
-      if (normalizedPlan === 'starter') {
-        return 10;
+      // Use explicit limits based on plan type
+      if (normalizedPlan === 'pro') {
+        return SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (normalizedPlan === 'starter') {
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
+      } else if (normalizedPlan === 'trial') {
+        return SUBSCRIPTION_PLAN_LIMITS.trial;
       }
       
       // Use the safe project limit function to get the correct limit

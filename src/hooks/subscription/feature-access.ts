@@ -8,7 +8,7 @@ export const featureCache = new Map<string, boolean>();
 // Create a cache for project limit checks
 export const projectLimitCache = new Map<string, number>();
 
-// Special starter user ID for enforcing starter plan limits
+// Special starter user ID for enforcing starter plan limits - only used as fallback
 export const STARTER_USER_ID = "315f2366-4b3e-4c20-83bf-e59d5b80ad4c";
 
 // Initialize global caches for faster access across components
@@ -118,14 +118,21 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   custom_templates: ['pro']  // Only pro has access
 };
 
-// Check if a specific "starter" user ID
+// Check if user was originally a starter user - this is now used only as a fallback
+// and should not override actual subscription data
 export function isStarterUser(): boolean {
   try {
-    // Only check the user ID, don't rely on localStorage subscription data
-    // which might be out of sync with the actual subscription
     const data = localStorage.getItem('sb-bmopbbkfxkgzlbmhhgox-auth-token');
     if (!data) return false;
     
+    // Check stored subscription data first - this takes precedence
+    const subscriptionData = getStoredSubscriptionData();
+    if (subscriptionData && subscriptionData.plan_type) {
+      // If we have subscription data, use that instead of the hardcoded ID
+      return subscriptionData.plan_type.toLowerCase() === 'starter';
+    }
+    
+    // Fallback to checking user ID only if no subscription data
     const { user } = JSON.parse(data);
     return user?.id === STARTER_USER_ID;
   } catch (e) {

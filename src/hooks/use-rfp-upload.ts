@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -8,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "./use-subscription";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
-import { isStarterUser, STARTER_USER_ID } from "./subscription/feature-access";
+import { getStoredSubscriptionData, STARTER_USER_ID } from "./subscription/feature-access";
 
 export const useRFPUpload = () => {
   const { session } = useAuth();
@@ -22,16 +21,31 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  // Check if user is on the starter plan - only check exact user ID
-  const isUserStarter = session?.user?.id === STARTER_USER_ID;
+  // Check subscription data first, fall back to user ID check only if needed
+  const storedSubscriptionData = getStoredSubscriptionData();
+  
+  let isUserPro = false;
+  let isUserStarter = false;
+  
+  if (storedSubscriptionData && storedSubscriptionData.plan_type) {
+    const planType = storedSubscriptionData.plan_type.toLowerCase();
+    isUserPro = planType === 'pro';
+    isUserStarter = planType === 'starter';
+  } else {
+    // Only check user ID if no subscription data is available
+    isUserStarter = session?.user?.id === STARTER_USER_ID;
+  }
   
   // Determine the project limit based on user's subscription plan
-  const projectLimit = isUserStarter 
-    ? SUBSCRIPTION_PLAN_LIMITS.starter
-    : subscriptionData?.project_limit || 
-      (subscriptionData?.plan_type === 'pro' ? SUBSCRIPTION_PLAN_LIMITS.pro :
-      (subscriptionData?.plan_type === 'starter' ? SUBSCRIPTION_PLAN_LIMITS.starter :
-      SUBSCRIPTION_PLAN_LIMITS.trial));
+  const projectLimit = isUserPro
+    ? SUBSCRIPTION_PLAN_LIMITS.pro
+    : (isUserStarter
+      ? SUBSCRIPTION_PLAN_LIMITS.starter
+      : (subscriptionData?.plan_type === 'pro' 
+        ? SUBSCRIPTION_PLAN_LIMITS.pro
+        : (subscriptionData?.plan_type === 'starter' 
+          ? SUBSCRIPTION_PLAN_LIMITS.starter
+          : SUBSCRIPTION_PLAN_LIMITS.trial)));
 
   const [currentProjectCount, setCurrentProjectCount] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);

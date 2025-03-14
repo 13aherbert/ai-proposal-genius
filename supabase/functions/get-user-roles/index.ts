@@ -1,7 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { corsHeaders } from "../_shared/cors.ts";
+
+// Define CORS headers for browser compatibility
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
 
 type UserRole = {
   id: string;
@@ -22,55 +28,28 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     console.log("Auth header present:", !!authHeader);
     
-    if (!authHeader) {
+    let token = null;
+    let userId = null;
+    
+    // Try header auth first
+    if (authHeader) {
+      token = authHeader.replace('Bearer ', '');
+      console.log("Using token from Authorization header");
+    } else {
       // Try to get token from JSON body if not in headers
       try {
         const body = await req.json().catch(() => ({}));
         if (body?.token) {
+          token = body.token;
           console.log("Found token in request body");
-          // Create Supabase client with the token from body
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-          const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          
-          // Verify the token and get user
-          const { data: { user }, error: userError } = await supabase.auth.getUser(body.token);
-          
-          if (userError || !user) {
-            console.error("Error getting user from token in body:", userError);
-            return new Response(
-              JSON.stringify({ error: "Invalid token", details: userError }),
-              { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          
-          const userId = user.id;
-          console.log("User authenticated via token in body:", userId);
-          
-          // Get user roles
-          const { data: userRoles, error: rolesError } = await supabase
-            .from('user_roles')
-            .select('*')
-            .eq('user_id', userId);
-          
-          if (rolesError) {
-            console.error("Error fetching roles:", rolesError);
-            return new Response(
-              JSON.stringify({ error: "Error fetching roles", details: rolesError }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          
-          console.log(`Successfully fetched ${userRoles?.length || 0} roles via token in body`);
-          return new Response(
-            JSON.stringify({ roles: userRoles || [] }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
         }
       } catch (e) {
         console.error("Error parsing request body:", e);
       }
-      
+    }
+    
+    // Return error if no token is provided
+    if (!token) {
       console.error("No authorization header or token provided");
       return new Response(
         JSON.stringify({ error: "Authorization header or token required" }),
@@ -83,8 +62,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const token = authHeader.replace('Bearer ', '');
-    
     // Verify the user
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
@@ -96,7 +73,7 @@ serve(async (req) => {
       );
     }
     
-    const userId = user.id;
+    userId = user.id;
     console.log("Authenticated user ID:", userId);
 
     // Get all user roles for this user

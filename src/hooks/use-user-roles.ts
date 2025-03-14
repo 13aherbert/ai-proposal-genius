@@ -1,28 +1,16 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/AuthProvider';
-import { supabase } from '@/integrations/supabase/client';
-
-type UserRole = {
-  id: string;
-  user_id: string;
-  role: string;
-  created_at: string;
-  created_by: string | null;
-};
-
-type UserRoles = {
-  roles: UserRole[];
-};
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 // Export the getUserRolesFromStorage function directly so it can be imported separately
-export const getUserRolesFromStorage = (): UserRole[] | null => {
+export const getUserRolesFromStorage = (): any[] | null => {
   try {
     const rolesData = localStorage.getItem('userRoles');
     if (rolesData) {
       const parsedData = JSON.parse(rolesData);
       if (parsedData && Array.isArray(parsedData)) {
-        return parsedData as UserRole[];
+        return parsedData;
       }
     }
     return null;
@@ -36,33 +24,50 @@ export const useUserRoles = () => {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
-  const [showAdminButton, setShowAdminButton] = useState(false);
-  const [showBetaBadge, setShowBetaBadge] = useState(false);
+  const [isUser, setIsUser] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
-  const [roleCheckError, setRoleCheckError] = useState<Error | null>(null);
+  const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
+  
+  // References to track state between renders
+  const refs = useRef({
+    rolesInitialized: false,
+    adminStatus: false,
+    betaTesterStatus: false,
+    userStatus: false,
+    checkingInProgress: false,
+    lastNetworkErrorTime: null as number | null,
+    lastCheckedTime: null as number | null,
+    lastForceCheckTime: null as number | null,
+    forceUpdate: 0,
+    timeout: null as number | null
+  }).current;
   
   const getUserRolesFromStorageCallback = useCallback(getUserRolesFromStorage, []);
   
   const checkUserRoles = useCallback(async () => {
-    // First check if we have cached roles
-    const cachedRoles = getUserRolesFromStorage();
-    if (cachedRoles) {
-      console.log("Using cached user roles:", cachedRoles);
-      const adminRole = cachedRoles.some(role => role.role === 'admin');
-      const betaRole = cachedRoles.some(role => role.role === 'beta_tester');
-      
-      setIsAdmin(adminRole);
-      setIsBetaTester(betaRole);
-      setShowAdminButton(adminRole);
-      setShowBetaBadge(betaRole);
+    if (refs.checkingInProgress) return;
+    
+    // Don't check too frequently
+    const now = Date.now();
+    if (refs.lastCheckedTime && (now - refs.lastCheckedTime < 10000)) {
+      console.log("Skipping role check, last check was too recent");
+      return;
     }
     
-    // Still proceed with checking roles from the server
     try {
+      refs.checkingInProgress = true;
+      refs.lastCheckedTime = now;
+      
+      if (!refs.rolesInitialized) {
+        setIsCheckingRoles(true);
+      }
+      
+      setRoleCheckError(null);
+      
       let token = session?.access_token;
       
+      // Try to get token from localStorage if session is not available
       if (!token) {
-        // Try to get token from localStorage
         token = localStorage.getItem('userToken');
         console.log("No session token, using token from localStorage:", !!token);
       }
@@ -70,120 +75,187 @@ export const useUserRoles = () => {
       if (!token) {
         console.error("No access token available for role check");
         setIsCheckingRoles(false);
+        refs.checkingInProgress = false;
         return;
       }
       
       // Store token in localStorage for future use
       localStorage.setItem('userToken', token);
       
-      const { data, error } = await supabase.functions.invoke('get-user-roles', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (error) {
-        console.error("Error fetching user roles:", error);
-        
-        // If auth error, try with token in body instead of header
-        if (error.status === 403 || error.status === 401) {
-          console.log("Trying fallback method with token in body");
-          
-          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-user-roles', {
-            body: { token }
-          });
-          
-          if (fallbackError) {
-            console.error("Fallback method also failed:", fallbackError);
-            setRoleCheckError(fallbackError);
-            setIsCheckingRoles(false);
-            return;
+      // Try calling the edge function with the token in the header
+      try {
+        const { data, error } = await supabase.functions.invoke('get-user-roles', {
+          headers: {
+            Authorization: `Bearer ${token}`
           }
-          
-          if (fallbackData && fallbackData.roles) {
-            console.log("Fallback method succeeded:", fallbackData);
-            const roles = fallbackData.roles as UserRole[];
-            
-            localStorage.setItem('userRoles', JSON.stringify(roles));
-            
-            const adminRole = roles.some(role => role.role === 'admin');
-            const betaRole = roles.some(role => role.role === 'beta_tester');
-            
-            setIsAdmin(adminRole);
-            setIsBetaTester(betaRole);
-            setShowAdminButton(adminRole);
-            setShowBetaBadge(betaRole);
-            setRoleCheckError(null);
-            setIsCheckingRoles(false);
-            return;
-          }
-        } else {
-          setRoleCheckError(error);
-          setIsCheckingRoles(false);
-          return;
+        });
+        
+        if (error) {
+          console.error("Error fetching user roles with header token:", error);
+          throw error;
         }
-      }
-
-      if (data && data.roles) {
-        const roles = data.roles as UserRole[];
         
-        // Cache the roles in localStorage
-        localStorage.setItem('userRoles', JSON.stringify(roles));
+        if (data && data.roles) {
+          // Store roles in localStorage
+          localStorage.setItem('userRoles', JSON.stringify(data.roles));
+          
+          const adminRole = data.roles.some(role => role.role === 'admin');
+          const betaRole = data.roles.some(role => role.role === 'beta_tester');
+          const userRole = data.roles.some(role => role.role === 'user');
+          
+          setIsAdmin(adminRole);
+          setIsBetaTester(betaRole);
+          setIsUser(userRole);
+          
+          refs.adminStatus = adminRole;
+          refs.betaTesterStatus = betaRole;
+          refs.userStatus = userRole;
+          refs.rolesInitialized = true;
+        }
+      } catch (headerError) {
+        // If header method fails, try with token in the body
+        console.log("Trying fallback method with token in body");
         
-        const adminRole = roles.some(role => role.role === 'admin');
-        const betaRole = roles.some(role => role.role === 'beta_tester');
-
-        setIsAdmin(adminRole);
-        setIsBetaTester(betaRole);
-        setShowAdminButton(adminRole);
-        setShowBetaBadge(betaRole);
-        setRoleCheckError(null);
-      } else {
-        console.warn("Unexpected data format for user roles:", data);
-        setRoleCheckError(new Error("Unexpected data format for user roles"));
+        const { data, error } = await supabase.functions.invoke('get-user-roles', {
+          body: { token }
+        });
+        
+        if (error) {
+          console.error("Fallback method also failed:", error);
+          throw error;
+        }
+        
+        if (data && data.roles) {
+          console.log("Fallback method succeeded:", data);
+          localStorage.setItem('userRoles', JSON.stringify(data.roles));
+          
+          const adminRole = data.roles.some(role => role.role === 'admin');
+          const betaRole = data.roles.some(role => role.role === 'beta_tester');
+          const userRole = data.roles.some(role => role.role === 'user');
+          
+          setIsAdmin(adminRole);
+          setIsBetaTester(betaRole);
+          setIsUser(userRole);
+          
+          refs.adminStatus = adminRole;
+          refs.betaTesterStatus = betaRole;
+          refs.userStatus = userRole;
+          refs.rolesInitialized = true;
+        }
       }
     } catch (err) {
-      console.error("Error invoking get-user-roles function:", err);
-      setRoleCheckError(err instanceof Error ? err : new Error(String(err)));
+      console.error("Error checking user roles:", err);
+      setRoleCheckError(err instanceof Error ? err.message : String(err));
+      
+      // Try to use cached roles as fallback
+      const cachedRoles = getUserRolesFromStorage();
+      if (cachedRoles) {
+        console.log("Using cached user roles due to error:", cachedRoles);
+        const adminRole = cachedRoles.some(role => role.role === 'admin');
+        const betaRole = cachedRoles.some(role => role.role === 'beta_tester');
+        const userRole = cachedRoles.some(role => role.role === 'user');
+        
+        setIsAdmin(adminRole);
+        setIsBetaTester(betaRole);
+        setIsUser(userRole);
+      }
     } finally {
       setIsCheckingRoles(false);
+      refs.checkingInProgress = false;
     }
-  }, [session]);
+  }, [session, refs, getUserRolesFromStorage]);
 
   const forceRoleCheck = useCallback(() => {
-    setIsCheckingRoles(true);
-    checkUserRoles();
-  }, [checkUserRoles]);
-
-  useEffect(() => {
-    if (session) {
-      setIsCheckingRoles(true);
-      checkUserRoles();
-    } else {
-      // Check if we have a cached userToken
-      const cachedToken = localStorage.getItem('userToken');
-      if (cachedToken) {
-        console.log("No session but found cached token, checking roles");
-        setIsCheckingRoles(true);
-        checkUserRoles();
-      } else {
-        setIsAdmin(false);
-        setIsBetaTester(false);
-        setShowAdminButton(false);
-        setShowBetaBadge(false);
-        setIsCheckingRoles(false);
-      }
+    const now = Date.now();
+    
+    // Don't allow forced checks more often than minimum interval
+    if (refs.lastForceCheckTime && now - refs.lastForceCheckTime < 5000) {
+      console.log("Skipping forced role check, too soon since last force check");
+      return;
     }
-  }, [session, checkUserRoles]);
+    
+    refs.forceUpdate++;
+    refs.lastForceCheckTime = now;
+    refs.lastCheckedTime = null; // Reset the regular check time to bypass throttling
+    
+    console.log("Forced role check triggered", {
+      current: refs.forceUpdate,
+      timestamp: new Date().toISOString()
+    });
+    
+    checkUserRoles();
+  }, [refs, checkUserRoles]);
+
+  // Load cached roles on initial render
+  useEffect(() => {
+    const cachedRoles = getUserRolesFromStorage();
+    if (cachedRoles && !refs.rolesInitialized) {
+      console.log("Initializing with cached user roles:", cachedRoles);
+      const adminRole = cachedRoles.some(role => role.role === 'admin');
+      const betaRole = cachedRoles.some(role => role.role === 'beta_tester');
+      const userRole = cachedRoles.some(role => role.role === 'user');
+      
+      setIsAdmin(adminRole);
+      setIsBetaTester(betaRole);
+      setIsUser(userRole);
+      
+      refs.adminStatus = adminRole;
+      refs.betaTesterStatus = betaRole;
+      refs.userStatus = userRole;
+    }
+  }, [refs]);
+
+  // Check for session changes and fetch roles
+  useEffect(() => {
+    if (session?.user) {
+      // Store access token in localStorage
+      if (session.access_token) {
+        localStorage.setItem('userToken', session.access_token);
+      }
+      
+      // Delay initial check to avoid hammering server
+      const initialTimeout = setTimeout(() => {
+        checkUserRoles();
+        
+        // Set up regular checks at an interval
+        const regularCheckInterval = setInterval(() => {
+          if (!refs.checkingInProgress) {
+            checkUserRoles();
+          }
+        }, 60000); // Check every minute
+        
+        return () => clearInterval(regularCheckInterval);
+      }, 1000);
+      
+      return () => clearTimeout(initialTimeout);
+    } else {
+      // Reset state when session is null
+      if (isAdmin) setIsAdmin(false);
+      if (isBetaTester) setIsBetaTester(false);
+      if (isUser) setIsUser(false);
+      
+      refs.adminStatus = false;
+      refs.betaTesterStatus = false;
+      refs.userStatus = false;
+    }
+  }, [session, checkUserRoles, refs, isAdmin, isBetaTester, isUser]);
+
+  // Make sure showAdminButton and showBetaBadge directly reflect state
+  const showAdminButton = isAdmin;
+  const showBetaBadge = isBetaTester;
 
   return {
     isAdmin,
     isBetaTester,
-    showAdminButton,
-    showBetaBadge,
+    isUser,
     isCheckingRoles,
     roleCheckError,
+    showAdminButton,
+    showBetaBadge,
     forceRoleCheck,
     getUserRolesFromStorage: getUserRolesFromStorageCallback
   };
 };
+
+// Re-export the hook as the default export
+export default useUserRoles;

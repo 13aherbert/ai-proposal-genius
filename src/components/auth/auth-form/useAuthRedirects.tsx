@@ -38,7 +38,7 @@ export const useAuthRedirects = () => {
     // Set a shorter timeout to detect potential auth state hang
     const timeoutId = setTimeout(() => {
       console.log("Auth redirect timeout reached - no state change detected");
-    }, 5000); // Reduced from 10s to 5s for faster detection
+    }, 5000);
     
     // Check current session with a timeout
     const checkSession = async () => {
@@ -115,15 +115,30 @@ export const useAuthRedirects = () => {
     // Ensure we have the token in localStorage
     if (session?.access_token) {
       localStorage.setItem('userToken', session.access_token);
+      console.log("Auth token stored in localStorage");
       
       // Prefetch user roles for faster access later, but don't wait for it
-      supabase.functions.invoke('get-user-roles')
-        .then(({ data, error }) => {
-          if (!error && data?.roles) {
-            localStorage.setItem('userRoles', JSON.stringify(data.roles));
+      Promise.all([
+        // Try with header token
+        supabase.functions.invoke('get-user-roles', {
+          headers: { 
+            Authorization: `Bearer ${session.access_token}` 
           }
+        }).catch(err => {
+          console.error("Failed to prefetch user roles with header:", err);
+          // Fall back to token in body
+          return supabase.functions.invoke('get-user-roles', {
+            body: { token: session.access_token }
+          });
         })
-        .catch(err => console.error("Failed to prefetch user roles:", err));
+      ]).then(([{ data, error }]) => {
+        if (!error && data?.roles) {
+          console.log("Successfully prefetched user roles, storing in localStorage");
+          localStorage.setItem('userRoles', JSON.stringify(data.roles));
+        }
+      }).catch(err => {
+        console.error("All attempts to prefetch user roles failed:", err);
+      });
     }
     
     // Check for invite code in session storage first, then URL

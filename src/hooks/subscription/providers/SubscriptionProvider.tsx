@@ -91,6 +91,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       
       localStorage.setItem('userToken', authToken);
       
+      supabase.auth.setSession({
+        access_token: authToken,
+        refresh_token: ''
+      }).catch(err => {
+        console.warn("Error setting session:", err);
+      });
+      
       console.log("Fetching subscription data from Supabase");
       const { data, error } = await supabase
         .from('subscriptions')

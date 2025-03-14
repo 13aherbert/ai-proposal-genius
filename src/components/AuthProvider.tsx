@@ -196,6 +196,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (error.message === 'Session fetch timed out') {
             console.log('Session check timed out, but token found in localStorage');
+            
+            // If session fetch times out, try using the stored token
+            const storedToken = localStorage.getItem('userToken');
+            if (storedToken) {
+              try {
+                // Try to set session with stored token
+                const { data: tokenData, error: tokenError } = await supabase.auth.setSession({
+                  access_token: storedToken,
+                  refresh_token: ''
+                });
+                
+                if (!tokenError && tokenData?.session) {
+                  if (isSubscribed) {
+                    setSession(tokenData.session);
+                  }
+                  console.log("Session restored from localStorage token");
+                }
+              } catch (e) {
+                console.error("Failed to restore session from token:", e);
+              }
+            }
           }
           
           if (error.message !== "Not authenticated") {
@@ -205,13 +226,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else {
           console.log("Session fetch complete:", data.session ? "Session found" : "No session");
-        }
-        
-        if (isSubscribed) {
-          setSession(data.session);
           
-          if (data.session?.access_token) {
-            localStorage.setItem('userToken', data.session.access_token);
+          if (isSubscribed) {
+            setSession(data.session);
+            
+            if (data.session?.access_token) {
+              localStorage.setItem('userToken', data.session.access_token);
+            }
           }
         }
       } catch (e) {
@@ -242,6 +263,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem('userToken', currentSession.access_token);
             
             try {
+              // Fetch user roles in the background for faster access
               Promise.race([
                 supabase.functions.invoke('get-user-roles', {
                   headers: {

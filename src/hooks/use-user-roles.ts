@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,23 @@ type UserRoles = {
   roles: UserRole[];
 };
 
+// Export the getUserRolesFromStorage function directly so it can be imported separately
+export const getUserRolesFromStorage = (): UserRole[] | null => {
+  try {
+    const rolesData = localStorage.getItem('userRoles');
+    if (rolesData) {
+      const parsedData = JSON.parse(rolesData);
+      if (parsedData && Array.isArray(parsedData)) {
+        return parsedData as UserRole[];
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error parsing user roles from localStorage:", error);
+    return null;
+  }
+};
+
 export const useUserRoles = () => {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -23,21 +41,7 @@ export const useUserRoles = () => {
   const [isCheckingRoles, setIsCheckingRoles] = useState(true);
   const [roleCheckError, setRoleCheckError] = useState<Error | null>(null);
   
-  const getUserRolesFromStorage = useCallback(() => {
-    try {
-      const rolesData = localStorage.getItem('userRoles');
-      if (rolesData) {
-        const parsedData = JSON.parse(rolesData);
-        if (parsedData && Array.isArray(parsedData)) {
-          return parsedData as UserRole[];
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Error parsing user roles from localStorage:", error);
-      return null;
-    }
-  }, []);
+  const getUserRolesFromStorageCallback = useCallback(getUserRolesFromStorage, []);
   
   const checkUserRoles = useCallback(async () => {
     if (!session?.access_token) {
@@ -106,6 +110,6 @@ export const useUserRoles = () => {
     isCheckingRoles,
     roleCheckError,
     forceRoleCheck,
-    getUserRolesFromStorage
+    getUserRolesFromStorage: getUserRolesFromStorageCallback
   };
 };

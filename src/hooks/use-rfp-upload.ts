@@ -22,8 +22,8 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  // Check if user is on the starter plan
-  const isUserStarter = isStarterUser();
+  // Check if user is on the starter plan - only check exact user ID
+  const isUserStarter = session?.user?.id === STARTER_USER_ID;
   
   // Determine the project limit based on user's subscription plan
   const projectLimit = isUserStarter 

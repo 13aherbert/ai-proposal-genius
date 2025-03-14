@@ -121,12 +121,15 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
 // Check if a specific "starter" user ID
 export function isStarterUser(): boolean {
   try {
+    // Only check the user ID, don't rely on localStorage subscription data
+    // which might be out of sync with the actual subscription
     const data = localStorage.getItem('sb-bmopbbkfxkgzlbmhhgox-auth-token');
     if (!data) return false;
     
     const { user } = JSON.parse(data);
     return user?.id === STARTER_USER_ID;
   } catch (e) {
+    console.error("Error checking starter user status:", e);
     return false;
   }
 }

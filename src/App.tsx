@@ -1,7 +1,6 @@
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 
 // Pages
@@ -28,154 +27,138 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect, BetaInviteRedirect } from "./components/routing/Redirects";
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <ErrorBoundary>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/upload-rfp"
-                  element={
-                    <ProtectedRoute>
-                      <UploadRFP />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Primary project routes */}
-                <Route
-                  path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <RecentProjects />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects/:projectId"
-                  element={
-                    <ProtectedRoute>
-                      <ProjectDetails />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Legacy route redirects for backward compatibility */}
-                <Route
-                  path="/recent-projects"
-                  element={
-                    <ProtectedRoute>
-                      <RecentProjectsRedirect />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/project/:projectId"
-                  element={
-                    <ProtectedRoute>
-                      <ProjectDetailsRedirect />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                <Route
-                  path="/subscription"
-                  element={
-                    <ProtectedRoute>
-                      <Subscription />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/knowledge-base"
-                  element={
-                    <ProtectedRoute>
-                      <KnowledgeBase />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/account-settings"
-                  element={
-                    <ProtectedRoute>
-                      <AccountSettings />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
-                <Route path="/beta" element={<BetaProgram />} />
-                <Route
-                  path="/beta/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <BetaProgram />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/beta/roadmap"
-                  element={
-                    <ProtectedRoute>
-                      <BetaRoadmap />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Legacy beta invite redirect */}
-                <Route path="/beta-invite" element={<BetaInviteRedirect />} />
-                
-                {/* Admin Routes */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/setup"
-                  element={
-                    <ProtectedRoute>
-                      <SetInitialAdmin />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/docs" element={<Documentation />} />
-                <Route path="/docs/:docId" element={<Documentation />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ErrorBoundary>
-            <Toaster position="top-right" richColors closeButton />
-            <NetworkStatusIndicator />
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload-rfp"
+            element={
+              <ProtectedRoute>
+                <UploadRFP />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Primary project routes */}
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <RecentProjects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectDetails />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Legacy route redirects for backward compatibility */}
+          <Route
+            path="/recent-projects"
+            element={
+              <ProtectedRoute>
+                <RecentProjectsRedirect />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectDetailsRedirect />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/subscription"
+            element={
+              <ProtectedRoute>
+                <Subscription />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/knowledge-base"
+            element={
+              <ProtectedRoute>
+                <KnowledgeBase />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account-settings"
+            element={
+              <ProtectedRoute>
+                <AccountSettings />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
+          <Route path="/beta" element={<BetaProgram />} />
+          <Route
+            path="/beta/dashboard"
+            element={
+              <ProtectedRoute>
+                <BetaProgram />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/beta/roadmap"
+            element={
+              <ProtectedRoute>
+                <BetaRoadmap />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Legacy beta invite redirect */}
+          <Route path="/beta-invite" element={<BetaInviteRedirect />} />
+          
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/setup"
+            element={
+              <ProtectedRoute>
+                <SetInitialAdmin />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/docs" element={<Documentation />} />
+          <Route path="/docs/:docId" element={<Documentation />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster position="top-right" richColors closeButton />
+        <NetworkStatusIndicator />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

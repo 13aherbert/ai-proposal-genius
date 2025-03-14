@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useAuth } from '@/components/AuthProvider';
@@ -64,7 +63,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     hasFailedPayment,
   } = useSubscription();
   
-  // Initialize and ensure data is loaded
   useEffect(() => {
     if (!isInitialized && session?.user && !isLoadingStatus) {
       console.log("Initializing AuthUserContext");
@@ -73,7 +71,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session, isInitialized, isLoadingStatus, fetchUserStatus]);
   
-  // Reset when session changes
   useEffect(() => {
     if (session?.user?.id) {
       setIsInitialized(false);
@@ -89,30 +86,25 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthUserContext.Provider
       value={{
-        // Auth state
         session,
         isLoadingAuth,
         isAuthenticated: !!session?.user,
         
-        // User roles and permissions
         isAdmin,
         isBetaTester,
         isUser,
         roles,
         hasRole,
         
-        // User status
         status,
         isLoadingStatus,
         subscription,
         
-        // Subscription status functions - Pass the functions directly
         isActive,
         isInGracePeriod,
         isPastGracePeriod,
         hasFailedPayment,
         
-        // Actions
         refreshUserStatus,
         getProjectLimit,
         getSubscriptionPlan,

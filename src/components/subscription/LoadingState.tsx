@@ -33,9 +33,10 @@ export function LoadingState() {
   useEffect(() => {
     const checkNetwork = async () => {
       try {
-        // Try to ping Supabase
+        // Try to ping Supabase - using the URL from integrations/supabase/client.ts
         const start = Date.now();
-        await fetch(`${supabase.supabaseUrl}/auth/v1/health`, {
+        // Use a direct URL instead of accessing the protected supabaseUrl property
+        await fetch("https://bmopbbkfxkgzlbmhhgox.supabase.co/auth/v1/health", {
           method: 'GET',
           cache: 'no-store',
           headers: {

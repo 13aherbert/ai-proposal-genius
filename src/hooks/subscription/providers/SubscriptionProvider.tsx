@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -62,6 +61,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authToken = sessionData?.session?.access_token;
+      
+      if (!authToken) {
+        console.error("No authentication token available");
+        return null;
+      }
+      
       console.log("Fetching subscription data from Supabase");
       const { data, error } = await supabase
         .from('subscriptions')
@@ -78,7 +85,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (data) {
         console.log("Subscription data received:", data);
         
-        // Properly cast the status to SubscriptionStatus type and ensure features is an object
         const typedSubscription: SubscriptionPlan = {
           ...data,
           status: data.status as SubscriptionStatus,
@@ -209,7 +215,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Load cached subscription data on mount
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -232,7 +237,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id, subscription]);
 
-  // Check if user is a starter user
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -243,7 +247,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id]);
 
-  // Perform initial subscription check
   useEffect(() => {
     if (initialCheckCompleted.current) return;
     
@@ -264,7 +267,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id, initialFetchCompleted]);
 
-  // Handle force recheck
   useEffect(() => {
     if (forceRecheckFlag > 0 && session?.user) {
       console.log("Force rechecking subscription");
@@ -274,7 +276,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [forceRecheckFlag, session?.user?.id]);
 
-  // Set up auto-refresh
   useAutoRefresh(session, checkSubscription);
 
   return (

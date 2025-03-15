@@ -143,7 +143,7 @@ export const AuthGuard = ({
 
   // Show warning for failed payments, but still allow access
   const isSubscriptionPage = location.pathname === '/subscription';
-  if (hasFailedPayment() && !isSubscriptionPage && subscription?.plan_type !== 'pro') {
+  if (hasFailedPayment && !isSubscriptionPage && subscription?.plan_type !== 'pro') {
     return (
       <div className="relative">
         <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">
@@ -164,7 +164,7 @@ export const AuthGuard = ({
   }
 
   // Show grace period banner but still allow access
-  if (isInGracePeriod() && !isSubscriptionPage && subscription?.plan_type !== 'pro') {
+  if (isInGracePeriod && !isSubscriptionPage && subscription?.plan_type !== 'pro') {
     return (
       <div className="relative">
         <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">

@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserStatus } from '@/hooks/use-user-status';
-import { useSubscription } from '@/hooks/use-subscription';
+import { useSubscription } from '@/hooks/auth/useSubscription';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useNetworkStatus } from './useNetworkStatus';
 import { useErrorRecovery } from './useErrorRecovery';
@@ -44,11 +44,15 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   // Network status management
   const networkStatus = useNetworkStatus();
   
-  // Subscription helper functions
-  const subscriptionHelpers = useSubscription();
+  // Subscription helper functions using the new approach that returns boolean properties
+  const subscriptionHelpers = useSubscription(subscription);
   
   // Error recovery functionality
-  const errorRecovery = useErrorRecovery(session, networkStatus.isOffline, fetchUserStatus);
+  const errorRecovery = useErrorRecovery(
+    session,
+    networkStatus.isOffline,
+    fetchUserStatus
+  );
   
   // User status initialization and refresh functionality
   const userStatusRefresh = useUserStatusRefresh(
@@ -84,13 +88,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoadingAuth, initializationComplete]);
   
-  // Create computed properties for subscription status
-  // Using memoized values instead of functions to match the expected type
-  const isActive = subscriptionHelpers.isActive();
-  const isInGracePeriod = subscriptionHelpers.isInGracePeriod();
-  const isPastGracePeriod = subscriptionHelpers.isPastGracePeriod();
-  const hasFailedPayment = subscriptionHelpers.hasFailedPayment();
-  
   return (
     <ErrorBoundary name="AuthUserContext">
       <AuthUserContext.Provider
@@ -112,11 +109,11 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Subscription status functions - now properties
-          isActive,
-          isInGracePeriod,
-          isPastGracePeriod,
-          hasFailedPayment,
+          // Subscription status properties
+          isActive: subscriptionHelpers.isActive,
+          isInGracePeriod: subscriptionHelpers.isInGracePeriod,
+          isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,
+          hasFailedPayment: subscriptionHelpers.hasFailedPayment,
           
           // Actions
           refreshUserStatus: userStatusRefresh.refreshUserStatus,

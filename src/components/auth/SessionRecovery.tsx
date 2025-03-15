@@ -5,6 +5,7 @@ import { useAuthUser } from '@/hooks/auth/AuthUserContext';
 import { useAuthPersistence } from '@/hooks/auth/useAuthPersistence';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SessionRecoveryProps {
   onSuccess?: () => void;
@@ -17,13 +18,26 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
   const [isRecovering, setIsRecovering] = useState(false);
   const [recoveryFailed, setRecoveryFailed] = useState(false);
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+  const [showRecoveryOptions, setShowRecoveryOptions] = useState(false);
 
+  // Check if there's a stuck loading state
   useEffect(() => {
-    if (lastError && !isOffline && !isRecovering && recoveryAttempt === 0) {
-      // Auto-attempt recovery once
+    // After 10 seconds, show recovery options if we're still seeing errors
+    const timeoutId = setTimeout(() => {
+      if (lastError || recoveryAttempts > 0) {
+        setShowRecoveryOptions(true);
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [lastError, recoveryAttempts]);
+
+  // Auto-attempt recovery once
+  useEffect(() => {
+    if ((lastError || showRecoveryOptions) && !isOffline && !isRecovering && recoveryAttempt === 0) {
       handleRecovery();
     }
-  }, [lastError, isOffline, isRecovering, recoveryAttempt]);
+  }, [lastError, isOffline, isRecovering, recoveryAttempt, showRecoveryOptions]);
 
   const handleRecovery = async () => {
     if (isRecovering) return;
@@ -32,6 +46,21 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
     setRecoveryAttempt(prev => prev + 1);
     
     try {
+      // Try all possible recovery methods
+      console.log("Attempting full session recovery process");
+      
+      // 1. Try a complete signout and reload approach if multiple attempts fail
+      if (recoveryAttempt >= 2) {
+        await supabase.auth.signOut();
+        localStorage.clear();
+        toast.success("Session reset complete", {
+          description: "Redirecting to login page..."
+        });
+        setTimeout(() => window.location.href = '/login', 1500);
+        return;
+      }
+      
+      // 2. Try standard session restore
       const session = await restoreSession();
       
       if (session) {
@@ -43,9 +72,19 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
         if (onSuccess) {
           onSuccess();
         }
-      } else {
-        throw new Error("Could not restore session");
+        return;
       }
+      
+      // 3. Try the authentication retry mechanism
+      await retryAuthentication();
+      setRecoveryFailed(false);
+      
+      toast.success("Authentication recovered successfully");
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      
     } catch (error) {
       console.error("Session recovery failed:", error);
       setRecoveryFailed(true);
@@ -62,13 +101,6 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
         toast.error("Failed to recover session", {
           description: "Trying alternate method..."
         });
-        
-        // Try the other recovery mechanism
-        try {
-          await retryAuthentication();
-        } catch (e) {
-          console.error("Secondary recovery method failed:", e);
-        }
       }
     } finally {
       setIsRecovering(false);
@@ -78,10 +110,16 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
   const handleSignOut = () => {
     // Clear local storage and redirect to login
     localStorage.clear();
-    window.location.href = '/login';
+    supabase.auth.signOut().then(() => {
+      window.location.href = '/login';
+    });
   };
 
-  if (!lastError) {
+  const handleReload = () => {
+    window.location.reload();
+  };
+
+  if (!lastError && !showRecoveryOptions) {
     return null;
   }
 
@@ -93,12 +131,12 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
             <AlertTriangle className="h-6 w-6 text-amber-600" />
           </div>
           
-          <h2 className="text-xl font-semibold mb-2">Session Error</h2>
+          <h2 className="text-xl font-semibold mb-2">Session Issue Detected</h2>
           
           <p className="text-muted-foreground mb-4">
             {isOffline 
               ? "You're currently offline. Please check your connection and try again." 
-              : "There was a problem with your session. We're trying to recover it automatically."}
+              : "There was a problem with your authentication session. We're trying to recover it automatically."}
           </p>
           
           {lastError && (
@@ -124,6 +162,14 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
               </Button>
             )}
             
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleReload}
+            >
+              Reload Page
+            </Button>
+            
             {(recoveryFailed || recoveryAttempt > 1 || recoveryAttempts > 1) && (
               <Button 
                 variant="outline" 
@@ -134,6 +180,10 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
               </Button>
             )}
           </div>
+          
+          <p className="text-xs text-muted-foreground mt-4">
+            If problems persist, try clearing your browser cache or using incognito mode.
+          </p>
         </div>
       </div>
     </div>

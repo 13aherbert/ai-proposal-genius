@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -110,7 +109,7 @@ export function useAuthPersistence() {
     }
     
     return null;
-  }, [shouldRefreshToken]);
+  }, [shouldRefreshToken, persistSession]);
   
   const restoreSession = useCallback(async (): Promise<Session | null> => {
     if (!navigator.onLine) {
@@ -150,7 +149,6 @@ export function useAuthPersistence() {
       }
       
       const accessToken = localStorage.getItem(AUTH_TOKEN_KEY);
-      const storedRefreshToken = localStorage.getItem(AUTH_REFRESH_KEY);
       
       if (!accessToken) {
         recoveryInProgress.current = false;
@@ -159,31 +157,46 @@ export function useAuthPersistence() {
       
       console.log("Attempting to restore session from localStorage");
       
-      const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: storedRefreshToken || '',
-      });
-      
-      if (error) {
-        console.error("Error restoring session:", error);
-        if (error.message.includes('invalid') || error.message.includes('expired')) {
-          clearPersistedSession();
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+        
+        if (userError) {
+          console.error("Error validating token:", userError);
+          if (userError.message.includes('invalid') || userError.message.includes('expired')) {
+            clearPersistedSession();
+          }
+          recoveryInProgress.current = false;
+          return null;
         }
-        recoveryInProgress.current = false;
-        return null;
-      }
-      
-      if (data?.session) {
-        console.log("Session successfully restored from localStorage");
         
-        persistSession(
-          data.session.access_token,
-          data.session.refresh_token,
-          data.session.expires_at
-        );
-        
-        recoveryInProgress.current = false;
-        return data.session;
+        if (userData?.user) {
+          const storedRefreshToken = localStorage.getItem(AUTH_REFRESH_KEY) || '';
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: storedRefreshToken,
+          });
+          
+          if (error) {
+            console.error("Error setting session:", error);
+            recoveryInProgress.current = false;
+            return null;
+          }
+          
+          if (data?.session) {
+            console.log("Session successfully restored from localStorage");
+            
+            persistSession(
+              data.session.access_token,
+              data.session.refresh_token,
+              data.session.expires_at
+            );
+            
+            recoveryInProgress.current = false;
+            return data.session;
+          }
+        }
+      } catch (err) {
+        console.error("Exception validating token:", err);
       }
     } catch (err) {
       console.error("Exception restoring session:", err);

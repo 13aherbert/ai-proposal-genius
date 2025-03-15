@@ -1,3 +1,4 @@
+
 /**
  * Subscription Page Component
  * 
@@ -57,7 +58,7 @@ export default function Subscription() {
       
       const hasActiveSubscription = subscription.subscription?.status === 'active' && subscription.subscription?.plan_type !== 'trial';
       const hasFailedSubscriptionPayment = subscription.subscription?.status === 'past_due' || subscription.subscription?.status === 'unpaid';
-      // Fix: Call isInGracePeriod as a function without arguments
+      // Fix: Call isInGracePeriod as a function
       const needsRenewal = subscription.isInGracePeriod() || hasFailedSubscriptionPayment;
       
       if (hasActiveSubscription && !needsRenewal) {
@@ -78,8 +79,8 @@ export default function Subscription() {
   if (showRenewalPrompt) {
     return (
       <RenewalPrompt
-        // Fix: Call isInGracePeriod as a function
-        isInGracePeriod={subscription.isInGracePeriod()}
+        // Fix: Pass the function itself instead of its return value
+        isInGracePeriod={subscription.isInGracePeriod}
         handleUpdatePayment={handleUpdatePayment}
         isUpdatingPayment={isUpdatingPayment}
         setShowRenewalPrompt={setShowRenewalPrompt}

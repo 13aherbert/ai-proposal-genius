@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SubscriptionPlan, SubscriptionStatus, toSubscriptionPlan } from "@/types/subscription";
+import type { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
+import { toSubscriptionPlan } from "@/types/subscription";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,

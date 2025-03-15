@@ -1,8 +1,8 @@
 
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderOpen, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
-import { memo } from 'react';
 
 export interface RecentActivity {
   type: 'project' | 'knowledge';
@@ -18,15 +18,9 @@ interface RecentActivityListProps {
   onActivityClick: (activity: RecentActivity) => void;
 }
 
-// Use memo to prevent unnecessary re-renders
-export const RecentActivityList = memo(({ activities, isLoading, onActivityClick }: RecentActivityListProps) => {
+export const RecentActivityList = ({ activities, isLoading, onActivityClick }: RecentActivityListProps) => {
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-4">
-        <Loader2 className="h-5 w-5 text-white animate-spin mr-2" />
-        <p className="text-white text-center">Loading recent activity...</p>
-      </div>
-    );
+    return <p className="text-white text-center py-4">Loading recent activity...</p>;
   }
 
   if (activities.length === 0) {
@@ -39,6 +33,7 @@ export const RecentActivityList = memo(({ activities, isLoading, onActivityClick
         <div
           key={`${activity.type}-${activity.id}`}
           className="flex items-center justify-between p-2 md:p-3 rounded-lg hover:bg-black/40 transition-colors"
+          onClick={() => onActivityClick(activity)}
         >
           <div className="flex items-center gap-3 min-w-0">
             {activity.type === 'project' ? (
@@ -57,7 +52,6 @@ export const RecentActivityList = memo(({ activities, isLoading, onActivityClick
             variant="ghost" 
             size="sm"
             className="text-brand-green hover:text-brand-green/80 hover:bg-brand-green/10 ml-2 shrink-0"
-            onClick={() => onActivityClick(activity)}
           >
             View
           </Button>
@@ -65,7 +59,4 @@ export const RecentActivityList = memo(({ activities, isLoading, onActivityClick
       ))}
     </div>
   );
-});
-
-// Add display name for debugging
-RecentActivityList.displayName = 'RecentActivityList';
+};

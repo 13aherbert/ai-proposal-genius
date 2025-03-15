@@ -46,11 +46,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const lastCheckTime = useRef<number>(0);
   
   const { 
-    isPastGracePeriod, 
-    isInGracePeriod, 
-    isActive, 
-    hasFailedPayment 
-  } = useSubscriptionCheckers();
+    checkIsPastGracePeriod, 
+    checkIsInGracePeriod, 
+    checkIsActive, 
+    checkHasFailedPayment 
+  } = useSubscriptionCheckers(subscription);
 
   const rawCheckSubscription = async (forceRecheck?: boolean) => {
     console.log("Checking subscription, force:", forceRecheck);
@@ -317,10 +317,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         error,
         checkSubscription,
         renewSubscription,
-        isPastGracePeriod: () => isPastGracePeriod,
-        isInGracePeriod: () => isInGracePeriod,
-        isActive: () => isActive,
-        hasFailedPayment: () => hasFailedPayment
+        isPastGracePeriod: checkIsPastGracePeriod,
+        isInGracePeriod: checkIsInGracePeriod,
+        isActive: checkIsActive,
+        hasFailedPayment: checkHasFailedPayment
       }}
     >
       {children}

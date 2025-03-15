@@ -19,53 +19,14 @@ export function LoadingState() {
   const isAttempting = useRef(false);
   const [loadingTime, setLoadingTime] = useState(0);
   const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
-  const progressTimeout = useRef<number | null>(null);
-  const maxLoadTime = 20; // seconds before allowing user to proceed anyway
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLoadingTime(prev => {
-        const newTime = prev + 1;
-        if (newTime === 3) {
-          setLoadingTooLong(true);
-        }
-        return newTime;
-      });
+      setLoadingTime(prev => prev + 1);
     }, 1000);
     
     return () => clearInterval(interval);
   }, []);
-
-  // Auto-progress to dashboard if taking too long
-  useEffect(() => {
-    if (loadingTime >= maxLoadTime && !progressTimeout.current) {
-      console.log("Loading subscription is taking too long, preparing to auto-progress");
-      
-      progressTimeout.current = window.setTimeout(() => {
-        console.log("Maximum load time exceeded, redirecting to dashboard");
-        tryLoadingFromCache();
-        
-        // Dispatch event to signal we're skipping subscription loading
-        window.dispatchEvent(new CustomEvent('skipSubscriptionLoading', { 
-          detail: { reason: 'timeout' } 
-        }));
-        
-        // Redirect to dashboard after showing toast
-        toast.info("Proceeding to dashboard", {
-          description: "Subscription data will continue loading in background",
-          duration: 3000,
-        });
-        
-        window.location.href = '/dashboard';
-      }, 2000);
-    }
-    
-    return () => {
-      if (progressTimeout.current) {
-        clearTimeout(progressTimeout.current);
-      }
-    };
-  }, [loadingTime]);
 
   useEffect(() => {
     const checkNetwork = async () => {
@@ -158,18 +119,9 @@ export function LoadingState() {
     window.addEventListener('subscriptionCacheLoaded', handleCacheLoaded as EventListener);
     window.addEventListener('subscriptionLoaded', handleDataLoaded as EventListener);
     
-    // Listen for skip event from parent components
-    const handleSkipLoading = () => {
-      console.log("Received skipSubscriptionLoading event");
-      setLoadedFromLocal(true);
-    };
-    
-    window.addEventListener('skipSubscriptionLoading', handleSkipLoading);
-    
     return () => {
       window.removeEventListener('subscriptionCacheLoaded', handleCacheLoaded as EventListener);
       window.removeEventListener('subscriptionLoaded', handleDataLoaded as EventListener);
-      window.removeEventListener('skipSubscriptionLoading', handleSkipLoading);
     };
   }, []);
 
@@ -181,8 +133,13 @@ export function LoadingState() {
       setRetryCount(prev => prev + 1);
     }, retryCount === 0 ? 1000 : 500);
     
+    const loadingTooLongId = setTimeout(() => {
+      setLoadingTooLong(true);
+    }, 2000);
+    
     return () => {
       clearTimeout(timeoutId);
+      clearTimeout(loadingTooLongId);
     };
   }, [retryCount, loadedFromLocal]);
 
@@ -409,26 +366,6 @@ export function LoadingState() {
     window.location.reload();
   };
 
-  const handleSkipAndProceed = () => {
-    // Try loading from cache first
-    tryLoadingFromCache();
-    
-    // Dispatch event to signal we're skipping
-    window.dispatchEvent(new CustomEvent('skipSubscriptionLoading', { 
-      detail: { reason: 'userRequested' } 
-    }));
-    
-    // Redirect to dashboard
-    toast.info("Proceeding to dashboard", {
-      description: "Subscription data will continue loading in the background"
-    });
-    
-    // Slight delay to show toast
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 500);
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
       <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
@@ -471,14 +408,6 @@ export function LoadingState() {
               <RefreshCw className="mr-2 h-4 w-4" />
               Retry Connection
             </button>
-            {loadingTime > 5 && (
-              <button
-                onClick={handleSkipAndProceed}
-                className="mt-2 px-4 py-2 bg-primary/80 text-white rounded-md text-sm hover:bg-primary"
-              >
-                Continue to Dashboard
-              </button>
-            )}
             {loadingTime > 10 && (
               <button
                 onClick={() => {

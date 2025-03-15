@@ -1,3 +1,4 @@
+
 import { useSubscription as useSubscriptionHook, SubscriptionProvider } from './subscription/providers/SubscriptionProvider';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,8 +121,7 @@ const useSubscriptionWithFallback = () => {
         } catch (err) {
           console.error("Error in direct subscription fetch:", err);
           if (isNetworkError(err)) {
-            const errorMessage = getNetworkErrorMessage(err);
-            toast.error(errorMessage);
+            toast.error(getNetworkErrorMessage(err));
           }
         } finally {
           isAttemptingFallback.current = false;

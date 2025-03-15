@@ -15,9 +15,84 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Auth header present:", !!req.headers.get('Authorization'));
+  
   try {
-    // Get user ID from auth context or headers
-    const userId = await extractUserId(req);
+    // Get user ID from auth context
+    const authUser = req.headers.get('x-supabase-auth-user');
+    let userId = null;
+    
+    if (authUser) {
+      try {
+        userId = JSON.parse(authUser).id;
+        console.log("Retrieved user ID from auth context:", userId);
+      } catch (e) {
+        console.error("Failed to parse auth user:", e);
+      }
+    }
+    
+    // If no user ID found in auth context, try getting it from Authorization header or request body
+    if (!userId) {
+      // Get authorization header
+      const authHeader = req.headers.get('Authorization');
+      let token = null;
+      
+      // Try header auth first
+      if (authHeader) {
+        token = authHeader.replace('Bearer ', '');
+        console.log("Using token from Authorization header");
+      } else {
+        // Try to get token from JSON body if not in headers
+        try {
+          // Check if there's a body first by checking content-length
+          const contentLength = req.headers.get('content-length');
+          const hasBody = contentLength && parseInt(contentLength) > 0;
+          
+          if (hasBody) {
+            const clonedReq = req.clone();
+            try {
+              const body = await clonedReq.json();
+              if (body?.token) {
+                token = body.token;
+                console.log("Found token in request body");
+              }
+            } catch (parseError) {
+              console.error("Error parsing request body:", parseError);
+            }
+          } else {
+            console.log("Request has empty body (content-length: 0)");
+          }
+        } catch (e) {
+          console.error("Error accessing request body:", e);
+        }
+      }
+      
+      // If we still don't have userId but we have a token, try to validate it
+      if (!userId && token) {
+        try {
+          // Create Supabase client
+          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+          
+          if (!supabaseUrl || !supabaseKey) {
+            throw new Error("Missing Supabase environment variables");
+          }
+          
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+          if (userError || !user) {
+            console.error("Error getting user from token:", userError);
+            throw new Error("Invalid token");
+          }
+          
+          userId = user.id;
+          console.log("Extracted user ID from token:", userId);
+        } catch (tokenError) {
+          console.error("Failed to validate token:", tokenError);
+        }
+      }
+    }
     
     // Return error if no userId is provided
     if (!userId) {
@@ -45,35 +120,61 @@ serve(async (req) => {
     
     console.log("Fetching user roles for user ID:", userId);
     
-    // Get user roles using our new optimized function
-    const { data: roleRecords, error: getRolesError } = await adminClient.rpc(
-      'get_all_user_roles_by_id',
-      { user_id_param: userId }
-    );
+    // Try direct RPC function first (most reliable approach)
+    try {
+      const { data: adminStatus, error: adminError } = await adminClient.rpc('direct_admin_check', { 
+        user_id_param: userId 
+      });
+      
+      if (!adminError) {
+        console.log("Admin check via RPC:", adminStatus);
+      }
+      
+      // Get user roles via direct database query using the service role client
+      const { data: roleRecords, error: getRolesError } = await adminClient
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (getRolesError) {
-      throw new Error(`Error fetching user roles: ${getRolesError.message}`);
+      if (getRolesError) {
+        throw new Error(`Error fetching user roles: ${getRolesError.message}`);
+      }
+
+      console.log(`Successfully fetched ${roleRecords?.length || 0} user roles`);
+      return new Response(
+        JSON.stringify({ 
+          roles: roleRecords || [],
+          adminCheckResult: adminStatus
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (error) {
+      console.error("Error executing query:", error);
+      
+      // Try fallback if we hit a recursion issue
+      if (error.message?.includes("infinite recursion")) {
+        try {
+          console.log("Using RPC fallback to avoid recursion");
+          const { data: rpcRoles, error: rpcError } = await adminClient
+            .rpc('get_all_user_roles_by_id', { user_id_param: userId });
+            
+          if (rpcError) {
+            throw rpcError;
+          }
+          
+          console.log(`Successfully fetched ${rpcRoles?.length || 0} user roles via RPC`);
+          return new Response(
+            JSON.stringify({ roles: rpcRoles || [] }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } catch (rpcFallbackError) {
+          console.error("RPC fallback failed:", rpcFallbackError);
+          throw rpcFallbackError;
+        }
+      } else {
+        throw error;
+      }
     }
-
-    // Get user status for admin check and other roles
-    const { data: userStatus, error: statusError } = await adminClient.rpc(
-      'check_user_status',
-      { user_id_param: userId }
-    );
-
-    if (statusError) {
-      console.warn(`Status check error: ${statusError.message}, continuing with roles only`);
-    }
-
-    console.log(`Successfully fetched ${roleRecords?.length || 0} user roles`);
-    return new Response(
-      JSON.stringify({ 
-        roles: roleRecords || [],
-        status: userStatus || null,
-        timestamp: Date.now()
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("Server error:", error);
     
@@ -88,91 +189,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to extract user ID from request
-async function extractUserId(req: Request): Promise<string | null> {
-  // Try auth context first (most reliable)
-  const authUser = req.headers.get('x-supabase-auth-user');
-  if (authUser) {
-    try {
-      const userId = JSON.parse(authUser).id;
-      console.log("Retrieved user ID from auth context:", userId);
-      return userId;
-    } catch (e) {
-      console.error("Failed to parse auth user:", e);
-    }
-  }
-  
-  // Try authorization header
-  const authHeader = req.headers.get('Authorization');
-  if (authHeader) {
-    const token = authHeader.replace('Bearer ', '');
-    console.log("Using token from Authorization header");
-    
-    try {
-      // Create Supabase client
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-      const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Missing Supabase environment variables");
-      }
-      
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-      if (userError || !user) {
-        console.error("Error getting user from token:", userError);
-        return null;
-      }
-      
-      console.log("Extracted user ID from token:", user.id);
-      return user.id;
-    } catch (tokenError) {
-      console.error("Failed to validate token:", tokenError);
-    }
-  }
-  
-  // Try request body as last resort
-  try {
-    // Check if there's a body by checking content-length
-    const contentLength = req.headers.get('content-length');
-    const hasBody = contentLength && parseInt(contentLength) > 0;
-    
-    if (hasBody) {
-      const clonedReq = req.clone();
-      const body = await clonedReq.json();
-      if (body?.userId) {
-        console.log("Found userId in request body");
-        return body.userId;
-      } else if (body?.token) {
-        // Use token from body to get user ID
-        try {
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-          const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-          
-          if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Missing Supabase environment variables");
-          }
-          
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          const { data: { user }, error: userError } = await supabase.auth.getUser(body.token);
-
-          if (userError || !user) {
-            console.error("Error getting user from token in body:", userError);
-            return null;
-          }
-          
-          console.log("Extracted user ID from token in body:", user.id);
-          return user.id;
-        } catch (tokenError) {
-          console.error("Failed to validate token from body:", tokenError);
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Error accessing request body:", e);
-  }
-  
-  return null;
-}

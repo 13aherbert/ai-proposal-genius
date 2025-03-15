@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -16,6 +17,7 @@ import {
 import { withRetry } from '@/utils/network/retry';
 import { withRateLimitByKey } from '@/utils/network/rate-limit';
 import { supabase } from '@/integrations/supabase/client';
+import { useNetwork } from '@/hooks/network';
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   data: null,
@@ -39,6 +41,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
+  const { isOnline, checkConnection } = useNetwork();
   
   const initialCheckCompleted = useRef(false);
   const isUserStarter = useRef<boolean>(false);
@@ -54,6 +57,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const rawCheckSubscription = async (forceRecheck?: boolean) => {
     console.log("Checking subscription, force:", forceRecheck);
+
+    // First check if we're online to avoid unnecessary failures
+    const online = await checkConnection();
+    if (!online) {
+      console.log("Device is offline, using cached subscription data");
+      const cachedData = getStoredSubscriptionData();
+      if (cachedData) {
+        console.log("Using cached subscription data during offline mode");
+        setSubscription(cachedData);
+        setLoading(false);
+        return null;
+      }
+      
+      // If no cached data, we'll just have to wait until back online
+      console.log("No cached subscription data available offline");
+      return null;
+    }
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -162,6 +182,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       subscriptionCheckInProgress.current = true;
       lastCheckTime.current = now;
+      
+      // Check network status first
+      const online = await checkConnection();
+      if (!online) {
+        console.log("Offline - using cached subscription data");
+        const cachedData = getStoredSubscriptionData();
+        if (cachedData && !subscription) {
+          console.log("Setting cached subscription data during offline mode");
+          setSubscription(cachedData);
+          setLoading(false);
+        }
+        return;
+      }
       
       await withRetry(
         () => rawCheckSubscription(forceRecheck),
@@ -306,6 +339,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [forceRecheckFlag, session?.user?.id]);
 
   useAutoRefresh(session, checkSubscription);
+
+  // Add a network status effect
+  useEffect(() => {
+    // When coming back online, check subscription if we have a session
+    if (isOnline && session?.user && initialCheckCompleted.current) {
+      console.log("Network restored - rechecking subscription");
+      setTimeout(() => {
+        checkSubscription(true).catch(err => {
+          console.error("Error during subscription recheck after network restore:", err);
+        });
+      }, 1000);
+    }
+  }, [isOnline, session?.user]);
 
   return (
     <SubscriptionContext.Provider 

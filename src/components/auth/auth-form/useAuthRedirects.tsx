@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthForm } from "./AuthFormContext";
 import { toast } from "sonner";
 import { getAuthToken, setAuthToken, setUserRoles } from "@/utils/network";
+import { withRetry } from "@/utils/network/retry";
 
 export const useAuthRedirects = () => {
   const { setIsSignUp, setError } = useAuthForm();
@@ -41,29 +42,24 @@ export const useAuthRedirects = () => {
       console.log("Auth redirect timeout reached - no state change detected");
     }, 5000);
     
-    // Check current session with a timeout
+    // Check current session with a timeout and retry mechanism
     const checkSession = async () => {
       try {
-        const sessionPromise = supabase.auth.getSession();
-        
-        // Add timeout to prevent hanging operation
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Session check timed out")), 3000);
-        });
-        
-        const { data: { session }, error } = await Promise.race([
-          sessionPromise,
-          timeoutPromise
-        ]) as any;
+        const { data, error } = await withRetry(
+          () => supabase.auth.getSession(),
+          3,  // maxRetries
+          1000,  // initialDelay
+          5000  // maxDelay
+        );
         
         if (error) {
           console.error("Error getting session in redirects:", error);
           return;
         }
         
-        if (session) {
+        if (data.session) {
           console.log("Session found in redirects check, handling redirect");
-          handleRedirect(session);
+          handleRedirect(data.session);
         } else {
           console.log("No session found in redirects check");
         }
@@ -74,6 +70,21 @@ export const useAuthRedirects = () => {
         const token = getAuthToken();
         if (token) {
           console.log("Session check timed out, but token found via TokenManager");
+          
+          // Attempt to restore session from token
+          try {
+            const { data } = await supabase.auth.setSession({
+              access_token: token,
+              refresh_token: ''
+            });
+            
+            if (data?.session) {
+              console.log("Successfully restored session from token");
+              handleRedirect(data.session);
+            }
+          } catch (restoreError) {
+            console.error("Failed to restore session from token:", restoreError);
+          }
         }
       }
     };
@@ -118,26 +129,21 @@ export const useAuthRedirects = () => {
       setAuthToken(session.access_token);
       console.log("Auth token stored via TokenManager");
       
-      // Prefetch user roles for faster access later, but don't wait for it
-      Promise.all([
-        // Try with header token
-        supabase.functions.invoke('get-user-roles', {
-          headers: { 
-            Authorization: `Bearer ${session.access_token}` 
+      // Prefetch user roles for faster access later with retry logic
+      withRetry(
+        async () => {
+          const { data, error } = await supabase.functions.invoke('get-user-roles');
+          if (error) throw error;
+          if (data?.roles) {
+            console.log("Successfully prefetched user roles, storing with TokenManager");
+            setUserRoles(data.roles);
           }
-        }).catch(err => {
-          console.error("Failed to prefetch user roles with header:", err);
-          // Fall back to token in body
-          return supabase.functions.invoke('get-user-roles', {
-            body: { token: session.access_token }
-          });
-        })
-      ]).then(([{ data, error }]) => {
-        if (!error && data?.roles) {
-          console.log("Successfully prefetched user roles, storing with TokenManager");
-          setUserRoles(data.roles);
-        }
-      }).catch(err => {
+          return data;
+        },
+        3,  // maxRetries
+        1000,  // initialDelay
+        5000  // maxDelay
+      ).catch(err => {
         console.error("All attempts to prefetch user roles failed:", err);
       });
     }

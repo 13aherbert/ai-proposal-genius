@@ -8,6 +8,7 @@ import { useNetworkStatus } from './useNetworkStatus';
 import { useErrorRecovery } from './useErrorRecovery';
 import { useUserStatusRefresh } from './useUserStatusRefresh';
 import { AuthUserContextType } from './types';
+import { toast } from 'sonner';
 
 /**
  * Context for authentication and user data
@@ -22,6 +23,7 @@ const AuthUserContext = createContext<AuthUserContextType | undefined>(undefined
  */
 export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   const { session, loading: isLoadingAuth } = useAuth();
+  const [initializationComplete, setInitializationComplete] = useState(false);
   
   // User status and roles from useUserStatus hook
   const {
@@ -40,26 +42,47 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   } = useUserStatus();
   
   // Network status management
-  const { isOffline } = useNetworkStatus();
+  const networkStatus = useNetworkStatus();
   
   // Subscription helper functions
   const subscriptionHelpers = useSubscription();
   
   // Error recovery functionality
-  const {
-    lastError,
-    setLastError,
-    hasRecoveredFromError,
-    retryAuthentication
-  } = useErrorRecovery(session, isOffline, fetchUserStatus);
+  const errorRecovery = useErrorRecovery(session, networkStatus.isOffline, fetchUserStatus);
   
   // User status initialization and refresh functionality
-  const { refreshUserStatus } = useUserStatusRefresh(
+  const userStatusRefresh = useUserStatusRefresh(
     session,
     isLoadingStatus,
     fetchUserStatus,
-    setLastError
+    errorRecovery.setLastError
   );
+  
+  // Add timeout to ensure we eventually set initialization complete
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!initializationComplete) {
+        console.log("Forcing AuthUserContext initialization complete after timeout");
+        setInitializationComplete(true);
+        
+        if (isLoadingAuth) {
+          toast.warning("Session verification is taking longer than expected", {
+            description: "Some features may be limited until verification completes"
+          });
+        }
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [initializationComplete, isLoadingAuth]);
+  
+  // Mark initialization complete when auth loading finishes
+  useEffect(() => {
+    if (!isLoadingAuth && !initializationComplete) {
+      console.log("Auth loading complete, marking AuthUserContext as initialized");
+      setInitializationComplete(true);
+    }
+  }, [isLoadingAuth, initializationComplete]);
   
   return (
     <ErrorBoundary name="AuthUserContext">
@@ -82,23 +105,23 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Correctly passing the functions themselves, not their return values
+          // Subscription status functions - correctly passing function references
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,
           hasFailedPayment: subscriptionHelpers.hasFailedPayment,
           
           // Actions
-          refreshUserStatus,
+          refreshUserStatus: userStatusRefresh.refreshUserStatus,
           getProjectLimit,
           getSubscriptionPlan,
           getSubscriptionStatus,
           
           // Offline and error recovery
-          isOffline,
-          hasRecoveredFromError,
-          lastError,
-          retryAuthentication,
+          isOffline: networkStatus.isOffline,
+          hasRecoveredFromError: errorRecovery.hasRecoveredFromError,
+          lastError: errorRecovery.lastError,
+          retryAuthentication: errorRecovery.retryAuthentication,
         }}
       >
         {children}

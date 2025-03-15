@@ -1,164 +1,109 @@
 
-/**
- * Utilities for detecting and handling offline states
- */
-
-import { isUserOnline, setUserOnlineStatus } from './error-detection';
-
-// Time window for retry backoff (in ms)
-const RETRY_BACKOFF_WINDOW = 5000;
-const RETRY_MAX_ATTEMPTS = 3;
+// This file handles network status detection and events
 
 /**
- * Check if we should retry a failed request based on error type and retry count
+ * Setup event listeners for online/offline status
+ * @param callback Function to call when online status changes
+ * @returns Cleanup function to remove event listeners
  */
-export function shouldRetryRequest(error: unknown, retryCount: number): boolean {
-  // Don't retry too many times
-  if (retryCount >= RETRY_MAX_ATTEMPTS) {
-    return false;
-  }
+export function setupNetworkListeners(callback: (online: boolean) => void) {
+  // Set initial state
+  const initialOnlineStatus = navigator.onLine;
+  console.log(`Browser reports online status`, initialOnlineStatus);
+  callback(initialOnlineStatus);
   
-  // Retry network errors
-  if (isNetworkRelatedError(error)) {
-    return true;
-  }
-  
-  // Don't retry auth errors (401, 403)
-  if (isAuthError(error)) {
-    return false;
-  }
-  
-  // Retry server errors (500s)
-  if (isServerError(error)) {
-    return true;
-  }
-  
-  return false;
-}
-
-/**
- * Calculate delay for the next retry attempt with exponential backoff
- */
-export function getRetryDelay(retryCount: number): number {
-  return Math.min(
-    RETRY_BACKOFF_WINDOW * Math.pow(2, retryCount),
-    30000 // Max 30 seconds
-  );
-}
-
-/**
- * Check if an error is related to authentication
- */
-export function isAuthError(error: unknown): boolean {
-  if (!error) return false;
-  
-  const errorString = String(error).toLowerCase();
-  
-  return (
-    errorString.includes('unauthorized') ||
-    errorString.includes('forbidden') ||
-    errorString.includes('401') ||
-    errorString.includes('403') ||
-    errorString.includes('not authenticated') ||
-    errorString.includes('invalid token') ||
-    errorString.includes('expired token')
-  );
-}
-
-/**
- * Check if an error is server-related (5xx)
- */
-export function isServerError(error: unknown): boolean {
-  if (!error) return false;
-  
-  const errorString = String(error).toLowerCase();
-  
-  return (
-    errorString.includes('500') ||
-    errorString.includes('502') ||
-    errorString.includes('503') ||
-    errorString.includes('504') ||
-    errorString.includes('internal server error') ||
-    errorString.includes('bad gateway') ||
-    errorString.includes('service unavailable') ||
-    errorString.includes('gateway timeout')
-  );
-}
-
-/**
- * Check if this is a network related error
- */
-export function isNetworkRelatedError(error: unknown): boolean {
-  if (!error) return false;
-  
-  // Check with the existing network error detection
-  if (typeof isNetworkError === 'function') {
-    return isNetworkError(error);
-  }
-  
-  const errorString = String(error).toLowerCase();
-  
-  return (
-    errorString.includes('network') ||
-    errorString.includes('offline') ||
-    errorString.includes('internet') ||
-    errorString.includes('connection') ||
-    errorString.includes('unreachable') ||
-    errorString.includes('timeout') ||
-    errorString.includes('abort')
-  );
-}
-
-/**
- * Broadcast a network status change event
- */
-export function broadcastNetworkStatus(isOnline: boolean): void {
-  // Update cached status
-  setUserOnlineStatus(isOnline);
-  
-  // Dispatch event for components to listen
-  window.dispatchEvent(
-    new CustomEvent('networkStatusChange', { detail: { isOnline } })
-  );
-  
-  console.log(`Network status changed: ${isOnline ? 'online' : 'offline'}`);
-}
-
-/**
- * Setup network status listeners
- */
-export function setupNetworkListeners(callback?: (isOnline: boolean) => void): () => void {
+  // Create handlers for network status changes
   const handleOnline = () => {
-    broadcastNetworkStatus(true);
-    if (callback) callback(true);
+    console.log("Network connection restored");
+    callback(true);
   };
   
   const handleOffline = () => {
-    broadcastNetworkStatus(false);
-    if (callback) callback(false);
+    console.log("Network connection lost");
+    callback(false);
   };
-  
+
+  // Add event listeners
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
   
-  // Initial check
-  if (callback) {
-    callback(navigator.onLine);
-  }
+  // Periodic connectivity check for more reliable detection
+  const checkInterval = setInterval(() => {
+    checkNetworkConnection()
+      .then(isConnected => {
+        if (isConnected !== navigator.onLine) {
+          console.log(`Actual connection status (${isConnected}) differs from browser reported (${navigator.onLine})`);
+          callback(isConnected);
+        }
+      })
+      .catch(() => {
+        // If check fails, assume offline
+        if (navigator.onLine) {
+          console.log("Network check failed, treating as offline despite browser reporting online");
+          callback(false);
+        }
+      });
+  }, 30000); // Check every 30 seconds
   
-  // Return cleanup function
+  // Return a cleanup function
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
+    clearInterval(checkInterval);
   };
 }
 
 /**
- * Hook up to existing isNetworkError function if available
+ * Utility to check if an error is a network error
+ * @param error Error to check
+ * @returns boolean indicating if it's a network error
  */
-let isNetworkError: ((error: unknown) => boolean) | undefined;
-try {
-  isNetworkError = require('./error-detection').isNetworkError;
-} catch (e) {
-  console.warn('Could not import isNetworkError, using fallback');
+export function isNetworkError(error: any): boolean {
+  if (!error) return false;
+  
+  // Check common network error patterns
+  const errorString = String(error).toLowerCase();
+  const messageString = error.message ? String(error.message).toLowerCase() : '';
+  
+  const networkErrorKeywords = [
+    'network', 'offline', 'connection', 'internet',
+    'timeout', 'failed to fetch', 'net::err', 'aborted'
+  ];
+  
+  return (
+    networkErrorKeywords.some(keyword => errorString.includes(keyword)) ||
+    networkErrorKeywords.some(keyword => messageString.includes(keyword)) ||
+    error.name === 'NetworkError' ||
+    error.code === 'NETWORK_ERROR' ||
+    error.type === 'network'
+  );
+}
+
+/**
+ * Check network connection by making a lightweight request
+ * @returns Promise resolving to boolean indicating connection status
+ */
+async function checkNetworkConnection(): Promise<boolean> {
+  console.log("Checking network connection...");
+  try {
+    // Use a tiny request to check connectivity, with cache busting
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch('https://bmopbbkfxkgzlbmhhgox.supabase.co/auth/v1/health', {
+      method: 'HEAD',
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch (error) {
+    console.warn("Network connectivity check failed:", error);
+    return false;
+  }
 }

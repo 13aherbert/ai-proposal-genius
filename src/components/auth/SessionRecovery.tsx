@@ -19,25 +19,28 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
   const [recoveryFailed, setRecoveryFailed] = useState(false);
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   const [showRecoveryOptions, setShowRecoveryOptions] = useState(false);
+  const [autoRecoveryComplete, setAutoRecoveryComplete] = useState(false);
 
   // Check if there's a stuck loading state
   useEffect(() => {
-    // After 10 seconds, show recovery options if we're still seeing errors
+    // After 8 seconds, show recovery options if we're still seeing errors
     const timeoutId = setTimeout(() => {
       if (lastError || recoveryAttempts > 0) {
         setShowRecoveryOptions(true);
       }
-    }, 10000);
+    }, 8000);
     
     return () => clearTimeout(timeoutId);
   }, [lastError, recoveryAttempts]);
 
-  // Auto-attempt recovery once
+  // Auto-attempt recovery once with circuit breaker to prevent loops
   useEffect(() => {
-    if ((lastError || showRecoveryOptions) && !isOffline && !isRecovering && recoveryAttempt === 0) {
+    if ((lastError || showRecoveryOptions) && !isOffline && !isRecovering && 
+        recoveryAttempt === 0 && !autoRecoveryComplete) {
       handleRecovery();
+      setAutoRecoveryComplete(true);
     }
-  }, [lastError, isOffline, isRecovering, recoveryAttempt, showRecoveryOptions]);
+  }, [lastError, isOffline, isRecovering, recoveryAttempt, showRecoveryOptions, autoRecoveryComplete]);
 
   const handleRecovery = async () => {
     if (isRecovering) return;
@@ -46,11 +49,9 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
     setRecoveryAttempt(prev => prev + 1);
     
     try {
-      // Try all possible recovery methods
-      console.log("Attempting full session recovery process");
-      
-      // 1. Try a complete signout and reload approach if multiple attempts fail
+      // Circuit breaker - limit max attempts
       if (recoveryAttempt >= 2) {
+        console.log("Maximum recovery attempts reached, resetting auth state");
         await supabase.auth.signOut();
         localStorage.clear();
         toast.success("Session reset complete", {
@@ -60,10 +61,12 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
         return;
       }
       
-      // 2. Try standard session restore
+      // Start with standard session restore
+      console.log("Attempting session recovery...");
       const session = await restoreSession();
       
       if (session) {
+        console.log("Session restored successfully");
         await refreshUserStatus(true);
         setRecoveryFailed(false);
         
@@ -75,7 +78,8 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
         return;
       }
       
-      // 3. Try the authentication retry mechanism
+      // If session restore fails, try authentication retry mechanism
+      console.log("Session restore failed, trying authentication retry...");
       await retryAuthentication();
       setRecoveryFailed(false);
       
@@ -99,7 +103,7 @@ export function SessionRecovery({ onSuccess, onFailure }: SessionRecoveryProps) 
         }
       } else {
         toast.error("Failed to recover session", {
-          description: "Trying alternate method..."
+          description: "You can try again manually"
         });
       }
     } finally {

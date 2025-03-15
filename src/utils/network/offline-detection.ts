@@ -12,13 +12,29 @@ export function setupNetworkListeners(callback: (online: boolean) => void) {
   console.log(`Browser reports online status`, initialOnlineStatus);
   callback(initialOnlineStatus);
   
-  // Create handlers for network status changes
+  // Track last event time to debounce multiple events
+  let lastEventTime = Date.now();
+  let lastStatus = initialOnlineStatus;
+  
+  // Create handlers for network status changes with debouncing
   const handleOnline = () => {
+    const now = Date.now();
+    // Debounce events within 2 seconds and ignore if status hasn't changed
+    if (now - lastEventTime < 2000 || lastStatus === true) return;
+    
+    lastEventTime = now;
+    lastStatus = true;
     console.log("Network connection restored");
     callback(true);
   };
   
   const handleOffline = () => {
+    const now = Date.now();
+    // Debounce events within 2 seconds and ignore if status hasn't changed
+    if (now - lastEventTime < 2000 || lastStatus === false) return;
+    
+    lastEventTime = now;
+    lastStatus = false;
     console.log("Network connection lost");
     callback(false);
   };
@@ -27,23 +43,26 @@ export function setupNetworkListeners(callback: (online: boolean) => void) {
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
   
-  // Periodic connectivity check for more reliable detection
+  // Reduce frequency of periodic connectivity checks
   const checkInterval = setInterval(() => {
     checkNetworkConnection()
       .then(isConnected => {
-        if (isConnected !== navigator.onLine) {
-          console.log(`Actual connection status (${isConnected}) differs from browser reported (${navigator.onLine})`);
+        // Only trigger callback if status actually changed
+        if (isConnected !== lastStatus) {
+          console.log(`Actual connection status (${isConnected}) differs from previous status (${lastStatus})`);
+          lastStatus = isConnected;
           callback(isConnected);
         }
       })
       .catch(() => {
-        // If check fails, assume offline
-        if (navigator.onLine) {
+        // If check fails, only update if we're currently showing as online
+        if (lastStatus) {
           console.log("Network check failed, treating as offline despite browser reporting online");
+          lastStatus = false;
           callback(false);
         }
       });
-  }, 30000); // Check every 30 seconds
+  }, 60000); // Check less frequently (every 60 seconds instead of 30)
   
   // Return a cleanup function
   return () => {
@@ -84,7 +103,6 @@ export function isNetworkError(error: any): boolean {
  * @returns Promise resolving to boolean indicating connection status
  */
 async function checkNetworkConnection(): Promise<boolean> {
-  console.log("Checking network connection...");
   try {
     // Use a tiny request to check connectivity, with cache busting
     const controller = new AbortController();
@@ -101,7 +119,7 @@ async function checkNetworkConnection(): Promise<boolean> {
     });
     
     clearTimeout(timeoutId);
-    return response.ok;
+    return response.ok || response.status === 401; // 401 means the service is available
   } catch (error) {
     console.warn("Network connectivity check failed:", error);
     return false;

@@ -14,6 +14,7 @@ export function useAuthPersistence() {
   const initialized = useRef(false);
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const recoveryInProgress = useRef(false);
+  const recoveryLockExpiry = useRef<number>(0);
   
   const persistSession = useCallback((accessToken: string, refreshToken: string, expiresAt?: number) => {
     try {
@@ -117,12 +118,19 @@ export function useAuthPersistence() {
       return null;
     }
     
+    const now = Date.now();
     if (recoveryInProgress.current) {
-      console.log("Session recovery already in progress");
-      return null;
+      if (recoveryLockExpiry.current > 0 && now > recoveryLockExpiry.current) {
+        console.log("Breaking recovery lock due to timeout");
+        recoveryInProgress.current = false;
+      } else {
+        console.log("Session recovery already in progress");
+        return null;
+      }
     }
     
     recoveryInProgress.current = true;
+    recoveryLockExpiry.current = now + 10000; // 10 second lock timeout
     
     try {
       const storedAttempts = localStorage.getItem(AUTH_SESSION_RECOVERY_ATTEMPTS) || '0';
@@ -138,9 +146,11 @@ export function useAuthPersistence() {
         return null;
       }
       
-      localStorage.setItem(AUTH_SESSION_RECOVERY_ATTEMPTS, (attempts + 1).toString());
-      setRecoveryAttempts(attempts + 1);
+      const newAttempts = attempts + 1;
+      localStorage.setItem(AUTH_SESSION_RECOVERY_ATTEMPTS, newAttempts.toString());
+      setRecoveryAttempts(newAttempts);
       
+      console.log("Attempting to refresh token");
       const refreshedSession = await refreshToken();
       if (refreshedSession) {
         console.log("Session restored via token refresh");
@@ -151,6 +161,7 @@ export function useAuthPersistence() {
       const accessToken = localStorage.getItem(AUTH_TOKEN_KEY);
       
       if (!accessToken) {
+        console.log("No stored access token found");
         recoveryInProgress.current = false;
         return null;
       }
@@ -185,6 +196,9 @@ export function useAuthPersistence() {
           if (data?.session) {
             console.log("Session successfully restored from localStorage");
             
+            localStorage.setItem(AUTH_SESSION_RECOVERY_ATTEMPTS, '0');
+            setRecoveryAttempts(0);
+            
             persistSession(
               data.session.access_token,
               data.session.refresh_token,
@@ -208,6 +222,7 @@ export function useAuthPersistence() {
       }
     } finally {
       recoveryInProgress.current = false;
+      recoveryLockExpiry.current = 0;
     }
     
     return null;

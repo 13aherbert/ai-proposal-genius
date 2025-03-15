@@ -1,2 +1,2 @@
 
-export { useSubscription, SubscriptionProvider } from '../use-subscription';
+export { useSubscription, SubscriptionProvider } from './providers/SubscriptionProvider';

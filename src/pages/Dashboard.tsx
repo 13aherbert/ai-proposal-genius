@@ -9,11 +9,32 @@ import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { Card, CardContent } from "@/components/ui/card";
 import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
 import { BetaRoleDebugger } from "@/components/development/BetaRoleDebugger";
+import { useEffect, useState } from "react";
+import { ProjectsLoadingState } from "@/components/projects/ProjectsLoadingState";
+import { usePerformance } from "@/hooks/use-performance";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { recentActivity, isLoading } = useRecentActivity(session?.user ?? null);
+  const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+  // Track performance metrics
+  const { trackRender } = usePerformance('Dashboard');
+
+  // Signal when the critical header component is loaded
+  const handleHeaderLoaded = () => {
+    setIsHeaderLoaded(true);
+  };
+
+  useEffect(() => {
+    // Log dashboard load time
+    const startTime = performance.now();
+    
+    return () => {
+      const loadTime = performance.now() - startTime;
+      console.log(`Dashboard total mount time: ${loadTime.toFixed(2)}ms`);
+    };
+  }, []);
 
   const handleActivityClick = (activity: { type: 'project' | 'knowledge', id: string }) => {
     if (activity.type === 'project') {
@@ -44,44 +65,55 @@ const Dashboard = () => {
     }
   ];
 
+  // Track render for performance metrics
+  trackRender();
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-brand-green to-[#1a1a1a]">
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="flex flex-col gap-4 md:gap-8">
           <UpgradeBanner />
-          <DashboardHeader />
+          <DashboardHeader onLoaded={handleHeaderLoaded} />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-            {quickActions.map((action) => (
-              <QuickActionCard
-                key={action.title}
-                icon={action.icon}
-                title={action.title}
-                description={action.description}
-                onClick={() => navigate(action.path)}
-              />
-            ))}
-          </div>
+          {isHeaderLoaded && (
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+                {quickActions.map((action) => (
+                  <QuickActionCard
+                    key={action.title}
+                    icon={action.icon}
+                    title={action.title}
+                    description={action.description}
+                    onClick={() => navigate(action.path)}
+                  />
+                ))}
+              </div>
 
-          <div className="mt-4 md:mt-8">
-            <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Recent Activity</h2>
-            <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-              <CardContent className="p-4 md:p-6">
-                <RecentActivityList
-                  activities={recentActivity}
-                  isLoading={isLoading}
-                  onActivityClick={handleActivityClick}
-                />
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Only show the beta role debugger in development mode */}
-          {import.meta.env.DEV && (
-            <div className="mt-4 md:mt-8">
-              <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Developer Tools</h2>
-              <BetaRoleDebugger />
-            </div>
+              <div className="mt-4 md:mt-8">
+                <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Recent Activity</h2>
+                <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
+                  <CardContent className="p-4 md:p-6">
+                    <RecentActivityList
+                      activities={recentActivity}
+                      isLoading={isLoading}
+                      onActivityClick={handleActivityClick}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Only show the beta role debugger in development mode */}
+              {import.meta.env.DEV && (
+                <div className="mt-4 md:mt-8">
+                  <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Developer Tools</h2>
+                  <BetaRoleDebugger />
+                </div>
+              )}
+            </>
+          )}
+
+          {!isHeaderLoaded && (
+            <ProjectsLoadingState message="Loading dashboard..." />
           )}
         </div>
       </div>

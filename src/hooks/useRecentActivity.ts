@@ -4,40 +4,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import type { RecentActivity } from "@/components/dashboard/RecentActivityList";
 import type { User } from "@supabase/supabase-js";
+import { useOptimizedQuery } from "./use-optimized-query";
 
 export const useRecentActivity = (user: User | null) => {
   const { toast } = useToast();
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Use the optimized query for projects with caching
+  const { 
+    data: projectsData,
+    isLoading: isLoadingProjects,
+    error: projectsError
+  } = useOptimizedQuery<any[]>({
+    url: `${supabase.supabaseUrl}/rest/v1/projects?select=project_id,title,created_at,last_update_at&user_id=eq.${user?.id}&order=last_update_at.desc&limit=5`,
+    enabled: !!user?.id,
+    cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchInterval: false,
+    onError: (error) => {
+      console.error('Error fetching recent projects:', error);
+    }
+  });
+
+  // Use the optimized query for knowledge entries with caching
+  const { 
+    data: entriesData,
+    isLoading: isLoadingEntries,
+    error: entriesError
+  } = useOptimizedQuery<any[]>({
+    url: `${supabase.supabaseUrl}/rest/v1/knowledge_entries?select=entry_id,title,created_at&user_id=eq.${user?.id}&order=created_at.desc&limit=3`,
+    enabled: !!user?.id,
+    cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchInterval: false,
+    onError: (error) => {
+      console.error('Error fetching recent knowledge entries:', error);
+    }
+  });
+
   useEffect(() => {
-    const fetchRecentActivity = async () => {
-      if (!user?.id) {
-        setIsLoading(false);
-        return;
-      }
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
 
+    // Process data once both queries are complete
+    if (!isLoadingProjects && !isLoadingEntries) {
       try {
-        const { data: projects, error: projectsError } = await supabase
-          .from('projects')
-          .select('project_id, title, created_at, last_update_at')
-          .eq('user_id', user.id)
-          .order('last_update_at', { ascending: false })
-          .limit(5);
-
-        if (projectsError) throw projectsError;
-
-        const { data: entries, error: entriesError } = await supabase
-          .from('knowledge_entries')
-          .select('entry_id, title, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(3);
-
-        if (entriesError) throw entriesError;
-
         const activities: RecentActivity[] = [
-          ...(projects?.map(p => {
+          ...(projectsData?.map(p => {
             const isUpdate = new Date(p.last_update_at) > new Date(p.created_at);
             return {
               type: 'project' as const,
@@ -47,7 +61,7 @@ export const useRecentActivity = (user: User | null) => {
               isUpdate
             };
           }) || []),
-          ...(entries?.map(e => ({
+          ...(entriesData?.map(e => ({
             type: 'knowledge' as const,
             title: e.title,
             date: e.created_at,
@@ -58,22 +72,20 @@ export const useRecentActivity = (user: User | null) => {
 
         setRecentActivity(activities);
       } catch (error: any) {
-        console.error('Error fetching recent activity:', error);
-        // Don't show toast for "no rows" errors which are expected for new users
-        if (error.message && !error.message.includes('contains 0 rows')) {
+        console.error('Error processing activity data:', error);
+        
+        if (!projectsError && !entriesError) {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to load recent activity"
+            description: "Failed to process recent activity data"
           });
         }
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchRecentActivity();
-  }, [user?.id, toast]);
+    }
+  }, [user?.id, isLoadingProjects, isLoadingEntries, projectsData, entriesData, projectsError, entriesError, toast]);
 
   return { recentActivity, isLoading };
 };

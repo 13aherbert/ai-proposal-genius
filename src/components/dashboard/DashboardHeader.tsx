@@ -4,41 +4,42 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
 import { ActionButtons } from "./ActionButtons";
 import { useUserRoles } from "@/hooks/user-roles";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePerformance } from "@/hooks/use-performance";
+
+interface DashboardHeaderProps {
+  onLoaded?: () => void;
+}
 
 /**
  * DashboardHeader component displays user information, subscription status,
  * and action buttons including admin dashboard access if the user is an admin.
- * 
- * It handles:
- * - Displaying welcome message with user's name
- * - Showing subscription plan information
- * - Checking user roles (admin, beta tester)
- * - Providing quick access buttons (report issue, docs, settings)
- * - Showing admin dashboard button for admins
- * - Showing beta dashboard button for beta testers
  */
-export default function DashboardHeader() {
-  const { isLoading, error } = useSubscriptionFeatures();
+export default function DashboardHeader({ onLoaded }: DashboardHeaderProps) {
+  const { isLoading: isLoadingSubscription } = useSubscriptionFeatures();
   const { 
     isCheckingRoles, 
     showAdminButton, 
     showBetaBadge, 
-    roleCheckError,
     isBetaTester,
     isAdmin,
     forceRoleCheck
   } = useUserRoles();
   
+  const [isReady, setIsReady] = useState(false);
   const hasCheckedRoles = useRef(false);
+  const hasCalledOnLoaded = useRef(false);
+  const { trackRender } = usePerformance('DashboardHeader');
   
-  // Only force a check once on initial render
+  // Only force a check once on initial render with a delayed execution
   useEffect(() => {
     if (!hasCheckedRoles.current) {
-      // Log that we're doing the initial check
-      console.log("Performing initial role check in DashboardHeader");
-      forceRoleCheck();
-      hasCheckedRoles.current = true;
+      const timer = setTimeout(() => {
+        forceRoleCheck();
+        hasCheckedRoles.current = true;
+      }, 100); // Slight delay to allow other critical components to load first
+      
+      return () => clearTimeout(timer);
     }
   }, [forceRoleCheck]);
   
@@ -56,6 +57,22 @@ export default function DashboardHeader() {
     }
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
 
+  // Determine when header is fully loaded and ready
+  useEffect(() => {
+    if (!isCheckingRoles && !isLoadingSubscription && !isReady) {
+      setIsReady(true);
+      
+      // Call onLoaded callback if provided
+      if (onLoaded && !hasCalledOnLoaded.current) {
+        onLoaded();
+        hasCalledOnLoaded.current = true;
+      }
+    }
+  }, [isCheckingRoles, isLoadingSubscription, isReady, onLoaded]);
+
+  // Track performance
+  trackRender();
+
   return (
     <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
       <CardContent className="p-4 md:p-6">
@@ -66,7 +83,6 @@ export default function DashboardHeader() {
             isCheckingRoles={isCheckingRoles}
             showAdminButton={showAdminButton}
             showBetaBadge={showBetaBadge}
-            roleCheckError={roleCheckError}
           />
         </div>
       </CardContent>

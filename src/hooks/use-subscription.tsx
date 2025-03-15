@@ -1,10 +1,9 @@
-
 import { useSubscription as useSubscriptionHook, SubscriptionProvider } from './subscription/providers/SubscriptionProvider';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SubscriptionPlan, SubscriptionStatus } from '@/types/subscription';
-import { isNetworkError } from '@/utils/network';
+import { isNetworkError, getNetworkErrorMessage } from '@/utils/network';
 import { withRetry } from '@/utils/network/retry';
 
 // Enhanced hook with improved fallback mechanism
@@ -121,8 +120,7 @@ const useSubscriptionWithFallback = () => {
         } catch (err) {
           console.error("Error in direct subscription fetch:", err);
           if (isNetworkError(err)) {
-            const errorMessage = typeof err === 'string' ? err : 
-              (err instanceof Error ? err.message : 'Unknown network error');
+            const errorMessage = getNetworkErrorMessage(err);
             toast.error(errorMessage);
           }
         } finally {

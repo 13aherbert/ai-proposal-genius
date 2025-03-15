@@ -1,5 +1,9 @@
 
 // This file contains common network utilities
+export { isNetworkError, getNetworkErrorMessage, isUserOnline, setUserOnlineStatus } from './error-detection';
+export { withRetry } from './retry';
+export { withRateLimit, withRateLimitByKey } from './rate-limit';
+export type { EdgeFunctionResponse } from './types';
 
 /**
  * Utility to check if an error is a network error

@@ -1,383 +1,195 @@
-
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { useAuth } from '@/components/AuthProvider';
-import { 
-  SubscriptionPlan, 
-  SubscriptionContextType,
-  SubscriptionStatus
-} from '@/types/subscription';
-import { useSubscriptionCheckers } from '../hooks/useSubscriptionCheckers';
-import { createCheckoutSession, createTrialSubscription } from '../hooks/useSubscriptionActions';
-import { useAutoRefresh } from '../hooks/useAutoRefresh';
-import { 
-  storeSubscriptionDataLocally, 
-  getStoredSubscriptionData,
-  isStarterUser
-} from '../feature-access';
-import { withRetry } from '@/utils/network/retry';
-import { withRateLimitByKey } from '@/utils/network/rate-limit';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNetwork } from '@/hooks/network';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { SubscriptionPlan } from '@/types/subscription';
+import { createDefaultSubscription, createStarterSubscription } from '../utils/subscription-creation';
+import { storeSubscriptionDataLocally, retrieveSubscriptionDataLocally } from '../feature-access';
 
+// Context type definitions
+type SubscriptionContextType = {
+  subscription: SubscriptionPlan | null;
+  isLoading: boolean;
+  hasCheckedSubscription: boolean;
+  error: Error | null;
+  refreshSubscription: () => Promise<void>;
+  setSubscription: (subscription: SubscriptionPlan) => void;
+  clearSubscription: () => void;
+};
+
+// Create the context with default values
 const SubscriptionContext = createContext<SubscriptionContextType>({
-  data: null,
   subscription: null,
-  loading: true,
   isLoading: true,
+  hasCheckedSubscription: false,
   error: null,
-  checkSubscription: async () => {},
-  renewSubscription: async () => ({}),
-  isPastGracePeriod: () => false,
-  isInGracePeriod: () => false,
-  isActive: () => false,
-  hasFailedPayment: () => false,
+  refreshSubscription: async () => {},
+  setSubscription: () => {},
+  clearSubscription: () => {},
 });
 
-export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
+// Hook for accessing the subscription context
+export const useSubscription = () => useContext(SubscriptionContext);
+
+export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [subscription, setSubscription] = useState<SubscriptionPlan | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { session } = useAuth();
-  const [initialFetchCompleted, setInitialFetchCompleted] = useState(false);
-  const [subscriptionChecked, setSubscriptionChecked] = useState(false);
-  const [forceRecheckFlag, setForceRecheckFlag] = useState(0);
-  const { isOnline, checkConnection } = useNetwork();
-  
-  const initialCheckCompleted = useRef(false);
-  const isUserStarter = useRef<boolean>(false);
-  const subscriptionCheckInProgress = useRef<boolean>(false);
-  const lastCheckTime = useRef<number>(0);
-  
-  const { 
-    checkIsPastGracePeriod, 
-    checkIsInGracePeriod, 
-    checkIsActive, 
-    checkHasFailedPayment 
-  } = useSubscriptionCheckers(subscription);
+  const { isOnline, withNetworkCheck } = useNetwork();
 
-  const rawCheckSubscription = async (forceRecheck?: boolean) => {
-    console.log("Checking subscription, force:", forceRecheck);
+  // Clear subscription data
+  const clearSubscription = useCallback(() => {
+    console.log('Clearing subscription data');
+    setSubscription(null);
+    localStorage.removeItem('subscription_data');
+    setHasCheckedSubscription(false);
+  }, []);
 
-    // First check if we're online to avoid unnecessary failures
-    const online = await checkConnection();
-    if (!online) {
-      console.log("Device is offline, using cached subscription data");
-      const cachedData = getStoredSubscriptionData();
-      if (cachedData) {
-        console.log("Using cached subscription data during offline mode");
-        setSubscription(cachedData);
-        setLoading(false);
-        return null;
-      }
-      
-      // If no cached data, we'll just have to wait until back online
-      console.log("No cached subscription data available offline");
-      return null;
-    }
-
+  // Fetch subscription data from the API
+  const fetchSubscriptionData = useCallback(async () => {
+    console.log('Fetching subscription data from API');
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      let userId = sessionData?.session?.user?.id;
-      let authToken = sessionData?.session?.access_token;
-      
-      if (!userId || !authToken) {
-        authToken = localStorage.getItem('userToken');
-        console.log("No session available, using token from localStorage:", !!authToken);
-        
-        if (authToken) {
-          try {
-            const { data: userData, error: userError } = await supabase.auth.getUser(authToken);
-            if (!userError && userData?.user) {
-              userId = userData.user.id;
-              console.log("Retrieved user ID from localStorage token:", userId);
-            } else {
-              console.error("Error verifying localStorage token:", userError);
-            }
-          } catch (e) {
-            console.error("Error verifying localStorage token:", e);
-          }
+      // If we're offline, don't try to fetch from the API
+      if (!isOnline) {
+        console.log('Offline: Using cached subscription data');
+        const cachedData = retrieveSubscriptionDataLocally();
+        if (cachedData) {
+          setSubscription(cachedData);
+          setHasCheckedSubscription(true);
         }
+        setIsLoading(false);
+        return;
       }
-      
-      if (!userId) {
-        console.error("No user ID available for subscription check");
-        return null;
+
+      // Get the current user session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+
+      if (!session) {
+        console.log('No session found, clearing subscription');
+        clearSubscription();
+        setIsLoading(false);
+        return;
       }
-      
-      if (!authToken) {
-        console.error("No authentication token available");
-        return null;
-      }
-      
-      localStorage.setItem('userToken', authToken);
-      
-      supabase.auth.setSession({
-        access_token: authToken,
-        refresh_token: ''
-      }).catch(err => {
-        console.warn("Error setting session:", err);
-      });
-      
-      console.log("Fetching subscription data from Supabase");
-      const { data, error } = await supabase
+
+      const userId = session.user.id;
+
+      // Fetch subscription from database
+      const { data, error: fetchError } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        console.error("Error fetching subscription data:", error);
-        setError(error);
-        return null;
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          // No subscription found, create a default one
+          console.log('No subscription found, creating default');
+          const defaultSub = await createDefaultSubscription(
+            userId,
+            setSubscription,
+            undefined,
+            setIsLoading,
+            setHasCheckedSubscription
+          );
+          return defaultSub;
+        } else {
+          console.error('Error fetching subscription:', fetchError);
+          throw new Error(`Failed to fetch subscription: ${fetchError.message}`);
+        }
       }
 
       if (data) {
-        console.log("Subscription data received:", data);
-        
-        const typedSubscription: SubscriptionPlan = {
-          ...data,
-          status: data.status as SubscriptionStatus,
-          features: (typeof data.features === 'object' && data.features !== null) 
-            ? data.features as Record<string, any> 
-            : {}
-        };
-        
-        storeSubscriptionDataLocally(typedSubscription);
-        setSubscription(typedSubscription);
+        console.log('Subscription found:', data);
+        setSubscription(data as SubscriptionPlan);
+        storeSubscriptionDataLocally(data as SubscriptionPlan);
       } else {
-        console.log("No subscription data found, creating trial subscription");
-        const trialSubscription = await createTrialSubscription(userId);
-        if (trialSubscription) {
-          console.log("Trial subscription created:", trialSubscription);
-          storeSubscriptionDataLocally(trialSubscription);
-          setSubscription(trialSubscription);
-        } else {
-          console.error("Failed to create trial subscription");
-        }
+        console.log('No subscription data, creating default');
+        const defaultSub = await createDefaultSubscription(
+          userId,
+          setSubscription,
+          undefined,
+          setIsLoading,
+          setHasCheckedSubscription
+        );
+        return defaultSub;
       }
     } catch (err) {
-      console.error("Error during subscription check:", err);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-      setInitialFetchCompleted(true);
-      setSubscriptionChecked(true);
-    }
-    
-    return null;
-  };
-  
-  const checkSubscription = async (forceRecheck?: boolean) => {
-    if (subscriptionCheckInProgress.current && !forceRecheck) {
-      console.log("Subscription check already in progress, skipping");
-      return;
-    }
-    
-    const now = Date.now();
-    if (!forceRecheck && now - lastCheckTime.current < 10000) {
-      console.log("Skipping subscription check - too soon since last check");
-      return;
-    }
-    
-    try {
-      subscriptionCheckInProgress.current = true;
-      lastCheckTime.current = now;
+      console.error('Error in fetchSubscriptionData:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error fetching subscription'));
       
-      // Check network status first
-      const online = await checkConnection();
-      if (!online) {
-        console.log("Offline - using cached subscription data");
-        const cachedData = getStoredSubscriptionData();
-        if (cachedData && !subscription) {
-          console.log("Setting cached subscription data during offline mode");
-          setSubscription(cachedData);
-          setLoading(false);
-        }
+      // On error, try to use cached data
+      const cachedData = retrieveSubscriptionDataLocally();
+      if (cachedData) {
+        console.log('Using cached subscription data after error');
+        setSubscription(cachedData);
+      }
+      
+      // Show a toast message
+      toast.error('Failed to fetch subscription data. Using cached data if available.');
+    } finally {
+      setIsLoading(false);
+      setHasCheckedSubscription(true);
+    }
+  }, [clearSubscription, isOnline]);
+
+  // Refresh subscription data
+  const refreshSubscription = useCallback(async () => {
+    console.log('Manually refreshing subscription data');
+    setIsLoading(true);
+    await withNetworkCheck(fetchSubscriptionData);
+    setIsLoading(false);
+  }, [fetchSubscriptionData, withNetworkCheck]);
+
+  // Initialize subscription on mount
+  useEffect(() => {
+    console.log('SubscriptionProvider initializing');
+    
+    // If we're offline, try to load from cache first
+    if (!isOnline) {
+      console.log('Offline: Using cached subscription data on init');
+      const cachedData = retrieveSubscriptionDataLocally();
+      if (cachedData) {
+        setSubscription(cachedData);
+        setHasCheckedSubscription(true);
+        setIsLoading(false);
         return;
       }
-      
-      await withRetry(
-        () => rawCheckSubscription(forceRecheck),
-        3,
-        1000
-      );
-    } catch (err) {
-      console.error("Final error after retries in subscription check:", err);
-      
-      const cachedData = getStoredSubscriptionData();
-      if (cachedData && !subscription) {
-        console.log("Using cached subscription data after failed retries");
-        setSubscription(cachedData);
-        setLoading(false);
-      }
-    } finally {
-      subscriptionCheckInProgress.current = false;
     }
+    
+    // Otherwise fetch fresh data
+    fetchSubscriptionData();
+    
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      console.log('Auth state changed:', event);
+      if (event === 'SIGNED_OUT') {
+        clearSubscription();
+      } else if (event === 'SIGNED_IN') {
+        fetchSubscriptionData();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [clearSubscription, fetchSubscriptionData, isOnline]);
+
+  // The context value
+  const value = {
+    subscription,
+    isLoading,
+    hasCheckedSubscription,
+    error,
+    refreshSubscription,
+    setSubscription,
+    clearSubscription,
   };
-
-  const renewSubscription = async (): Promise<{ success?: boolean; url?: string; error?: any }> => {
-    try {
-      if (!subscription) {
-        console.error("Cannot renew: No subscription data available");
-        return { 
-          success: false, 
-          error: { message: "No subscription information found" } 
-        };
-      }
-      
-      console.log("Initiating renewal with subscription data:", subscription);
-      
-      const subscriptionId = subscription.stripe_subscription_id;
-      const customerId = subscription.stripe_customer_id;
-      
-      if (!subscriptionId && !customerId) {
-        console.error("Missing required subscription IDs");
-        return { 
-          success: false, 
-          error: { message: "No active subscription or customer found" } 
-        };
-      }
-      
-      const renewKey = `renew-subscription-${subscriptionId || customerId}`;
-      const result = await withRateLimitByKey(renewKey, async () => {
-        console.log("Getting current session");
-        const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !authSession) {
-          throw new Error(sessionError?.message || "No active session found");
-        }
-        
-        console.log("Invoking renew-subscription edge function");
-        return supabase.functions.invoke('renew-subscription', {
-          body: { 
-            subscriptionId, 
-            customerId 
-          },
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`
-          }
-        });
-      });
-      
-      if (result.error) {
-        throw new Error(result.error.message || JSON.stringify(result.error));
-      }
-      
-      return { 
-        success: true, 
-        url: result.data?.url,
-        error: result.data?.error
-      };
-    } catch (error: any) {
-      console.error('Error in renewSubscription:', error);
-      return { 
-        success: false, 
-        error 
-      };
-    }
-  };
-
-  useEffect(() => {
-    if (initialCheckCompleted.current) return;
-    
-    try {
-      if (session?.user || localStorage.getItem('userToken')) {
-        console.log("Checking for cached subscription data");
-        const storedData = getStoredSubscriptionData();
-        
-        if (storedData && (storedData.user_id === session?.user?.id || !session?.user)) {
-          console.log("Using cached subscription data:", storedData);
-          setSubscription(storedData);
-          setLoading(false);
-          setInitialFetchCompleted(true);
-          setSubscriptionChecked(true);
-          initialCheckCompleted.current = true;
-        }
-      }
-    } catch (e) {
-      console.error("Error loading from cache:", e);
-    }
-  }, [session?.user?.id, subscription]);
-
-  useEffect(() => {
-    if (initialCheckCompleted.current) return;
-    
-    if (session?.user) {
-      isUserStarter.current = isStarterUser();
-      console.log(`SubscriptionProvider: User is ${isUserStarter.current ? 'STARTER' : 'regular'}`);
-      initialCheckCompleted.current = true;
-    }
-  }, [session?.user?.id]);
-
-  useEffect(() => {
-    if (initialCheckCompleted.current) return;
-    
-    if (session?.user && !initialFetchCompleted) {
-      console.log("Session available, checking subscription");
-      setTimeout(() => {
-        checkSubscription(true).catch(err => {
-          console.error("Error during initial subscription check:", err);
-        });
-        initialCheckCompleted.current = true;
-      }, 100);
-    } else if (!session?.user) {
-      console.log("No session available, clearing subscription data");
-      setSubscription(null);
-      setLoading(false);
-      setInitialFetchCompleted(false);
-      setSubscriptionChecked(false);
-    }
-  }, [session?.user?.id, initialFetchCompleted]);
-
-  useEffect(() => {
-    if (forceRecheckFlag > 0 && session?.user) {
-      console.log("Force rechecking subscription");
-      checkSubscription(true).catch(err => {
-        console.error("Error during forced subscription check:", err);
-      });
-    }
-  }, [forceRecheckFlag, session?.user?.id]);
-
-  useAutoRefresh(session, checkSubscription);
-
-  // Add a network status effect
-  useEffect(() => {
-    // When coming back online, check subscription if we have a session
-    if (isOnline && session?.user && initialCheckCompleted.current) {
-      console.log("Network restored - rechecking subscription");
-      setTimeout(() => {
-        checkSubscription(true).catch(err => {
-          console.error("Error during subscription recheck after network restore:", err);
-        });
-      }, 1000);
-    }
-  }, [isOnline, session?.user]);
 
   return (
-    <SubscriptionContext.Provider 
-      value={{ 
-        data: subscription,
-        subscription,
-        loading,
-        isLoading: loading,
-        error,
-        checkSubscription,
-        renewSubscription,
-        isPastGracePeriod: checkIsPastGracePeriod,
-        isInGracePeriod: checkIsInGracePeriod,
-        isActive: checkIsActive,
-        hasFailedPayment: checkHasFailedPayment
-      }}
-    >
+    <SubscriptionContext.Provider value={value}>
       {children}
     </SubscriptionContext.Provider>
   );
-}
-
-export const useSubscription = () => {
-  const context = useContext(SubscriptionContext);
-  if (!context) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
-  }
-  return context;
 };

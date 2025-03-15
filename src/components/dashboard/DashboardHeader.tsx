@@ -5,6 +5,7 @@ import { WelcomeMessage } from "./WelcomeMessage";
 import { ActionButtons } from "./ActionButtons";
 import { useUserRoles } from "@/hooks/user-roles";
 import { useEffect, useRef } from "react";
+import { useSubscription } from "@/hooks/subscription";
 
 /**
  * DashboardHeader component displays user information, subscription status,
@@ -20,6 +21,7 @@ import { useEffect, useRef } from "react";
  */
 export default function DashboardHeader() {
   const { isLoading, error } = useSubscriptionFeatures();
+  const { subscription, hasCheckedSubscription } = useSubscription();
   const { 
     isCheckingRoles, 
     showAdminButton, 
@@ -41,6 +43,17 @@ export default function DashboardHeader() {
       hasCheckedRoles.current = true;
     }
   }, [forceRoleCheck]);
+  
+  // Log subscription states in development
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log("DashboardHeader subscription states:", {
+        subscription,
+        hasCheckedSubscription,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [subscription, hasCheckedSubscription]);
   
   // Log role states in development
   useEffect(() => {

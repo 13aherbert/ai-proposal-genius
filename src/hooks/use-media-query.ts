@@ -1,17 +1,36 @@
+
 import { useEffect, useState } from "react";
 
 export function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  const getMatches = (query: string): boolean => {
+    // Prevent SSR issues
+    if (typeof window !== "undefined") {
+      return window.matchMedia(query).matches;
+    }
+    return false;
+  };
+
+  const [matches, setMatches] = useState<boolean>(getMatches(query));
 
   useEffect(() => {
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    const listener = () => setMatches(media.matches);
-    window.addEventListener("resize", listener);
-    return () => window.removeEventListener("resize", listener);
-  }, [matches, query]);
+    const matchMedia = window.matchMedia(query);
+    
+    // Handle change
+    const handleChange = () => {
+      setMatches(matchMedia.matches);
+    };
+    
+    // Set up event listener
+    matchMedia.addEventListener("change", handleChange);
+    
+    // Check on mount (in case matches is false to start)
+    handleChange();
+    
+    // Clean up
+    return () => {
+      matchMedia.removeEventListener("change", handleChange);
+    };
+  }, [query]);
 
   return matches;
 }

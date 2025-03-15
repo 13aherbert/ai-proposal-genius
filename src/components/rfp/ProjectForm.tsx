@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProjectFormProps {
   projectTitle: string;
@@ -37,9 +39,10 @@ export const ProjectForm = ({
   disabled = false
 }: ProjectFormProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
-    <Card>
+    <Card className="w-full max-w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ClipboardEdit className="h-5 w-5" />
@@ -57,6 +60,7 @@ export const ProjectForm = ({
               placeholder="Enter a title for your project"
               disabled={disabled || isProcessing}
               required
+              className="w-full"
             />
           </div>
 
@@ -76,7 +80,7 @@ export const ProjectForm = ({
                   {deadline ? format(deadline, "PPP") : "Select a date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align={isMobile ? "center" : "start"}>
                 <Calendar
                   mode="single"
                   selected={deadline}
@@ -98,6 +102,7 @@ export const ProjectForm = ({
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Enter client name"
               disabled={disabled || isProcessing}
+              className="w-full"
             />
           </div>
 
@@ -109,12 +114,13 @@ export const ProjectForm = ({
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Enter your business name"
               disabled={disabled || isProcessing}
+              className="w-full"
             />
           </div>
 
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full mt-4" 
             disabled={disabled || isProcessing || !projectTitle.trim()}
           >
             {isProcessing ? "Processing..." : projectTitle ? "Update Project" : "Create Project"}

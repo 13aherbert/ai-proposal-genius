@@ -1,3 +1,4 @@
+
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { PricingCard } from "./PricingCard";
 
@@ -19,7 +20,7 @@ export function PricingGrid({ plans }: PricingGridProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 sm:2 gap-4">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 sm:grid-cols-2">
       {plans.map((plan, index) => (
         <PricingCard
           key={index}

@@ -37,6 +37,34 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Improve touch targets on mobile */
+  @media (max-width: 768px) {
+    button, 
+    .btn, 
+    [role="button"], 
+    a, 
+    input[type="button"], 
+    input[type="submit"], 
+    input[type="reset"] {
+      @apply min-h-10 min-w-10;
+    }
+    
+    input, 
+    select, 
+    textarea {
+      @apply text-base;
+    }
+    
+    h1 {
+      @apply text-2xl;
+    }
+    
+    h2 {
+      @apply text-xl;
+    }
   }
 }
 
@@ -57,4 +85,33 @@
 
 .font-technical {
   @apply font-mono;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  #root {
+    @apply px-2 py-4;
+  }
+  
+  .container {
+    @apply px-3;
+  }
+  
+  /* Prevent horizontal overflow and enable proper scrolling */
+  body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  /* Ensure tables are responsive */
+  table {
+    @apply w-full text-left text-sm;
+  }
+  
+  /* Make sure modals and drawers are properly sized */
+  .drawer-content, 
+  .dialog-content, 
+  .popover-content {
+    @apply max-w-[95vw];
+  }
 }

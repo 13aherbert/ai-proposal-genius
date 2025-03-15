@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +26,11 @@ export type SubscriptionResponse = {
   checkSubscription: () => Promise<Subscription | null>;
   renewSubscription: () => Promise<{ success: boolean; url?: string; error?: any }>;
   isInGracePeriod: () => boolean;
+  
+  data: Subscription | null;
+  loading: boolean;
+  hasFailedPayment: () => boolean;
+  refreshWithFallbacks?: (forceRecheck?: boolean) => Promise<void>;
 };
 
 export function useSubscription(): SubscriptionResponse {
@@ -40,14 +44,12 @@ export function useSubscription(): SubscriptionResponse {
       setIsLoading(true);
       setError(null);
       
-      // Check for subscription data in localStorage first
       const cachedData = getSubscriptionData();
       if (cachedData) {
         console.log("Using cached subscription data");
         setSubscription(cachedData as Subscription);
         setIsLoading(false);
         
-        // Refresh in background to ensure data is current
         refreshSubscriptionInBackground();
         
         return cachedData as Subscription;
@@ -60,7 +62,6 @@ export function useSubscription(): SubscriptionResponse {
         return null;
       }
       
-      // Query Supabase for subscription data
       console.log("Fetching subscription data from Supabase");
       const { data, error } = await supabase
         .from('subscriptions')
@@ -73,7 +74,6 @@ export function useSubscription(): SubscriptionResponse {
         throw new Error(`Failed to fetch subscription: ${error.message}`);
       }
       
-      // Store subscription data in state and cache
       if (data) {
         console.log("Subscription data received:", data);
         const subscriptionData = data as Subscription;
@@ -95,7 +95,6 @@ export function useSubscription(): SubscriptionResponse {
     }
   }, [session]);
   
-  // Background refresh without updating loading state
   const refreshSubscriptionInBackground = async () => {
     try {
       if (!session?.user?.id) return;
@@ -123,7 +122,6 @@ export function useSubscription(): SubscriptionResponse {
     }
   };
 
-  // Check if the subscription is in its grace period (within 3 days of expiry)
   const isInGracePeriod = useCallback((): boolean => {
     if (!subscription?.current_period_end) return false;
     
@@ -135,7 +133,11 @@ export function useSubscription(): SubscriptionResponse {
     return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
   }, [subscription]);
 
-  // Function to renew subscription via Supabase edge function
+  const hasFailedPayment = useCallback((): boolean => {
+    if (!subscription) return false;
+    return subscription.status === 'past_due' || subscription.status === 'unpaid';
+  }, [subscription]);
+
   const renewSubscription = async (): Promise<{ success: boolean; url?: string; error?: any }> => {
     try {
       if (!session?.user?.id) {
@@ -165,7 +167,6 @@ export function useSubscription(): SubscriptionResponse {
     }
   };
 
-  // Initialize subscription on mount or when session changes
   useEffect(() => {
     if (session?.user?.id) {
       checkSubscription();
@@ -175,12 +176,24 @@ export function useSubscription(): SubscriptionResponse {
     }
   }, [session, checkSubscription]);
 
+  const refreshWithFallbacks = useCallback(async (forceRecheck?: boolean) => {
+    try {
+      await checkSubscription();
+    } catch (error) {
+      console.error("Error refreshing subscription with fallbacks:", error);
+    }
+  }, [checkSubscription]);
+
   return {
     subscription,
     isLoading,
     error,
     checkSubscription,
     renewSubscription,
-    isInGracePeriod
+    isInGracePeriod,
+    data: subscription,
+    loading: isLoading,
+    hasFailedPayment,
+    refreshWithFallbacks
   };
 }

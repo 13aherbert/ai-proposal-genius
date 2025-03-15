@@ -64,3 +64,10 @@ export const SUBSCRIPTION_PLAN_LIMITS = {
   starter: 10,  // Starter users get 10 projects 
   pro: 30       // Pro users get 30 projects
 };
+
+// Compatibility type to make Subscription from use-subscription.ts work with SubscriptionPlan
+export type SubscriptionCompatibilityType = SubscriptionPlan & {
+  // Add any missing fields from Subscription that might be needed
+  created_at?: string;
+  updated_at?: string;
+};

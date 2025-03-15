@@ -1,50 +1,55 @@
 
 /**
- * Utilities for rate limiting API calls
+ * Rate limiting utility functions
  */
 
-const rateLimitCache = new Map<string, number>();
+// Cache to track rate limited operations
+const rateLimitCache: Record<string, { timestamp: number, count: number }> = {};
 
 /**
- * Execute a function with rate limiting
- * @param fn The function to execute
- * @param minInterval Minimum time between executions in milliseconds
- * @returns The result of the function
- */
-export async function withRateLimit<T>(
-  fn: () => Promise<T>,
-  minInterval: number = 1000
-): Promise<T> {
-  const now = Date.now();
-  const lastExecutionTime = rateLimitCache.get('_default') || 0;
-  
-  if (now - lastExecutionTime < minInterval) {
-    await new Promise(resolve => setTimeout(resolve, minInterval - (now - lastExecutionTime)));
-  }
-  
-  rateLimitCache.set('_default', Date.now());
-  return fn();
-}
-
-/**
- * Execute a function with rate limiting by key
- * @param key The key to rate limit on
- * @param fn The function to execute
- * @param minInterval Minimum time between executions in milliseconds
- * @returns The result of the function
+ * Execute a function with rate limiting based on a key
+ * @param key Unique identifier for the rate limited operation
+ * @param fn Function to execute if not rate limited
+ * @param limit Maximum number of calls in the time window
+ * @param windowMs Time window in milliseconds
+ * @returns Result of the function or null if rate limited
  */
 export async function withRateLimitByKey<T>(
   key: string,
   fn: () => Promise<T>,
-  minInterval: number = 1000
-): Promise<T> {
+  limit: number = 5,
+  windowMs: number = 60000
+): Promise<T | null> {
   const now = Date.now();
-  const lastExecutionTime = rateLimitCache.get(key) || 0;
+  const cacheEntry = rateLimitCache[key];
   
-  if (now - lastExecutionTime < minInterval) {
-    await new Promise(resolve => setTimeout(resolve, minInterval - (now - lastExecutionTime)));
+  // Initialize or clean expired cache entry
+  if (!cacheEntry || (now - cacheEntry.timestamp > windowMs)) {
+    rateLimitCache[key] = { timestamp: now, count: 0 };
   }
   
-  rateLimitCache.set(key, Date.now());
-  return fn();
+  // Check if rate limit is exceeded
+  if (rateLimitCache[key].count >= limit) {
+    console.warn(`Rate limit exceeded for key: ${key}`);
+    return null;
+  }
+  
+  // Increment counter and execute function
+  rateLimitCache[key].count++;
+  
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`Error in rate-limited function (${key}):`, error);
+    throw error;
+  }
+}
+
+/**
+ * Clear rate limit cache for testing purposes
+ */
+export function clearRateLimitCache() {
+  Object.keys(rateLimitCache).forEach(key => {
+    delete rateLimitCache[key];
+  });
 }

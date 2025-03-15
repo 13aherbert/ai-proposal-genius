@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -149,7 +150,7 @@ export function useAuthPersistence() {
       }
       
       const accessToken = localStorage.getItem(AUTH_TOKEN_KEY);
-      const refreshToken = localStorage.getItem(AUTH_REFRESH_KEY);
+      const storedRefreshToken = localStorage.getItem(AUTH_REFRESH_KEY);
       
       if (!accessToken) {
         recoveryInProgress.current = false;
@@ -160,7 +161,7 @@ export function useAuthPersistence() {
       
       const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
-        refresh_token: refreshToken || '',
+        refresh_token: storedRefreshToken || '',
       });
       
       if (error) {

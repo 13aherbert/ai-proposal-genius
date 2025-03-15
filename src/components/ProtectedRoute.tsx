@@ -29,6 +29,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loadingElapsed, setLoadingElapsed] = useState(0);
   const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
   const hasVerifiedCachedToken = useRef<boolean>(false);
+  const maxLoadingTime = useRef<number>(15); // Maximum loading time in seconds before forced navigation
 
   // Add a progressive timeout to show more information as time passes
   useEffect(() => {
@@ -43,12 +44,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           setTimeoutOccurred(true);
         }
         
+        // Force navigation after maximum loading time
+        if (newValue >= maxLoadingTime.current && cachedTokenRef.current) {
+          console.log("Loading timeout exceeded, forcing navigation with cached token");
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+          if (location.pathname !== redirectPath) {
+            navigate(redirectPath, { replace: true });
+          }
+        }
+        
         return newValue;
       });
     }, 1000);
 
     return () => clearInterval(stepInterval);
-  }, [loading]);
+  }, [loading, location.pathname, navigate]);
 
   // Check cached token validity and use it for early access
   useEffect(() => {
@@ -56,26 +66,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       console.log("Verifying cached token for early access while full auth completes");
       hasVerifiedCachedToken.current = true;
       
-      // Don't redirect away from subscription page when using cached token
-      if (location.pathname === '/' || location.pathname.includes('/subscription')) {
-        return; // These pages have special handling
-      }
-      
-      // If we have cached roles and subscription data along with a token, we can proceed
-      const hasRoles = localStorage.getItem('userRoles');
-      const hasSubscription = localStorage.getItem('subscriptionData');
-      
-      if (hasRoles && hasSubscription) {
-        console.log("Using cached token and data for authentication while waiting for server");
-        
-        // We can continue using cached data until full auth completes
+      // Try to proceed with cached token if loading is taking too long
+      if (loadingElapsed >= 3) {
         const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
         if (location.pathname !== redirectPath) {
+          console.log("Using cached token to proceed after loading delay");
           navigate(redirectPath, { replace: true });
         }
       }
     }
-  }, [loading, loadingElapsed, session, navigate, location.pathname]);
+  }, [loading, loadingElapsed, navigate, location.pathname]);
 
   // Reset loading elapsed when loading state changes
   useEffect(() => {
@@ -87,21 +87,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Attempt early navigation if we have a cached token
   useEffect(() => {
-    if (loading && cachedTokenRef.current && loadingElapsed >= 2 && !session) {
-      console.log("Using cached token for early access while full auth completes");
-      // Don't redirect away from subscription page when using cached token
-      if (location.pathname !== '/' && !location.pathname.includes('/subscription')) {
-        return; // Already on a valid page
+    if ((loading && loadingElapsed >= 4) || (!loading && session)) {
+      if (cachedTokenRef.current || session) {
+        console.log("Session verified or loading too long - proceeding with navigation");
+        // Don't redirect away from subscription page when using cached token
+        if (location.pathname === '/' || location.pathname.includes('/login')) {
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+          navigate(redirectPath, { replace: true });
+        }
       }
-      
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-      navigate(redirectPath, { replace: true });
     }
   }, [loading, loadingElapsed, session, navigate, location.pathname]);
 
   useEffect(() => {
     // If we're done loading and there's no session, redirect to login
-    if (!loading && !session) {
+    if (!loading && !session && !cachedTokenRef.current) {
       console.log("No authenticated session, redirecting to login");
       
       // Save the attempted route for redirecting back after login
@@ -145,7 +145,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [session, loading, error, navigate, location]);
 
   // Show loading state while checking auth
-  if (loading) {
+  if (loading && loadingElapsed < maxLoadingTime.current) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-brand-green mb-4" />
@@ -179,9 +179,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
               </button>
             </div>
             {loadingElapsed > 5 && cachedTokenRef.current && (
-              <p className="text-muted-foreground text-sm mt-4">
-                Using cached authentication data while waiting for server response. Limited functionality may be available.
-              </p>
+              <div>
+                <p className="text-muted-foreground text-sm mt-4">
+                  Using cached authentication data while waiting for server response. Limited functionality may be available.
+                </p>
+                <button
+                  onClick={() => {
+                    const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+                    navigate(redirectPath, { replace: true });
+                  }}
+                  className="mt-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
+                >
+                  Continue anyway
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -217,6 +228,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
     );
+  }
+
+  // If we're still loading after the maximum time but have a cached token, continue anyway
+  if (loading && loadingElapsed >= maxLoadingTime.current && cachedTokenRef.current) {
+    console.log("Maximum loading time exceeded, proceeding with cached credentials");
   }
 
   // Only show banners if not on the subscription page itself
@@ -266,7 +282,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Add a security check - don't render anything if no session
+  // Add a security check - don't render anything if no session or cached token
   return (session || cachedTokenRef.current) ? <>{children}</> : null;
 };
 

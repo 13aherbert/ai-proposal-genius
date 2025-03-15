@@ -152,6 +152,22 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session?.user?.id]);
   
+  // Handle the skipSubscriptionLoading event
+  useEffect(() => {
+    const handleSkipLoading = (e: Event) => {
+      console.log("Handling skipSubscriptionLoading event in AuthUserContext");
+      if (!isInitialized) {
+        setIsInitialized(true);
+      }
+    };
+    
+    window.addEventListener('skipSubscriptionLoading', handleSkipLoading);
+    
+    return () => {
+      window.removeEventListener('skipSubscriptionLoading', handleSkipLoading);
+    };
+  }, []);
+  
   const refreshUserStatus = async (force = false) => {
     if (session?.user) {
       try {
@@ -190,7 +206,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Pass the function types directly, not their invocation results
+          // Pass the function references directly, not their invocation results
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,

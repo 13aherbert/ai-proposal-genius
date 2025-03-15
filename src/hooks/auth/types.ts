@@ -24,7 +24,7 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status functions - correctly typed as functions
+  // Subscription status functions - typed as functions that return booleans
   isActive: () => boolean;
   isInGracePeriod: () => boolean;
   isPastGracePeriod: () => boolean;

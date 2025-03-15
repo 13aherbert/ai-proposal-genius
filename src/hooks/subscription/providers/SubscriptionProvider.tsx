@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { 
@@ -318,10 +317,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         error,
         checkSubscription,
         renewSubscription,
-        isPastGracePeriod,
-        isInGracePeriod,
-        isActive,
-        hasFailedPayment
+        isPastGracePeriod: () => isPastGracePeriod,
+        isInGracePeriod: () => isInGracePeriod,
+        isActive: () => isActive,
+        hasFailedPayment: () => hasFailedPayment
       }}
     >
       {children}

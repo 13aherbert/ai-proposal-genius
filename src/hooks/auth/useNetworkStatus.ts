@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { setupNetworkListeners } from '@/utils/network/offline-detection';
 

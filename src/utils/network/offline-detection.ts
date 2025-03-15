@@ -1,4 +1,3 @@
-
 // This file handles network status detection and events
 
 /**

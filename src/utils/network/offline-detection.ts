@@ -43,7 +43,7 @@ export function setupNetworkListeners(callback: (online: boolean) => void) {
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
   
-  // Reduce frequency of periodic connectivity checks
+  // Significantly reduce frequency of periodic connectivity checks
   const checkInterval = setInterval(() => {
     checkNetworkConnection()
       .then(isConnected => {
@@ -62,7 +62,7 @@ export function setupNetworkListeners(callback: (online: boolean) => void) {
           callback(false);
         }
       });
-  }, 180000); // Check even less frequently (every 3 minutes)
+  }, 300000); // Check only every 5 minutes
   
   // Return a cleanup function
   return () => {
@@ -120,8 +120,8 @@ async function checkNetworkConnection(): Promise<boolean> {
     
     clearTimeout(timeoutId);
     
-    // Consider 401 as a successful connection since it means the service is available
-    return response.ok || response.status === 401;
+    // Only consider 200 responses as successful
+    return response.ok;
   } catch (error) {
     console.warn("Network connectivity check failed:", error);
     return false;

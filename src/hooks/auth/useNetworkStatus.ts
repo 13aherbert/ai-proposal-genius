@@ -21,7 +21,7 @@ export function useNetworkStatus() {
     console.log(`Network status changed: ${online ? 'online' : 'offline'}`);
   }, []);
 
-  // Active network check function with increased throttling
+  // Active network check function with aggressive throttling
   const checkNetworkConnection = useCallback(async () => {
     // Prevent concurrent checks and throttle requests
     if (checkInProgressRef.current) return;
@@ -29,8 +29,8 @@ export function useNetworkStatus() {
     const now = Date.now();
     const timeSinceLastCheck = now - lastCheckRef.current;
     
-    // Increase throttle to at least 30 seconds unless forced
-    if (timeSinceLastCheck < 30000) {
+    // Enforce a 60-second throttle to prevent excessive requests
+    if (timeSinceLastCheck < 60000) {
       return;
     }
     
@@ -56,8 +56,9 @@ export function useNetworkStatus() {
       
       clearTimeout(timeoutId);
       
-      // Consider 401 as successful connection - it means service is available
-      const online = response.ok || response.status === 401;
+      // IMPORTANT: We only consider 200 responses as successful connections
+      // 401 means the service is available but we're not authenticated
+      const online = response.ok;
       handleNetworkChange(online);
       
       // If browser reports online but we detected offline, or vice versa, log the discrepancy
@@ -83,7 +84,7 @@ export function useNetworkStatus() {
     // Initial check on component mount (with a longer delay to avoid startup contention)
     setTimeout(() => {
       checkNetworkConnection();
-    }, 3000); // Increased delay to reduce initial load contention
+    }, 5000); // Increased delay to reduce initial load contention
     
     // Set up periodic checks with significantly reduced frequency
     const intervalId = setInterval(() => {
@@ -91,7 +92,7 @@ export function useNetworkStatus() {
       if (!checkInProgressRef.current) {
         checkNetworkConnection();
       }
-    }, 120000); // Check every 2 minutes instead of 1 minute
+    }, 180000); // Check only every 3 minutes to reduce server load
     
     return () => {
       cleanup();

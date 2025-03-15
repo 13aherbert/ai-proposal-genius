@@ -44,7 +44,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   // Network status management
   const networkStatus = useNetworkStatus();
   
-  // Subscription helper functions return boolean values directly
+  // Get subscription helper boolean values (not functions)
   const subscriptionHelpers = useSubscription(subscription);
   
   // Error recovery functionality
@@ -76,7 +76,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       }
-    }, 3000); // Reduced from 5 second to 3 second timeout
+    }, 3000); // Reduced timeout for faster initialization
     
     return () => clearTimeout(timeoutId);
   }, [initializationComplete, isLoadingAuth]);

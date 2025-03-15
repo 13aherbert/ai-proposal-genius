@@ -12,25 +12,11 @@ import {
 export function useSubscriptionCheckers() {
   const { status, subscription } = useUserStatus();
   
-  const isPastGracePeriod = useCallback(() => {
-    // Use the utility function with our subscription data
-    return isPastGracePeriodUtil(subscription);
-  }, [subscription]);
-
-  const isInGracePeriod = useCallback(() => {
-    // Use the utility function with our subscription data
-    return isInGracePeriodUtil(subscription);
-  }, [subscription]);
-
-  const isActive = useCallback(() => {
-    // Use the utility function with our subscription data
-    return isActiveUtil(subscription);
-  }, [subscription]);
-
-  const hasFailedPayment = useCallback(() => {
-    // Use the utility function with our subscription data
-    return hasFailedPaymentUtil(subscription);
-  }, [subscription]);
+  // Direct boolean evaluations, not function returns
+  const isPastGracePeriod = isPastGracePeriodUtil(subscription);
+  const isInGracePeriod = isInGracePeriodUtil(subscription);
+  const isActive = isActiveUtil(subscription);
+  const hasFailedPayment = hasFailedPaymentUtil(subscription);
 
   return {
     isPastGracePeriod,

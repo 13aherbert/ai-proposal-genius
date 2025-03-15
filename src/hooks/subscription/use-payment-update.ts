@@ -31,6 +31,7 @@ export function usePaymentUpdate() {
       console.log("Initiating payment update with subscription:", subscription.subscription);
       toast.loading("Preparing payment update...");
       
+      // Call renewSubscription without arguments since it doesn't accept any now
       const result = await subscription.renewSubscription();
       
       console.log("Renewal result:", result);

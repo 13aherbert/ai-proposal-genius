@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -47,7 +46,7 @@ export default function RecentProjects() {
     const timer = setTimeout(() => {
       // Set a timeout for the subscription check
       Promise.race([
-        checkSubscription(true),
+        checkSubscription(),
         new Promise((resolve) => setTimeout(resolve, 2000)) // 2 second timeout
       ]).catch(err => {
         console.error("Error or timeout checking subscription:", err);

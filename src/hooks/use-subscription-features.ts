@@ -80,7 +80,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       if (normalizedPlanType === 'starter' && subscription.project_limit !== 10) {
         devLog("Detected incorrect project limit for starter plan. Refreshing subscription data.");
-        checkSubscription(true);
+        checkSubscription();
       }
       
       if (lastPlanType !== null && lastPlanType !== normalizedPlanType) {
@@ -112,7 +112,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     if (!testMode) {
       const refreshInterval = setInterval(() => {
         devLog("Periodic refresh of subscription data");
-        checkSubscription(true);
+        checkSubscription();
         setForceRefreshFlag(prev => prev + 1);
       }, 180000);
       
@@ -280,7 +280,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       console.error("Error clearing local storage caches:", e);
     }
     
-    checkSubscription(true);
+    checkSubscription();
     setForceRefreshFlag(prev => prev + 1);
     
     if (subscription?.plan_type?.toLowerCase() === 'starter') {

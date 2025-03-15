@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -158,7 +157,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       setIsRefreshing(true);
       
       // Try to refresh through context first
-      await checkSubscription(true);
+      await checkSubscription();
       
       // If that doesn't work, fall back to direct fetch
       setTimeout(() => {
@@ -247,7 +246,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     const loadSubscriptionData = async () => {
       try {
         console.log("SubscriptionCard: Forcing subscription check on mount");
-        await checkSubscription(true);
+        await checkSubscription();
         
         // If after 2 seconds we still don't have subscription data, try direct fetch
         setTimeout(() => {

@@ -1,9 +1,13 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserStatus, UserStatusData, UserRoleData } from '@/hooks/use-user-status';
 import { useSubscription } from '@/hooks/use-subscription';
+import { toast } from 'sonner';
+import { useAuthPersistence } from './useAuthPersistence';
+import { setupNetworkListeners, broadcastNetworkStatus } from '@/utils/network/offline-detection';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export type AuthUserContextType = {
   // Authentication state
@@ -23,7 +27,7 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status functions - these should be functions
+  // Subscription status functions
   isActive: () => boolean;
   isInGracePeriod: () => boolean;
   isPastGracePeriod: () => boolean;
@@ -34,6 +38,12 @@ export type AuthUserContextType = {
   getProjectLimit: () => number;
   getSubscriptionPlan: () => string;
   getSubscriptionStatus: () => string;
+  
+  // Offline and error recovery
+  isOffline: boolean;
+  hasRecoveredFromError: boolean;
+  lastError: Error | null;
+  retryAuthentication: () => Promise<void>;
 };
 
 const AuthUserContext = createContext<AuthUserContextType | undefined>(undefined);
@@ -41,6 +51,10 @@ const AuthUserContext = createContext<AuthUserContextType | undefined>(undefined
 export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   const { session, loading: isLoadingAuth } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [lastError, setLastError] = useState<Error | null>(null);
+  const [hasRecoveredFromError, setHasRecoveredFromError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const {
     status,
@@ -58,11 +72,83 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   } = useUserStatus();
   
   const subscriptionHelpers = useSubscription();
+  const { restoreSession } = useAuthPersistence();
+  
+  // Set up network status listeners
+  useEffect(() => {
+    const cleanup = setupNetworkListeners((online) => {
+      setIsOffline(!online);
+      
+      // If we're back online and had an error, try to recover
+      if (online && lastError) {
+        retryAuthentication();
+      }
+    });
+    
+    return cleanup;
+  }, [lastError]);
+  
+  // Retry authentication after errors
+  const retryAuthentication = useCallback(async () => {
+    if (isOffline) {
+      toast.error("Cannot retry while offline", {
+        description: "Please check your internet connection"
+      });
+      return;
+    }
+    
+    setRetryCount(prev => prev + 1);
+    
+    try {
+      // First try to restore session if needed
+      if (!session) {
+        const restoredSession = await restoreSession();
+        if (restoredSession) {
+          toast.success("Session restored successfully");
+        }
+      }
+      
+      // Then refresh user status
+      await fetchUserStatus(true);
+      
+      // If we got here, we recovered
+      setLastError(null);
+      setHasRecoveredFromError(true);
+      toast.success("Authentication recovered successfully");
+    } catch (error) {
+      console.error("Failed to retry authentication:", error);
+      setLastError(error instanceof Error ? error : new Error(String(error)));
+      
+      toast.error("Recovery attempt failed", {
+        description: retryCount >= 2 ? "Please try signing in again" : "Will try again automatically"
+      });
+      
+      // Auto-retry once more after a delay if not too many attempts
+      if (retryCount < 2) {
+        setTimeout(() => {
+          retryAuthentication();
+        }, 3000);
+      }
+    }
+  }, [isOffline, session, retryCount, restoreSession, fetchUserStatus]);
   
   useEffect(() => {
     if (!isInitialized && session?.user && !isLoadingStatus) {
       console.log("Initializing AuthUserContext");
-      fetchUserStatus(true);
+      fetchUserStatus(true)
+        .catch(error => {
+          console.error("Error during initial status fetch:", error);
+          setLastError(error instanceof Error ? error : new Error(String(error)));
+          
+          // Still mark as initialized to prevent endless retries
+          setIsInitialized(true);
+          
+          if (navigator.onLine) {
+            toast.error("Failed to load user data", {
+              description: "Using cached data if available"
+            });
+          }
+        });
       setIsInitialized(true);
     }
   }, [session, isInitialized, isLoadingStatus, fetchUserStatus]);
@@ -70,46 +156,70 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (session?.user?.id) {
       setIsInitialized(false);
+      setHasRecoveredFromError(false);
     }
   }, [session?.user?.id]);
   
   const refreshUserStatus = async (force = false) => {
     if (session?.user) {
-      await fetchUserStatus(force);
+      try {
+        await fetchUserStatus(force);
+        // Clear any previous errors on successful fetch
+        if (lastError) {
+          setLastError(null);
+        }
+      } catch (error) {
+        console.error("Error refreshing user status:", error);
+        setLastError(error instanceof Error ? error : new Error(String(error)));
+        
+        if (navigator.onLine) {
+          toast.error("Failed to refresh user data", {
+            description: "Using cached data if available"
+          });
+        }
+      }
     }
   };
   
   return (
-    <AuthUserContext.Provider
-      value={{
-        session,
-        isLoadingAuth,
-        isAuthenticated: !!session?.user,
-        
-        isAdmin,
-        isBetaTester,
-        isUser,
-        roles,
-        hasRole,
-        
-        status,
-        isLoadingStatus,
-        subscription,
-        
-        // These must be functions that return booleans to match the interface
-        isActive: () => subscriptionHelpers.isActive(),
-        isInGracePeriod: () => subscriptionHelpers.isInGracePeriod(),
-        isPastGracePeriod: () => subscriptionHelpers.isPastGracePeriod(),
-        hasFailedPayment: () => subscriptionHelpers.hasFailedPayment(),
-        
-        refreshUserStatus,
-        getProjectLimit,
-        getSubscriptionPlan,
-        getSubscriptionStatus,
-      }}
-    >
-      {children}
-    </AuthUserContext.Provider>
+    <ErrorBoundary name="AuthUserContext">
+      <AuthUserContext.Provider
+        value={{
+          session,
+          isLoadingAuth,
+          isAuthenticated: !!session?.user,
+          
+          isAdmin,
+          isBetaTester,
+          isUser,
+          roles,
+          hasRole,
+          
+          status,
+          isLoadingStatus,
+          subscription,
+          
+          // These must be functions that return booleans to match the interface
+          isActive: () => subscriptionHelpers.isActive(),
+          isInGracePeriod: () => subscriptionHelpers.isInGracePeriod(),
+          isPastGracePeriod: () => subscriptionHelpers.isPastGracePeriod(),
+          hasFailedPayment: () => subscriptionHelpers.hasFailedPayment(),
+          
+          refreshUserStatus,
+          getProjectLimit,
+          getSubscriptionPlan,
+          getSubscriptionStatus,
+          
+          // Offline and error recovery
+          isOffline,
+          hasRecoveredFromError,
+          lastError,
+          retryAuthentication,
+        }}
+      >
+        {children}
+      </AuthUserContext.Provider>
+    </ErrorBoundary>
   );
 };
 

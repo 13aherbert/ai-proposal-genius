@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { updateRivalProSubscription } from "../scripts/update-specific-user";
+import { toSubscriptionPlan } from "@/types/subscription";
 
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
@@ -126,7 +127,7 @@ export default function AccountSettings() {
                   ref={credentialsSectionRef}
                 />
 
-                <SubscriptionCard subscription={subscription} />
+                <SubscriptionCard subscription={subscription ? toSubscriptionPlan(subscription) : null} />
 
                 <AccountActionButtons 
                   hasChanges={hasProfileChanges || hasCredentialChanges}

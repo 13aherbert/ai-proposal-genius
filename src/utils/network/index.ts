@@ -12,4 +12,31 @@ export interface EdgeFunctionResponse<T = any> {
   status?: number;
 }
 
-// Add any additional network-related exports here
+// Subscription data management
+const STORAGE_KEY = 'subscription_data';
+
+export function getSubscriptionData(): any {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.error('Error getting subscription data from localStorage:', error);
+    return null;
+  }
+}
+
+export function setSubscriptionData(data: any): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error setting subscription data in localStorage:', error);
+  }
+}
+
+export function clearSubscriptionData(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing subscription data from localStorage:', error);
+  }
+}

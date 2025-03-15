@@ -1,106 +1,68 @@
 
 /**
- * Utility functions for detecting and handling network errors
+ * Network error detection utilities
  */
 
 /**
- * Check if an error is related to network connectivity issues
+ * Checks if an error is a network-related error
+ * @param error Any error object
+ * @returns Whether the error is network-related
  */
-export function isNetworkError(error: unknown): boolean {
+export function isNetworkError(error: any): boolean {
   if (!error) return false;
   
-  const errorString = String(error).toLowerCase();
+  // Check for common network error messages
+  const message = error.message?.toLowerCase() || '';
   
-  // Check for network unavailability
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return true;
-  }
+  // Network-related error patterns
+  const networkPatterns = [
+    'network',
+    'internet',
+    'connection',
+    'offline',
+    'failed to fetch',
+    'cors',
+    'timeout',
+    'aborted',
+    'socket',
+    'dns',
+    'fetch',
+    'ssl',
+    'handshake',
+    'econnrefused',
+    'enotfound'
+  ];
   
-  return (
-    // Common network error messages
-    errorString.includes('network') ||
-    errorString.includes('failed to fetch') ||
-    errorString.includes('connection') ||
-    errorString.includes('offline') ||
-    errorString.includes('aborted') ||
-    errorString.includes('timeout') ||
-    errorString.includes('cors') ||
-    // HTTP errors that might be network related
-    errorString.includes('503') ||
-    errorString.includes('504') ||
-    errorString.includes('429') ||
-    // Supabase specific errors
-    errorString.includes('service unavailable') ||
-    errorString.includes('service temporarily unavailable') ||
-    errorString.includes('unreachable') ||
-    // Edge function errors
-    errorString.includes('edge function') ||
-    // Fetch AbortError
-    (error instanceof Error && error.name === 'AbortError')
-  );
+  return networkPatterns.some(pattern => message.includes(pattern));
 }
 
 /**
- * Get a user-friendly message for network errors
+ * Gets a user-friendly message for a network error
+ * @param error Any error object
+ * @returns A user-friendly error message
  */
-export function getNetworkErrorMessage(error: unknown): string {
-  if (!error) return 'Unknown error';
+export function getNetworkErrorMessage(error: any): string {
+  if (!isNetworkError(error)) {
+    return 'An unexpected error occurred';
+  }
   
-  const errorString = String(error).toLowerCase();
+  const message = error.message?.toLowerCase() || '';
   
-  if (!navigator.onLine || errorString.includes('offline') || errorString.includes('network')) {
+  if (message.includes('offline') || message.includes('internet')) {
     return 'You appear to be offline. Please check your internet connection.';
   }
   
-  if (errorString.includes('timeout')) {
-    return 'The request timed out. Please try again.';
+  if (message.includes('timeout')) {
+    return 'The request timed out. Please try again later.';
   }
   
-  if (errorString.includes('429') || errorString.includes('too many')) {
-    return 'Too many requests. Please try again in a moment.';
+  if (message.includes('cors')) {
+    return 'A cross-origin error occurred. This might be a temporary issue.';
   }
   
-  if (errorString.includes('503') || errorString.includes('504') || errorString.includes('unavailable') || errorString.includes('unreachable')) {
-    return 'Service temporarily unavailable. We\'re using cached data if available.';
+  if (message.includes('dns')) {
+    return 'Unable to resolve the server address. Please check your connection.';
   }
   
-  if (errorString.includes('edge function')) {
-    return 'Connection to backend services failed. Using cached data if available.';
-  }
-  
-  // Default message
-  return 'A network error occurred. We\'re using cached data if available.';
-}
-
-/**
- * Cache the online status to avoid constant checking
- */
-export function isUserOnline(): boolean {
-  // Check the browser's online status first
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return false;
-  }
-  
-  // Also check if we have a cached status
-  try {
-    const cachedStatus = localStorage.getItem('networkStatus');
-    if (cachedStatus === 'offline') {
-      return false;
-    }
-  } catch (e) {
-    // Ignore localStorage errors
-  }
-  
-  return true;
-}
-
-/**
- * Set the cached online status
- */
-export function setUserOnlineStatus(isOnline: boolean): void {
-  try {
-    localStorage.setItem('networkStatus', isOnline ? 'online' : 'offline');
-  } catch (e) {
-    // Ignore localStorage errors
-  }
+  return 'A network error occurred. Please check your connection and try again.';
 }

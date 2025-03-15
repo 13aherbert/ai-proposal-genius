@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, ArrowUpCircle, AlertTriangle, Loader2, Tag, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
+import type { SubscriptionPlan, SubscriptionStatus, toSubscriptionPlan } from "@/types/subscription";
 import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
@@ -38,7 +38,9 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
   const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading, error: subscriptionError } = useSubscription();
-  const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(initialSubscription || null);
+  const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(
+    initialSubscription ? toSubscriptionPlan(initialSubscription) : null
+  );
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [hasFetchedFromLocal, setHasFetchedFromLocal] = useState(false);
   const [directFetchAttempted, setDirectFetchAttempted] = useState(false);
@@ -71,14 +73,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         }
       } else if (data) {
         console.log("Fetched subscription directly:", data);
-        // Convert string status to SubscriptionStatus type and ensure features is an object
-        const typedData: SubscriptionPlan = {
-          ...data,
-          status: data.status as SubscriptionStatus,
-          features: typeof data.features === 'object' && data.features !== null 
-            ? data.features as Record<string, any> 
-            : {}
-        };
+        // Convert data to SubscriptionPlan type
+        const typedData = toSubscriptionPlan(data);
         setLocalSubscription(typedData);
         try {
           localStorage.setItem('subscriptionData', JSON.stringify({
@@ -133,14 +129,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         const parsedData = JSON.parse(storedData);
         console.log("Loaded subscription from localStorage:", parsedData);
         
-        // Convert string status to SubscriptionStatus type
-        const typedData: SubscriptionPlan = {
-          ...parsedData,
-          status: parsedData.status as SubscriptionStatus,
-          features: typeof parsedData.features === 'object' && parsedData.features !== null 
-            ? parsedData.features as Record<string, any>
-            : {}
-        };
+        // Convert to SubscriptionPlan type
+        const typedData = toSubscriptionPlan(parsedData);
         setLocalSubscription(typedData);
         setHasFetchedFromLocal(true);
       }
@@ -179,7 +169,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   };
   
   // Use subscription from either prop, context, or local state
-  const subscription = localSubscription || subscriptionFromContext;
+  const subscription = localSubscription || (subscriptionFromContext ? toSubscriptionPlan(subscriptionFromContext) : null);
   
   // Improved loading state detection
   const isLoading = (isContextLoading && !subscription && !hasFetchedFromLocal && !directFetchAttempted);
@@ -223,7 +213,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     
     // Update local subscription state if context data becomes available
     if (!localSubscription && subscriptionFromContext) {
-      setLocalSubscription(subscriptionFromContext);
+      setLocalSubscription(toSubscriptionPlan(subscriptionFromContext));
     }
     
     // If there's an error with subscription or loading has taken too long, try direct fetch

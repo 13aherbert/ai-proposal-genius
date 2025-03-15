@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getSubscriptionData, setSubscriptionData } from "@/utils/network";
+import { SubscriptionPlan, SubscriptionStatus as SubscriptionStatusType } from "@/types/subscription";
 
 // Define Subscription types
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'trial';
@@ -17,6 +18,8 @@ export type Subscription = {
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   cancel_at_period_end?: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type SubscriptionResponse = {
@@ -31,6 +34,7 @@ export type SubscriptionResponse = {
   loading: boolean;
   hasFailedPayment: () => boolean;
   refreshWithFallbacks?: (forceRecheck?: boolean) => Promise<void>;
+  refreshSubscription?: () => Promise<void>;
 };
 
 export function useSubscription(): SubscriptionResponse {
@@ -47,12 +51,19 @@ export function useSubscription(): SubscriptionResponse {
       const cachedData = getSubscriptionData();
       if (cachedData) {
         console.log("Using cached subscription data");
-        setSubscription(cachedData as Subscription);
+        
+        const enrichedData = {
+          ...cachedData,
+          created_at: cachedData.created_at || new Date().toISOString(),
+          updated_at: cachedData.updated_at || new Date().toISOString()
+        } as Subscription;
+        
+        setSubscription(enrichedData);
         setIsLoading(false);
         
         refreshSubscriptionInBackground();
         
-        return cachedData as Subscription;
+        return enrichedData;
       }
       
       if (!session?.user?.id) {
@@ -76,7 +87,12 @@ export function useSubscription(): SubscriptionResponse {
       
       if (data) {
         console.log("Subscription data received:", data);
-        const subscriptionData = data as Subscription;
+        const subscriptionData = {
+          ...data,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString()
+        } as Subscription;
+        
         setSubscription(subscriptionData);
         setSubscriptionData(subscriptionData);
         return subscriptionData;
@@ -113,7 +129,12 @@ export function useSubscription(): SubscriptionResponse {
       
       if (data) {
         console.log("Updated subscription data received");
-        const subscriptionData = data as Subscription;
+        const subscriptionData = {
+          ...data,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString()
+        } as Subscription;
+        
         setSubscription(subscriptionData);
         setSubscriptionData(subscriptionData);
       }
@@ -183,6 +204,10 @@ export function useSubscription(): SubscriptionResponse {
       console.error("Error refreshing subscription with fallbacks:", error);
     }
   }, [checkSubscription]);
+  
+  const refreshSubscription = useCallback(async () => {
+    await checkSubscription();
+  }, [checkSubscription]);
 
   return {
     subscription,
@@ -194,6 +219,7 @@ export function useSubscription(): SubscriptionResponse {
     data: subscription,
     loading: isLoading,
     hasFailedPayment,
-    refreshWithFallbacks
+    refreshWithFallbacks,
+    refreshSubscription
   };
 }

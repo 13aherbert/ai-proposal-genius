@@ -5,7 +5,7 @@ import { UpgradeButton } from "./UpgradeButton";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { SUBSCRIPTION_PLAN_LIMITS, toSubscriptionPlan } from "@/types/subscription";
 
 export function SubscriptionPlans() {
   const subscription = useSubscription();
@@ -41,7 +41,11 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton currentPlan={subscription.subscription} targetPlan="starter" variant={billingInterval} />
+            <UpgradeButton 
+              currentPlan={subscription.subscription ? toSubscriptionPlan(subscription.subscription) : null} 
+              targetPlan="starter" 
+              variant={billingInterval} 
+            />
           </CardFooter>
         </Card>
 
@@ -66,7 +70,11 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton currentPlan={subscription.subscription} targetPlan="pro" variant={billingInterval} />
+            <UpgradeButton 
+              currentPlan={subscription.subscription ? toSubscriptionPlan(subscription.subscription) : null} 
+              targetPlan="pro" 
+              variant={billingInterval} 
+            />
           </CardFooter>
         </Card>
       </div>

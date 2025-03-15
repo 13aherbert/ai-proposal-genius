@@ -1,4 +1,3 @@
-
 /**
  * Subscription-related type definitions
  */
@@ -68,6 +67,38 @@ export const SUBSCRIPTION_PLAN_LIMITS = {
 // Compatibility type to make Subscription from use-subscription.ts work with SubscriptionPlan
 export type SubscriptionCompatibilityType = SubscriptionPlan & {
   // Add any missing fields from Subscription that might be needed
-  created_at?: string;
-  updated_at?: string;
 };
+
+// Type guard to check if a subscription is a SubscriptionPlan
+export function isSubscriptionPlan(sub: any): sub is SubscriptionPlan {
+  return sub && typeof sub === 'object' && 
+    'subscription_id' in sub &&
+    'status' in sub &&
+    'plan_type' in sub &&
+    'created_at' in sub &&
+    'updated_at' in sub;
+}
+
+// Helper function to convert any subscription-like object to a valid SubscriptionPlan
+export function toSubscriptionPlan(sub: any): SubscriptionPlan {
+  if (!sub) return null as unknown as SubscriptionPlan;
+  
+  // If the object already has all required fields, return it
+  if (isSubscriptionPlan(sub)) return sub;
+  
+  // Otherwise, add the missing fields
+  return {
+    subscription_id: sub.subscription_id || '',
+    status: sub.status as SubscriptionStatus,
+    plan_type: sub.plan_type || 'trial',
+    current_period_end: sub.current_period_end || null,
+    project_limit: sub.project_limit || 3,
+    features: sub.features || {},
+    stripe_customer_id: sub.stripe_customer_id || null,
+    stripe_subscription_id: sub.stripe_subscription_id || null,
+    created_at: sub.created_at || new Date().toISOString(),
+    updated_at: sub.updated_at || new Date().toISOString(),
+    user_id: sub.user_id || '',
+    cancel_at_period_end: sub.cancel_at_period_end || false
+  };
+}

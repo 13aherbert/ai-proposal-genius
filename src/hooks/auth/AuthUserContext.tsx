@@ -44,7 +44,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   // Network status management
   const networkStatus = useNetworkStatus();
   
-  // Subscription helper functions using the new approach that returns boolean properties
+  // Subscription helper functions return boolean values directly
   const subscriptionHelpers = useSubscription(subscription);
   
   // Error recovery functionality
@@ -63,6 +63,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   );
   
   // Add timeout to ensure we eventually set initialization complete
+  // Reduced from 5 seconds to 3 seconds for faster initial loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (!initializationComplete) {
@@ -75,7 +76,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // Reduced from 5 second to 3 second timeout
     
     return () => clearTimeout(timeoutId);
   }, [initializationComplete, isLoadingAuth]);
@@ -109,7 +110,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Subscription status properties
+          // Subscription status properties (boolean values, not functions)
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,

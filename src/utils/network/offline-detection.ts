@@ -62,7 +62,7 @@ export function setupNetworkListeners(callback: (online: boolean) => void) {
           callback(false);
         }
       });
-  }, 60000); // Check less frequently (every 60 seconds instead of 30)
+  }, 180000); // Check even less frequently (every 3 minutes)
   
   // Return a cleanup function
   return () => {
@@ -106,7 +106,7 @@ async function checkNetworkConnection(): Promise<boolean> {
   try {
     // Use a tiny request to check connectivity, with cache busting
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     
     const response = await fetch('https://bmopbbkfxkgzlbmhhgox.supabase.co/auth/v1/health', {
       method: 'HEAD',
@@ -119,7 +119,9 @@ async function checkNetworkConnection(): Promise<boolean> {
     });
     
     clearTimeout(timeoutId);
-    return response.ok || response.status === 401; // 401 means the service is available
+    
+    // Consider 401 as a successful connection since it means the service is available
+    return response.ok || response.status === 401;
   } catch (error) {
     console.warn("Network connectivity check failed:", error);
     return false;

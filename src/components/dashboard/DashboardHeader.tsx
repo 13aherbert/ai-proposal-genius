@@ -21,7 +21,7 @@ import { useSubscription } from "@/hooks/subscription";
  */
 export default function DashboardHeader() {
   const { isLoading, error } = useSubscriptionFeatures();
-  const { subscription, hasCheckedSubscription } = useSubscription();
+  const subscriptionData = useSubscription();
   const { 
     isCheckingRoles, 
     showAdminButton, 
@@ -48,12 +48,12 @@ export default function DashboardHeader() {
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log("DashboardHeader subscription states:", {
-        subscription,
-        hasCheckedSubscription,
+        subscription: subscriptionData.subscription,
+        hasCheckedSubscription: subscriptionData.hasCheckedSubscription,
         timestamp: new Date().toISOString()
       });
     }
-  }, [subscription, hasCheckedSubscription]);
+  }, [subscriptionData.subscription, subscriptionData.hasCheckedSubscription]);
   
   // Log role states in development
   useEffect(() => {

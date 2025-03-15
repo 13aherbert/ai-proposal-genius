@@ -6,17 +6,17 @@ import { useNavigate } from 'react-router-dom';
 import { addDays, format, isPast, differenceInDays } from 'date-fns';
 
 export function useSubscriptionNotifications() {
-  const { data: subscription, loading, hasFailedPayment, isInGracePeriod } = useSubscription();
+  const subscription = useSubscription();
   const [hasShownGracePeriodNotice, setHasShownGracePeriodNotice] = useState(false);
   const [hasShownExpirationNotice, setHasShownExpirationNotice] = useState(false);
   const [hasShownRenewalNotice, setHasShownRenewalNotice] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (loading || !subscription) return;
+    if (subscription.isLoading || !subscription.subscription) return;
 
     // Check for failed payment status
-    if (hasFailedPayment()) {
+    if (subscription.hasFailedPayment()) {
       toast.error("Payment failed", {
         description: "We couldn't process your last payment. Please update your payment method.",
         duration: 10000,
@@ -29,11 +29,11 @@ export function useSubscriptionNotifications() {
 
     // Check for upcoming renewal (7 days before expiration)
     if (
-      subscription.status === 'active' && 
-      subscription.current_period_end && 
+      subscription.subscription.status === 'active' && 
+      subscription.subscription.current_period_end && 
       !hasShownRenewalNotice
     ) {
-      const endDate = new Date(subscription.current_period_end);
+      const endDate = new Date(subscription.subscription.current_period_end);
       const daysUntilRenewal = differenceInDays(endDate, new Date());
       
       if (daysUntilRenewal <= 7 && daysUntilRenewal > 0) {
@@ -47,11 +47,11 @@ export function useSubscriptionNotifications() {
 
     // Check for grace period (subscription ended but within 3 days)
     if (
-      subscription.current_period_end && 
-      isPast(new Date(subscription.current_period_end)) && 
+      subscription.subscription.current_period_end && 
+      isPast(new Date(subscription.subscription.current_period_end)) && 
       !hasShownGracePeriodNotice
     ) {
-      const gracePeriodEnd = addDays(new Date(subscription.current_period_end), 3);
+      const gracePeriodEnd = addDays(new Date(subscription.subscription.current_period_end), 3);
       
       if (!isPast(gracePeriodEnd)) {
         // User is in grace period
@@ -82,18 +82,18 @@ export function useSubscriptionNotifications() {
       }
     }
   }, [
-    subscription, 
-    loading, 
+    subscription.subscription, 
+    subscription.isLoading, 
     navigate, 
     hasShownGracePeriodNotice, 
     hasShownExpirationNotice, 
     hasShownRenewalNotice,
-    hasFailedPayment,
-    isInGracePeriod
+    subscription.hasFailedPayment,
+    subscription.isInGracePeriod
   ]);
 
   return { 
-    isInGracePeriod,
-    hasFailedPayment
+    isInGracePeriod: subscription.isInGracePeriod,
+    hasFailedPayment: subscription.hasFailedPayment
   };
 }

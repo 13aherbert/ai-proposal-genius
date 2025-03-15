@@ -1,31 +1,44 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNetwork } from '@/hooks/network';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SubscriptionPlan } from '@/types/subscription';
 import { createDefaultSubscription, createStarterSubscription } from '../utils/subscription-creation';
-import { storeSubscriptionDataLocally, retrieveSubscriptionDataLocally } from '../feature-access';
+import { storeSubscriptionDataLocally, getStoredSubscriptionData } from '../feature-access';
 
 // Context type definitions
 type SubscriptionContextType = {
   subscription: SubscriptionPlan | null;
+  data: SubscriptionPlan | null; // Add data alias for subscription
   isLoading: boolean;
+  loading: boolean; // Add loading alias for isLoading
   hasCheckedSubscription: boolean;
   error: Error | null;
   refreshSubscription: () => Promise<void>;
+  checkSubscription: (forceRecheck?: boolean) => Promise<void>; // Add alias for refreshSubscription
   setSubscription: (subscription: SubscriptionPlan) => void;
   clearSubscription: () => void;
+  hasFailedPayment: () => boolean; // Add subscription status checker methods
+  isInGracePeriod: () => boolean;
+  renewSubscription: () => Promise<{ url?: string; success?: boolean; error?: any }>;
 };
 
 // Create the context with default values
 const SubscriptionContext = createContext<SubscriptionContextType>({
   subscription: null,
+  data: null,
   isLoading: true,
+  loading: true,
   hasCheckedSubscription: false,
   error: null,
   refreshSubscription: async () => {},
+  checkSubscription: async () => {},
   setSubscription: () => {},
   clearSubscription: () => {},
+  hasFailedPayment: () => false,
+  isInGracePeriod: () => false,
+  renewSubscription: async () => ({ success: false }),
 });
 
 // Hook for accessing the subscription context
@@ -45,6 +58,40 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     localStorage.removeItem('subscription_data');
     setHasCheckedSubscription(false);
   }, []);
+  
+  // Status checker methods
+  const hasFailedPayment = useCallback(() => {
+    if (!subscription) return false;
+    return subscription.status === 'past_due' || subscription.status === 'unpaid';
+  }, [subscription]);
+  
+  const isInGracePeriod = useCallback(() => {
+    if (!subscription || !subscription.current_period_end) return false;
+    
+    const endDate = new Date(subscription.current_period_end);
+    const today = new Date();
+    const gracePeriodEnd = new Date(endDate.getTime() + (3 * 24 * 60 * 60 * 1000)); // 3 days
+    
+    return today > endDate && today <= gracePeriodEnd;
+  }, [subscription]);
+
+  // Mock renewal function (to be implemented with Stripe)
+  const renewSubscription = useCallback(async () => {
+    console.log('Renewing subscription');
+    try {
+      // This would normally call a Stripe API endpoint
+      return { 
+        success: true, 
+        url: 'https://example.com/payment' 
+      };
+    } catch (err) {
+      console.error('Error in renewSubscription:', err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err : new Error('Unknown error') 
+      };
+    }
+  }, []);
 
   // Fetch subscription data from the API
   const fetchSubscriptionData = useCallback(async () => {
@@ -53,7 +100,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // If we're offline, don't try to fetch from the API
       if (!isOnline) {
         console.log('Offline: Using cached subscription data');
-        const cachedData = retrieveSubscriptionDataLocally();
+        const cachedData = getStoredSubscriptionData();
         if (cachedData) {
           setSubscription(cachedData);
           setHasCheckedSubscription(true);
@@ -120,7 +167,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setError(err instanceof Error ? err : new Error('Unknown error fetching subscription'));
       
       // On error, try to use cached data
-      const cachedData = retrieveSubscriptionDataLocally();
+      const cachedData = getStoredSubscriptionData();
       if (cachedData) {
         console.log('Using cached subscription data after error');
         setSubscription(cachedData);
@@ -149,7 +196,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // If we're offline, try to load from cache first
     if (!isOnline) {
       console.log('Offline: Using cached subscription data on init');
-      const cachedData = retrieveSubscriptionDataLocally();
+      const cachedData = getStoredSubscriptionData();
       if (cachedData) {
         setSubscription(cachedData);
         setHasCheckedSubscription(true);
@@ -179,12 +226,18 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // The context value
   const value = {
     subscription,
+    data: subscription, // Add data alias for subscription
     isLoading,
+    loading: isLoading, // Add loading alias for isLoading
     hasCheckedSubscription,
     error,
     refreshSubscription,
+    checkSubscription: refreshSubscription, // Add alias for refreshSubscription
     setSubscription,
     clearSubscription,
+    hasFailedPayment,
+    isInGracePeriod,
+    renewSubscription,
   };
 
   return (

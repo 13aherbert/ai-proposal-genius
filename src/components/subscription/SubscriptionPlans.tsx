@@ -8,9 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
 export function SubscriptionPlans() {
-  const {
-    data: subscription
-  } = useSubscription();
+  const subscription = useSubscription();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
   
   return <div className="container mx-auto px-4 py-8">
@@ -43,7 +41,7 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton currentPlan={subscription} targetPlan="starter" variant={billingInterval} />
+            <UpgradeButton currentPlan={subscription.subscription} targetPlan="starter" variant={billingInterval} />
           </CardFooter>
         </Card>
 
@@ -68,7 +66,7 @@ export function SubscriptionPlans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <UpgradeButton currentPlan={subscription} targetPlan="pro" variant={billingInterval} />
+            <UpgradeButton currentPlan={subscription.subscription} targetPlan="pro" variant={billingInterval} />
           </CardFooter>
         </Card>
       </div>

@@ -24,7 +24,7 @@ import { usePaymentUpdate } from "@/hooks/subscription/use-payment-update";
 export default function Subscription() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: subscription, loading, isInGracePeriod } = useSubscription();
+  const subscription = useSubscription();
   const { handleUpdatePayment, isUpdatingPayment } = usePaymentUpdate();
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
@@ -53,12 +53,12 @@ export default function Subscription() {
 
   // Process subscription data once loaded
   useEffect(() => {
-    if (!loading && subscription) {
+    if (!subscription.isLoading && subscription.subscription) {
       setInitialLoadComplete(true);
       
-      const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
-      const hasFailedSubscriptionPayment = subscription?.status === 'past_due' || subscription?.status === 'unpaid';
-      const needsRenewal = isInGracePeriod() || hasFailedSubscriptionPayment;
+      const hasActiveSubscription = subscription.subscription?.status === 'active' && subscription.subscription?.plan_type !== 'trial';
+      const hasFailedSubscriptionPayment = subscription.subscription?.status === 'past_due' || subscription.subscription?.status === 'unpaid';
+      const needsRenewal = subscription.isInGracePeriod() || hasFailedSubscriptionPayment;
       
       if (hasActiveSubscription && !needsRenewal) {
         if (!location.state?.fromUpgradeButton) {
@@ -68,17 +68,17 @@ export default function Subscription() {
         setShowRenewalPrompt(true);
       }
     }
-  }, [subscription, loading, navigate, location.state, isInGracePeriod]);
+  }, [subscription.subscription, subscription.isLoading, navigate, location.state, subscription.isInGracePeriod]);
 
   // Render appropriate view based on state
-  if (loading && !initialLoadComplete) {
+  if (subscription.isLoading && !initialLoadComplete) {
     return <LoadingState />;
   }
   
   if (showRenewalPrompt) {
     return (
       <RenewalPrompt
-        isInGracePeriod={isInGracePeriod}
+        isInGracePeriod={subscription.isInGracePeriod()}
         handleUpdatePayment={handleUpdatePayment}
         isUpdatingPayment={isUpdatingPayment}
         setShowRenewalPrompt={setShowRenewalPrompt}

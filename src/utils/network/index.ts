@@ -4,3 +4,15 @@ export { isNetworkError, getNetworkErrorMessage, isUserOnline, setUserOnlineStat
 export { withRetry } from './retry';
 export { withRateLimit, withRateLimitByKey } from './rate-limit';
 export type { EdgeFunctionResponse } from './types';
+
+// Export token manager functions
+export {
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+  getUserRoles,
+  setUserRoles,
+  getSubscriptionData,
+  setSubscriptionData,
+  clearAuthData
+} from './token-manager';

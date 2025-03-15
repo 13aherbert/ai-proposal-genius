@@ -341,6 +341,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_status_cache: {
+        Row: {
+          has_user_role: boolean
+          is_admin: boolean
+          is_beta_tester: boolean
+          last_updated: string
+          project_limit: number | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          user_id: string
+        }
+        Insert: {
+          has_user_role?: boolean
+          is_admin?: boolean
+          is_beta_tester?: boolean
+          last_updated?: string
+          project_limit?: number | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          user_id: string
+        }
+        Update: {
+          has_user_role?: boolean
+          is_admin?: boolean
+          is_beta_tester?: boolean
+          last_updated?: string
+          project_limit?: number | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -396,6 +429,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_user_status: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          is_admin: boolean
+          is_beta_tester: boolean
+          has_user_role: boolean
+          subscription_status: string
+          subscription_plan: string
+          project_limit: number
+        }[]
+      }
       direct_admin_check: {
         Args: {
           user_id_param: string
@@ -404,6 +450,18 @@ export type Database = {
       }
       get_all_user_roles: {
         Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          role: string
+          created_at: string
+          created_by: string
+        }[]
+      }
+      get_all_user_roles_by_id: {
+        Args: {
+          user_id_param: string
+        }
         Returns: {
           id: string
           user_id: string
@@ -426,6 +484,35 @@ export type Database = {
           accepted_at: string
           expires_at: string
           invitation_email_sent: boolean
+        }[]
+      }
+      get_subscription_details: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          subscription_id: string
+          status: string
+          plan_type: string
+          current_period_end: string
+          project_limit: number
+          features: Json
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          cancel_at_period_end: boolean
+        }[]
+      }
+      get_user_permissions: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          is_admin: boolean
+          is_beta_tester: boolean
+          subscription_plan: string
+          subscription_status: string
+          features: Json
+          project_limit: number
         }[]
       }
       has_role: {

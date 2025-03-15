@@ -6,6 +6,7 @@ import { AuthError } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthForm } from "./AuthFormContext";
 import { withRetry } from "@/utils/network/retry";
+import { setAuthToken, setUserRoles, setSubscriptionData } from "@/utils/network";
 
 export const useAuthFormSubmit = () => {
   const { isSignUp, email, password, firstName, lastName, companyName, birthday, setError } = useAuthForm();
@@ -26,16 +27,19 @@ export const useAuthFormSubmit = () => {
   };
 
   const storeUserSession = async (token: string) => {
-    localStorage.setItem('userToken', token);
-    console.log("Auth token stored in localStorage");
+    // Store token using the new TokenManager
+    const tokenStored = setAuthToken(token);
+    if (tokenStored) {
+      console.log("Auth token stored successfully using TokenManager");
+    }
     
     // Prefetch and store user roles for offline access
     try {
       await withRetry(async () => {
         const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
         if (!roleError && roleData?.roles) {
-          localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-          console.log("User roles stored in localStorage");
+          setUserRoles(roleData.roles);
+          console.log("User roles stored successfully using TokenManager");
         }
       }, 3, 1000); // Try up to 3 times with 1 second delay between attempts
     } catch (roleErr) {
@@ -50,11 +54,8 @@ export const useAuthFormSubmit = () => {
         .single();
         
       if (!subError && subData) {
-        localStorage.setItem('subscriptionData', JSON.stringify({
-          ...subData,
-          updated_at: new Date().toISOString()
-        }));
-        console.log("Subscription data stored in localStorage");
+        setSubscriptionData(subData);
+        console.log("Subscription data stored successfully using TokenManager");
       }
     } catch (subErr) {
       console.error("Failed to fetch subscription data after auth:", subErr);

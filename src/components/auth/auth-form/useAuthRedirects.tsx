@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthForm } from "./AuthFormContext";
 import { toast } from "sonner";
+import { getAuthToken, setAuthToken, setUserRoles } from "@/utils/network";
 
 export const useAuthRedirects = () => {
   const { setIsSignUp, setError } = useAuthForm();
@@ -69,10 +70,10 @@ export const useAuthRedirects = () => {
       } catch (e) {
         console.error("Exception checking session in redirects:", e);
         
-        // If timeout occurred, check localStorage as fallback
-        const token = localStorage.getItem('userToken');
+        // If timeout occurred, check localStorage as fallback using TokenManager
+        const token = getAuthToken();
         if (token) {
-          console.log("Session check timed out, but token found in localStorage");
+          console.log("Session check timed out, but token found via TokenManager");
         }
       }
     };
@@ -112,10 +113,10 @@ export const useAuthRedirects = () => {
   }, [navigate, location.search, setError]);
   
   const handleRedirect = (session: any) => {
-    // Ensure we have the token in localStorage
+    // Ensure we have the token in localStorage using TokenManager
     if (session?.access_token) {
-      localStorage.setItem('userToken', session.access_token);
-      console.log("Auth token stored in localStorage");
+      setAuthToken(session.access_token);
+      console.log("Auth token stored via TokenManager");
       
       // Prefetch user roles for faster access later, but don't wait for it
       Promise.all([
@@ -133,8 +134,8 @@ export const useAuthRedirects = () => {
         })
       ]).then(([{ data, error }]) => {
         if (!error && data?.roles) {
-          console.log("Successfully prefetched user roles, storing in localStorage");
-          localStorage.setItem('userRoles', JSON.stringify(data.roles));
+          console.log("Successfully prefetched user roles, storing with TokenManager");
+          setUserRoles(data.roles);
         }
       }).catch(err => {
         console.error("All attempts to prefetch user roles failed:", err);

@@ -158,11 +158,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Initialize auth state once on component mount
   useEffect(() => {
     console.log("AuthProvider mounted, initializing auth state");
     
-    // Set a timeout to ensure initialization completes eventually
     initTimeout.current = setTimeout(() => {
       if (loading) {
         console.warn("Auth initialization timeout reached. Forcing completion.");
@@ -170,7 +168,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }, 7000);
     
-    // Initialize the auth state
     authActions.initialize().finally(() => {
       setLoading(false);
     });
@@ -182,7 +179,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
   
-  // Update session state when auth state changes
   useEffect(() => {
     switch (authState.status) {
       case 'authenticated':
@@ -201,12 +197,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
         break;
       case 'initializing':
-        // Keep loading state while initializing
         break;
     }
   }, [authState]);
 
-  // Handle auth state changes via Supabase events
   useEffect(() => {
     let isSubscribed = true;
     
@@ -225,7 +219,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setAuthToken(currentSession.access_token);
             
             try {
-              // Fetch user roles in the background for faster access
               const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles');
               if (!roleError && roleData) {
                 setUserRoles(roleData.roles);

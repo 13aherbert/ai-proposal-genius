@@ -1,226 +1,232 @@
 
-import { useState, useEffect, useRef } from "react";
-import { Session } from "@supabase/supabase-js";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { getAuthToken, setAuthToken, removeAuthToken } from "@/utils/network";
-import { withRetry } from "@/utils/network/retry";
+import { Session, AuthError } from "@supabase/supabase-js";
+import { getAuthToken, setAuthToken, clearAuthData } from "@/utils/network";
 
-export type AuthState = 
+// Auth state types
+type AuthState = 
   | { status: 'initializing' }
   | { status: 'authenticated'; session: Session }
   | { status: 'unauthenticated' }
-  | { status: 'error'; error: Error }
-  | { status: 'offline' }; // Add a new status for offline scenarios
+  | { status: 'error'; error: AuthError | Error };
 
-export type AuthActions = {
+// Auth actions
+type AuthActions = {
   initialize: () => Promise<void>;
-  restoreSession: () => Promise<Session | null>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, userData: Record<string, any>) => Promise<{ error: AuthError | null }>;
+  signOut: () => Promise<void>;
+  resetSession: (session: Session | null) => void;
 };
 
 /**
- * Hook that manages the authentication state with improved resilience
+ * Hook for managing authentication state
+ * Provides a clean separation of auth state and actions
  */
 export function useAuthStateManager(): [AuthState, AuthActions] {
   const [authState, setAuthState] = useState<AuthState>({ status: 'initializing' });
-  const initializeAttempted = useRef(false);
-  const maxRetryAttempts = 3;
-  const isNetworkError = useRef(false);
-
-  // Initialize auth state by checking for an existing session
-  const initialize = async (): Promise<void> => {
-    if (initializeAttempted.current) return;
-    initializeAttempted.current = true;
-    
-    console.log("Initializing auth state");
-    
-    // Check network connection first
-    const isOnline = navigator.onLine;
-    if (!isOnline) {
-      console.log("Device is offline, setting offline auth state");
-      isNetworkError.current = true;
-      setAuthState({ status: 'offline' });
-      
-      // Add listener to retry when we come back online
-      const handleOnline = async () => {
-        console.log("Device is back online, attempting to restore auth state");
-        isNetworkError.current = false;
-        // Reset initialization flag to allow retry
-        initializeAttempted.current = false;
-        // Remove this listener
-        window.removeEventListener('online', handleOnline);
-        // Try again
-        await initialize();
-      };
-      
-      window.addEventListener('online', handleOnline);
-      return;
-    }
-    
+  
+  // Initialize auth state from storage or session
+  const initialize = async () => {
     try {
-      // Check local token first for faster startup
+      setAuthState({ status: 'initializing' });
+      
+      // First try to restore session from localStorage token if available
       const storedToken = getAuthToken();
       
       if (storedToken) {
-        console.log("Found stored auth token, attempting to restore session");
-        const session = await restoreSession();
-        
-        if (session) {
-          console.log("Session successfully restored from token");
-          setAuthState({ status: 'authenticated', session });
-          return;
-        }
-      }
-      
-      // If no token or token restoration failed, try to get the session normally
-      const { data, error } = await withRetry(
-        () => supabase.auth.getSession(),
-        maxRetryAttempts,
-        1000,
-        5000
-      );
-      
-      if (error) {
-        console.error("Error getting session:", error);
-        
-        // Check if this is a network error
-        if (error.message?.includes('network') || !navigator.onLine) {
-          isNetworkError.current = true;
-          setAuthState({ status: 'offline' });
-          return;
-        }
-        
-        setAuthState({ status: 'error', error });
-        
-        // Show error toast only for non-"not authenticated" errors
-        if (error.message !== "Not authenticated") {
-          toast.error("Authentication error", {
-            description: "There was a problem connecting to the authentication service"
+        try {
+          console.log("Attempting to restore session from stored token");
+          const { data, error } = await supabase.auth.setSession({
+            access_token: storedToken,
+            refresh_token: ''
           });
+          
+          if (error) {
+            console.warn("Failed to restore session from token:", error.message);
+            clearAuthData();
+            setAuthState({ status: 'unauthenticated' });
+            return;
+          }
+          
+          if (data?.session) {
+            console.log("Successfully restored session from token");
+            setAuthState({ 
+              status: 'authenticated', 
+              session: data.session 
+            });
+            return;
+          }
+        } catch (tokenError) {
+          console.error("Error restoring session from token:", tokenError);
         }
-        
-        return;
       }
       
-      if (data.session) {
-        console.log("Session found during initialization");
-        setAuthState({ status: 'authenticated', session: data.session });
+      // If token restoration failed, try getting the current session
+      try {
+        const { data, error } = await supabase.auth.getSession();
         
-        // Store token for future restorations
-        if (data.session.access_token) {
+        if (error) {
+          console.error("Error getting session:", error);
+          setAuthState({ status: 'error', error });
+          return;
+        }
+        
+        if (data.session) {
+          console.log("Session found during initialization");
           setAuthToken(data.session.access_token);
+          setAuthState({ status: 'authenticated', session: data.session });
+        } else {
+          console.log("No session found during initialization");
+          setAuthState({ status: 'unauthenticated' });
         }
-      } else {
-        console.log("No active session found");
-        setAuthState({ status: 'unauthenticated' });
+      } catch (e) {
+        console.error("Unexpected error during auth initialization:", e);
+        setAuthState({ 
+          status: 'error', 
+          error: e instanceof AuthError ? e : new Error('Authentication initialization failed') 
+        });
       }
-    } catch (err) {
-      console.error("Unexpected error during auth initialization:", err);
-      
-      // Check if this appears to be a network error
-      if (!navigator.onLine || (err instanceof Error && err.message?.includes('network'))) {
-        isNetworkError.current = true;
-        setAuthState({ status: 'offline' });
-        return;
-      }
-      
-      setAuthState({ status: 'error', error: err instanceof Error ? err : new Error('Unknown error during authentication') });
-      
-      toast.error("Authentication error", {
-        description: "Failed to initialize authentication"
+    } catch (finalError) {
+      console.error("Critical error during auth initialization:", finalError);
+      setAuthState({ 
+        status: 'error', 
+        error: finalError instanceof AuthError ? finalError : new Error('Authentication initialization failed') 
       });
     }
   };
-
-  // Attempt to restore a session from a stored token
-  const restoreSession = async (): Promise<Session | null> => {
-    const storedToken = getAuthToken();
+  
+  // Set up auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event);
+        
+        switch (event) {
+          case 'SIGNED_IN':
+            if (session) {
+              setAuthToken(session.access_token);
+              setAuthState({ status: 'authenticated', session });
+            }
+            break;
+          case 'SIGNED_OUT':
+            clearAuthData();
+            setAuthState({ status: 'unauthenticated' });
+            break;
+          case 'TOKEN_REFRESHED':
+            if (session) {
+              setAuthToken(session.access_token);
+              setAuthState({ status: 'authenticated', session });
+            }
+            break;
+          case 'USER_UPDATED':
+            if (session) {
+              setAuthState({ status: 'authenticated', session });
+            }
+            break;
+        }
+      }
+    );
     
-    if (!storedToken) {
-      console.log("No stored token found for session restoration");
-      return null;
-    }
-    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  // Sign in with email and password
+  const signIn = async (email: string, password: string) => {
     try {
-      console.log("Attempting to restore session from token");
-      
-      const { data, error } = await withRetry(
-        () => supabase.auth.setSession({
-          access_token: storedToken,
-          refresh_token: ''
-        }),
-        maxRetryAttempts,
-        1000,
-        5000
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
       if (error) {
-        console.error("Error restoring session from token:", error);
-        
-        // Check if this is due to being offline
-        if (error.message?.includes('network') || !navigator.onLine) {
-          console.log("Network error during session restoration");
-          isNetworkError.current = true;
-          
-          // In offline mode, we'll just assume the token might still be valid
-          // This allows the app to attempt to work offline with cached data
-          return null;
-        }
-        
-        removeAuthToken(); // Clear invalid token
-        return null;
+        console.error("Sign in error:", error);
+        return { error };
       }
       
-      if (data?.session) {
-        console.log("Session successfully restored");
-        return data.session;
+      if (data.session) {
+        setAuthToken(data.session.access_token);
       }
       
-      console.log("No session returned from restoration attempt");
-      return null;
+      return { error: null };
     } catch (error) {
-      console.error("Exception restoring session:", error);
-      
-      // Network error during restoration attempt
-      if (!navigator.onLine) {
-        console.log("Device is offline during session restoration");
-        isNetworkError.current = true;
-        // We don't clear the token here since it might be valid when online again
-        return null;
-      }
-      
-      removeAuthToken(); // Clear potentially corrupted token
-      return null;
+      console.error("Unexpected error during sign in:", error);
+      return { 
+        error: error instanceof AuthError 
+          ? error 
+          : new AuthError('Sign in failed due to an unexpected error')
+      };
     }
   };
-
-  // Listen for network status changes
-  useEffect(() => {
-    // Only if we had a network error, try again when coming online
-    if (isNetworkError.current) {
-      const handleOnline = () => {
-        console.log("Network is back, retrying authentication");
-        // Reset initialization flag to allow retry
-        initializeAttempted.current = false;
-        isNetworkError.current = false;
-        initialize().catch(err => {
-          console.error("Error during re-initialization after network recovery:", err);
-        });
-      };
+  
+  // Sign up with email and password
+  const signUp = async (email: string, password: string, userData: Record<string, any>) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData
+        }
+      });
       
-      window.addEventListener('online', handleOnline);
+      if (error) {
+        console.error("Sign up error:", error);
+        return { error };
+      }
       
-      return () => {
-        window.removeEventListener('online', handleOnline);
+      if (data.session) {
+        setAuthToken(data.session.access_token);
+      }
+      
+      return { error: null };
+    } catch (error) {
+      console.error("Unexpected error during sign up:", error);
+      return { 
+        error: error instanceof AuthError 
+          ? error 
+          : new AuthError('Sign up failed due to an unexpected error')
       };
     }
-  }, [authState.status]);
-
-  return [
-    authState,
-    {
-      initialize,
-      restoreSession
+  };
+  
+  // Sign out
+  const signOut = async () => {
+    try {
+      clearAuthData();
+      await supabase.auth.signOut();
+      setAuthState({ status: 'unauthenticated' });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      setAuthState({ 
+        status: 'error', 
+        error: error instanceof AuthError ? error : new Error('Sign out failed') 
+      });
+      throw error;
     }
-  ];
+  };
+  
+  // Reset session (useful for manual session updates)
+  const resetSession = (session: Session | null) => {
+    if (session) {
+      setAuthToken(session.access_token);
+      setAuthState({ status: 'authenticated', session });
+    } else {
+      setAuthState({ status: 'unauthenticated' });
+    }
+  };
+  
+  // Bundle actions
+  const actions: AuthActions = {
+    initialize,
+    signIn,
+    signUp,
+    signOut,
+    resetSession
+  };
+  
+  return [authState, actions];
 }

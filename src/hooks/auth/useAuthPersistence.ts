@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,7 +15,6 @@ export function useAuthPersistence() {
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const recoveryInProgress = useRef(false);
   
-  // Store authentication tokens in localStorage for offline access
   const persistSession = useCallback((accessToken: string, refreshToken: string, expiresAt?: number) => {
     try {
       localStorage.setItem(AUTH_TOKEN_KEY, accessToken);
@@ -29,10 +27,7 @@ export function useAuthPersistence() {
         localStorage.setItem(SESSION_EXPIRY_KEY, expiresAt.toString());
       }
       
-      // Store last active timestamp
       localStorage.setItem(AUTH_LAST_ACTIVE_KEY, Date.now().toString());
-      
-      // Reset recovery attempts on successful persistence
       localStorage.setItem(AUTH_SESSION_RECOVERY_ATTEMPTS, '0');
       
       console.log("Auth session persisted to localStorage");
@@ -41,7 +36,6 @@ export function useAuthPersistence() {
     }
   }, []);
   
-  // Remove authentication data from localStorage
   const clearPersistedSession = useCallback(() => {
     try {
       localStorage.removeItem(AUTH_TOKEN_KEY);
@@ -58,7 +52,6 @@ export function useAuthPersistence() {
     }
   }, []);
   
-  // Check if the token is about to expire and needs refreshing
   const shouldRefreshToken = useCallback(() => {
     try {
       const expiryTimestamp = localStorage.getItem(SESSION_EXPIRY_KEY);
@@ -68,7 +61,6 @@ export function useAuthPersistence() {
       const expiryTime = parseInt(expiryTimestamp, 10);
       const now = Math.floor(Date.now() / 1000); // Current time in seconds
       
-      // Refresh if less than 10 minutes until expiry
       return (expiryTime - now) < 600;
     } catch (err) {
       console.error("Error checking token expiry:", err);
@@ -76,14 +68,13 @@ export function useAuthPersistence() {
     }
   }, []);
   
-  // Refresh the token if it's about to expire
   const refreshToken = useCallback(async () => {
     if (!shouldRefreshToken()) return null;
     
     try {
-      const refreshToken = localStorage.getItem(AUTH_REFRESH_KEY);
+      const storedRefreshToken = localStorage.getItem(AUTH_REFRESH_KEY);
       
-      if (!refreshToken) {
+      if (!storedRefreshToken) {
         console.warn("No refresh token available");
         return null;
       }
@@ -91,7 +82,7 @@ export function useAuthPersistence() {
       console.log("Refreshing auth token");
       
       const { data, error } = await supabase.auth.refreshSession({
-        refresh_token: refreshToken,
+        refresh_token: storedRefreshToken,
       });
       
       if (error) {
@@ -100,7 +91,6 @@ export function useAuthPersistence() {
       }
       
       if (data?.session) {
-        // Store the new session
         persistSession(
           data.session.access_token,
           data.session.refresh_token,
@@ -113,24 +103,20 @@ export function useAuthPersistence() {
     } catch (err) {
       console.error("Exception refreshing token:", err);
       
-      // Don't show network errors if offline
       if (!navigator.onLine && isNetworkError(err)) {
         return null;
       }
     }
     
     return null;
-  }, [shouldRefreshToken, persistSession]);
+  }, [shouldRefreshToken]);
   
-  // Restore session from localStorage if supabase auth isn't initialized
   const restoreSession = useCallback(async (): Promise<Session | null> => {
-    // Don't attempt if we're offline
     if (!navigator.onLine) {
       console.log("Not attempting session restore while offline");
       return null;
     }
     
-    // Prevent concurrent recovery attempts
     if (recoveryInProgress.current) {
       console.log("Session recovery already in progress");
       return null;
@@ -139,11 +125,9 @@ export function useAuthPersistence() {
     recoveryInProgress.current = true;
     
     try {
-      // Track recovery attempts
       const storedAttempts = localStorage.getItem(AUTH_SESSION_RECOVERY_ATTEMPTS) || '0';
       const attempts = parseInt(storedAttempts, 10);
       
-      // Limit recovery attempts to prevent infinite loops
       if (attempts >= 3) {
         console.error("Too many session recovery attempts, giving up");
         toast.error("Could not restore your session", {
@@ -154,11 +138,9 @@ export function useAuthPersistence() {
         return null;
       }
       
-      // Update recovery attempts
       localStorage.setItem(AUTH_SESSION_RECOVERY_ATTEMPTS, (attempts + 1).toString());
       setRecoveryAttempts(attempts + 1);
       
-      // Try to refresh token first if possible
       const refreshedSession = await refreshToken();
       if (refreshedSession) {
         console.log("Session restored via token refresh");
@@ -183,7 +165,6 @@ export function useAuthPersistence() {
       
       if (error) {
         console.error("Error restoring session:", error);
-        // If token is invalid, clear it
         if (error.message.includes('invalid') || error.message.includes('expired')) {
           clearPersistedSession();
         }
@@ -194,7 +175,6 @@ export function useAuthPersistence() {
       if (data?.session) {
         console.log("Session successfully restored from localStorage");
         
-        // Update stored session with latest data
         persistSession(
           data.session.access_token,
           data.session.refresh_token,
@@ -207,7 +187,6 @@ export function useAuthPersistence() {
     } catch (err) {
       console.error("Exception restoring session:", err);
       
-      // Don't show network errors if offline
       if (navigator.onLine && !isNetworkError(err)) {
         toast.error("Error restoring your session", {
           description: "Please try again or sign in"
@@ -220,7 +199,6 @@ export function useAuthPersistence() {
     return null;
   }, [clearPersistedSession, persistSession, refreshToken]);
   
-  // Check if session is expired
   const isSessionExpired = useCallback(() => {
     try {
       const expiryTimestamp = localStorage.getItem(SESSION_EXPIRY_KEY);
@@ -228,14 +206,13 @@ export function useAuthPersistence() {
       if (!expiryTimestamp) return true;
       
       const expiryTime = parseInt(expiryTimestamp, 10);
-      return Date.now() > expiryTime * 1000; // Convert to milliseconds
+      return Date.now() > expiryTime * 1000;
     } catch (e) {
       console.error("Error checking session expiry:", e);
       return true;
     }
   }, []);
   
-  // Check how long the session has been inactive
   const getSessionInactiveTime = useCallback(() => {
     try {
       const lastActive = localStorage.getItem(AUTH_LAST_ACTIVE_KEY);
@@ -250,7 +227,6 @@ export function useAuthPersistence() {
     }
   }, []);
   
-  // Update the last active timestamp
   const updateLastActive = useCallback(() => {
     try {
       localStorage.setItem(AUTH_LAST_ACTIVE_KEY, Date.now().toString());
@@ -259,7 +235,6 @@ export function useAuthPersistence() {
     }
   }, []);
   
-  // Set up automatic session persistence when auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
@@ -278,32 +253,26 @@ export function useAuthPersistence() {
     };
   }, [persistSession, clearPersistedSession]);
   
-  // Initialize auth persistence on component mount
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true;
       
-      // Only attempt to restore if we have a token stored
       const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY);
       
       if (hasToken) {
-        // Check if token needs refresh
         if (shouldRefreshToken() && navigator.onLine) {
           refreshToken();
         } else if (isSessionExpired() && navigator.onLine) {
-          // Try to restore if expired
           restoreSession();
         }
       }
       
-      // Set up activity tracking
       const updateActivity = () => {
         if (supabase.auth.getSession()) {
           updateLastActive();
         }
       };
       
-      // Track user activity
       window.addEventListener('click', updateActivity);
       window.addEventListener('keydown', updateActivity);
       

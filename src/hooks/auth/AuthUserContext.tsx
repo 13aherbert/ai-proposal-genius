@@ -200,10 +200,10 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           subscription,
           
           // These must be functions that return booleans to match the interface
-          isActive: () => subscriptionHelpers.isActive(),
-          isInGracePeriod: () => subscriptionHelpers.isInGracePeriod(),
-          isPastGracePeriod: () => subscriptionHelpers.isPastGracePeriod(),
-          hasFailedPayment: () => subscriptionHelpers.hasFailedPayment(),
+          isActive: subscriptionHelpers.isActive,
+          isInGracePeriod: subscriptionHelpers.isInGracePeriod,
+          isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,
+          hasFailedPayment: subscriptionHelpers.hasFailedPayment,
           
           refreshUserStatus,
           getProjectLimit,

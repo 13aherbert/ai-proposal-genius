@@ -27,7 +27,7 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status functions
+  // Subscription status functions - updated to use function references
   isActive: () => boolean;
   isInGracePeriod: () => boolean;
   isPastGracePeriod: () => boolean;
@@ -190,6 +190,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
+          // Pass the function references directly, not their invocation results
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,

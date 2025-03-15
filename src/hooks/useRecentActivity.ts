@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,13 +10,16 @@ export const useRecentActivity = (user: User | null) => {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fix: Don't access protected supabaseUrl directly
+  const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://bmopbbkfxkgzlbmhhgox.supabase.co'}/rest/v1`;
+  
   // Use the optimized query for projects with caching
   const { 
     data: projectsData,
     isLoading: isLoadingProjects,
     error: projectsError
   } = useOptimizedQuery<any[]>({
-    url: `${supabase.supabaseUrl}/rest/v1/projects?select=project_id,title,created_at,last_update_at&user_id=eq.${user?.id}&order=last_update_at.desc&limit=5`,
+    url: `${apiBaseUrl}/projects?select=project_id,title,created_at,last_update_at&user_id=eq.${user?.id}&order=last_update_at.desc&limit=5`,
     enabled: !!user?.id,
     cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchInterval: false,
@@ -32,7 +34,7 @@ export const useRecentActivity = (user: User | null) => {
     isLoading: isLoadingEntries,
     error: entriesError
   } = useOptimizedQuery<any[]>({
-    url: `${supabase.supabaseUrl}/rest/v1/knowledge_entries?select=entry_id,title,created_at&user_id=eq.${user?.id}&order=created_at.desc&limit=3`,
+    url: `${apiBaseUrl}/knowledge_entries?select=entry_id,title,created_at&user_id=eq.${user?.id}&order=created_at.desc&limit=3`,
     enabled: !!user?.id,
     cacheTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchInterval: false,

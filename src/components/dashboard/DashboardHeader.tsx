@@ -23,7 +23,8 @@ export default function DashboardHeader({ onLoaded }: DashboardHeaderProps) {
     showBetaBadge, 
     isBetaTester,
     isAdmin,
-    forceRoleCheck
+    forceRoleCheck,
+    roleCheckError
   } = useUserRoles();
   
   const [isReady, setIsReady] = useState(false);
@@ -83,6 +84,7 @@ export default function DashboardHeader({ onLoaded }: DashboardHeaderProps) {
             isCheckingRoles={isCheckingRoles}
             showAdminButton={showAdminButton}
             showBetaBadge={showBetaBadge}
+            roleCheckError={roleCheckError}
           />
         </div>
       </CardContent>

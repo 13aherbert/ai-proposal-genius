@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useAuth } from '@/components/AuthProvider';
@@ -74,12 +73,10 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
   const subscriptionHelpers = useSubscription();
   const { restoreSession } = useAuthPersistence();
   
-  // Set up network status listeners
   useEffect(() => {
     const cleanup = setupNetworkListeners((online) => {
       setIsOffline(!online);
       
-      // If we're back online and had an error, try to recover
       if (online && lastError) {
         retryAuthentication();
       }
@@ -88,7 +85,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     return cleanup;
   }, [lastError]);
   
-  // Retry authentication after errors
   const retryAuthentication = useCallback(async () => {
     if (isOffline) {
       toast.error("Cannot retry while offline", {
@@ -100,7 +96,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     setRetryCount(prev => prev + 1);
     
     try {
-      // First try to restore session if needed
       if (!session) {
         const restoredSession = await restoreSession();
         if (restoredSession) {
@@ -108,10 +103,8 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       
-      // Then refresh user status
       await fetchUserStatus(true);
       
-      // If we got here, we recovered
       setLastError(null);
       setHasRecoveredFromError(true);
       toast.success("Authentication recovered successfully");
@@ -123,7 +116,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         description: retryCount >= 2 ? "Please try signing in again" : "Will try again automatically"
       });
       
-      // Auto-retry once more after a delay if not too many attempts
       if (retryCount < 2) {
         setTimeout(() => {
           retryAuthentication();
@@ -140,7 +132,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           console.error("Error during initial status fetch:", error);
           setLastError(error instanceof Error ? error : new Error(String(error)));
           
-          // Still mark as initialized to prevent endless retries
           setIsInitialized(true);
           
           if (navigator.onLine) {
@@ -164,7 +155,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     if (session?.user) {
       try {
         await fetchUserStatus(force);
-        // Clear any previous errors on successful fetch
         if (lastError) {
           setLastError(null);
         }
@@ -199,7 +189,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // These must be functions that return booleans to match the interface
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,
@@ -210,7 +199,6 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           getSubscriptionPlan,
           getSubscriptionStatus,
           
-          // Offline and error recovery
           isOffline,
           hasRecoveredFromError,
           lastError,

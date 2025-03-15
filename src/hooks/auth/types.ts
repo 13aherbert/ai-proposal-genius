@@ -24,11 +24,11 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status functions
-  isActive: () => boolean;
-  isInGracePeriod: () => boolean;
-  isPastGracePeriod: () => boolean;
-  hasFailedPayment: () => boolean;
+  // Subscription status as boolean properties (not functions)
+  isActive: boolean;
+  isInGracePeriod: boolean;
+  isPastGracePeriod: boolean;
+  hasFailedPayment: boolean;
   
   // Actions
   refreshUserStatus: (force?: boolean) => Promise<void>;

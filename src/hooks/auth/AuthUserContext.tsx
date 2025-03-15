@@ -84,6 +84,13 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoadingAuth, initializationComplete]);
   
+  // Create computed properties for subscription status
+  // Using memoized values instead of functions to match the expected type
+  const isActive = subscriptionHelpers.isActive();
+  const isInGracePeriod = subscriptionHelpers.isInGracePeriod();
+  const isPastGracePeriod = subscriptionHelpers.isPastGracePeriod();
+  const hasFailedPayment = subscriptionHelpers.hasFailedPayment();
+  
   return (
     <ErrorBoundary name="AuthUserContext">
       <AuthUserContext.Provider
@@ -105,11 +112,11 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Subscription status functions
-          isActive: subscriptionHelpers.isActive,
-          isInGracePeriod: subscriptionHelpers.isInGracePeriod,
-          isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,
-          hasFailedPayment: subscriptionHelpers.hasFailedPayment,
+          // Subscription status functions - now properties
+          isActive,
+          isInGracePeriod,
+          isPastGracePeriod,
+          hasFailedPayment,
           
           // Actions
           refreshUserStatus: userStatusRefresh.refreshUserStatus,

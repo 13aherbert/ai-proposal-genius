@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useAuth } from '@/components/AuthProvider';
@@ -27,7 +26,7 @@ export type AuthUserContextType = {
   isLoadingStatus: boolean;
   subscription: any | null;
   
-  // Subscription status functions - updated to use function references
+  // Subscription status functions - updated to use function types
   isActive: () => boolean;
   isInGracePeriod: () => boolean;
   isPastGracePeriod: () => boolean;
@@ -190,7 +189,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
           isLoadingStatus,
           subscription,
           
-          // Pass the function references directly, not their invocation results
+          // Pass the function types directly, not their invocation results
           isActive: subscriptionHelpers.isActive,
           isInGracePeriod: subscriptionHelpers.isInGracePeriod,
           isPastGracePeriod: subscriptionHelpers.isPastGracePeriod,

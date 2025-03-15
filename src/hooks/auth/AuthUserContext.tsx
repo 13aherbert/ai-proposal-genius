@@ -96,7 +96,7 @@ export const AuthUserProvider = ({ children }: { children: ReactNode }) => {
         isLoadingStatus,
         subscription,
         
-        // Fix: These should be functions that return booleans
+        // These must be functions that return booleans to match the interface
         isActive: () => subscriptionHelpers.isActive(),
         isInGracePeriod: () => subscriptionHelpers.isInGracePeriod(),
         isPastGracePeriod: () => subscriptionHelpers.isPastGracePeriod(),

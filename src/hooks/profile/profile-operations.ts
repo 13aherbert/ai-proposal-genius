@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ProfileData } from "./types";
 import { 
@@ -20,14 +19,16 @@ export const useProfileOperations = (
     first_name: "",
     last_name: "",
     business_name: "",
-    birthday: ""
+    birthday: "",
+    industry: ""
   });
   const [initialValues, setInitialValues] = useState<ProfileData>({
     username: "",
     first_name: "",
     last_name: "",
     business_name: "",
-    birthday: ""
+    birthday: "",
+    industry: ""
   });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +73,6 @@ export const useProfileOperations = (
       return;
     }
     
-    // Check if we're already fetching and return early if so
     if (isFetchingRef.current) {
       console.log("Profile fetch already in progress, skipping");
       return;
@@ -100,7 +100,6 @@ export const useProfileOperations = (
     }
     
     try {
-      // Set all fetching flags before starting the fetch
       setIsFetching(true);
       isFetchingRef.current = true;
       fetchAttemptsRef.current++;
@@ -113,7 +112,6 @@ export const useProfileOperations = (
         3000
       );
       
-      // Check if component unmounted during fetch
       if (!isComponentMounted.current) {
         console.log("Component unmounted during fetch, abandoning");
         return;
@@ -139,7 +137,8 @@ export const useProfileOperations = (
           first_name: result.data.first_name || "",
           last_name: result.data.last_name || "",
           business_name: result.data.business_name || "",
-          birthday: result.data.birthday || ""
+          birthday: result.data.birthday || "",
+          industry: result.data.industry || ""
         };
         
         setProfileData(profileData);
@@ -216,7 +215,6 @@ export const useProfileOperations = (
     }
   }, [fetchProfile]);
 
-  // Clear fetching flag if component unmounts during an active fetch
   useEffect(() => {
     return () => {
       if (isFetchingRef.current) {

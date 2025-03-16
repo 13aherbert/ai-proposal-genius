@@ -5,6 +5,7 @@ export interface ProfileData {
   last_name: string;
   business_name: string;
   birthday: string;
+  industry?: string;
 }
 
 export interface UseProfileReturn {

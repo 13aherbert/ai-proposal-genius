@@ -12,7 +12,7 @@ export const fetchProfileFromSupabase = async (userId: string) => {
   console.log("Executing Supabase query to fetch profile");
   return await supabase
     .from('profiles')
-    .select('username, first_name, last_name, business_name, birthday')
+    .select('username, first_name, last_name, business_name, birthday, industry')
     .eq('profile_id', userId)
     .maybeSingle();
 };
@@ -30,7 +30,8 @@ export const createProfileInSupabase = async (userId: string, email: string | un
       first_name: '',
       last_name: '',
       business_name: '',
-      birthday: null
+      birthday: null,
+      industry: null
     });
   
   console.log("Profile creation result:", { error, data });
@@ -49,7 +50,8 @@ export const createProfileInSupabase = async (userId: string, email: string | un
     first_name: "",
     last_name: "",
     business_name: "",
-    birthday: ""
+    birthday: "",
+    industry: ""
   };
 };
 
@@ -66,7 +68,8 @@ export const updateProfileInSupabase = async (userId: string, profileData: Profi
       first_name: profileData.first_name || null,
       last_name: profileData.last_name || null,
       business_name: profileData.business_name || null,
-      birthday: profileData.birthday || null
+      birthday: profileData.birthday || null,
+      industry: profileData.industry || null
     })
     .eq('profile_id', userId);
 

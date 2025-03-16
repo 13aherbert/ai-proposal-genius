@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProfileCardProps {
   username: string;
@@ -15,7 +16,23 @@ interface ProfileCardProps {
   setBusinessName?: (businessName: string) => void;
   birthday?: string;
   setBirthday?: (birthday: string) => void;
+  industry?: string;
+  setIndustry?: (industry: string) => void;
 }
+
+const INDUSTRIES = [
+  { id: "technology", name: "Technology & Software" },
+  { id: "healthcare", name: "Healthcare & Medicine" },
+  { id: "finance", name: "Finance & Banking" },
+  { id: "education", name: "Education & Training" },
+  { id: "retail", name: "Retail & E-Commerce" },
+  { id: "manufacturing", name: "Manufacturing & Industrial" },
+  { id: "legal", name: "Legal Services" },
+  { id: "marketing", name: "Marketing & Advertising" },
+  { id: "construction", name: "Construction & Engineering" },
+  { id: "hospitality", name: "Hospitality & Tourism" },
+  { id: "other", name: "Other Industry" }
+];
 
 /**
  * ProfileCard component - Allows users to update their profile information
@@ -30,7 +47,9 @@ export function ProfileCard({
   businessName = "",
   setBusinessName = () => {},
   birthday = "",
-  setBirthday = () => {}
+  setBirthday = () => {},
+  industry = "",
+  setIndustry = () => {}
 }: ProfileCardProps) {
   return (
     <Card>
@@ -80,6 +99,25 @@ export function ProfileCard({
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="Enter your business name"
           />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="industry">Industry</Label>
+          <Select 
+            value={industry} 
+            onValueChange={setIndustry}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select your industry" />
+            </SelectTrigger>
+            <SelectContent>
+              {INDUSTRIES.map((ind) => (
+                <SelectItem key={ind.id} value={ind.id}>
+                  {ind.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="space-y-2">

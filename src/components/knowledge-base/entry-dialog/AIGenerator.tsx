@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,13 +32,14 @@ export interface AIGeneratorProps {
 export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) {
   const [topic, setTopic] = useState("");
   const [industry, setIndustry] = useState("");
+  const [customIndustry, setCustomIndustry] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const generateContent = async () => {
-    if (!topic || !industry) {
-      toast.error("Please enter a topic and select an industry");
+    if (!topic || (!industry && !customIndustry)) {
+      toast.error("Please enter a topic and select or enter an industry");
       return;
     }
 
@@ -60,7 +61,7 @@ export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) 
       const { data, error } = await supabase.functions.invoke('generate-knowledge-content', {
         body: {
           topic,
-          industry,
+          industry: industry === 'other' ? customIndustry : industry,
           category,
           customPrompt: customPrompt || undefined
         }
@@ -120,6 +121,19 @@ export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) 
         </Select>
       </div>
 
+      {industry === 'other' && (
+        <div className="space-y-2">
+          <Label htmlFor="custom-industry">Specify Your Industry</Label>
+          <Input
+            id="custom-industry"
+            placeholder="Enter your industry"
+            value={customIndustry}
+            onChange={(e) => setCustomIndustry(e.target.value)}
+            disabled={isGenerating}
+          />
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="custom-prompt">Additional Instructions (Optional)</Label>
         <Textarea
@@ -144,7 +158,7 @@ export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) 
         <Button 
           onClick={generateContent} 
           className="w-full"
-          disabled={!topic || !industry}
+          disabled={!topic || (!industry || (industry === 'other' && !customIndustry))}
         >
           <Sparkles className="mr-2 h-4 w-4" />
           Generate Content

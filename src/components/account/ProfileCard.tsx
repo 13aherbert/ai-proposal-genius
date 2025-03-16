@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "lucide-react";
@@ -51,6 +52,35 @@ export function ProfileCard({
   industry = "",
   setIndustry = () => {}
 }: ProfileCardProps) {
+  const [showCustomIndustry, setShowCustomIndustry] = useState(false);
+  const [customIndustry, setCustomIndustry] = useState("");
+  
+  useEffect(() => {
+    // Check if the industry is not in our predefined list
+    const isStandardIndustry = INDUSTRIES.some(ind => ind.id === industry);
+    
+    if (!isStandardIndustry && industry) {
+      setShowCustomIndustry(true);
+      setCustomIndustry(industry);
+    } else {
+      setShowCustomIndustry(industry === 'other');
+    }
+  }, [industry]);
+  
+  const handleIndustryChange = (value: string) => {
+    setIndustry(value);
+    setShowCustomIndustry(value === 'other');
+    
+    if (value !== 'other') {
+      setCustomIndustry("");
+    }
+  };
+  
+  const handleCustomIndustryChange = (value: string) => {
+    setCustomIndustry(value);
+    setIndustry(value);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -104,8 +134,8 @@ export function ProfileCard({
         <div className="space-y-2">
           <Label htmlFor="industry">Industry</Label>
           <Select 
-            value={industry} 
-            onValueChange={setIndustry}
+            value={showCustomIndustry ? 'other' : industry} 
+            onValueChange={handleIndustryChange}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select your industry" />
@@ -119,6 +149,18 @@ export function ProfileCard({
             </SelectContent>
           </Select>
         </div>
+        
+        {showCustomIndustry && (
+          <div className="space-y-2">
+            <Label htmlFor="custom-industry">Specify Your Industry</Label>
+            <Input
+              id="custom-industry"
+              value={customIndustry}
+              onChange={(e) => handleCustomIndustryChange(e.target.value)}
+              placeholder="Enter your industry"
+            />
+          </div>
+        )}
         
         <div className="space-y-2">
           <Label htmlFor="birthday">Birthday</Label>

@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,20 +33,23 @@ interface IndustryProfileDialogProps {
 export function IndustryProfileDialog({ open, onOpenChange, onComplete }: IndustryProfileDialogProps) {
   const { session } = useAuth();
   const [industry, setIndustry] = useState("");
+  const [customIndustry, setCustomIndustry] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const saveIndustryProfile = async () => {
-    if (!industry || !session?.user?.id) {
-      toast.error("Please select an industry");
+    if ((!industry || (industry === "other" && !customIndustry)) || !session?.user?.id) {
+      toast.error("Please select or enter an industry");
       return;
     }
 
     setIsSaving(true);
     try {
       // Update the user's profile with their industry
+      const industryValue = industry === "other" ? customIndustry : industry;
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ industry })
+        .update({ industry: industryValue })
         .eq('profile_id', session.user.id);
 
       if (error) throw error;
@@ -89,12 +93,24 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
               </SelectContent>
             </Select>
           </div>
+          
+          {industry === 'other' && (
+            <div className="space-y-2">
+              <Label htmlFor="custom-industry">Specify Your Industry</Label>
+              <Input
+                id="custom-industry"
+                placeholder="Enter your industry"
+                value={customIndustry}
+                onChange={(e) => setCustomIndustry(e.target.value)}
+              />
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Skip for now
           </Button>
-          <Button onClick={saveIndustryProfile} disabled={!industry || isSaving}>
+          <Button onClick={saveIndustryProfile} disabled={!industry || (industry === 'other' && !customIndustry) || isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

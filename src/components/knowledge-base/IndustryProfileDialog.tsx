@@ -67,11 +67,11 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-full max-w-[425px] p-5">
         <DialogHeader>
           <DialogTitle>Set Your Industry Profile</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
             Setting your industry helps us provide more relevant AI-generated content for your knowledge base.
           </p>
@@ -81,10 +81,10 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
               value={industry}
               onValueChange={setIndustry}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select your industry" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="w-full max-h-[300px]">
                 {INDUSTRIES.map((ind) => (
                   <SelectItem key={ind.id} value={ind.id}>
                     {ind.name}
@@ -106,7 +106,7 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Skip for now
           </Button>

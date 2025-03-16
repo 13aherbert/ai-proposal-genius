@@ -115,6 +115,21 @@
   justify-content: center;
 }
 
+/* Fixed positioning for popover content */
+.popover-content {
+  position: absolute;
+  width: auto;
+  max-width: 95vw;
+  z-index: 50;
+}
+
+/* Ensure select dropdowns render properly */
+[data-radix-select-content] {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  width: var(--radix-select-trigger-width);
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   #root {
@@ -141,5 +156,10 @@
   .dialog-content, 
   .popover-content {
     @apply max-w-[95vw];
+  }
+
+  /* Ensure select content is visible and scrollable on mobile */
+  [data-radix-select-content] {
+    max-height: 250px !important;
   }
 }

@@ -49,11 +49,11 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           Add New Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full sm:max-w-[625px] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-[625px] p-5">
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4 mt-4">
+        <form onSubmit={onSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
@@ -74,7 +74,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="max-h-[200px]">
                 {categories.map((category) => (
                   <SelectItem key={category.name} value={category.name}>
                     {category.name}
@@ -138,10 +138,12 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           )}
 
           {contentMode === 'ai' && (
-            <AIGenerator 
-              onGeneratedContent={handleGeneratedContent}
-              category={formData.category}
-            />
+            <div className="max-h-[300px] overflow-y-auto pr-1">
+              <AIGenerator 
+                onGeneratedContent={handleGeneratedContent}
+                category={formData.category}
+              />
+            </div>
           )}
           
           <div className="flex justify-end gap-2 pt-2">

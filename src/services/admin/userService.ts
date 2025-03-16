@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -129,13 +130,21 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
   try {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
-      toast.error("Authentication required", { description: "You must be logged in to assign roles" });
+      toast({
+        title: "Authentication required", 
+        description: "You must be logged in to assign roles",
+        variant: "destructive"
+      });
       return false;
     }
     
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to assign roles" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to assign roles",
+        variant: "destructive"
+      });
       return false;
     }
     
@@ -147,16 +156,26 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
     
     if (error) {
       console.error('Error assigning role:', error);
-      toast.error("Failed to assign role", { description: error.message });
+      toast({
+        title: "Failed to assign role", 
+        description: error.message,
+        variant: "destructive"
+      });
       return false;
     }
     
-    toast.success(`Role '${role}' assigned successfully`);
+    toast({
+      title: "Success", 
+      description: `Role '${role}' assigned successfully`,
+      variant: "default"
+    });
     return true;
   } catch (error) {
     console.error('Exception in assignRole:', error);
-    toast.error("Failed to assign role", { 
-      description: error instanceof Error ? error.message : "Unknown error" 
+    toast({
+      title: "Failed to assign role", 
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
     });
     return false;
   }
@@ -172,7 +191,11 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
   try {
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to remove roles" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to remove roles",
+        variant: "destructive"
+      });
       return false;
     }
     
@@ -183,16 +206,26 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
     
     if (error) {
       console.error('Error removing role:', error);
-      toast.error("Failed to remove role", { description: error.message });
+      toast({
+        title: "Failed to remove role", 
+        description: error.message,
+        variant: "destructive"
+      });
       return false;
     }
     
-    toast.success(`Role '${role}' removed successfully`);
+    toast({
+      title: "Success", 
+      description: `Role '${role}' removed successfully`,
+      variant: "default"
+    });
     return !!data;
   } catch (error) {
     console.error('Exception in removeRole:', error);
-    toast.error("Failed to remove role", { 
-      description: error instanceof Error ? error.message : "Unknown error" 
+    toast({
+      title: "Failed to remove role", 
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
     });
     return false;
   }
@@ -216,7 +249,11 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.log("Admin status check result:", adminStatus);
     
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to view users" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to view users",
+        variant: "destructive"
+      });
       return [];
     }
     
@@ -324,12 +361,16 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     console.error('Error in getAllUsers:', error);
     
     if (isNetworkError(error)) {
-      toast.error("Network error", { 
-        description: getNetworkErrorMessage(error)
+      toast({
+        title: "Network error", 
+        description: getNetworkErrorMessage(error),
+        variant: "destructive"
       });
     } else {
-      toast.error("Failed to fetch users", { 
-        description: error instanceof Error ? error.message : "Unknown error" 
+      toast({
+        title: "Failed to fetch users", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
       });
     }
     
@@ -355,7 +396,11 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
   try {
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to update subscriptions" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to update subscriptions",
+        variant: "destructive"
+      });
       return false;
     }
 
@@ -378,7 +423,11 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
       
     if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error fetching subscription:', fetchError);
-      toast.error("Failed to fetch subscription", { description: fetchError.message });
+      toast({
+        title: "Failed to fetch subscription", 
+        description: fetchError.message,
+        variant: "destructive"
+      });
       return false;
     }
 
@@ -412,23 +461,35 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
 
     if (result.error) {
       console.error('Error updating/creating subscription:', result.error);
-      toast.error("Failed to update subscription", { description: result.error.message });
+      toast({
+        title: "Failed to update subscription", 
+        description: result.error.message,
+        variant: "destructive"
+      });
       return false;
     }
 
     console.log("Subscription updated successfully:", result.data);
-    toast.success("Subscription updated successfully");
+    toast({
+      title: "Success", 
+      description: "Subscription updated successfully",
+      variant: "default"
+    });
     return true;
   } catch (error) {
     console.error('Error in updateSubscriptionPlan:', error);
     
     if (isNetworkError(error)) {
-      toast.error("Network error", { 
-        description: getNetworkErrorMessage(error) 
+      toast({
+        title: "Network error", 
+        description: getNetworkErrorMessage(error),
+        variant: "destructive"
       });
     } else {
-      toast.error("Failed to update subscription", { 
-        description: error instanceof Error ? error.message : "Unknown error" 
+      toast({
+        title: "Failed to update subscription", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
       });
     }
     
@@ -459,7 +520,11 @@ export async function updateUserSubscription(email: string, plan: string, status
       
       console.log(`Admin updating subscription for user ${email} to ${plan} plan with status ${status}`);
       
-      const loadingId = toast.loading(`Updating subscription for ${email}...`);
+      const toastId = toast({
+        title: "Updating subscription", 
+        description: `Updating subscription for ${email}...`,
+        duration: Infinity
+      });
       
       try {
         const { data, error } = await withRetry<EdgeFunctionResponse>(
@@ -478,7 +543,7 @@ export async function updateUserSubscription(email: string, plan: string, status
           2000
         );
         
-        toast.dismiss(loadingId);
+        toastId.dismiss();
         
         if (error) {
           console.error("Error invoking edge function:", error);
@@ -493,23 +558,31 @@ export async function updateUserSubscription(email: string, plan: string, status
           throw new Error(errorMsg);
         }
         
-        toast.success(`Subscription updated to ${plan} plan with status ${status}`);
+        toast({
+          title: "Success", 
+          description: `Subscription updated to ${plan} plan with status ${status}`,
+          variant: "default"
+        });
         return true;
       } catch (error) {
-        toast.dismiss(loadingId);
+        toastId.dismiss();
         throw error;
       }
     } catch (error) {
       console.error('Error in updateUserSubscription:', error);
       
       if (isNetworkError(error)) {
-        toast.error("Network connection error", { 
+        toast({
+          title: "Network connection error", 
           description: getNetworkErrorMessage(error),
+          variant: "destructive",
           duration: 8000
         });
       } else {
-        toast.error("Failed to update subscription", { 
-          description: error instanceof Error ? error.message : "Unknown error" 
+        toast({
+          title: "Failed to update subscription", 
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
         });
       }
       
@@ -533,7 +606,11 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
   try {
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to view user roles" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to view user roles",
+        variant: "destructive"
+      });
       return [];
     }
     
@@ -541,7 +618,11 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     
     if (error) {
       console.error('Error fetching user roles:', error);
-      toast.error("Failed to fetch user roles", { description: error.message });
+      toast({
+        title: "Failed to fetch user roles", 
+        description: error.message,
+        variant: "destructive"
+      });
       return [];
     }
     
@@ -556,8 +637,10 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     }));
   } catch (error) {
     console.error('Exception in getUserRoles:', error);
-    toast.error("Failed to fetch user roles", { 
-      description: error instanceof Error ? error.message : "Unknown error" 
+    toast({
+      title: "Failed to fetch user roles", 
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
     });
     return [];
   }
@@ -573,7 +656,11 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
   try {
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to assign roles" });
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to assign roles",
+        variant: "destructive"
+      });
       return false;
     }
     
@@ -601,7 +688,11 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
     }
     
     if (!userData || !userData.user) {
-      toast.error("User not found", { description: `No user found with email ${email}` });
+      toast({
+        title: "User not found", 
+        description: `No user found with email ${email}`,
+        variant: "destructive"
+      });
       return false;
     }
     
@@ -612,12 +703,16 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
     console.error('Error in assignRoleByEmail:', error);
     
     if (isNetworkError(error)) {
-      toast.error("Network error", { 
-        description: getNetworkErrorMessage(error) 
+      toast({
+        title: "Network error", 
+        description: getNetworkErrorMessage(error),
+        variant: "destructive"
       });
     } else {
-      toast.error("Failed to assign role", { 
-        description: error instanceof Error ? error.message : "Unknown error" 
+      toast({
+        title: "Failed to assign role", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
       });
     }
     
@@ -740,7 +835,7 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId })
+        body: { userId }
       });
       
       console.log("Edge function response:", data, error);

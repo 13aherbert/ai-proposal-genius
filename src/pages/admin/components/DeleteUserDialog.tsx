@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
 interface DeleteUserDialogProps {
   isOpen: boolean;
@@ -32,18 +32,28 @@ export function DeleteUserDialog({
   const handleConfirm = async () => {
     try {
       setError(null);
-      const toastId = toast.loading(`Deleting ${userName}'s account...`);
+      const toastId = toast({
+        title: "Deleting account",
+        description: `Deleting ${userName}'s account...`,
+        variant: "default"
+      });
       
       try {
         await onConfirm();
-        toast.dismiss(toastId);
-        toast.success("User account deleted successfully");
+        toast({
+          title: "Success",
+          description: "User account deleted successfully",
+          variant: "default"
+        });
         onClose();
       } catch (err) {
-        toast.dismiss(toastId);
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
         setError(errorMessage);
-        toast.error("Failed to delete user", { description: errorMessage });
+        toast({
+          title: "Error",
+          description: `Failed to delete user: ${errorMessage}`,
+          variant: "destructive"
+        });
         console.error("Error in DeleteUserDialog.handleConfirm:", err);
       }
     } catch (error) {

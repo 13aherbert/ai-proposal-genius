@@ -1,3 +1,4 @@
+
 import { KnowledgeCategory } from "../types";
 
 export type UploadMode = 'text' | 'file';

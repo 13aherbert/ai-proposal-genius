@@ -1,25 +1,28 @@
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText } from "lucide-react";
+import { FileText, PenLine, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { AddEntryDialogProps } from "./entry-dialog/types";
 import { FileUpload } from "./entry-dialog/FileUpload";
 import { useEntryForm } from "./entry-dialog/useEntryForm";
+import { useState } from "react";
+import { AIGenerator } from "./entry-dialog/AIGenerator";
 
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const { session } = useAuth();
+  const [contentMode, setContentMode] = useState<'manual' | 'upload' | 'ai'>('manual');
+  
   const {
     formData,
     setTitle,
     setCategory,
     setContent,
     setSelectedFile,
-    uploadMode,
-    setUploadMode,
     isSubmitting,
     handleSubmit,
   } = useEntryForm(() => onOpenChange(false));
@@ -30,6 +33,12 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
       return;
     }
     await handleSubmit(session.user.id);
+  };
+
+  const handleGeneratedContent = (title: string, content: string) => {
+    setTitle(title);
+    setContent(content);
+    setContentMode('manual');
   };
 
   return (
@@ -76,46 +85,70 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           </div>
           <div className="space-y-2">
             <Label>Content Type</Label>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant={uploadMode === 'text' ? 'default' : 'outline'}
-                onClick={() => setUploadMode('text')}
+                variant={contentMode === 'manual' ? 'default' : 'outline'}
+                onClick={() => setContentMode('manual')}
+                className="flex-1"
               >
-                Text
+                <PenLine className="h-4 w-4 mr-2" />
+                Write Manually
               </Button>
               <Button
                 type="button"
-                variant={uploadMode === 'file' ? 'default' : 'outline'}
-                onClick={() => setUploadMode('file')}
+                variant={contentMode === 'upload' ? 'default' : 'outline'}
+                onClick={() => setContentMode('upload')}
+                className="flex-1"
               >
+                <FileText className="h-4 w-4 mr-2" />
                 Upload Document
+              </Button>
+              <Button
+                type="button"
+                variant={contentMode === 'ai' ? 'default' : 'outline'}
+                onClick={() => setContentMode('ai')}
+                className="flex-1"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate with AI
               </Button>
             </div>
           </div>
-          {uploadMode === 'text' ? (
+          
+          {contentMode === 'manual' && (
             <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
               <Textarea
                 id="content"
                 placeholder="Enter the content of your knowledge base entry"
                 className="min-h-[200px]"
-                required={uploadMode === 'text'}
+                required={contentMode === 'manual'}
                 value={formData.content}
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
-          ) : (
+          )}
+          
+          {contentMode === 'upload' && (
             <FileUpload
               onFileSelect={setSelectedFile}
               selectedFile={formData.selectedFile}
             />
           )}
+
+          {contentMode === 'ai' && (
+            <AIGenerator 
+              onGeneratedContent={handleGeneratedContent}
+              category={formData.category}
+            />
+          )}
+          
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || contentMode === 'ai'}>
               {isSubmitting ? "Saving..." : "Save Entry"}
             </Button>
           </div>

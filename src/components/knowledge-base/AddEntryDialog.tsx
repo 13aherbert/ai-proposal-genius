@@ -49,7 +49,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           Add New Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[95vw] w-full sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-[625px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>
@@ -122,7 +122,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <Textarea
                 id="content"
                 placeholder="Enter the content of your knowledge base entry"
-                className="min-h-[200px]"
+                className="min-h-[200px] max-h-[300px]"
                 required={contentMode === 'manual'}
                 value={formData.content}
                 onChange={(e) => setContent(e.target.value)}
@@ -144,7 +144,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
             />
           )}
           
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -77,7 +78,7 @@ export const ViewEntryDialog = ({
         }
         onOpenChange(newOpen);
       }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
           <EntryHeader
             isEditing={editMode}
             initialTitle={title}
@@ -101,16 +102,18 @@ export const ViewEntryDialog = ({
             onEditedCategoryChange={setEditedCategory}
           />
 
-          <EntryContent
-            isLoading={isLoading}
-            filePath={filePath || ""}
-            content={content || ""}
-            isEditing={editMode}
-            editedContent={editedContent}
-            onEditedContentChange={setEditedContent}
-            onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
-            onDownload={handleDownload}
-          />
+          <div className="flex-1 overflow-y-auto max-h-[55vh]">
+            <EntryContent
+              isLoading={isLoading}
+              filePath={filePath || ""}
+              content={content || ""}
+              isEditing={editMode}
+              editedContent={editedContent}
+              onEditedContentChange={setEditedContent}
+              onSave={() => handleSave(editedTitle, editedCategory, editedContent)}
+              onDownload={handleDownload}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

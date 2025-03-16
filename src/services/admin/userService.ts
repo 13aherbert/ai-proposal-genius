@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
@@ -801,20 +800,8 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
         console.error('Error deleting user knowledge entries:', entriesError);
       }
       
-      // Delete user's roles - this might fail due to infinite recursion in RLS policies
-      // We'll let the auth.admin.deleteUser handle this
-      try {
-        const { error: rolesError } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId);
-          
-        if (rolesError) {
-          console.error('Error deleting user roles:', rolesError);
-        }
-      } catch (roleDeleteError) {
-        console.error('Failed to delete user roles, continuing with user deletion:', roleDeleteError);
-      }
+      // Skip the direct user_roles deletion which is triggering infinite recursion
+      // We'll let the auth.admin.deleteUser handle this or use a Supabase migration
       
       // Delete user's profile
       const { error: profileError } = await supabase

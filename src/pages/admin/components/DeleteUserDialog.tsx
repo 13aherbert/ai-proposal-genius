@@ -32,14 +32,17 @@ export function DeleteUserDialog({
   const handleConfirm = async () => {
     try {
       setError(null);
-      toast({
+      
+      const toastId = toast({
         title: "Deleting account",
         description: `Deleting ${userName}'s account...`,
-        variant: "default"
+        variant: "default",
+        duration: Infinity
       });
       
       try {
         await onConfirm();
+        toastId.dismiss();
         toast({
           title: "Success",
           description: "User account deleted successfully",
@@ -47,6 +50,7 @@ export function DeleteUserDialog({
         });
         onClose();
       } catch (err) {
+        toastId.dismiss();
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
         setError(errorMessage);
         toast({

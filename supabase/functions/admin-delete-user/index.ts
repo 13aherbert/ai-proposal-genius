@@ -106,8 +106,10 @@ serve(async (req) => {
 
     console.log(`Request authenticated as user: ${user.user.id}`);
 
-    // Check if the user is an admin
-    const { data: adminCheck, error: adminCheckError } = await supabaseAdmin.rpc('is_admin_direct')
+    // Check if the user is an admin using direct_admin_check function to avoid recursion
+    const { data: adminCheck, error: adminCheckError } = await supabaseAdmin.rpc('direct_admin_check', {
+      user_id_param: user.user.id
+    })
 
     if (adminCheckError || !adminCheck) {
       console.error('Admin check error:', adminCheckError || "User is not an admin");

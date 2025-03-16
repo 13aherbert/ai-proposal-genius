@@ -49,7 +49,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           Add New Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px] relative">
+      <DialogContent className="max-w-[95vw] w-full sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>

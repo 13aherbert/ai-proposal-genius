@@ -828,7 +828,7 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
       
       console.log("Calling admin-delete-user edge function with:", { userId });
       
-      // Call the edge function with proper JSON body
+      // Call the edge function with proper JSON body and content-type
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
         method: 'POST',
         headers: {

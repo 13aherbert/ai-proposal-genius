@@ -19,15 +19,19 @@ serve(async (req) => {
     
     // Parse the request body
     let userId;
+    let requestBody = null;
+    
+    // First try to get userId from request body
     try {
-      // First try to get userId from request body
-      const requestData = await req.json();
-      console.log("Request body parsed:", requestData);
-      userId = requestData.userId;
+      requestBody = await req.json();
+      console.log("Request body parsed:", requestBody);
+      userId = requestBody.userId;
     } catch (parseError) {
-      console.error("Error parsing request body:", parseError);
-      
-      // Fallback to URL params if body parsing fails
+      console.error("Error parsing request body or empty body:", parseError);
+    }
+    
+    // If userId not found in body, try URL params
+    if (!userId) {
       const url = new URL(req.url);
       userId = url.searchParams.get('userId');
       console.log("Falling back to URL parameter, userId:", userId);

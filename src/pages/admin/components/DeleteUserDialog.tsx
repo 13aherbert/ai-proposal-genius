@@ -32,7 +32,7 @@ export function DeleteUserDialog({
   const handleConfirm = async () => {
     try {
       setError(null);
-      const toastId = toast({
+      toast({
         title: "Deleting account",
         description: `Deleting ${userName}'s account...`,
         variant: "default"

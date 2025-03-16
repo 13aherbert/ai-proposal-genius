@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { UserProfile, UserRoleRecord, UserRole } from "./types";
 import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimitByKey } from "@/utils/network";
 
@@ -636,7 +636,11 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
     
     const adminStatus = await isAdmin();
     if (!adminStatus) {
-      toast.error("Access denied", { description: "You don't have permission to delete user accounts" });
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to delete user accounts",
+        variant: "destructive"
+      });
       return false;
     }
     
@@ -702,14 +706,19 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
         console.error('Error deleting user knowledge entries:', entriesError);
       }
       
-      // Delete user's roles
-      const { error: rolesError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (rolesError) {
-        console.error('Error deleting user roles:', rolesError);
+      // Delete user's roles - this might fail due to infinite recursion in RLS policies
+      // We'll let the auth.admin.deleteUser handle this
+      try {
+        const { error: rolesError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId);
+          
+        if (rolesError) {
+          console.error('Error deleting user roles:', rolesError);
+        }
+      } catch (roleDeleteError) {
+        console.error('Failed to delete user roles, continuing with user deletion:', roleDeleteError);
       }
       
       // Delete user's profile
@@ -746,7 +755,11 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
         throw new Error(data?.error || 'Failed to delete user account');
       }
       
-      toast.success("User account deleted successfully");
+      toast({
+        title: "Success",
+        description: "User account deleted successfully",
+        variant: "default"
+      });
       return true;
     } catch (error) {
       console.error('Error in delete user operation:', error);
@@ -756,12 +769,16 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
     console.error('Error in deleteUserAccount:', error);
     
     if (isNetworkError(error)) {
-      toast.error("Network error", { 
-        description: getNetworkErrorMessage(error)
+      toast({
+        title: "Network error",
+        description: getNetworkErrorMessage(error),
+        variant: "destructive"
       });
     } else {
-      toast.error("Failed to delete user account", { 
-        description: error instanceof Error ? error.message : "Unknown error" 
+      toast({
+        title: "Failed to delete user account",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
       });
     }
     
@@ -773,4 +790,3 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
-

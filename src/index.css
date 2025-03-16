@@ -87,32 +87,16 @@
   @apply font-mono;
 }
 
-/* Dialog content improvements */
-.DialogContent {
-  max-height: 85vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-width: 95vw;
-  margin: 0 auto;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* Dialog improvements */
+[role="dialog"] {
+  @apply overflow-hidden;
 }
 
-/* Dropdown styling improvements */
+/* Dropdown positioning improvements */
 [data-radix-popper-content-wrapper] {
   z-index: 999 !important;
   max-width: 95vw !important;
   max-height: 60vh !important;
-  overflow: hidden !important;
-}
-
-/* Ensure proper dialog positioning */
-[role="dialog"] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Fixed positioning for popover content */
@@ -128,6 +112,7 @@
   max-height: 300px !important;
   overflow-y: auto !important;
   width: var(--radix-select-trigger-width);
+  z-index: 1000 !important;
 }
 
 /* Mobile optimizations */
@@ -150,16 +135,28 @@
   table {
     @apply w-full text-left text-sm;
   }
-  
-  /* Make sure modals and drawers are properly sized */
-  .drawer-content, 
-  .dialog-content, 
-  .popover-content {
-    @apply max-w-[95vw];
-  }
 
   /* Ensure select content is visible and scrollable on mobile */
   [data-radix-select-content] {
     max-height: 250px !important;
+  }
+  
+  /* Dialog, drawer and popover content mobile sizing */
+  .DialogContent,
+  .AlertDialogContent,
+  [role="dialog"] [data-state="open"] {
+    @apply max-w-[95vw] max-h-[90vh] overflow-y-auto;
+  }
+  
+  /* Ensure dialogs are centered properly */
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
+    transform: translate(-50%, -50%) !important;
+  }
+  
+  /* Fix z-index issues with overlapping elements */
+  .radix-select-content,
+  .radix-dropdown-content {
+    z-index: 1000 !important;
   }
 }

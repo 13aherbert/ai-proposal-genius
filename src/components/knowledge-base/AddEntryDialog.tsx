@@ -49,11 +49,11 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           Add New Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full sm:max-w-[625px] p-5">
+      <DialogContent className="w-full max-w-[625px]">
         <DialogHeader>
           <DialogTitle>Add New Knowledge Base Entry</DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4 mt-2">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
@@ -122,7 +122,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <Textarea
                 id="content"
                 placeholder="Enter the content of your knowledge base entry"
-                className="min-h-[200px] max-h-[300px]"
+                className="min-h-[180px] max-h-[240px] resize-none"
                 required={contentMode === 'manual'}
                 value={formData.content}
                 onChange={(e) => setContent(e.target.value)}
@@ -131,14 +131,16 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           )}
           
           {contentMode === 'upload' && (
-            <FileUpload
-              onFileSelect={setSelectedFile}
-              selectedFile={formData.selectedFile}
-            />
+            <div className="max-h-[240px] overflow-y-auto">
+              <FileUpload
+                onFileSelect={setSelectedFile}
+                selectedFile={formData.selectedFile}
+              />
+            </div>
           )}
 
           {contentMode === 'ai' && (
-            <div className="max-h-[300px] overflow-y-auto pr-1">
+            <div className="max-h-[240px] overflow-y-auto">
               <AIGenerator 
                 onGeneratedContent={handleGeneratedContent}
                 category={formData.category}

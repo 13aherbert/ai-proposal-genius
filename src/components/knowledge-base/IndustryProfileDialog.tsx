@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -67,11 +67,11 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[425px] p-5">
+      <DialogContent className="w-full max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Set Your Industry Profile</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Setting your industry helps us provide more relevant AI-generated content for your knowledge base.
           </p>
@@ -84,7 +84,7 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select your industry" />
               </SelectTrigger>
-              <SelectContent position="popper" className="w-full max-h-[300px]">
+              <SelectContent position="popper" className="max-h-[240px]">
                 {INDUSTRIES.map((ind) => (
                   <SelectItem key={ind.id} value={ind.id}>
                     {ind.name}
@@ -106,11 +106,14 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Skip for now
           </Button>
-          <Button onClick={saveIndustryProfile} disabled={!industry || (industry === 'other' && !customIndustry) || isSaving}>
+          <Button 
+            onClick={saveIndustryProfile} 
+            disabled={!industry || (industry === 'other' && !customIndustry) || isSaving}
+          >
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

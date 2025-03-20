@@ -1,4 +1,3 @@
-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, FileText, ArrowLeft } from "lucide-react";
@@ -14,12 +13,11 @@ export default function AdminDashboard() {
           <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
-              size="sm" 
-              className="flex items-center space-x-1" 
+              size="icon" 
               onClick={() => navigate("/dashboard")}
+              aria-label="Back to Dashboard"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
             </Button>
             <div>
               <CardTitle>Admin Dashboard</CardTitle>

@@ -5,7 +5,9 @@ import {
   cancelBetaInvitation, 
   verifyBetaInvitation,
   acceptBetaInvitation,
-  resendInvitationEmail
+  resendInvitationEmail,
+  getBetaRequests,
+  processBetaRequest
 } from './betaService';
 
 import {
@@ -34,6 +36,10 @@ export const adminService = {
   verifyBetaInvitation,
   acceptBetaInvitation,
   resendInvitationEmail,
+  
+  // Beta request methods
+  getBetaRequests,
+  processBetaRequest,
   
   // User management methods
   getAllUsers,

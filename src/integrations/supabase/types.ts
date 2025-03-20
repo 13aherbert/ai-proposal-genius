@@ -421,6 +421,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user_roles: {
+        Args: {
+          admin_id: string
+          target_user_id: string
+        }
+        Returns: boolean
+      }
       assign_user_role: {
         Args: {
           _user_id: string
@@ -483,6 +490,12 @@ export type Database = {
           subscription_plan: string
           project_limit: number
         }[]
+      }
+      delete_user_roles_as_admin: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: boolean
       }
       direct_admin_check: {
         Args: {

@@ -23,6 +23,19 @@ const Index = () => {
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
+        {/* Beta Program Button in Top Left */}
+        <div className="absolute top-4 left-4">
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+            onClick={() => setBetaDialogOpen(true)}
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Join the Beta Program
+          </Button>
+        </div>
+        
         {/* Navigation Buttons and Login */}
         <div className="absolute top-4 right-4 flex items-center gap-4">
           <Button
@@ -87,15 +100,7 @@ const Index = () => {
                 </DialogContent>
               </Dialog>
               
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-                onClick={() => setBetaDialogOpen(true)}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Join the Beta Program
-              </Button>
+              {/* Removed the Beta Program button from here as it's now at the top left */}
             </div>
           </div>
 

@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      _migration_history: {
+        Row: {
+          applied_at: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          applied_at?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          applied_at?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
       admin_role_checks: {
         Row: {
           check_time: string
@@ -608,6 +626,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_direct: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_admin_for_delete: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

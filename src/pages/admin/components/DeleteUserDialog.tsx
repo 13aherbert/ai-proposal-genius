@@ -9,8 +9,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 interface DeleteUserDialogProps {
   isOpen: boolean;
@@ -28,10 +29,14 @@ export function DeleteUserDialog({
   isDeleting
 }: DeleteUserDialogProps) {
   const [error, setError] = useState<string | null>(null);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [deleteStep, setDeleteStep] = useState("");
   
   const handleConfirm = async () => {
     try {
       setError(null);
+      setDeleteProgress(0);
+      setDeleteStep("Initializing deletion process...");
       
       const toastId = toast({
         title: "Deleting account",
@@ -40,16 +45,49 @@ export function DeleteUserDialog({
         duration: Infinity
       });
       
+      // Simulate progress updates - in reality this is happening on the server
+      // but we want to show progress to the user
+      const progressInterval = setInterval(() => {
+        setDeleteProgress(prev => {
+          if (prev < 90) {
+            const increment = Math.floor(Math.random() * 15) + 5; // 5-20% increment
+            return Math.min(prev + increment, 90);
+          }
+          return prev;
+        });
+        
+        const steps = [
+          "Removing user roles...",
+          "Deleting subscription data...",
+          "Removing knowledge entries...",
+          "Deleting project documents...",
+          "Removing proposal sections...",
+          "Deleting projects...",
+          "Removing profile data...",
+          "Finalizing user deletion..."
+        ];
+        
+        setDeleteStep(steps[Math.floor(Math.random() * steps.length)]);
+      }, 800);
+      
       try {
         await onConfirm();
+        clearInterval(progressInterval);
+        setDeleteProgress(100);
+        setDeleteStep("User successfully deleted!");
         toastId.dismiss();
         toast({
           title: "Success",
           description: "User account deleted successfully",
           variant: "default"
         });
-        onClose();
+        
+        // Small delay to show 100% complete before closing
+        setTimeout(() => {
+          onClose();
+        }, 500);
       } catch (err) {
+        clearInterval(progressInterval);
         toastId.dismiss();
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
         setError(errorMessage);
@@ -89,6 +127,16 @@ export function DeleteUserDialog({
           </ul>
         </div>
         
+        {isDeleting && (
+          <div className="my-2">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm text-muted-foreground">{deleteStep}</span>
+              <span className="text-sm font-medium">{deleteProgress}%</span>
+            </div>
+            <Progress value={deleteProgress} className="h-2" />
+          </div>
+        )}
+        
         {error && (
           <div className="mt-2 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
             {error}
@@ -103,8 +151,14 @@ export function DeleteUserDialog({
             variant="destructive" 
             onClick={handleConfirm}
             disabled={isDeleting}
+            className="gap-2"
           >
-            {isDeleting ? 'Deleting...' : 'Delete Account'}
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : 'Delete Account'}
           </Button>
         </DialogFooter>
       </DialogContent>

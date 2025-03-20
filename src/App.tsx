@@ -23,8 +23,8 @@ import BetaProgram from "@/pages/BetaProgram";
 import BetaRoadmap from "@/pages/BetaRoadmap";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
-import UserManagement from "@/pages/admin/UserManagement";
-import BetaInvitations from "@/pages/admin/BetaInvitations";
+import { UserManagement } from "@/pages/admin/UserManagement"; // Changed to named import
+import { BetaInvitations } from "@/pages/admin/BetaInvitations"; // Changed to named import
 import BetaRequests from "@/pages/admin/BetaRequests"; // Import BetaRequests properly
 
 // Components

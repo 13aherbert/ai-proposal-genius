@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,7 +111,6 @@ export function BetaInvitations({
       const result = await adminService.resendInvitationEmail(invitationId);
       console.log(`Resend result:`, result);
       
-      // Fixed: No longer accessing .success property on a boolean
       if (result) {
         await loadInvitations();
         toast.success(`Invitation email sent to ${email}`, {
@@ -135,7 +133,6 @@ export function BetaInvitations({
     const inviteUrl = `${baseUrl}/beta?invite=${inviteCode}`;
     navigator.clipboard.writeText(inviteUrl);
     
-    // Show copied state
     setCopiedIds(prev => ({ ...prev, [id]: true }));
     setTimeout(() => {
       setCopiedIds(prev => ({ ...prev, [id]: false }));
@@ -144,13 +141,11 @@ export function BetaInvitations({
     toast.success("Invite link copied to clipboard");
   };
 
-  // Format date with time
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Check if invitation is expired
   const isExpired = (expiresAt: string) => {
     return new Date(expiresAt) < new Date();
   };
@@ -187,7 +182,6 @@ export function BetaInvitations({
                       <Badge variant={
                         invitation.status === 'pending' ? 'outline' : 
                         invitation.status === 'accepted' ? 'default' : 
-                        // Fixed: Changed 'canceled' to 'cancelled' to match the type
                         invitation.status === 'canceled' ? 'destructive' : 
                         'secondary'
                       }>
@@ -296,3 +290,5 @@ export function BetaInvitations({
     </Card>
   );
 }
+
+export default BetaInvitations;

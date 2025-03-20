@@ -48,11 +48,18 @@ export default function BetaRequests() {
       try {
         setIsLoading(true);
         const betaRequests = await adminService.getBetaRequests();
-        setRequests(betaRequests);
+        
+        // Transform the API response to ensure status is one of the valid types
+        const typedRequests = betaRequests.map(request => ({
+          ...request,
+          status: (request.status || 'pending') as 'pending' | 'approved' | 'rejected'
+        }));
+        
+        setRequests(typedRequests);
         
         // Initialize notes from existing data
         const initialNotes: Record<string, string> = {};
-        betaRequests.forEach(request => {
+        typedRequests.forEach(request => {
           initialNotes[request.id] = request.notes || '';
         });
         setAdminNotes(initialNotes);

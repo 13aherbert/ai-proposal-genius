@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserProfile, UserRole } from "@/services/admin/types";
@@ -99,3 +98,5 @@ export function UserManagement({
     </Card>
   );
 }
+
+export default UserManagement;

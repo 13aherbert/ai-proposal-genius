@@ -1,8 +1,10 @@
+
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserProfile, UserRole } from "@/services/admin/types";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ArrowLeft } from "lucide-react";
 import { UserList } from "./components/UserList";
 
 interface UserManagementProps {
@@ -53,14 +55,27 @@ export function UserManagement({
   handleDeleteUser,
   loadUsers
 }: UserManagementProps) {
+  const navigate = useNavigate();
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>
-            Manage users, assign roles, and update subscriptions
-          </CardDescription>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center space-x-1" 
+            onClick={() => navigate('/admin')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Admin</span>
+          </Button>
+          <div>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              Manage users, assign roles, and update subscriptions
+            </CardDescription>
+          </div>
         </div>
         <Button variant="outline" size="sm" onClick={loadUsers} disabled={isLoadingUsers}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingUsers ? 'animate-spin' : ''}`} />

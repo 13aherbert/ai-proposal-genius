@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -9,7 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Loader2, ArrowLeft } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -45,8 +44,6 @@ export function DeleteUserDialog({
         duration: Infinity
       });
       
-      // Simulate progress updates - in reality this is happening on the server
-      // but we want to show progress to the user
       const progressInterval = setInterval(() => {
         setDeleteProgress(prev => {
           if (prev < 90) {
@@ -82,7 +79,6 @@ export function DeleteUserDialog({
           variant: "default"
         });
         
-        // Small delay to show 100% complete before closing
         setTimeout(() => {
           onClose();
         }, 500);
@@ -108,22 +104,10 @@ export function DeleteUserDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onClose} 
-              disabled={isDeleting}
-              className="h-8 w-8 mr-2 -ml-2"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <DialogTitle className="flex items-center text-destructive">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              Delete User Account
-            </DialogTitle>
-          </div>
+          <DialogTitle className="flex items-center text-destructive">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            Delete User Account
+          </DialogTitle>
           <DialogDescription>
             Are you sure you want to delete {userName}'s account? This action cannot be undone.
           </DialogDescription>

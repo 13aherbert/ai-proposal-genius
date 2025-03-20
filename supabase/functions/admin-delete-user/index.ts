@@ -136,21 +136,48 @@ serve(async (req) => {
 
     console.log(`Admin ${user.user.email} is attempting to delete user ${userId}`);
 
-    // Use our new cascade delete function to remove user data
+    // Perform the manual deletion of all related records before deleting the auth user
     try {
-      console.log("Using cascade delete function to remove user data");
-      const { data: cascadeDeleteResult, error: cascadeDeleteError } = await supabaseAdmin.rpc('delete_user_as_admin', {
-        target_user_id: userId
-      });
+      console.log("Starting manual cascade deletion for user:", userId);
       
-      if (cascadeDeleteError) {
-        console.error('Error in cascade delete operation:', cascadeDeleteError);
-        throw new Error(`Cascade delete failed: ${cascadeDeleteError.message}`);
-      }
+      // 1. Delete user roles
+      console.log("Deleting user roles...");
+      await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
       
-      console.log("Cascade delete result:", cascadeDeleteResult);
+      // 2. Delete user status cache
+      console.log("Deleting user status cache...");
+      await supabaseAdmin.from('user_status_cache').delete().eq('user_id', userId);
       
-      // Finally, delete the auth user itself
+      // 3. Delete subscriptions
+      console.log("Deleting subscriptions...");
+      await supabaseAdmin.from('subscriptions').delete().eq('user_id', userId);
+      
+      // 4. Delete admin role checks
+      console.log("Deleting admin role checks...");
+      await supabaseAdmin.from('admin_role_checks').delete().eq('user_id', userId);
+      
+      // 5. Delete knowledge entries
+      console.log("Deleting knowledge entries...");
+      await supabaseAdmin.from('knowledge_entries').delete().eq('user_id', userId);
+      
+      // 6. Delete project documents (need to delete these before projects)
+      console.log("Deleting project documents...");
+      await supabaseAdmin.from('project_documents').delete().eq('user_id', userId);
+      
+      // 7. Delete proposal sections (need to delete these before projects)
+      console.log("Deleting proposal sections...");
+      await supabaseAdmin.from('proposal_sections').delete().eq('user_id', userId);
+      
+      // 8. Delete projects
+      console.log("Deleting projects...");
+      await supabaseAdmin.from('projects').delete().eq('user_id', userId);
+      
+      // 9. Delete profile
+      console.log("Deleting profile...");
+      await supabaseAdmin.from('profiles').delete().eq('profile_id', userId);
+      
+      // 10. Finally, delete the auth user itself
+      console.log("Deleting auth user...");
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (deleteError) {
@@ -163,6 +190,8 @@ serve(async (req) => {
           }
         )
       }
+      
+      console.log("User and all related data successfully deleted");
     } catch (deleteError) {
       console.error('Error in delete process:', deleteError);
       return new Response(

@@ -7,12 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 export default function SetInitialAdmin() {
   const [email, setEmail] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const handleSetAdmin = async () => {
     if (!email || !secretKey) {
@@ -53,7 +56,18 @@ export default function SetInitialAdmin() {
   
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Set Initial Admin</h1>
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center space-x-1 mr-2"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back</span>
+        </Button>
+        <h1 className="text-3xl font-bold">Set Initial Admin</h1>
+      </div>
       <p className="text-muted-foreground mb-6">
         Use this utility to set up the first admin user in the system. This should only be used once during initial setup.
       </p>

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +25,7 @@ export function ProjectHeader({ title }: ProjectHeaderProps) {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => navigate("/recent-projects")}
+        onClick={() => navigate("/projects")}
         aria-label="Back to projects"
       >
         <ArrowLeft className="h-4 w-4" />

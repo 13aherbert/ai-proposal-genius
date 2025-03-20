@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -9,11 +8,10 @@ import { FormField } from "@/components/ui/form-field";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
 import useUserRoles from "@/hooks/use-user-roles";
 import { format, formatDistanceToNow } from "date-fns";
 
-// Define the BetaRequest type for the page
 interface BetaRequest {
   id: string;
   email: string;
@@ -36,7 +34,6 @@ export default function BetaRequests() {
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const navigate = useNavigate();
 
-  // Load beta requests when component mounts
   useEffect(() => {
     if (!isCheckingRoles && !isAdmin) {
       toast.error("Access denied. Admin privileges required.");
@@ -49,7 +46,6 @@ export default function BetaRequests() {
         setIsLoading(true);
         const betaRequests = await adminService.getBetaRequests();
         
-        // Transform the API response to ensure status is one of the valid types
         const typedRequests = betaRequests.map(request => ({
           ...request,
           status: (request.status || 'pending') as 'pending' | 'approved' | 'rejected'
@@ -57,7 +53,6 @@ export default function BetaRequests() {
         
         setRequests(typedRequests);
         
-        // Initialize notes from existing data
         const initialNotes: Record<string, string> = {};
         typedRequests.forEach(request => {
           initialNotes[request.id] = request.notes || '';
@@ -96,7 +91,6 @@ export default function BetaRequests() {
         processedBy: session.user.id
       });
       
-      // Update local state
       setRequests(prev => prev.map(req => 
         req.id === requestId 
           ? { 
@@ -109,10 +103,8 @@ export default function BetaRequests() {
           : req
       ));
       
-      // Show success message
       toast.success(`Request ${approved ? 'approved' : 'rejected'} successfully`);
       
-      // If approved, create a beta invitation
       if (approved) {
         const request = requests.find(r => r.id === requestId);
         if (request) {
@@ -153,11 +145,24 @@ export default function BetaRequests() {
   return (
     <div className="container max-w-7xl py-8">
       <Card>
-        <CardHeader>
-          <CardTitle>Beta Program Requests</CardTitle>
-          <CardDescription>
-            Review and manage requests to join the beta program
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-1" 
+              onClick={() => navigate('/admin')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Admin</span>
+            </Button>
+            <div>
+              <CardTitle>Beta Program Requests</CardTitle>
+              <CardDescription>
+                Review and manage requests to join the beta program
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

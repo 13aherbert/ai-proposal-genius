@@ -23,9 +23,9 @@ import BetaProgram from "@/pages/BetaProgram";
 import BetaRoadmap from "@/pages/BetaRoadmap";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
-import { UserManagement } from "@/pages/admin/UserManagement"; // Changed to named import
-import { BetaInvitations } from "@/pages/admin/BetaInvitations"; // Changed to named import
-import BetaRequests from "@/pages/admin/BetaRequests"; // Import BetaRequests properly
+import UserManagementPage from "@/pages/admin/UserManagementPage"; // Changed to page component
+import BetaInvitationsPage from "@/pages/admin/BetaInvitationsPage"; // Changed to page component
+import BetaRequests from "@/pages/admin/BetaRequests";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -157,8 +157,8 @@ export default function App() {
                     
                     {/* Admin Routes */}
                     <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/users" element={<UserManagement />} />
-                    <Route path="/admin/beta-invitations" element={<BetaInvitations />} />
+                    <Route path="/admin/users" element={<UserManagementPage />} />
+                    <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
                     <Route path="/admin/beta-requests" element={<BetaRequests />} />
                     
                     <Route path="/reset-password" element={<ResetPassword />} />

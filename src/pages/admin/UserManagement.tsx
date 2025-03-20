@@ -63,12 +63,11 @@ export function UserManagement({
         <div className="flex items-center space-x-2">
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="flex items-center space-x-1" 
+            size="icon" 
             onClick={() => navigate('/admin')}
+            aria-label="Back to Admin"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Admin</span>
           </Button>
           <div>
             <CardTitle>User Management</CardTitle>

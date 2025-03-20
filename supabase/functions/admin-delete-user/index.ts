@@ -136,31 +136,40 @@ serve(async (req) => {
 
     console.log(`Admin ${user.user.email} is attempting to delete user ${userId}`);
 
-    // First, delete user_roles to avoid RLS recursion issues that can happen
+    // Use our new cascade delete function to remove user data
     try {
-      console.log("Deleting user roles using admin_delete_user_roles function");
-      const { data: deleteRolesResult, error: deleteRolesError } = await supabaseAdmin.rpc('delete_user_roles_as_admin', {
+      console.log("Using cascade delete function to remove user data");
+      const { data: cascadeDeleteResult, error: cascadeDeleteError } = await supabaseAdmin.rpc('delete_user_as_admin', {
         target_user_id: userId
       });
       
-      if (deleteRolesError) {
-        console.warn('Warning: Error deleting user roles:', deleteRolesError);
-        // Continue with deletion even if this step fails
-      } else {
-        console.log("User roles deleted successfully");
+      if (cascadeDeleteError) {
+        console.error('Error in cascade delete operation:', cascadeDeleteError);
+        throw new Error(`Cascade delete failed: ${cascadeDeleteError.message}`);
       }
-    } catch (rolesError) {
-      console.warn('Warning: Exception in user roles deletion:', rolesError);
-      // Continue with deletion even if this step fails
-    }
+      
+      console.log("Cascade delete result:", cascadeDeleteResult);
+      
+      // Finally, delete the auth user itself
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
-    // Now delete the user
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (deleteError) {
-      console.error('Error deleting user:', deleteError);
+      if (deleteError) {
+        console.error('Error deleting auth user:', deleteError);
+        return new Response(
+          JSON.stringify({ success: false, error: deleteError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    } catch (deleteError) {
+      console.error('Error in delete process:', deleteError);
       return new Response(
-        JSON.stringify({ success: false, error: deleteError.message }),
+        JSON.stringify({ 
+          success: false, 
+          error: deleteError instanceof Error ? deleteError.message : 'Unknown error occurred during deletion' 
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

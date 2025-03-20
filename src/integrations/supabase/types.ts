@@ -421,6 +421,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user_cascade: {
+        Args: {
+          admin_id: string
+          target_user_id: string
+        }
+        Returns: boolean
+      }
       admin_delete_user_roles: {
         Args: {
           admin_id: string
@@ -435,6 +442,12 @@ export type Database = {
           _created_by: string
         }
         Returns: string
+      }
+      cascade_delete_user_data: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: boolean
       }
       check_beta_tester_role: {
         Args: {
@@ -490,6 +503,12 @@ export type Database = {
           subscription_plan: string
           project_limit: number
         }[]
+      }
+      delete_user_as_admin: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: boolean
       }
       delete_user_roles_as_admin: {
         Args: {

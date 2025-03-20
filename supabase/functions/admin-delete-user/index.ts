@@ -136,8 +136,26 @@ serve(async (req) => {
 
     console.log(`Admin ${user.user.email} is attempting to delete user ${userId}`);
 
-    // Delete the user
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    // First, delete user_roles to avoid RLS recursion issues that can happen
+    try {
+      console.log("Deleting user roles using admin_delete_user_roles function");
+      const { data: deleteRolesResult, error: deleteRolesError } = await supabaseAdmin.rpc('delete_user_roles_as_admin', {
+        target_user_id: userId
+      });
+      
+      if (deleteRolesError) {
+        console.warn('Warning: Error deleting user roles:', deleteRolesError);
+        // Continue with deletion even if this step fails
+      } else {
+        console.log("User roles deleted successfully");
+      }
+    } catch (rolesError) {
+      console.warn('Warning: Exception in user roles deletion:', rolesError);
+      // Continue with deletion even if this step fails
+    }
+
+    // Now delete the user
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
       console.error('Error deleting user:', deleteError);

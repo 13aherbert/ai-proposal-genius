@@ -1,9 +1,11 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { NetworkStatusProvider } from "@/hooks/network";
 import { SubscriptionProvider } from "@/hooks/subscription";
+import React from "react"; // Added React import
 
 // Pages
 import Index from "@/pages/Index";
@@ -23,6 +25,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagement from "@/pages/admin/UserManagement";
 import BetaInvitations from "@/pages/admin/BetaInvitations";
+import BetaRequests from "@/pages/admin/BetaRequests"; // Import BetaRequests properly
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -156,7 +159,7 @@ export default function App() {
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/users" element={<UserManagement />} />
                     <Route path="/admin/beta-invitations" element={<BetaInvitations />} />
-                    <Route path="/admin/beta-requests" element={<React.lazy(() => import("./pages/admin/BetaRequests"))} />
+                    <Route path="/admin/beta-requests" element={<BetaRequests />} />
                     
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/docs" element={<Documentation />} />

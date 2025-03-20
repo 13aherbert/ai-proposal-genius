@@ -1,12 +1,17 @@
+
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { LogIn, DollarSign, HelpCircle } from "lucide-react";
+import { LogIn, DollarSign, HelpCircle, Sparkles } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
+import { useState } from "react";
+import { BetaRequestDialog } from "@/components/beta/BetaRequestDialog";
 
 const Index = () => {
+  const [betaDialogOpen, setBetaDialogOpen] = useState(false);
+  
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -67,20 +72,38 @@ const Index = () => {
             <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-8">
               Streamline your RFP process, increase your win rate, and save hours with AI-powered tools designed for businesses like yours.
             </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  size="lg"
-                  className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold"
-                >
-                  Start Your Free Trial Today
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <AuthForm defaultView="sign_up" />
-              </DialogContent>
-            </Dialog>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size="lg"
+                    className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold"
+                  >
+                    Start Your Free Trial Today
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <AuthForm defaultView="sign_up" />
+                </DialogContent>
+              </Dialog>
+              
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+                onClick={() => setBetaDialogOpen(true)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Join the Beta Program
+              </Button>
+            </div>
           </div>
+
+          {/* Beta Request Dialog */}
+          <BetaRequestDialog 
+            open={betaDialogOpen} 
+            onOpenChange={setBetaDialogOpen} 
+          />
 
           {/* Key Benefits Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">

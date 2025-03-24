@@ -353,7 +353,7 @@ serve(async (req) => {
       const newSubscription = {
         subscription_id: subscriptionId,
         user_id: user.id,
-        status: 'active',
+        status: isBetaTester ? 'active' : 'trialing',
         plan_type: planType,
         project_limit: projectLimit,
         features: {},

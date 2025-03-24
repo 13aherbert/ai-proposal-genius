@@ -4,13 +4,16 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/AuthProvider";
+import { isTrialExpired } from "@/hooks/subscription/feature-access";
 
 export function UpgradeBanner() {
   const { plan } = useSubscriptionFeatures();
+  const { session } = useAuth();
   const navigate = useNavigate();
   
-  // Only show for trial plans, not for starter or pro
-  if (plan !== 'trial') {
+  // Only show for trial plans that haven't expired yet
+  if (plan !== 'trial' || !session?.user || isTrialExpired(session.user)) {
     return null;
   }
   

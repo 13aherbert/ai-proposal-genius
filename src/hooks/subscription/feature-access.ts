@@ -51,21 +51,21 @@ export function clearFeatureCaches() {
 
 // Get the correct project limit for a plan
 export function getProjectLimitForPlan(planType: string): number {
-  planType = planType.toLowerCase().trim();
+  const normalizedPlanType = normalizePlanType(planType);
   
-  if (planType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  if (planType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  if (normalizedPlanType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
+  if (normalizedPlanType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
   return SUBSCRIPTION_PLAN_LIMITS.trial;
 }
 
 // Get a safe project limit that respects the plan type
 export function getSafeProjectLimit(planType: string, storedLimit: number): number {
-  planType = planType.toLowerCase().trim();
+  const normalizedPlanType = normalizePlanType(planType);
   
   // Override with correct limits
-  if (planType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
-  if (planType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  if (planType === 'trial') return SUBSCRIPTION_PLAN_LIMITS.trial;
+  if (normalizedPlanType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  if (normalizedPlanType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
+  if (normalizedPlanType === 'trial') return SUBSCRIPTION_PLAN_LIMITS.trial;
   
   // If plan type doesn't match known types, use provided limit with a fallback
   return storedLimit || 3;
@@ -79,7 +79,9 @@ export function storeSubscriptionDataLocally(subscription: any) {
     localStorage.setItem('subscriptionData', JSON.stringify(subscription));
     
     // Also store just the project limit for even faster access
-    localStorage.setItem('projectLimit', String(subscription.project_limit));
+    const planType = normalizePlanType(subscription.plan_type);
+    const safeLimit = getSafeProjectLimit(planType, subscription.project_limit);
+    localStorage.setItem('projectLimit', String(safeLimit));
   } catch (e) {
     console.error("Error storing subscription data locally:", e);
   }
@@ -149,7 +151,7 @@ export function isUserOfPlanType(planType: string): boolean {
   try {
     const subscriptionData = getStoredSubscriptionData();
     if (subscriptionData && subscriptionData.plan_type) {
-      return subscriptionData.plan_type.toLowerCase() === planType.toLowerCase();
+      return normalizePlanType(subscriptionData.plan_type) === normalizePlanType(planType);
     }
     return false;
   } catch (e) {
@@ -168,7 +170,7 @@ export function determineFeatureAccess(
   feature: FeatureName,
   planType: string
 ): boolean {
-  planType = planType.toLowerCase().trim();
+  const normalizedPlanType = normalizePlanType(planType);
   
   // Check if this feature exists in our mapping
   if (!(feature in FEATURE_ACCESS_MAP)) {
@@ -176,7 +178,7 @@ export function determineFeatureAccess(
   }
   
   // Check if the user's plan is in the list of plans that have access to this feature
-  return FEATURE_ACCESS_MAP[feature].includes(planType);
+  return FEATURE_ACCESS_MAP[feature].includes(normalizedPlanType);
 }
 
 // Get a human-readable feature name for display
@@ -184,10 +186,10 @@ export function getFeatureName(
   feature: FeatureName,
   currentPlan: string
 ): string {
-  currentPlan = currentPlan.toLowerCase().trim();
+  const normalizedPlanType = normalizePlanType(currentPlan);
   
   // Check if user has access to this feature
-  const hasAccess = determineFeatureAccess(feature, currentPlan);
+  const hasAccess = determineFeatureAccess(feature, normalizedPlanType);
   
   // Return plan name that has access to this feature
   if (hasAccess) {

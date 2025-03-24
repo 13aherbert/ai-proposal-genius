@@ -10,14 +10,16 @@ import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { 
   getStoredSubscriptionData, 
   isUserOfPlanType,
-  isTrialExpired
+  isTrialExpired,
+  normalizePlanType,
+  getProjectLimitForPlan
 } from "./subscription/feature-access";
 
 export const useRFPUpload = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: subscriptionData, loading: subscriptionLoading } = useSubscription();
+  const { data: subscriptionData, loading: subscriptionLoading, checkSubscription } = useSubscription();
   
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -27,28 +29,19 @@ export const useRFPUpload = () => {
 
   const storedSubscriptionData = getStoredSubscriptionData();
   
-  let isUserPro = false;
-  let isUserStarter = false;
+  let planType = 'trial';
   
-  if (storedSubscriptionData && storedSubscriptionData.plan_type) {
-    const planType = storedSubscriptionData.plan_type.toLowerCase();
-    isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter';
-  } else if (subscriptionData && subscriptionData.plan_type) {
-    const planType = subscriptionData.plan_type.toLowerCase();
-    isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter';
+  if (storedSubscriptionData?.plan_type) {
+    planType = normalizePlanType(storedSubscriptionData.plan_type);
+  } else if (subscriptionData?.plan_type) {
+    planType = normalizePlanType(subscriptionData.plan_type);
   }
   
-  const projectLimit = isUserPro
-    ? SUBSCRIPTION_PLAN_LIMITS.pro
-    : (isUserStarter
-      ? SUBSCRIPTION_PLAN_LIMITS.starter
-      : (subscriptionData?.plan_type?.toLowerCase() === 'pro' 
-        ? SUBSCRIPTION_PLAN_LIMITS.pro
-        : (subscriptionData?.plan_type?.toLowerCase() === 'starter'
-          ? SUBSCRIPTION_PLAN_LIMITS.starter
-          : SUBSCRIPTION_PLAN_LIMITS.trial)));
+  console.log('Current plan type:', planType);
+  
+  const projectLimit = getProjectLimitForPlan(planType);
+  
+  console.log('Project limit for current plan:', projectLimit);
 
   const [currentProjectCount, setCurrentProjectCount] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -109,9 +102,14 @@ export const useRFPUpload = () => {
   
   useEffect(() => {
     if (!subscriptionLoading && subscriptionData) {
+      if (!subscriptionData.project_limit && planType !== 'trial') {
+        console.log('No project limit set, forcing refresh');
+        checkSubscription(true);
+      }
+      
       fetchProjectCount();
     }
-  }, [subscriptionData, subscriptionLoading, fetchProjectCount]);
+  }, [subscriptionData, subscriptionLoading, fetchProjectCount, checkSubscription, planType]);
 
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {
@@ -119,9 +117,8 @@ export const useRFPUpload = () => {
       return;
     }
     
-    // Check if the trial has expired for trial users
     if (
-      subscriptionData?.plan_type?.toLowerCase() === 'trial' && 
+      planType === 'trial' && 
       isTrialExpired(session.user)
     ) {
       toast.error("Your free trial has expired", { 
@@ -131,6 +128,7 @@ export const useRFPUpload = () => {
       return;
     }
     
+    console.log('Fetching fresh project count before upload');
     await fetchProjectCount();
     
     if (currentProjectCount !== null && projectLimit !== null && currentProjectCount >= projectLimit) {
@@ -211,7 +209,7 @@ export const useRFPUpload = () => {
         setIsUploading(false);
       }, 500);
     }
-  }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount, navigate, subscriptionData]);
+  }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount, navigate, planType]);
 
   const updateProject = useCallback(async (
     title: string, 

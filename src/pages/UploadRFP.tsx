@@ -7,10 +7,10 @@ import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { useProjectLimits } from "@/hooks/use-project-limits";
-import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
-import { isTrialExpired } from "@/hooks/subscription/feature-access";
+import { useAuth } from "@/components/AuthProvider";
+import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
+import { toast } from "sonner";
 
 // Memoize the UploadDropzone component to prevent unnecessary re-renders
 const MemoizedUploadDropzone = memo(UploadDropzone);
@@ -23,15 +23,12 @@ const UploadRFP = () => {
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
   
-  // Use the project limits hook for consistent limit management
-  const { determineDisplayLimit } = useProjectLimits(session?.user || null);
-  
   const {
     uploadProgress,
     isUploading,
     projectId,
     projectTitle,
-    projectLimit: rawProjectLimit,
+    projectLimit,
     currentProjectCount,
     fetchError,
     isRefreshing,
@@ -41,9 +38,6 @@ const UploadRFP = () => {
     fetchProjectCount
   } = useRFPUpload();
 
-  // Calculate the correct project limit 
-  const projectLimit = determineDisplayLimit(rawProjectLimit);
-
   // Fetch project count when the component mounts and whenever subscription changes
   useEffect(() => {
     if (session?.user) {
@@ -52,7 +46,8 @@ const UploadRFP = () => {
   }, [fetchProjectCount, session, subscription]);
   
   // Check if trial has expired
-  const isUserTrialExpired = session?.user ? isTrialExpired(session.user) : false;
+  const planType = normalizePlanType(subscription?.plan_type);
+  const isUserTrialExpired = planType === 'trial' && session?.user ? isTrialExpired(session.user) : false;
   
   // Set up an interval to periodically refresh the count
   useEffect(() => {
@@ -87,6 +82,7 @@ const UploadRFP = () => {
   }, [navigate, projectId]);
   
   const handleRefreshSubscription = useCallback(() => {
+    toast.info("Refreshing subscription data...");
     refreshWithFallbacks(true);
     fetchProjectCount();
   }, [refreshWithFallbacks, fetchProjectCount]);
@@ -105,9 +101,6 @@ const UploadRFP = () => {
   // In loading state, don't show limit reached warning
   const isLoading = currentProjectCount === null || subscriptionLoading;
 
-  // If trial has expired, show appropriate message
-  const isTrialLimitReached = subscription?.plan_type?.toLowerCase() === 'trial' && isUserTrialExpired;
-
   return (
     <div className="min-h-screen w-full bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -124,7 +117,7 @@ const UploadRFP = () => {
           </header>
           
           {/* Expired trial message */}
-          {isTrialLimitReached && (
+          {isUserTrialExpired && (
             <Card className="bg-amber-50 border-amber-300">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">
@@ -149,7 +142,7 @@ const UploadRFP = () => {
           )}
           
           {/* Project limit reached message */}
-          {!isLoading && hasReachedLimit && !isTrialLimitReached && (
+          {!isLoading && hasReachedLimit && !isUserTrialExpired && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">
@@ -176,12 +169,12 @@ const UploadRFP = () => {
             </Card>
           )}
 
-          {subscription && !isLoading && projectLimit !== null && currentProjectCount !== null && (
+          {!isLoading && projectLimit !== null && currentProjectCount !== null && (
             <div className="text-sm text-muted-foreground">
               Project usage: {currentProjectCount} of {projectLimit} projects
-              {subscription.plan_type && (
+              {planType && (
                 <span className="ml-2 text-brand-green">
-                  ({subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1)} plan)
+                  ({planType.charAt(0).toUpperCase() + planType.slice(1)} plan)
                 </span>
               )}
             </div>
@@ -199,7 +192,7 @@ const UploadRFP = () => {
               onDrop={handleDrop}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
-              disabled={hasReachedLimit || isTrialLimitReached}
+              disabled={hasReachedLimit || isUserTrialExpired}
             />
             <div className="flex flex-col gap-6">
               <ProjectForm
@@ -213,7 +206,7 @@ const UploadRFP = () => {
                 setBusinessName={setBusinessName}
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
-                disabled={hasReachedLimit || isTrialLimitReached}
+                disabled={hasReachedLimit || isUserTrialExpired}
               />
               
               {projectId && (

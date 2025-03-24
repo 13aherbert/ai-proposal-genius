@@ -11,7 +11,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 
-// Memoize the UploadDropzone component to prevent unnecessary re-renders
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
 const UploadRFP = () => {
@@ -37,18 +36,15 @@ const UploadRFP = () => {
     fetchProjectCount
   } = useRFPUpload();
 
-  // Fetch project count when the component mounts and whenever subscription changes
   useEffect(() => {
     if (session?.user) {
       fetchProjectCount();
     }
   }, [fetchProjectCount, session, subscription]);
   
-  // Check if trial has expired
   const planType = normalizePlanType(subscription?.plan_type);
   const isUserTrialExpired = planType === 'trial' && session?.user ? isTrialExpired(session.user) : false;
   
-  // Set up an interval to periodically refresh the count
   useEffect(() => {
     if (!session?.user) return;
     
@@ -90,14 +86,11 @@ const UploadRFP = () => {
     navigate('/subscription', { state: { fromTrialExpired: true } });
   }, [navigate]);
 
-  // Calculate whether user has reached project limit
-  // Only show limit reached if we have valid data for both count and limit
   const hasReachedLimit = 
     projectLimit !== null && 
     currentProjectCount !== null && 
     currentProjectCount >= projectLimit;
 
-  // In loading state, don't show limit reached warning
   const isLoading = currentProjectCount === null || subscriptionLoading;
 
   return (
@@ -115,7 +108,6 @@ const UploadRFP = () => {
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
           
-          {/* Expired trial message */}
           {isUserTrialExpired && (
             <Card className="bg-amber-50 border-amber-300">
               <CardContent className="pt-6">
@@ -140,7 +132,6 @@ const UploadRFP = () => {
             </Card>
           )}
           
-          {/* Project limit reached message */}
           {!isLoading && hasReachedLimit && !isUserTrialExpired && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">

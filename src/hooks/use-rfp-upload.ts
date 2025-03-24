@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -36,10 +35,12 @@ export const useRFPUpload = () => {
   
   let planType = 'trial';
   
-  if (storedSubscriptionData?.plan_type) {
-    planType = normalizePlanType(storedSubscriptionData.plan_type);
-  } else if (subscriptionData?.plan_type) {
+  if (subscriptionData?.plan_type) {
     planType = normalizePlanType(subscriptionData.plan_type);
+    console.log('Using plan type from API data:', planType);
+  } else if (storedSubscriptionData?.plan_type) {
+    planType = normalizePlanType(storedSubscriptionData.plan_type);
+    console.log('Using plan type from stored data:', planType);
   }
   
   console.log('Current plan type:', planType);
@@ -107,14 +108,18 @@ export const useRFPUpload = () => {
   
   useEffect(() => {
     if (!subscriptionLoading && subscriptionData) {
-      if (!subscriptionData.project_limit && planType !== 'trial') {
-        console.log('No project limit set, forcing refresh');
-        refreshSubscription(); // Removed the argument here
+      const expectedLimit = getProjectLimitForPlan(normalizePlanType(subscriptionData.plan_type || 'trial'));
+      
+      if ((!subscriptionData.project_limit || subscriptionData.project_limit !== expectedLimit) && 
+          normalizePlanType(subscriptionData.plan_type || '') !== 'trial') {
+        console.log('Project limit mismatch, forcing refresh. Expected:', expectedLimit, 
+                   'Actual:', subscriptionData.project_limit);
+        refreshSubscription();
       }
       
       fetchProjectCount();
     }
-  }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshSubscription, planType]);
+  }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshSubscription]);
 
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {
@@ -266,3 +271,4 @@ export const useRFPUpload = () => {
     fetchProjectCount
   };
 };
+

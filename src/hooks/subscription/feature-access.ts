@@ -21,7 +21,16 @@ if (typeof window !== 'undefined') {
 
 // Normalize plan type to lowercase for consistent comparison
 export function normalizePlanType(planType: string | undefined): string {
-  return (planType || 'trial').toLowerCase().trim();
+  if (!planType) return 'trial';
+  
+  // Trim, lowercase, and standardize plan types
+  const normalized = planType.toLowerCase().trim();
+  
+  // Map possible variants to standard types
+  if (normalized.includes('starter')) return 'starter';
+  if (normalized.includes('pro')) return 'pro';
+  
+  return 'trial'; // Default to trial if unknown
 }
 
 // Clear all feature and project limit caches
@@ -53,8 +62,19 @@ export function clearFeatureCaches() {
 export function getProjectLimitForPlan(planType: string): number {
   const normalizedPlanType = normalizePlanType(planType);
   
-  if (normalizedPlanType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  if (normalizedPlanType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  console.log(`Getting project limit for normalized plan type: ${normalizedPlanType}`);
+  
+  if (normalizedPlanType === 'pro') {
+    console.log(`Returning pro limit: ${SUBSCRIPTION_PLAN_LIMITS.pro}`);
+    return SUBSCRIPTION_PLAN_LIMITS.pro;
+  }
+  
+  if (normalizedPlanType === 'starter') {
+    console.log(`Returning starter limit: ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+    return SUBSCRIPTION_PLAN_LIMITS.starter;
+  }
+  
+  console.log(`Returning trial limit: ${SUBSCRIPTION_PLAN_LIMITS.trial}`);
   return SUBSCRIPTION_PLAN_LIMITS.trial;
 }
 

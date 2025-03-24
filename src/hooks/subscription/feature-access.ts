@@ -120,11 +120,18 @@ export function isUserOfPlanType(planType: string): boolean {
   try {
     const subscriptionData = getStoredSubscriptionData();
     if (subscriptionData && subscriptionData.plan_type) {
-      // Check for both explicit match and starter/standard equivalence
-      if (planType.toLowerCase() === 'starter' || planType.toLowerCase() === 'standard') {
-        const normalizedPlanType = subscriptionData.plan_type.toLowerCase();
-        return normalizedPlanType === 'starter' || normalizedPlanType === 'standard';
+      // Special case for 'standard' being equivalent to 'starter'
+      if (planType.toLowerCase() === 'starter' && 
+          subscriptionData.plan_type.toLowerCase() === 'standard') {
+        return true;
       }
+      
+      // Special case for checking if standard or starter for 'standard'
+      if (planType.toLowerCase() === 'standard' && 
+          subscriptionData.plan_type.toLowerCase() === 'starter') {
+        return true;
+      }
+      
       return subscriptionData.plan_type.toLowerCase() === planType.toLowerCase();
     }
     return false;
@@ -146,14 +153,14 @@ export function determineFeatureAccess(
 ): boolean {
   planType = planType.toLowerCase().trim();
   
+  // Handle 'standard' plan as 'starter' for feature access
+  if (planType === 'standard') {
+    planType = 'starter';
+  }
+  
   // Check if this feature exists in our mapping
   if (!(feature in FEATURE_ACCESS_MAP)) {
     return false;
-  }
-  
-  // For compatibility, treat 'standard' as 'starter'
-  if (planType === 'standard') {
-    planType = 'starter';
   }
   
   // Check if the user's plan is in the list of plans that have access to this feature
@@ -178,7 +185,7 @@ export function getFeatureName(
   // If not, find the lowest tier plan that has access
   if (FEATURE_ACCESS_MAP[feature].includes('trial')) {
     return "Trial Plan";
-  } else if (FEATURE_ACCESS_MAP[feature].includes('starter')) {
+  } else if (FEATURE_ACCESS_MAP[feature].includes('starter') || FEATURE_ACCESS_MAP[feature].includes('standard')) {
     return "Starter Plan";
   } else {
     return "Pro Plan";

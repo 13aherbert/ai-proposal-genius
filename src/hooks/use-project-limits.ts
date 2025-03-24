@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
-import { getSafeProjectLimit, normalizePlanType, isUserOfPlanType } from "@/hooks/subscription/feature-access";
+import { getSafeProjectLimit, normalizePlanType, isUserOfPlanType } from "./subscription/feature-access";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { User } from "@supabase/supabase-js";
 
@@ -39,7 +39,7 @@ export function useProjectLimits(user: User | null) {
     isStarterUserRef.current = isUserStarter;
     
     if (isUserStarter) {
-      conditionalLog('info', `*** STARTER/STANDARD USER DETECTED - SETTING STARTER PLAN ***`);
+      conditionalLog('info', `*** STARTER USER DETECTED - SETTING STARTER PLAN ***`);
       setForceStarterPlan(true);
       
       try {
@@ -73,7 +73,7 @@ export function useProjectLimits(user: User | null) {
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
       
       if (normalizedPlan === 'starter' || normalizedPlan === 'standard') {
-        conditionalLog('info', `CRITICAL: Starter/Standard plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
+        conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       } else if (normalizedPlan === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
@@ -99,12 +99,10 @@ export function useProjectLimits(user: User | null) {
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const data = JSON.parse(storedData);
-        const normalizedPlanType = normalizePlanType(data?.plan_type);
-        
-        if (normalizedPlanType === 'starter' || normalizedPlanType === 'standard') {
-          conditionalLog('info', 'Using stored starter/standard plan data from localStorage');
+        if (data && (normalizePlanType(data.plan_type) === 'starter' || normalizePlanType(data.plan_type) === 'standard')) {
+          conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
-        } else if (normalizedPlanType === 'pro') {
+        } else if (data && normalizePlanType(data.plan_type) === 'pro') {
           conditionalLog('info', 'Using stored pro plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.pro;
         }
@@ -143,6 +141,10 @@ export function useProjectLimits(user: User | null) {
     // Otherwise use subscription data if available
     else if (subscriptionData) {
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
+      if (normalizedPlan === 'standard') {
+        conditionalLog('debug', `Using STARTER plan limit for STANDARD subscription: ${SUBSCRIPTION_PLAN_LIMITS.starter} projects`);
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
+      }
       const limit = getSafeProjectLimit(normalizedPlan, subscriptionData.project_limit);
       conditionalLog('debug', `Using subscription-based limit for ${normalizedPlan} plan: ${limit} projects`);
       return limit;

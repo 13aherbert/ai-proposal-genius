@@ -21,7 +21,6 @@ export const useRFPUpload = () => {
   const [projectTitle, setProjectTitle] = useState("");
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
-  // Check subscription data for determining plan type and project limits
   const storedSubscriptionData = getStoredSubscriptionData();
   
   let isUserPro = false;
@@ -32,13 +31,11 @@ export const useRFPUpload = () => {
     isUserPro = planType === 'pro';
     isUserStarter = planType === 'starter';
   } else if (subscriptionData && subscriptionData.plan_type) {
-    // Fallback to live subscription data
     const planType = subscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
     isUserStarter = planType === 'starter';
   }
   
-  // Determine the project limit based on user's subscription plan
   const projectLimit = isUserPro
     ? SUBSCRIPTION_PLAN_LIMITS.pro
     : (isUserStarter
@@ -136,7 +133,7 @@ export const useRFPUpload = () => {
       const fileName = `${timestamp}-${randomId}-${file.name}`;
       
       const { data: fileData, error: uploadError } = await supabase.storage
-        .from('rfp_documents')
+        .from('rfp-files')
         .upload(fileName, file);
 
       let uploadProgress = 0;

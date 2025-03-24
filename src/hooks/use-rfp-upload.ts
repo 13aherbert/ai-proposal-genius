@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -108,7 +109,7 @@ export const useRFPUpload = () => {
     if (!subscriptionLoading && subscriptionData) {
       if (!subscriptionData.project_limit && planType !== 'trial') {
         console.log('No project limit set, forcing refresh');
-        refreshSubscription();
+        refreshSubscription(); // Removed the argument here
       }
       
       fetchProjectCount();

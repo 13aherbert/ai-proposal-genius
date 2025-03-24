@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +17,7 @@ const MemoizedUploadDropzone = memo(UploadDropzone);
 const UploadRFP = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { data: subscription, loading: subscriptionLoading, refreshWithFallbacks } = useSubscription();
+  const { data: subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
   const [deadline, setDeadline] = useState<Date>();
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -83,9 +82,9 @@ const UploadRFP = () => {
   
   const handleRefreshSubscription = useCallback(() => {
     toast.info("Refreshing subscription data...");
-    refreshWithFallbacks(true);
+    refreshSubscription();
     fetchProjectCount();
-  }, [refreshWithFallbacks, fetchProjectCount]);
+  }, [refreshSubscription, fetchProjectCount]);
 
   const handleUpgradeClick = useCallback(() => {
     navigate('/subscription', { state: { fromTrialExpired: true } });

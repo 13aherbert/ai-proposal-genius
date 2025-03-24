@@ -277,6 +277,24 @@ serve(async (req) => {
       }
     }
 
+    // Check if user is a beta tester
+    let isBetaTester = false;
+    try {
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+        
+      if (rolesError) {
+        console.error(`Error fetching user roles: ${rolesError.message}`);
+      } else {
+        isBetaTester = userRoles?.some(r => r.role === 'beta_tester') || false;
+        console.log(`User ${user.id} beta tester status: ${isBetaTester}`);
+      }
+    } catch (e) {
+      console.error("Exception fetching user roles:", e);
+    }
+
     // Query the subscriptions table for the user's subscription
     console.log(`Querying subscriptions table for user ${user.id}`);
     const { data: subscriptions, error: subError } = await supabase
@@ -322,17 +340,22 @@ serve(async (req) => {
       console.error("Exception fetching user roles:", e);
     }
     
-    // If no subscription found, create a trial one
+    // If no subscription found, create a trial one (or starter for beta testers)
     if (!subscription) {
-      console.log(`No subscription found for user ${user.id}, creating default trial subscription`);
+      console.log(`No subscription found for user ${user.id}`);
       
       const subscriptionId = crypto.randomUUID();
+      const planType = isBetaTester ? 'starter' : 'trial';
+      const projectLimit = isBetaTester ? SUBSCRIPTION_PLAN_LIMITS.starter : SUBSCRIPTION_PLAN_LIMITS.trial;
+      
+      console.log(`Creating default ${planType} subscription for user ${user.id}`);
+      
       const newSubscription = {
         subscription_id: subscriptionId,
         user_id: user.id,
-        status: 'trialing',
-        plan_type: 'trial',
-        project_limit: SUBSCRIPTION_PLAN_LIMITS.trial,
+        status: 'active',
+        plan_type: planType,
+        project_limit: projectLimit,
         features: {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -344,8 +367,8 @@ serve(async (req) => {
         .select();
         
       if (insertError) {
-        console.error(`Error creating trial subscription: ${insertError.message}`);
-        // Even if insert fails, return the trial subscription data to the client
+        console.error(`Error creating ${planType} subscription: ${insertError.message}`);
+        // Even if insert fails, return the subscription data to the client
         return addCorsHeaders(new Response(
           JSON.stringify({ 
             subscription: {
@@ -353,7 +376,7 @@ serve(async (req) => {
             },
             roles,
             timestamp: Date.now(),
-            message: "Created default trial subscription (not saved due to error)"
+            message: `Created default ${planType} subscription (not saved due to error)`
           }),
           { 
             status: 200, 
@@ -363,14 +386,14 @@ serve(async (req) => {
       }
       
       const createdSubscription = insertData?.[0];
-      console.log(`Trial subscription created: ${JSON.stringify(createdSubscription)}`);
+      console.log(`${planType} subscription created: ${JSON.stringify(createdSubscription)}`);
       
       return addCorsHeaders(new Response(
         JSON.stringify({ 
           subscription: createdSubscription || newSubscription,
           roles,
           timestamp: Date.now(),
-          message: "Created new trial subscription"
+          message: `Created new ${planType} subscription`
         }),
         { 
           status: 200, 

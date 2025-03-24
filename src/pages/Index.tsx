@@ -8,9 +8,11 @@ import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
 import { useState } from "react";
 import { BetaRequestDialog } from "@/components/beta/BetaRequestDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [betaDialogOpen, setBetaDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -23,18 +25,20 @@ const Index = () => {
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
-        {/* Beta Program Button in Top Left */}
-        <div className="absolute top-4 left-4">
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-            onClick={() => setBetaDialogOpen(true)}
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Join the Beta Program
-          </Button>
-        </div>
+        {/* Beta Program Button - Only show in this position on desktop */}
+        {!isMobile && (
+          <div className="absolute top-4 left-4">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+              onClick={() => setBetaDialogOpen(true)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Join the Beta Program
+            </Button>
+          </div>
+        )}
         
         {/* Navigation Buttons and Login */}
         <div className="absolute top-4 right-4 flex items-center gap-4">
@@ -44,7 +48,7 @@ const Index = () => {
             onClick={() => scrollToSection('pricing')}
           >
             <DollarSign className="h-4 w-4" />
-            Pricing
+            {!isMobile && "Pricing"}
           </Button>
           <Button
             variant="secondary"
@@ -52,7 +56,7 @@ const Index = () => {
             onClick={() => scrollToSection('faq')}
           >
             <HelpCircle className="h-4 w-4" />
-            FAQ
+            {!isMobile && "FAQ"}
           </Button>
           <Dialog>
             <DialogTrigger asChild>
@@ -61,7 +65,7 @@ const Index = () => {
                 className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
               >
                 <LogIn className="h-4 w-4" />
-                Login
+                {!isMobile && "Login"}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -72,6 +76,21 @@ const Index = () => {
         
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
+          {/* Beta Button for Mobile - Centered below header */}
+          {isMobile && (
+            <div className="flex justify-center mb-8 pt-12">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+                onClick={() => setBetaDialogOpen(true)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Join the Beta Program
+              </Button>
+            </div>
+          )}
+          
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto">
             <img 
@@ -99,8 +118,6 @@ const Index = () => {
                   <AuthForm defaultView="sign_up" />
                 </DialogContent>
               </Dialog>
-              
-              {/* Removed the Beta Program button from here as it's now at the top left */}
             </div>
           </div>
 

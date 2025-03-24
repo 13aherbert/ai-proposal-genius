@@ -1,12 +1,12 @@
 
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { Navbar } from "@/components/navigation/Navbar";
-import { Footer } from "@/components/navigation/Footer";
+import { Navbar } from "../components/navigation/Navbar";
+import { Footer } from "../components/navigation/Footer";
 import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
 import { TrialExpiredBanner } from "@/components/subscription/TrialExpiredBanner";
 import { useSubscription } from "@/hooks/use-subscription";
-import { AuthCheck } from "@/components/auth/AuthCheck";
+import { AuthCheck } from "../components/auth/AuthCheck";
 
 export default function DashboardLayout() {
   const { loading } = useSubscription();

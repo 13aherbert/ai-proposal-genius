@@ -405,11 +405,11 @@ serve(async (req) => {
     // CRITICAL FIX: Check if plan_type is 'starter' but project_limit doesn't match
     // Normalize plan type to lowercase for safer comparison
     const normalizedPlanType = (subscription.plan_type || '').toLowerCase().trim();
-    
+
     // Check for plan type and project limit mismatches, and fix them
     let projectLimitMismatch = false;
     let correctedLimit = subscription.project_limit;
-    
+
     if (normalizedPlanType === 'starter' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
       console.log(`CRITICAL FIX: Correcting project limit for starter plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
       projectLimitMismatch = true;
@@ -423,7 +423,7 @@ serve(async (req) => {
       projectLimitMismatch = true;
       correctedLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
     }
-    
+
     // Update the project limit if it doesn't match the plan type
     if (projectLimitMismatch) {
       // Update the project limit to match the plan

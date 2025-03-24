@@ -1,3 +1,4 @@
+
 import { FeatureName } from "./subscription-features-types";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 
@@ -116,6 +117,8 @@ export function isTrialExpired(user: any): boolean {
     
     // Convert to days (2 weeks = 14 days)
     const daysDiff = timeDiff / (1000 * 3600 * 24);
+    
+    console.log(`Trial check: User created ${daysDiff.toFixed(1)} days ago, expires after 14 days`);
     
     return daysDiff > 14;
   } catch (e) {

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useProjectLimits } from "@/hooks/use-project-limits";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
+import { isTrialExpired } from "@/hooks/subscription/feature-access";
 
 // Memoize the UploadDropzone component to prevent unnecessary re-renders
 const MemoizedUploadDropzone = memo(UploadDropzone);
@@ -50,6 +51,9 @@ const UploadRFP = () => {
     }
   }, [fetchProjectCount, session, subscription]);
   
+  // Check if trial has expired
+  const isUserTrialExpired = session?.user ? isTrialExpired(session.user) : false;
+  
   // Set up an interval to periodically refresh the count
   useEffect(() => {
     if (!session?.user) return;
@@ -87,6 +91,10 @@ const UploadRFP = () => {
     fetchProjectCount();
   }, [refreshWithFallbacks, fetchProjectCount]);
 
+  const handleUpgradeClick = useCallback(() => {
+    navigate('/subscription', { state: { fromTrialExpired: true } });
+  }, [navigate]);
+
   // Calculate whether user has reached project limit
   // Only show limit reached if we have valid data for both count and limit
   const hasReachedLimit = 
@@ -96,6 +104,9 @@ const UploadRFP = () => {
 
   // In loading state, don't show limit reached warning
   const isLoading = currentProjectCount === null || subscriptionLoading;
+
+  // If trial has expired, show appropriate message
+  const isTrialLimitReached = subscription?.plan_type?.toLowerCase() === 'trial' && isUserTrialExpired;
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -112,7 +123,33 @@ const UploadRFP = () => {
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
           
-          {!isLoading && hasReachedLimit && (
+          {/* Expired trial message */}
+          {isTrialLimitReached && (
+            <Card className="bg-amber-50 border-amber-300">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-2 text-amber-800">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium">Your free trial has expired</p>
+                    <p className="text-sm">
+                      Please upgrade your subscription to continue creating new projects.
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleUpgradeClick}
+                    className="flex-shrink-0 bg-amber-600 text-white hover:bg-amber-700 hover:text-white"
+                  >
+                    Upgrade Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Project limit reached message */}
+          {!isLoading && hasReachedLimit && !isTrialLimitReached && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">
@@ -162,7 +199,7 @@ const UploadRFP = () => {
               onDrop={handleDrop}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
-              disabled={hasReachedLimit}
+              disabled={hasReachedLimit || isTrialLimitReached}
             />
             <div className="flex flex-col gap-6">
               <ProjectForm
@@ -176,7 +213,7 @@ const UploadRFP = () => {
                 setBusinessName={setBusinessName}
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
-                disabled={hasReachedLimit}
+                disabled={hasReachedLimit || isTrialLimitReached}
               />
               
               {projectId && (

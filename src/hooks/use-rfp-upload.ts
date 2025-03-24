@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -8,7 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "./use-subscription";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
-import { getStoredSubscriptionData, isUserOfPlanType } from "./subscription/feature-access";
+import { 
+  getStoredSubscriptionData, 
+  isUserOfPlanType,
+  isTrialExpired
+} from "./subscription/feature-access";
 
 export const useRFPUpload = () => {
   const { session } = useAuth();
@@ -116,6 +119,18 @@ export const useRFPUpload = () => {
       return;
     }
     
+    // Check if the trial has expired for trial users
+    if (
+      subscriptionData?.plan_type?.toLowerCase() === 'trial' && 
+      isTrialExpired(session.user)
+    ) {
+      toast.error("Your free trial has expired", { 
+        description: "Please upgrade your subscription to continue.",
+      });
+      navigate('/subscription', { state: { fromTrialExpired: true } });
+      return;
+    }
+    
     await fetchProjectCount();
     
     if (currentProjectCount !== null && projectLimit !== null && currentProjectCount >= projectLimit) {
@@ -196,7 +211,7 @@ export const useRFPUpload = () => {
         setIsUploading(false);
       }, 500);
     }
-  }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount]);
+  }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount, navigate, subscriptionData]);
 
   const updateProject = useCallback(async (
     title: string, 

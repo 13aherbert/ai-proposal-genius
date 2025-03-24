@@ -29,20 +29,20 @@ export const useRFPUpload = () => {
   if (storedSubscriptionData && storedSubscriptionData.plan_type) {
     const planType = storedSubscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter';
+    isUserStarter = planType === 'starter' || planType === 'standard'; // Consider 'standard' as 'starter'
   } else if (subscriptionData && subscriptionData.plan_type) {
     const planType = subscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter';
+    isUserStarter = planType === 'starter' || planType === 'standard'; // Consider 'standard' as 'starter'
   }
   
   const projectLimit = isUserPro
     ? SUBSCRIPTION_PLAN_LIMITS.pro
     : (isUserStarter
       ? SUBSCRIPTION_PLAN_LIMITS.starter
-      : (subscriptionData?.plan_type === 'pro' 
+      : (subscriptionData?.plan_type?.toLowerCase() === 'pro' 
         ? SUBSCRIPTION_PLAN_LIMITS.pro
-        : (subscriptionData?.plan_type === 'starter' 
+        : (subscriptionData?.plan_type?.toLowerCase() === 'starter' || subscriptionData?.plan_type?.toLowerCase() === 'standard'
           ? SUBSCRIPTION_PLAN_LIMITS.starter
           : SUBSCRIPTION_PLAN_LIMITS.trial)));
 

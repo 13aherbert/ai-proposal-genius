@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
-import { getSafeProjectLimit, normalizePlanType, isUserOfPlanType } from "@/hooks/subscription/feature-access";
+import { getSafeProjectLimit, normalizePlanType, isUserOfPlanType } from "./subscription/feature-access";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { User } from "@supabase/supabase-js";
 
@@ -34,7 +35,7 @@ export function useProjectLimits(user: User | null) {
     if (!user) return;
     
     // Check subscription data for plan type
-    const isUserStarter = isUserOfPlanType('starter');
+    const isUserStarter = isUserOfPlanType('starter') || isUserOfPlanType('standard');
     isStarterUserRef.current = isUserStarter;
     
     if (isUserStarter) {
@@ -61,7 +62,7 @@ export function useProjectLimits(user: User | null) {
     
     lastProjectLimitUpdateTime.current = now;
     
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       conditionalLog('info', "CRITICAL: Using starter plan limit (10 projects)");
       return SUBSCRIPTION_PLAN_LIMITS.starter;
     }
@@ -71,7 +72,7 @@ export function useProjectLimits(user: User | null) {
       
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
       
-      if (normalizedPlan === 'starter') {
+      if (normalizedPlan === 'starter' || normalizedPlan === 'standard') {
         conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       } else if (normalizedPlan === 'pro') {
@@ -90,7 +91,7 @@ export function useProjectLimits(user: User | null) {
     }
     
     // Fallback checks without a full subscription record
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       return SUBSCRIPTION_PLAN_LIMITS.starter;
     }
     
@@ -98,7 +99,7 @@ export function useProjectLimits(user: User | null) {
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const data = JSON.parse(storedData);
-        if (data && normalizePlanType(data.plan_type) === 'starter') {
+        if (data && (normalizePlanType(data.plan_type) === 'starter' || normalizePlanType(data.plan_type) === 'standard')) {
           conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
         } else if (data && normalizePlanType(data.plan_type) === 'pro') {
@@ -128,7 +129,7 @@ export function useProjectLimits(user: User | null) {
   
   const determineDisplayLimit = useCallback((currentLimit: number | null) => {
     // Check for starter user based on subscription
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       conditionalLog('debug', "Using STARTER plan limit: 10 projects");
       return SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
     }
@@ -140,6 +141,10 @@ export function useProjectLimits(user: User | null) {
     // Otherwise use subscription data if available
     else if (subscriptionData) {
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
+      if (normalizedPlan === 'standard') {
+        conditionalLog('debug', `Using STARTER plan limit for STANDARD subscription: ${SUBSCRIPTION_PLAN_LIMITS.starter} projects`);
+        return SUBSCRIPTION_PLAN_LIMITS.starter;
+      }
       const limit = getSafeProjectLimit(normalizedPlan, subscriptionData.project_limit);
       conditionalLog('debug', `Using subscription-based limit for ${normalizedPlan} plan: ${limit} projects`);
       return limit;

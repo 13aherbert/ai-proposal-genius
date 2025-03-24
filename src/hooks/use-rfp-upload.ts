@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
@@ -29,11 +30,11 @@ export const useRFPUpload = () => {
   if (storedSubscriptionData && storedSubscriptionData.plan_type) {
     const planType = storedSubscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter' || planType === 'standard'; // Consider 'standard' as 'starter'
+    isUserStarter = planType === 'starter';
   } else if (subscriptionData && subscriptionData.plan_type) {
     const planType = subscriptionData.plan_type.toLowerCase();
     isUserPro = planType === 'pro';
-    isUserStarter = planType === 'starter' || planType === 'standard'; // Consider 'standard' as 'starter'
+    isUserStarter = planType === 'starter';
   }
   
   const projectLimit = isUserPro
@@ -42,7 +43,7 @@ export const useRFPUpload = () => {
       ? SUBSCRIPTION_PLAN_LIMITS.starter
       : (subscriptionData?.plan_type?.toLowerCase() === 'pro' 
         ? SUBSCRIPTION_PLAN_LIMITS.pro
-        : (subscriptionData?.plan_type?.toLowerCase() === 'starter' || subscriptionData?.plan_type?.toLowerCase() === 'standard'
+        : (subscriptionData?.plan_type?.toLowerCase() === 'starter'
           ? SUBSCRIPTION_PLAN_LIMITS.starter
           : SUBSCRIPTION_PLAN_LIMITS.trial)));
 

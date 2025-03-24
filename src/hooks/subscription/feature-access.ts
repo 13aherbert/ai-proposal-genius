@@ -54,7 +54,7 @@ export function getProjectLimitForPlan(planType: string): number {
   planType = planType.toLowerCase().trim();
   
   if (planType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  if (planType === 'starter' || planType === 'standard') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  if (planType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
   return SUBSCRIPTION_PLAN_LIMITS.trial;
 }
 
@@ -63,7 +63,7 @@ export function getSafeProjectLimit(planType: string, storedLimit: number): numb
   planType = planType.toLowerCase().trim();
   
   // Override with correct limits
-  if (planType === 'starter' || planType === 'standard') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  if (planType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
   if (planType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
   if (planType === 'trial') return SUBSCRIPTION_PLAN_LIMITS.trial;
   
@@ -100,13 +100,13 @@ export function getStoredSubscriptionData(): any | null {
 
 // Feature mapping based on plan type
 const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
-  rfp_summary: ['trial', 'starter', 'standard', 'pro'],  // All plans have access
-  proposal_outline: ['trial', 'starter', 'standard', 'pro'],  // All plans have access
-  proposal_draft: ['trial', 'starter', 'standard', 'pro'],  // All plans have access
+  rfp_summary: ['trial', 'starter', 'pro'],  // All plans have access
+  proposal_outline: ['trial', 'starter', 'pro'],  // All plans have access
+  proposal_draft: ['trial', 'starter', 'pro'],  // All plans have access
   compiled_draft: ['pro'],  // Only pro has access
   evaluation: ['pro'],  // Only pro has access
   data_export: ['pro'],  // Only pro has access
-  ai_editor: ['starter', 'standard', 'pro'],  // Only starter and pro have access
+  ai_editor: ['starter', 'pro'],  // Only starter and pro have access
   team_collaboration: ['pro'],  // Only pro has access
   advanced_analytics: ['pro'],  // Only pro has access
   api_access: ['pro'],  // Only pro has access
@@ -120,18 +120,6 @@ export function isUserOfPlanType(planType: string): boolean {
   try {
     const subscriptionData = getStoredSubscriptionData();
     if (subscriptionData && subscriptionData.plan_type) {
-      // Special case for 'standard' being equivalent to 'starter'
-      if (planType.toLowerCase() === 'starter' && 
-          subscriptionData.plan_type.toLowerCase() === 'standard') {
-        return true;
-      }
-      
-      // Special case for checking if standard or starter for 'standard'
-      if (planType.toLowerCase() === 'standard' && 
-          subscriptionData.plan_type.toLowerCase() === 'starter') {
-        return true;
-      }
-      
       return subscriptionData.plan_type.toLowerCase() === planType.toLowerCase();
     }
     return false;
@@ -143,7 +131,7 @@ export function isUserOfPlanType(planType: string): boolean {
 
 // Add a new function to check if a user is a starter user
 export function isStarterUser(): boolean {
-  return isUserOfPlanType('starter') || isUserOfPlanType('standard');
+  return isUserOfPlanType('starter');
 }
 
 // Determine if a user has access to a feature based on their plan
@@ -152,11 +140,6 @@ export function determineFeatureAccess(
   planType: string
 ): boolean {
   planType = planType.toLowerCase().trim();
-  
-  // Handle 'standard' plan as 'starter' for feature access
-  if (planType === 'standard') {
-    planType = 'starter';
-  }
   
   // Check if this feature exists in our mapping
   if (!(feature in FEATURE_ACCESS_MAP)) {
@@ -185,7 +168,7 @@ export function getFeatureName(
   // If not, find the lowest tier plan that has access
   if (FEATURE_ACCESS_MAP[feature].includes('trial')) {
     return "Trial Plan";
-  } else if (FEATURE_ACCESS_MAP[feature].includes('starter') || FEATURE_ACCESS_MAP[feature].includes('standard')) {
+  } else if (FEATURE_ACCESS_MAP[feature].includes('starter')) {
     return "Starter Plan";
   } else {
     return "Pro Plan";

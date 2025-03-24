@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { getSafeProjectLimit, normalizePlanType, isUserOfPlanType } from "@/hooks/subscription/feature-access";
@@ -34,11 +35,11 @@ export function useProjectLimits(user: User | null) {
     if (!user) return;
     
     // Check subscription data for plan type
-    const isUserStarter = isUserOfPlanType('starter');
+    const isUserStarter = isUserOfPlanType('starter') || isUserOfPlanType('standard');
     isStarterUserRef.current = isUserStarter;
     
     if (isUserStarter) {
-      conditionalLog('info', `*** STARTER USER DETECTED - SETTING STARTER PLAN ***`);
+      conditionalLog('info', `*** STARTER/STANDARD USER DETECTED - SETTING STARTER PLAN ***`);
       setForceStarterPlan(true);
       
       try {
@@ -61,7 +62,7 @@ export function useProjectLimits(user: User | null) {
     
     lastProjectLimitUpdateTime.current = now;
     
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       conditionalLog('info', "CRITICAL: Using starter plan limit (10 projects)");
       return SUBSCRIPTION_PLAN_LIMITS.starter;
     }
@@ -71,8 +72,8 @@ export function useProjectLimits(user: User | null) {
       
       const normalizedPlan = normalizePlanType(subscriptionData.plan_type);
       
-      if (normalizedPlan === 'starter') {
-        conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
+      if (normalizedPlan === 'starter' || normalizedPlan === 'standard') {
+        conditionalLog('info', `CRITICAL: Starter/Standard plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       } else if (normalizedPlan === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
@@ -90,7 +91,7 @@ export function useProjectLimits(user: User | null) {
     }
     
     // Fallback checks without a full subscription record
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       return SUBSCRIPTION_PLAN_LIMITS.starter;
     }
     
@@ -98,10 +99,12 @@ export function useProjectLimits(user: User | null) {
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const data = JSON.parse(storedData);
-        if (data && normalizePlanType(data.plan_type) === 'starter') {
-          conditionalLog('info', 'Using stored starter plan data from localStorage');
+        const normalizedPlanType = normalizePlanType(data?.plan_type);
+        
+        if (normalizedPlanType === 'starter' || normalizedPlanType === 'standard') {
+          conditionalLog('info', 'Using stored starter/standard plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
-        } else if (data && normalizePlanType(data.plan_type) === 'pro') {
+        } else if (normalizedPlanType === 'pro') {
           conditionalLog('info', 'Using stored pro plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.pro;
         }
@@ -128,7 +131,7 @@ export function useProjectLimits(user: User | null) {
   
   const determineDisplayLimit = useCallback((currentLimit: number | null) => {
     // Check for starter user based on subscription
-    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter')) {
+    if (forceStarterPlan || isStarterUserRef.current || isUserOfPlanType('starter') || isUserOfPlanType('standard')) {
       conditionalLog('debug', "Using STARTER plan limit: 10 projects");
       return SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
     }

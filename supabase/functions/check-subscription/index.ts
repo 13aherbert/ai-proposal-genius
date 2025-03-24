@@ -1,4 +1,3 @@
-
 // @ts-ignore: Supabase Edge function doesn't use TypeScript directly
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -94,8 +93,9 @@ serve(async (req) => {
         const existingSub = existingSubscriptions[0];
         const normalizedPlanType = (existingSub.plan_type || '').toLowerCase().trim();
         
-        if (normalizedPlanType === 'starter' && existingSub.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
-          console.log(`User ${user.id} already has correct starter subscription`);
+        if ((normalizedPlanType === 'starter' || normalizedPlanType === 'standard') && 
+            existingSub.project_limit === SUBSCRIPTION_PLAN_LIMITS.starter) {
+          console.log(`User ${user.id} already has correct starter/standard subscription`);
           
           // Also fetch user roles for complete data
           try {
@@ -380,7 +380,7 @@ serve(async (req) => {
       ));
     }
     
-    // CRITICAL FIX: Check if plan_type is 'starter' but project_limit doesn't match
+    // CRITICAL FIX: Check if plan_type is 'starter' or 'standard' but project_limit doesn't match
     // Normalize plan type to lowercase for safer comparison
     const normalizedPlanType = (subscription.plan_type || '').toLowerCase().trim();
     
@@ -388,8 +388,9 @@ serve(async (req) => {
     let projectLimitMismatch = false;
     let correctedLimit = subscription.project_limit;
     
-    if (normalizedPlanType === 'starter' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
-      console.log(`CRITICAL FIX: Correcting project limit for starter plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+    if ((normalizedPlanType === 'starter' || normalizedPlanType === 'standard') && 
+        subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.starter) {
+      console.log(`CRITICAL FIX: Correcting project limit for ${normalizedPlanType} plan: ${subscription.project_limit} -> ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
       projectLimitMismatch = true;
       correctedLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
     } else if (normalizedPlanType === 'pro' && subscription.project_limit !== SUBSCRIPTION_PLAN_LIMITS.pro) {

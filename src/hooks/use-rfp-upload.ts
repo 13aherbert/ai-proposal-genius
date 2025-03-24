@@ -19,7 +19,11 @@ export const useRFPUpload = () => {
   const { session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: subscriptionData, loading: subscriptionLoading, checkSubscription, refreshWithFallbacks } = useSubscription();
+  const { 
+    data: subscriptionData, 
+    loading: subscriptionLoading, 
+    refreshSubscription 
+  } = useSubscription();
   
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -104,12 +108,12 @@ export const useRFPUpload = () => {
     if (!subscriptionLoading && subscriptionData) {
       if (!subscriptionData.project_limit && planType !== 'trial') {
         console.log('No project limit set, forcing refresh');
-        refreshWithFallbacks(true);
+        refreshSubscription();
       }
       
       fetchProjectCount();
     }
-  }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshWithFallbacks, planType]);
+  }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshSubscription, planType]);
 
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {

@@ -31,10 +31,10 @@ export function ProjectsHeader({
         </Button>
         <h1 className="text-3xl font-bold text-white">Projects</h1>
         
-        {/* Display project count and limit when available */}
+        {/* Display project count and limit when available - updated to start with "Usage: " */}
         {currentPlanLimit && typeof projectCount === 'number' && !isSubscriptionLoading && (
           <div className="ml-2 text-sm text-muted-foreground">
-            {projectCount} of {currentPlanLimit} projects
+            Usage: {projectCount} of {currentPlanLimit} projects
           </div>
         )}
       </div>

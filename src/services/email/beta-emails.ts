@@ -3,7 +3,7 @@ import { BaseEmailService } from './base-email-service';
 import { SendEmailResponse } from './types';
 
 /**
- * Service for sending beta program-related emails
+ * Service for sending beta program related emails
  */
 export class BetaEmailService extends BaseEmailService {
   /**
@@ -15,29 +15,16 @@ export class BetaEmailService extends BaseEmailService {
     inviteUrl: string,
     expiresAt: string
   ): Promise<SendEmailResponse> {
-    console.log('Preparing beta invite email with params:', {
-      email, inviteCode, inviteUrl, expiresAt
+    return this.sendEmail({
+      to: [email],
+      subject: "You're Invited to the OptiRFP Beta Program!",
+      templateType: 'beta_invite',
+      templateData: {
+        inviteCode,
+        inviteUrl,
+        expiresAt
+      }
     });
-    
-    try {
-      return await this.sendEmail({
-        to: [email],
-        from: this.defaultFromEmail,
-        subject: "You're Invited to the OptiRFP Beta Program!",
-        templateType: 'beta_invite',
-        templateData: {
-          inviteCode,
-          inviteUrl,
-          expiresAt
-        }
-      });
-    } catch (error) {
-      console.error('Error in sendBetaInviteEmail:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error sending beta invite email' 
-      };
-    }
   }
   
   /**
@@ -57,6 +44,33 @@ export class BetaEmailService extends BaseEmailService {
         featureName,
         featureDetails,
         featureUrl
+      }
+    });
+  }
+
+  /**
+   * Send notification email to admins about a new beta request
+   */
+  async sendAdminBetaRequestNotification(
+    userEmail: string, 
+    userName: string, 
+    reason: string
+  ): Promise<SendEmailResponse> {
+    return this.sendEmail({
+      to: ['admin@optirfp.com'], // Admin email address
+      subject: `New Beta Program Request: ${userEmail}`,
+      templateType: 'support', // Reusing the support template for notifications
+      templateData: {
+        name: 'Admin', 
+        message: `
+A new beta program request has been submitted:
+
+Email: ${userEmail}
+Name: ${userName || 'Not provided'}
+Reason for joining: ${reason || 'Not provided'}
+
+You can review this request in the admin dashboard.`,
+        ticketId: `BETA-${Date.now().toString().slice(-8)}`,
       }
     });
   }

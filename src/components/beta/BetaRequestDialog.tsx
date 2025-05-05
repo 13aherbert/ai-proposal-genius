@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { emailService } from "@/services/email";
 
 interface BetaRequestDialogProps {
   open: boolean;
@@ -43,6 +44,19 @@ export function BetaRequestDialog({ open, onOpenChange }: BetaRequestDialogProps
         });
 
       if (error) throw error;
+
+      // Send notification email to admins
+      try {
+        await emailService.beta.sendAdminBetaRequestNotification(
+          email.trim(),
+          name.trim(),
+          reason.trim()
+        );
+        console.log("Admin notification email sent");
+      } catch (emailError) {
+        console.error("Failed to send admin notification email:", emailError);
+        // We don't want to fail the whole request just because email failed
+      }
 
       toast.success("Your beta request has been submitted!");
       onOpenChange(false);

@@ -440,50 +440,31 @@ export type Database = {
     }
     Functions: {
       admin_delete_user_cascade: {
-        Args: {
-          admin_id: string
-          target_user_id: string
-        }
+        Args: { admin_id: string; target_user_id: string }
         Returns: boolean
       }
       admin_delete_user_roles: {
-        Args: {
-          admin_id: string
-          target_user_id: string
-        }
+        Args: { admin_id: string; target_user_id: string }
         Returns: boolean
       }
       assign_user_role: {
-        Args: {
-          _user_id: string
-          _role: string
-          _created_by: string
-        }
+        Args: { _user_id: string; _role: string; _created_by: string }
         Returns: string
       }
       cascade_delete_user_data: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: boolean
       }
       check_beta_tester_role: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: boolean
       }
       check_existing_role: {
-        Args: {
-          _user_id: string
-          _role: string
-        }
+        Args: { _user_id: string; _role: string }
         Returns: boolean
       }
       check_pending_invitation: {
-        Args: {
-          email_param: string
-        }
+        Args: { email_param: string }
         Returns: {
           id: string
           email: string
@@ -497,22 +478,15 @@ export type Database = {
         }[]
       }
       check_project_limit: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       check_user_role: {
-        Args: {
-          user_id_param: string
-          role_param: string
-        }
+        Args: { user_id_param: string; role_param: string }
         Returns: boolean
       }
       check_user_status: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: {
           is_admin: boolean
           is_beta_tester: boolean
@@ -523,21 +497,15 @@ export type Database = {
         }[]
       }
       delete_user_as_admin: {
-        Args: {
-          target_user_id: string
-        }
+        Args: { target_user_id: string }
         Returns: boolean
       }
       delete_user_roles_as_admin: {
-        Args: {
-          target_user_id: string
-        }
+        Args: { target_user_id: string }
         Returns: boolean
       }
       direct_admin_check: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: boolean
       }
       get_all_user_roles: {
@@ -551,9 +519,7 @@ export type Database = {
         }[]
       }
       get_all_user_roles_by_id: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: {
           id: string
           user_id: string
@@ -563,9 +529,7 @@ export type Database = {
         }[]
       }
       get_beta_invitation_direct: {
-        Args: {
-          invitation_id_param: string
-        }
+        Args: { invitation_id_param: string }
         Returns: {
           id: string
           email: string
@@ -579,9 +543,7 @@ export type Database = {
         }[]
       }
       get_subscription_details: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: {
           subscription_id: string
           status: string
@@ -595,9 +557,7 @@ export type Database = {
         }[]
       }
       get_user_permissions: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: {
           is_admin: boolean
           is_beta_tester: boolean
@@ -608,17 +568,11 @@ export type Database = {
         }[]
       }
       has_role: {
-        Args: {
-          _user_id: string
-          _role: string
-        }
+        Args: { _user_id: string; _role: string }
         Returns: boolean
       }
       invite_beta_tester: {
-        Args: {
-          email_param: string
-          inviter_id: string
-        }
+        Args: { email_param: string; inviter_id: string }
         Returns: string
       }
       is_admin: {
@@ -634,17 +588,11 @@ export type Database = {
         Returns: boolean
       }
       remove_user_role: {
-        Args: {
-          _user_id: string
-          _role: string
-        }
+        Args: { _user_id: string; _role: string }
         Returns: boolean
       }
       update_beta_invitation_email_sent: {
-        Args: {
-          invitation_id_param: string
-          sent_status: boolean
-        }
+        Args: { invitation_id_param: string; sent_status: boolean }
         Returns: boolean
       }
       update_beta_invitation_status: {
@@ -656,9 +604,7 @@ export type Database = {
         Returns: boolean
       }
       verify_invitation_code: {
-        Args: {
-          code_param: string
-        }
+        Args: { code_param: string }
         Returns: {
           id: string
           email: string
@@ -688,27 +634,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -716,20 +664,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -737,20 +687,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -758,21 +710,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -781,6 +735,22 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      subscription_status: [
+        "trialing",
+        "active",
+        "canceled",
+        "incomplete",
+        "incomplete_expired",
+        "past_due",
+        "unpaid",
+      ],
+    },
+  },
+} as const

@@ -5,7 +5,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FormField } from "@/components/ui/form-field";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { adminService } from "@/services/admin";
@@ -211,19 +210,13 @@ export default function BetaRequests() {
                       </TableCell>
                       <TableCell>
                         {request.status === 'pending' ? (
-                          <FormField
-                            label=""
-                            className="mb-0"
-                            description=""
-                          >
-                            <Textarea
-                              value={adminNotes[request.id] || ''}
-                              onChange={(e) => handleNoteChange(request.id, e.target.value)}
-                              placeholder="Add notes..."
-                              className="h-20 resize-none"
-                              disabled={processingId === request.id}
-                            />
-                          </FormField>
+                          <Textarea
+                            value={adminNotes[request.id] || ''}
+                            onChange={(e) => handleNoteChange(request.id, e.target.value)}
+                            placeholder="Add notes..."
+                            className="h-20 resize-none"
+                            disabled={processingId === request.id}
+                          />
                         ) : (
                           <div className="text-sm text-muted-foreground">
                             {request.notes || 'No notes'}

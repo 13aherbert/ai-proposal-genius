@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import { Resend } from "npm:resend";
 import { corsHeaders, handleCors, addCorsHeaders } from "../_shared/cors.ts";
 
 // Initialize Resend

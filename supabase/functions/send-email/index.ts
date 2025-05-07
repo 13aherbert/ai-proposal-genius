@@ -1,6 +1,7 @@
+
 // Import React for the email templates
-import React from 'react';
-import { renderAsync } from '@react-email/render';
+import React from 'npm:react@18.2.0';
+import { renderAsync } from 'npm:@react-email/render@0.0.10';
 import { Resend } from 'npm:resend@2.0.0';
 
 // Import email templates

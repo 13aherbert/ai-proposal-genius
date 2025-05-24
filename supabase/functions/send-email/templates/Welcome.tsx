@@ -1,5 +1,4 @@
-
-import * as React from 'react';
+import * as React from 'npm:react@18.2.0';
 import {
   Body,
   Container,
@@ -10,7 +9,7 @@ import {
   Preview,
   Section,
   Text,
-} from '@react-email/components';
+} from 'npm:@react-email/components@0.0.12';
 
 interface WelcomeEmailProps {
   firstName?: string;

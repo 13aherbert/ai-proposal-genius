@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React from 'npm:react@18.2.0';
 import {
   Body,
   Button,
@@ -12,7 +11,7 @@ import {
   Preview,
   Section,
   Text
-} from '@react-email/components';
+} from 'npm:@react-email/components@0.0.12';
 
 interface BetaRequestNotificationProps {
   userEmail: string;

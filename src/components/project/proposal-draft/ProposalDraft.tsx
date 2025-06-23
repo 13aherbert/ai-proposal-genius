@@ -11,6 +11,7 @@ import { CompiledView } from "./components/CompiledView";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { BackupManager } from "./BackupManager";
+import { AIProgress } from "@/components/shared/AIProgress";
 import { toast } from "sonner";
 
 export interface ProposalDraftProps {
@@ -20,6 +21,8 @@ export interface ProposalDraftProps {
 
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   const {
     sections,
@@ -70,6 +73,11 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     });
   };
 
+  const handleProgressUpdate = (progress: number, generating: boolean) => {
+    setGenerationProgress(progress);
+    setIsGenerating(generating);
+  };
+
   // If in compiled mode, show the compiled view
   if (mode === "compiled") {
     return <CompiledView sections={sections} />;
@@ -109,6 +117,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                 sections={sections}
                 projectId={projectId}
                 onUpdateSection={handleUpdateSection}
+                onProgressUpdate={handleProgressUpdate}
               />
 
               {sections.length > 0 && (
@@ -122,6 +131,15 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                 </Button>
               )}
             </div>
+
+            {isGenerating && (
+              <div className="w-full">
+                <AIProgress 
+                  progress={generationProgress} 
+                  label="Generating content for all sections"
+                />
+              </div>
+            )}
             
             <SectionsList
               sections={sections}

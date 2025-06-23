@@ -5,22 +5,22 @@ import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { AIProgress } from "@/components/shared/AIProgress";
 import type { ProposalSection } from "../useProposalSections";
 
 interface ContentGenerationButtonProps {
   sections: ProposalSection[];
   projectId: string;
   onUpdateSection: (sectionId: string, content: string, title: string) => Promise<void>;
+  onProgressUpdate: (progress: number, isGenerating: boolean) => void;
 }
 
 export function ContentGenerationButton({
   sections,
   projectId,
   onUpdateSection,
+  onProgressUpdate,
 }: ContentGenerationButtonProps) {
   const [isGeneratingAllContent, setIsGeneratingAllContent] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
   const { session } = useAuth();
 
   const handleGenerateAllContent = async () => {
@@ -55,7 +55,7 @@ export function ContentGenerationButton({
 
   const proceedWithGeneration = async () => {
     setIsGeneratingAllContent(true);
-    setGenerationProgress(0);
+    onProgressUpdate(0, true);
     toast.loading("Generating content for all sections...", {
       description: "This may take a few minutes. Please don't close the page."
     });
@@ -87,7 +87,8 @@ export function ContentGenerationButton({
           successCount++;
           
           // Update progress
-          setGenerationProgress(((i + 1) / sections.length) * 100);
+          const progress = ((i + 1) / sections.length) * 100;
+          onProgressUpdate(progress, true);
           
           // Small delay between requests to avoid overwhelming the API
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -96,7 +97,8 @@ export function ContentGenerationButton({
           errorCount++;
           
           // Still update progress even on error
-          setGenerationProgress(((i + 1) / sections.length) * 100);
+          const progress = ((i + 1) / sections.length) * 100;
+          onProgressUpdate(progress, true);
         }
       }
 
@@ -123,7 +125,7 @@ export function ContentGenerationButton({
       });
     } finally {
       setIsGeneratingAllContent(false);
-      setGenerationProgress(0);
+      onProgressUpdate(0, false);
     }
   };
 
@@ -132,34 +134,23 @@ export function ContentGenerationButton({
   }
 
   return (
-    <>
-      <Button
-        onClick={handleGenerateAllContent}
-        disabled={isGeneratingAllContent}
-        variant="outline"
-        className="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
-      >
-        {isGeneratingAllContent ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating All Content...
-          </>
-        ) : (
-          <>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate All Content
-          </>
-        )}
-      </Button>
-
-      {isGeneratingAllContent && (
-        <div className="bg-muted/50 p-4 rounded-lg">
-          <AIProgress 
-            progress={generationProgress} 
-            label="Generating content for all sections"
-          />
-        </div>
+    <Button
+      onClick={handleGenerateAllContent}
+      disabled={isGeneratingAllContent}
+      variant="outline"
+      className="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
+    >
+      {isGeneratingAllContent ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Generating All Content...
+        </>
+      ) : (
+        <>
+          <Sparkles className="mr-2 h-4 w-4" />
+          Generate All Content
+        </>
       )}
-    </>
+    </Button>
   );
 }

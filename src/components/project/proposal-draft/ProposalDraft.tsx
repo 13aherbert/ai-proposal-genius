@@ -7,6 +7,7 @@ import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
 import { ContentGenerationButton } from "./components/ContentGenerationButton";
+import { CompiledView } from "./components/CompiledView";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { BackupManager } from "./BackupManager";
@@ -68,6 +69,11 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       }
     });
   };
+
+  // If in compiled mode, show the compiled view
+  if (mode === "compiled") {
+    return <CompiledView sections={sections} />;
+  }
 
   return (
     <Card>

@@ -18,6 +18,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   // Set the active tab based on the mode prop
   const [activeTab, setActiveTab] = useState<string>(mode === "compiled" ? "preview" : "sections");
   const [previewKey, setPreviewKey] = useState(0); // Add a key to force preview re-render
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
   
   const {
     sections,
@@ -34,6 +35,10 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       setPreviewKey(prevKey => prevKey + 1);
     }
   }, [sections]);
+
+  const handleSelectSection = (sectionId: string) => {
+    setSelectedSection(selectedSection === sectionId ? null : sectionId);
+  };
 
   return (
     <Card>
@@ -68,8 +73,8 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                 
                 <SectionsList
                   sections={sections}
-                  selectedSection={null}
-                  onSelectSection={() => {}}
+                  selectedSection={selectedSection}
+                  onSelectSection={handleSelectSection}
                   onReorderSections={reorderSections}
                   isLoading={isLoading}
                 />

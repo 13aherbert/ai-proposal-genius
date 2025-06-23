@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Sparkles } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { CompiledView } from "./components/CompiledView";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackupManager } from "./BackupManager";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/components/AuthProvider";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -23,7 +24,9 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   const [previewKey, setPreviewKey] = useState(0); // Add a key to force preview re-render
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [isCreatingSections, setIsCreatingSections] = useState(false);
+  const [isGeneratingAllContent, setIsGeneratingAllContent] = useState(false);
   const [proposalOutline, setProposalOutline] = useState<string | null>(null);
+  const { session } = useAuth();
   
   const {
     sections,
@@ -133,6 +136,93 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     }
   };
 
+  const handleGenerateAllContent = async () => {
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to generate content");
+      return;
+    }
+
+    if (sections.length === 0) {
+      toast.error("No sections found", {
+        description: "Please create sections first before generating content."
+      });
+      return;
+    }
+
+    // Check if any sections already have content
+    const sectionsWithContent = sections.filter(section => section.content && section.content.trim().length > 0);
+    if (sectionsWithContent.length > 0) {
+      const confirmOverwrite = window.confirm(
+        `${sectionsWithContent.length} section(s) already have content. Do you want to regenerate content for all sections? This will overwrite existing content.`
+      );
+      if (!confirmOverwrite) {
+        return;
+      }
+    }
+
+    setIsGeneratingAllContent(true);
+    toast.loading("Generating content for all sections...", {
+      description: "This may take a few minutes. Please don't close the page."
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Generate content for each section sequentially
+      for (const section of sections) {
+        try {
+          console.log(`Generating content for section: ${section.section_title}`);
+          
+          const { data, error } = await supabase.functions.invoke('generate-section-content', {
+            body: { 
+              sectionTitle: section.section_title,
+              projectId: projectId,
+              userId: session.user.id
+            },
+          });
+
+          if (error) throw error;
+          if (!data?.content) throw new Error('No content generated');
+
+          // Update the section with the generated content
+          await updateSection(section.section_id, data.content, section.section_title);
+          successCount++;
+          
+          // Small delay between requests to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Error generating content for section ${section.section_title}:`, error);
+          errorCount++;
+        }
+      }
+
+      toast.dismiss();
+      
+      if (successCount > 0 && errorCount === 0) {
+        toast.success(`Successfully generated content for all ${successCount} sections!`, {
+          description: "You can now review and edit the generated content."
+        });
+      } else if (successCount > 0 && errorCount > 0) {
+        toast.warning(`Generated content for ${successCount} sections`, {
+          description: `${errorCount} section(s) failed to generate. You can try generating them individually.`
+        });
+      } else {
+        toast.error("Failed to generate content for any sections", {
+          description: "Please try again or generate sections individually."
+        });
+      }
+    } catch (error) {
+      console.error('Error in bulk content generation:', error);
+      toast.dismiss();
+      toast.error("Failed to generate content", {
+        description: "Please try again or generate sections individually."
+      });
+    } finally {
+      setIsGeneratingAllContent(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -181,6 +271,27 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                         <>
                           <FileText className="mr-2 h-4 w-4" />
                           Create Sections from Outline
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {sections.length > 0 && (
+                    <Button
+                      onClick={handleGenerateAllContent}
+                      disabled={isGeneratingAllContent}
+                      variant="outline"
+                      className="flex-1 sm:flex-none bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
+                    >
+                      {isGeneratingAllContent ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating All Content...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate All Content
                         </>
                       )}
                     </Button>

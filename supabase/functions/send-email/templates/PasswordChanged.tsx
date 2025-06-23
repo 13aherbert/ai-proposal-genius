@@ -1,5 +1,5 @@
 
-import * as React from 'react';
+import * as React from 'npm:react@18.2.0';
 import {
   Body,
   Container,

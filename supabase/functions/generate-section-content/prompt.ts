@@ -11,7 +11,7 @@ export function generatePrompt(
     sectionTitle.toLowerCase().includes('budget') ||
     sectionTitle.toLowerCase().includes('financial');
 
-  const basePrompt = `You are writing the "${sectionTitle}" section for a business proposal.`;
+  const basePrompt = `You are writing content for the "${sectionTitle}" section of a business proposal.`;
 
   const costSpecificInstructions = isCostRelatedSection ? `
 For this cost-related section:
@@ -65,5 +65,7 @@ STRICT INSTRUCTIONS:
    - Use actual metrics and outcomes
    - Use verified credentials and certifications
 
-Write the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
+IMPORTANT: Do NOT include the section title as a header in your response. Only provide the content for the ${sectionTitle} section without any header formatting.
+
+Write the content for the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
 }

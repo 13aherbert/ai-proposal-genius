@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
-import { CompiledView } from "./components/CompiledView";
 import { SectionCreationButton } from "./components/SectionCreationButton";
 import { ContentGenerationButton } from "./components/ContentGenerationButton";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackupManager } from "./BackupManager";
 import { toast } from "sonner";
 
@@ -20,9 +18,6 @@ export interface ProposalDraftProps {
 }
 
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
-  // Set the active tab based on the mode prop
-  const [activeTab, setActiveTab] = useState<string>(mode === "compiled" ? "preview" : "sections");
-  const [previewKey, setPreviewKey] = useState(0); // Add a key to force preview re-render
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   
   const {
@@ -36,13 +31,6 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   } = useProposalSections(projectId);
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
-
-  // Force preview to refresh when sections change
-  useEffect(() => {
-    if (sections) {
-      setPreviewKey(prevKey => prevKey + 1);
-    }
-  }, [sections]);
 
   const handleSelectSection = (sectionId: string) => {
     setSelectedSection(selectedSection === sectionId ? null : sectionId);
@@ -94,65 +82,50 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
           <BackupManager sections={sections} projectId={projectId} />
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="px-6 pb-3 border-b">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sections">Sections</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
+      <CardContent className="p-6">
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <AddSectionButton onAdd={addSection} />
+              
+              <SectionCreationButton
+                proposalOutline={proposalOutline}
+                sectionsCount={sections.length}
+                onCreateSections={handleCreateSections}
+                extractSectionTitles={extractSectionTitles}
+              />
 
-          <TabsContent value="sections" className="p-6 pt-6">
-            {isLoading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <AddSectionButton onAdd={addSection} />
-                  
-                  <SectionCreationButton
-                    proposalOutline={proposalOutline}
-                    sectionsCount={sections.length}
-                    onCreateSections={handleCreateSections}
-                    extractSectionTitles={extractSectionTitles}
-                  />
+              <ContentGenerationButton
+                sections={sections}
+                projectId={projectId}
+                onUpdateSection={handleUpdateSection}
+              />
 
-                  <ContentGenerationButton
-                    sections={sections}
-                    projectId={projectId}
-                    onUpdateSection={handleUpdateSection}
-                  />
-
-                  {sections.length > 0 && (
-                    <Button
-                      onClick={handleDeleteAllSections}
-                      variant="outline"
-                      className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete All Sections
-                    </Button>
-                  )}
-                </div>
-                
-                <SectionsList
-                  sections={sections}
-                  selectedSection={selectedSection}
-                  onSelectSection={handleSelectSection}
-                  onReorderSections={reorderSections}
-                  isLoading={isLoading}
-                />
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="preview" className="border-none p-0">
-            <CompiledView key={previewKey} sections={sections} />
-          </TabsContent>
-        </Tabs>
+              {sections.length > 0 && (
+                <Button
+                  onClick={handleDeleteAllSections}
+                  variant="outline"
+                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete All Sections
+                </Button>
+              )}
+            </div>
+            
+            <SectionsList
+              sections={sections}
+              selectedSection={selectedSection}
+              onSelectSection={handleSelectSection}
+              onReorderSections={reorderSections}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

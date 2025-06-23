@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,57 +30,59 @@ export function CompiledView({ sections }: CompiledViewProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col items-start">
-            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
-              Compiled Proposal
-            </CardTitle>
-            <CardDescription>
-              View and copy your complete proposal
-            </CardDescription>
+    <div className="p-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start">
+              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+                Compiled Proposal
+              </CardTitle>
+              <CardDescription>
+                View and copy your complete proposal
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMarkdown(!showMarkdown)}
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+              >
+                {showMarkdown ? "Show Raw" : "Show Formatted"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowMarkdown(!showMarkdown)}
-              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+        </CardHeader>
+        <CardContent>
+          {showMarkdown ? (
+            <div 
+              className={`prose dark:prose-invert max-w-none border rounded-md p-4 bg-background overflow-y-auto ${
+                isExpanded ? "min-h-[500px]" : "min-h-[200px]"
+              }`}
+              onClick={() => setIsExpanded(!isExpanded)}
             >
-              {showMarkdown ? "Show Raw" : "Show Formatted"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {showMarkdown ? (
-          <div 
-            className={`prose dark:prose-invert max-w-none border rounded-md p-4 bg-background overflow-y-auto ${
-              isExpanded ? "min-h-[500px]" : "min-h-[200px]"
-            }`}
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <ReactMarkdown>{compiledContent}</ReactMarkdown>
-          </div>
-        ) : (
-          <Textarea
-            value={compiledContent}
-            readOnly
-            className={`resize-none ${isExpanded ? "min-h-[500px]" : "min-h-[200px]"}`}
-            onClick={() => setIsExpanded(!isExpanded)}
-          />
-        )}
-      </CardContent>
-    </Card>
+              <ReactMarkdown>{compiledContent}</ReactMarkdown>
+            </div>
+          ) : (
+            <Textarea
+              value={compiledContent}
+              readOnly
+              className={`resize-none ${isExpanded ? "min-h-[500px]" : "min-h-[200px]"}`}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+
 // @ts-ignore: Supabase Edge function doesn't use TypeScript directly
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -340,7 +341,7 @@ serve(async (req) => {
       console.error("Exception fetching user roles:", e);
     }
     
-    // If no subscription found, create a trial one (or starter for beta testers)
+    // If no subscription found, create a perpetual trial subscription
     if (!subscription) {
       console.log(`No subscription found for user ${user.id}`);
       
@@ -353,7 +354,7 @@ serve(async (req) => {
       const newSubscription = {
         subscription_id: subscriptionId,
         user_id: user.id,
-        status: isBetaTester ? 'active' : 'trialing',
+        status: 'active', // Changed from 'trialing' to 'active' for perpetual trial
         plan_type: planType,
         project_limit: projectLimit,
         features: {},
@@ -393,7 +394,7 @@ serve(async (req) => {
           subscription: createdSubscription || newSubscription,
           roles,
           timestamp: Date.now(),
-          message: `Created new ${planType} subscription`
+          message: `Created new perpetual ${planType} subscription`
         }),
         { 
           status: 200, 

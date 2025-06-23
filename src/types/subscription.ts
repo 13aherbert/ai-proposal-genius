@@ -1,3 +1,4 @@
+
 /**
  * Subscription-related type definitions
  */
@@ -43,14 +44,14 @@ export interface SubscriptionContextType {
 }
 
 /**
- * Default trial subscription data
+ * Default trial subscription data - now perpetual
  */
 export const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
-  status: 'trialing',
+  status: 'active', // Changed from 'trialing' to 'active' for perpetual trial
   plan_type: 'trial',
   project_limit: 3,  // Trial users get 3 projects
   features: {},
-  current_period_end: null,
+  current_period_end: null, // No end date for perpetual trial
   stripe_customer_id: null,
   stripe_subscription_id: null,
 };

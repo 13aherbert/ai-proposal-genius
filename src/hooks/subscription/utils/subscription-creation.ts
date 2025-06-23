@@ -45,7 +45,7 @@ export async function createStarterSubscription(
 }
 
 /**
- * Creates a default (trial) subscription for a user
+ * Creates a default (trial) subscription for a user - now perpetual
  */
 export async function createDefaultSubscription(
   userId: string,
@@ -54,13 +54,13 @@ export async function createDefaultSubscription(
   setLoading?: (loading: boolean) => void,
   setSubscriptionChecked?: (checked: boolean) => void
 ): Promise<SubscriptionPlan> {
-  // Create a new trial subscription object
+  // Create a new perpetual trial subscription object
   const subscription: SubscriptionPlan = {
     subscription_id: crypto.randomUUID(),
     user_id: userId,
-    status: 'trialing',
+    status: 'active', // Changed from 'trialing' to 'active' for perpetual trial
     plan_type: 'trial',
-    current_period_end: null,
+    current_period_end: null, // No end date for perpetual trial
     project_limit: SUBSCRIPTION_PLAN_LIMITS.trial,
     features: {},
     stripe_customer_id: null,

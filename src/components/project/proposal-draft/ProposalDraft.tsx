@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Trash2 } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { CompiledView } from "./components/CompiledView";
@@ -11,6 +12,7 @@ import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BackupManager } from "./BackupManager";
+import { toast } from "sonner";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -30,6 +32,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     updateSection,
     reorderSections,
     deleteSection,
+    deleteAllSections,
   } = useProposalSections(projectId);
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
@@ -59,6 +62,22 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     return new Promise((resolve) => {
       updateSection(sectionId, content, title);
       resolve();
+    });
+  };
+
+  const handleDeleteAllSections = () => {
+    if (sections.length === 0) {
+      toast.error("No sections to delete");
+      return;
+    }
+
+    // Show warning toast with confirmation
+    toast.warning(`Delete all ${sections.length} sections?`, {
+      description: "This action cannot be undone. A backup will be created automatically.",
+      action: {
+        label: "Delete All",
+        onClick: () => deleteAllSections()
+      }
     });
   };
 
@@ -106,6 +125,17 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                     projectId={projectId}
                     onUpdateSection={handleUpdateSection}
                   />
+
+                  {sections.length > 0 && (
+                    <Button
+                      onClick={handleDeleteAllSections}
+                      variant="outline"
+                      className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete All Sections
+                    </Button>
+                  )}
                 </div>
                 
                 <SectionsList

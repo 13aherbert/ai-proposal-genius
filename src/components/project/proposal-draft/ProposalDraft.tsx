@@ -54,6 +54,14 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     }
   };
 
+  // Wrap updateSection to return a Promise to match the expected interface
+  const handleUpdateSection = async (sectionId: string, content: string, title: string): Promise<void> => {
+    return new Promise((resolve) => {
+      updateSection(sectionId, content, title);
+      resolve();
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -96,7 +104,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                   <ContentGenerationButton
                     sections={sections}
                     projectId={projectId}
-                    onUpdateSection={updateSection}
+                    onUpdateSection={handleUpdateSection}
                   />
                 </div>
                 

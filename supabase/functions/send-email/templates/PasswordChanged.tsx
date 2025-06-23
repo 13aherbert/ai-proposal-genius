@@ -10,7 +10,7 @@ import {
   Preview,
   Section,
   Text,
-} from '@react-email/components';
+} from 'npm:@react-email/components@0.0.12';
 
 interface PasswordChangedEmailProps {
   name?: string;

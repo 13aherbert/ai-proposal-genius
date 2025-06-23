@@ -10,6 +10,33 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
 
+// Function to remove section headers from generated content
+function removeHeaderFromContent(content: string, sectionTitle: string): string {
+  // Remove various header formats that might include the section title
+  const headerPatterns = [
+    new RegExp(`^#\\s*${sectionTitle}\\s*\n?`, 'i'),
+    new RegExp(`^##\\s*${sectionTitle}\\s*\n?`, 'i'),
+    new RegExp(`^###\\s*${sectionTitle}\\s*\n?`, 'i'),
+    new RegExp(`^${sectionTitle}\\s*\n?`, 'i'),
+    new RegExp(`^\\*\\*${sectionTitle}\\*\\*\\s*\n?`, 'i'),
+    new RegExp(`^\\*${sectionTitle}\\*\\s*\n?`, 'i'),
+    // Remove any line that starts with the section title followed by common separators
+    new RegExp(`^${sectionTitle}\\s*[:|-]\\s*\n?`, 'i'),
+  ];
+
+  let cleanedContent = content.trim();
+  
+  // Apply each pattern to remove headers
+  for (const pattern of headerPatterns) {
+    cleanedContent = cleanedContent.replace(pattern, '');
+  }
+
+  // Remove any leading newlines or whitespace after header removal
+  cleanedContent = cleanedContent.trim();
+  
+  return cleanedContent;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -72,9 +99,15 @@ serve(async (req) => {
       throw new Error(`Claude API error: ${result.error?.message || 'Unknown error'}`);
     }
 
+    // Get the generated content and remove any headers
+    let generatedContent = result.content[0].text;
+    const cleanedContent = removeHeaderFromContent(generatedContent, sectionTitle);
+    
+    console.log('Content processed and headers removed');
+
     return new Response(
       JSON.stringify({
-        content: result.content[0].text
+        content: cleanedContent
       }),
       {
         headers: {

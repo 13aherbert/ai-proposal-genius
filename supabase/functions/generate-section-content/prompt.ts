@@ -65,7 +65,13 @@ STRICT INSTRUCTIONS:
    - Use actual metrics and outcomes
    - Use verified credentials and certifications
 
-IMPORTANT: Do NOT include the section title as a header in your response. Only provide the content for the ${sectionTitle} section without any header formatting.
+CRITICAL FORMATTING REQUIREMENT:
+- DO NOT include any section titles, headers, or headings in your response
+- DO NOT start with "# ${sectionTitle}" or any variation
+- DO NOT include markdown headers (# ## ###) 
+- DO NOT include the section name "${sectionTitle}" as a header
+- Start immediately with the content body
+- Your response should be pure content that can be placed directly under the section title
 
-Write the content for the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
+Write ONLY the body content for the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
 }

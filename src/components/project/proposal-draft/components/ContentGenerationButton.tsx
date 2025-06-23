@@ -39,14 +39,21 @@ export function ContentGenerationButton({
     // Check if any sections already have content
     const sectionsWithContent = sections.filter(section => section.content && section.content.trim().length > 0);
     if (sectionsWithContent.length > 0) {
-      const confirmOverwrite = window.confirm(
-        `${sectionsWithContent.length} section(s) already have content. Do you want to regenerate content for all sections? This will overwrite existing content.`
-      );
-      if (!confirmOverwrite) {
-        return;
-      }
+      // Show warning toast instead of browser confirm
+      toast.warning(`${sectionsWithContent.length} section(s) already have content`, {
+        description: "Content generation will overwrite existing content. Click 'Generate All Content' again to confirm.",
+        action: {
+          label: "Generate Anyway",
+          onClick: () => proceedWithGeneration()
+        }
+      });
+      return;
     }
 
+    proceedWithGeneration();
+  };
+
+  const proceedWithGeneration = async () => {
     setIsGeneratingAllContent(true);
     setGenerationProgress(0);
     toast.loading("Generating content for all sections...", {
@@ -68,7 +75,7 @@ export function ContentGenerationButton({
             body: { 
               sectionTitle: section.section_title,
               projectId: projectId,
-              userId: session.user.id
+              userId: session!.user.id
             },
           });
 

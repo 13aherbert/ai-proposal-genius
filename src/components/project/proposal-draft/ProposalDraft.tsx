@@ -12,6 +12,7 @@ import { BackupManager } from "./BackupManager";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
+import { AIProgress } from "@/components/shared/AIProgress";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -25,6 +26,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [isCreatingSections, setIsCreatingSections] = useState(false);
   const [isGeneratingAllContent, setIsGeneratingAllContent] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [proposalOutline, setProposalOutline] = useState<string | null>(null);
   const { session } = useAuth();
   
@@ -161,6 +163,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     }
 
     setIsGeneratingAllContent(true);
+    setGenerationProgress(0);
     toast.loading("Generating content for all sections...", {
       description: "This may take a few minutes. Please don't close the page."
     });
@@ -170,7 +173,9 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
 
     try {
       // Generate content for each section sequentially
-      for (const section of sections) {
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        
         try {
           console.log(`Generating content for section: ${section.section_title}`);
           
@@ -189,11 +194,17 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
           await updateSection(section.section_id, data.content, section.section_title);
           successCount++;
           
+          // Update progress
+          setGenerationProgress(((i + 1) / sections.length) * 100);
+          
           // Small delay between requests to avoid overwhelming the API
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           console.error(`Error generating content for section ${section.section_title}:`, error);
           errorCount++;
+          
+          // Still update progress even on error
+          setGenerationProgress(((i + 1) / sections.length) * 100);
         }
       }
 
@@ -220,6 +231,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       });
     } finally {
       setIsGeneratingAllContent(false);
+      setGenerationProgress(0);
     }
   };
 
@@ -297,6 +309,15 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                     </Button>
                   )}
                 </div>
+
+                {isGeneratingAllContent && (
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <AIProgress 
+                      progress={generationProgress} 
+                      label="Generating content for all sections"
+                    />
+                  </div>
+                )}
                 
                 <SectionsList
                   sections={sections}

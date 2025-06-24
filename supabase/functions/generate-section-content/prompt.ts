@@ -42,36 +42,52 @@ ${knowledgeBaseContext}
 
 ${costSpecificInstructions}
 
-STRICT INSTRUCTIONS:
-1. For non-cost sections, ONLY use real examples and information that exists verbatim in the knowledge base above.
-2. If you cannot find specific information in the knowledge base for a topic:
-   - DO NOT make up examples or content
-   - DO NOT use placeholder text
-   - DO NOT mention that information is missing
-   - Simply omit that topic entirely and focus on what IS available
-3. When using content from the knowledge base:
-   - Copy the exact text, numbers, and examples
-   - Only make minimal grammatical adjustments for flow
-   - Keep all specific details (dates, numbers, names) exactly as they appear
-4. Forbidden actions (even in cost sections):
-   - NO hypothetical examples or case studies
+STRICT CONTENT GENERATION RULES:
+1. You ARE the proposal content itself - write directly as the proposal section
+2. NEVER include meta-commentary, introductory phrases, or explanations about your process
+3. FORBIDDEN PHRASES - NEVER use any of these:
+   - "Here is the [section name]..."
+   - "Based on the knowledge base..."
+   - "Using the provided information..."
+   - "This section covers..."
+   - "The following content..."
+   - "According to the knowledge base..."
+   - "From the information provided..."
+   - "Below is the content for..."
+   - Any reference to "knowledge base", "provided information", or generation process
+
+4. WRITE STYLE:
+   - Start immediately with substantive content
+   - Write as if you are the proposal document speaking directly
+   - Use professional business language appropriate for the section
+   - Be authoritative and confident in tone
+   - Focus entirely on the client's needs and your business's solutions
+
+5. CONTENT REQUIREMENTS:
+   - For non-cost sections: ONLY use real examples and information that exists verbatim in the knowledge base
+   - If specific information doesn't exist in the knowledge base:
+     * DO NOT make up examples or content
+     * DO NOT use placeholder text
+     * Simply omit that topic and focus on available information
+   - When using knowledge base content:
+     * Copy exact text, numbers, and examples
+     * Make only minimal grammatical adjustments for flow
+     * Keep all specific details exactly as they appear
+
+6. ABSOLUTELY FORBIDDEN:
+   - NO hypothetical examples or case studies (except for cost sections without knowledge base data)
    - NO references to non-existent past projects
    - NO invented client testimonials or experiences
-   - NO "such as" or similar phrases unless directly quoting
-   - NO generalizations about capabilities unless explicitly stated in the knowledge base
-5. Required elements (ONLY if they exist in the knowledge base):
-   - Use exact project names and details
-   - Use real client names and testimonials
-   - Use actual metrics and outcomes
-   - Use verified credentials and certifications
+   - NO "such as" phrases unless directly quoting knowledge base
+   - NO generalizations about capabilities unless explicitly stated in knowledge base
+   - NO section titles, headers, or headings in your response
+   - NO markdown headers (# ## ###)
+   - NO references to the section name "${sectionTitle}" as a header
 
 CRITICAL FORMATTING REQUIREMENT:
-- DO NOT include any section titles, headers, or headings in your response
-- DO NOT start with "# ${sectionTitle}" or any variation
-- DO NOT include markdown headers (# ## ###) 
-- DO NOT include the section name "${sectionTitle}" as a header
-- Start immediately with the content body
-- Your response should be pure content that can be placed directly under the section title
+- Start immediately with the content body - no introductions or headers
+- Your response should be pure proposal content that can be placed directly under the section title
+- Write as if the reader is already looking at the "${sectionTitle}" section
 
-Write ONLY the body content for the ${sectionTitle} section now. For cost sections without knowledge base data, create a competitive market-aligned proposal WITHOUT inventing past work examples. For all other sections, use EXCLUSIVELY the real content found in the knowledge base above:`;
+Write ONLY the body content for the ${sectionTitle} section now. Be the proposal itself, not a description of the proposal:`;
 }

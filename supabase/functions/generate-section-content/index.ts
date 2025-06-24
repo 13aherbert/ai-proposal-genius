@@ -43,6 +43,9 @@ function cleanGeneratedContent(content: string, sectionTitle: string): string {
     /^.*using only information from the.*knowledge base.*/i,
     /^.*leveraging the knowledge base.*/i,
     /^.*information available in the knowledge base.*/i,
+    /^As mentioned in (other|previous) sections.*/i,
+    /^Consistent with (other|previous) sections.*/i,
+    /^To maintain consistency.*/i,
     /^Note:.*/i,
     /^Please note:.*/i,
     /^\*Note:.*/i,
@@ -73,6 +76,9 @@ function cleanGeneratedContent(content: string, sectionTitle: string): string {
       trimmedLine.startsWith('from the') ||
       trimmedLine.startsWith('drawing from') ||
       trimmedLine.startsWith('the knowledge base') ||
+      trimmedLine.startsWith('as mentioned in') ||
+      trimmedLine.startsWith('consistent with') ||
+      trimmedLine.startsWith('to maintain consistency') ||
       trimmedLine.startsWith('i have') ||
       trimmedLine.startsWith('i will') ||
       trimmedLine.startsWith('let me')
@@ -101,6 +107,9 @@ function validateContent(content: string): { isValid: boolean; issues: string[] 
     'according to the knowledge base',
     'from the knowledge base',
     'knowledge base contains',
+    'as mentioned in other sections',
+    'consistent with previous sections',
+    'to maintain consistency',
     'i have created',
     'i will create',
     'let me create'
@@ -137,6 +146,19 @@ serve(async (req) => {
 
     if (projectError) throw projectError;
 
+    console.log('Fetching existing sections for consistency');
+    const { data: existingSections, error: sectionsError } = await supabase
+      .from('proposal_sections')
+      .select('section_title, content')
+      .eq('project_id', projectId)
+      .neq('section_title', sectionTitle); // Exclude current section if updating
+
+    if (sectionsError) {
+      console.warn('Error fetching existing sections:', sectionsError);
+    }
+
+    console.log(`Found ${existingSections?.length || 0} existing sections for consistency check`);
+
     console.log('Fetching knowledge base entries');
     const { data: knowledgeEntries, error: knowledgeError } = await supabase
       .from('knowledge_entries')
@@ -151,9 +173,14 @@ serve(async (req) => {
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries as KnowledgeEntry[]);
     console.log('Knowledge base context formatted');
 
-    // Generate the prompt with project and knowledge base context
-    const prompt = generatePrompt(sectionTitle, project as Project, knowledgeBaseContext);
-    console.log('Prompt generated, calling Claude API with enhanced model');
+    // Generate the prompt with project, knowledge base context, and existing sections for consistency
+    const prompt = generatePrompt(
+      sectionTitle, 
+      project as Project, 
+      knowledgeBaseContext,
+      existingSections?.filter(section => section.content && section.content.trim().length > 0) || []
+    );
+    console.log('Prompt generated with consistency context, calling Claude API');
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -163,9 +190,9 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022', // Upgraded to newer model
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
-        temperature: 0.3, // Lower temperature for more precise instruction following
+        temperature: 0.3,
         messages: [{
           role: 'user',
           content: prompt
@@ -193,7 +220,7 @@ serve(async (req) => {
       // Log the issues but don't fail - the cleaning should have handled most cases
     }
     
-    console.log('Content processed, cleaned, and validated');
+    console.log('Content processed, cleaned, validated, and consistency-checked');
 
     return new Response(
       JSON.stringify({

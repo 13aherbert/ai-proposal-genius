@@ -4,7 +4,8 @@ import { Project } from './types.ts';
 export function generatePrompt(
   sectionTitle: string,
   project: Project,
-  knowledgeBaseContext: string
+  knowledgeBaseContext: string,
+  existingSections?: Array<{section_title: string, content: string}>
 ): string {
   const isCostRelatedSection = sectionTitle.toLowerCase().includes('cost') || 
     sectionTitle.toLowerCase().includes('price') || 
@@ -13,14 +14,38 @@ export function generatePrompt(
 
   const basePrompt = `You are writing content for the "${sectionTitle}" section of a business proposal.`;
 
+  // Extract key information from existing sections for consistency
+  let consistencyContext = '';
+  if (existingSections && existingSections.length > 0) {
+    consistencyContext = `\n\nEXISTING SECTIONS FOR CONSISTENCY REFERENCE:
+This proposal already contains the following sections. You MUST maintain consistency with any pricing, timelines, company information, project scope, deliverables, or other key details mentioned in these existing sections:
+
+`;
+    
+    existingSections.forEach(section => {
+      consistencyContext += `=== ${section.section_title} ===\n${section.content}\n\n`;
+    });
+
+    consistencyContext += `\nCONSISTENCY REQUIREMENTS:
+- If pricing information exists in any existing section, use the EXACT same pricing structure and amounts
+- If project timelines are mentioned, maintain the same schedule and milestones
+- If company capabilities or team information is referenced, be consistent with those details
+- If project scope or deliverables are defined, align your content with those specifications
+- If contact information, company names, or client details are mentioned, use identical information
+- Maintain the same tone, style, and level of detail as existing sections
+- Never contradict information already established in other sections
+
+`;
+  }
+
   const costSpecificInstructions = isCostRelatedSection ? `
 For this cost-related section:
-1. FIRST, search the knowledge base for any relevant pricing, cost structures, or financial information.
-2. If specific cost information exists in the knowledge base:
+1. FIRST, check existing sections for any pricing or cost information and use those EXACT figures
+2. If specific cost information exists in existing sections OR the knowledge base:
    - Use those exact numbers and pricing structures
    - Maintain any specific payment terms or conditions mentioned
    - Include any volume discounts or special pricing arrangements
-3. If NO cost information is found in the knowledge base:
+3. If NO cost information is found in existing sections or the knowledge base:
    - Draw from your knowledge of industry standards and competitive market rates
    - Consider the project scope and requirements
    - Propose reasonable cost structures that align with industry practices
@@ -38,7 +63,7 @@ Project Information:
 - Business: ${project.business_name || 'Not specified'}
 - Analysis: ${project.analysis || 'No analysis available'}
 
-${knowledgeBaseContext}
+${knowledgeBaseContext}${consistencyContext}
 
 ${costSpecificInstructions}
 
@@ -54,7 +79,9 @@ STRICT CONTENT GENERATION RULES:
    - "According to the knowledge base..."
    - "From the information provided..."
    - "Below is the content for..."
-   - Any reference to "knowledge base", "provided information", or generation process
+   - "As mentioned in other sections..."
+   - "Consistent with previous sections..."
+   - Any reference to "knowledge base", "provided information", "existing sections", "consistency", or generation process
 
 4. WRITE STYLE:
    - Start immediately with substantive content
@@ -74,7 +101,13 @@ STRICT CONTENT GENERATION RULES:
      * Make only minimal grammatical adjustments for flow
      * Keep all specific details exactly as they appear
 
-6. ABSOLUTELY FORBIDDEN:
+6. CONSISTENCY REQUIREMENTS:
+   - Maintain absolute consistency with all existing sections
+   - Use identical pricing, timelines, and project details
+   - Never contradict previously established information
+   - Align your content tone and detail level with existing sections
+
+7. ABSOLUTELY FORBIDDEN:
    - NO hypothetical examples or case studies (except for cost sections without knowledge base data)
    - NO references to non-existent past projects
    - NO invented client testimonials or experiences
@@ -83,6 +116,7 @@ STRICT CONTENT GENERATION RULES:
    - NO section titles, headers, or headings in your response
    - NO markdown headers (# ## ###)
    - NO references to the section name "${sectionTitle}" as a header
+   - NO references to consistency requirements or existing sections in your content
 
 CRITICAL FORMATTING REQUIREMENT:
 - Start immediately with the content body - no introductions or headers

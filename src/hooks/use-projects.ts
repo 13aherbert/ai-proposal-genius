@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -38,6 +37,7 @@ export function useProjects(user: User | null) {
       console.log("fetchProjects - Starting fetch for user:", userId);
       console.log("fetchProjects - Pagination:", { currentPage, pageSize });
 
+      // First get the total count
       const { count, error: countError } = await supabase
         .from("projects")
         .select("*", { count: "exact", head: true })
@@ -45,12 +45,13 @@ export function useProjects(user: User | null) {
 
       if (countError) {
         console.error("fetchProjects - Count error:", countError);
-        throw countError;
+        throw new Error(`Count query failed: ${countError.message}`);
       }
 
       const totalCount = count || 0;
       console.log("fetchProjects - Total project count:", totalCount);
 
+      // Then get the actual data with pagination
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -71,8 +72,8 @@ export function useProjects(user: User | null) {
         .range(from, to);
 
       if (error) {
-        console.error("fetchProjects - Query error:", error);
-        throw error;
+        console.error("fetchProjects - Data query error:", error);
+        throw new Error(`Data query failed: ${error.message}`);
       }
 
       console.log("fetchProjects - Success:", { 
@@ -110,22 +111,25 @@ export function useProjects(user: User | null) {
       return result;
     },
     enabled: !!user?.id,
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 10000,
-    gcTime: 300000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
+    staleTime: 30000, // 30 seconds
+    gcTime: 300000, // 5 minutes
   });
 
   useEffect(() => {
     if (error) {
       console.error("useProjects - Query error:", error);
+      // Show more detailed error to user
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      toast.error(`Failed to load projects: ${errorMessage}`);
     }
   }, [error]);
 
   const projects = projectsData?.data || [];
   const projectCount = totalCount;
   
-  // Get project limit separately - don't block the main query
+  // Get project limit separately
   const projectLimit = getProjectLimit();
   const canCreateProject = projectCount < projectLimit;
 

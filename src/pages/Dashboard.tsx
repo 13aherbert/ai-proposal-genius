@@ -1,92 +1,162 @@
 
-import { FileUp, FolderOpen, BookOpen } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/AuthProvider";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/layouts/DashboardLayout";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
-import { useRecentActivity } from "@/hooks/useRecentActivity";
-import { Card, CardContent } from "@/components/ui/card";
-import { UpgradeBanner } from "@/components/subscription/UpgradeBanner";
-import { BetaRoleDebugger } from "@/components/development/BetaRoleDebugger";
+import { BetaProgramCard } from "@/components/dashboard/BetaProgramCard";
+import { SegmentedWelcome } from "@/components/dashboard/SegmentedWelcome";
+import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
+import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
+import { useAuth } from "@/components/AuthProvider";
+import { useProfile } from "@/hooks/use-profile";
+import { supabase } from "@/integrations/supabase/client";
+import { FileText, Database, Users, BarChart3 } from "lucide-react";
+import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
+import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 
-const Dashboard = () => {
-  const navigate = useNavigate();
+export default function Dashboard() {
   const { session } = useAuth();
-  const { recentActivity, isLoading } = useRecentActivity(session?.user ?? null);
+  const { profileData } = useProfile();
+  const [dashboardStats, setDashboardStats] = useState({
+    projectCount: 0,
+    knowledgeCount: 0,
+    hasProjects: false,
+    hasKnowledgeEntries: false
+  });
+  const [isNewUser, setIsNewUser] = useState(false);
 
-  const handleActivityClick = (activity: { type: 'project' | 'knowledge', id: string }) => {
-    if (activity.type === 'project') {
-      navigate(`/projects/${activity.id}`);
-    } else {
-      navigate('/knowledge-base');
+  useEffect(() => {
+    if (session?.user) {
+      // Check if user is new (created within last 24 hours)
+      const userCreatedAt = new Date(session.user.created_at);
+      const now = new Date();
+      const isNew = (now.getTime() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000;
+      setIsNewUser(isNew);
+
+      fetchDashboardStats();
+    }
+  }, [session]);
+
+  const fetchDashboardStats = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      // Fetch project count
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select('project_id')
+        .eq('user_id', session.user.id);
+
+      if (projectError) throw projectError;
+
+      // Fetch knowledge entries count
+      const { data: knowledge, error: knowledgeError } = await supabase
+        .from('knowledge_entries')
+        .select('entry_id')
+        .eq('user_id', session.user.id);
+
+      if (knowledgeError) throw knowledgeError;
+
+      setDashboardStats({
+        projectCount: projects?.length || 0,
+        knowledgeCount: knowledge?.length || 0,
+        hasProjects: (projects?.length || 0) > 0,
+        hasKnowledgeEntries: (knowledge?.length || 0) > 0
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  const quickActions = [
-    {
-      icon: FileUp,
-      title: "Upload RFP",
-      description: "Upload a new RFP document to start a new project with AI assistance",
-      path: "/upload-rfp"
-    },
-    {
-      icon: FolderOpen,
-      title: "Projects",
-      description: "Access and manage your existing RFP response projects",
-      path: "/projects"
-    },
-    {
-      icon: BookOpen,
-      title: "Knowledge Base",
-      description: "Manage your business knowledge base for AI-powered responses",
-      path: "/knowledge-base"
-    }
-  ];
+  const profileComplete = !!(
+    profileData.first_name && 
+    profileData.last_name && 
+    profileData.business_name
+  );
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-brand-green to-[#1a1a1a]">
-      <div className="container mx-auto px-4 py-4 md:py-8">
-        <div className="flex flex-col gap-4 md:gap-8">
-          <UpgradeBanner />
-          <DashboardHeader />
+    <DashboardLayout>
+      <div className="space-y-6">
+        <DashboardHeader />
+        
+        {/* Show segmented welcome for new users or those with minimal activity */}
+        {(isNewUser || (!dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries)) && (
+          <SegmentedWelcome
+            firstName={profileData.first_name}
+            organizationSize={profileData.organization_size as OrganizationSize}
+            useCase={profileData.use_case as UseCase}
+            industry={profileData.industry}
+          />
+        )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
-            {quickActions.map((action) => (
-              <QuickActionCard
-                key={action.title}
-                icon={action.icon}
-                title={action.title}
-                description={action.description}
-                onClick={() => navigate(action.path)}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Feature Spotlight for new users */}
+            {isNewUser && (
+              <FeatureSpotlight
+                organizationSize={profileData.organization_size as OrganizationSize}
+                useCase={profileData.use_case as UseCase}
               />
-            ))}
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <QuickActionCard
+                title="Upload New RFP"
+                description="Start a new proposal project"
+                icon={FileText}
+                href="/upload-rfp"
+                variant="primary"
+              />
+              <QuickActionCard
+                title="Knowledge Base"
+                description="Manage your content library"
+                icon={Database}
+                href="/knowledge-base"
+                variant="secondary"
+              />
+              {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && (
+                <>
+                  <QuickActionCard
+                    title="Team Collaboration"
+                    description="Work with your team"
+                    icon={Users}
+                    href="/projects"
+                    variant="secondary"
+                  />
+                  <QuickActionCard
+                    title="Analytics"
+                    description="Track your success"
+                    icon={BarChart3}
+                    href="/projects"
+                    variant="secondary"
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Recent Activity */}
+            <RecentActivityList />
           </div>
 
-          <div className="mt-4 md:mt-8">
-            <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Recent Activity</h2>
-            <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-              <CardContent className="p-4 md:p-6">
-                <RecentActivityList
-                  activities={recentActivity}
-                  isLoading={isLoading}
-                  onActivityClick={handleActivityClick}
-                />
-              </CardContent>
-            </Card>
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Onboarding Progress */}
+            <OnboardingProgress
+              organizationSize={profileData.organization_size as OrganizationSize}
+              useCase={profileData.use_case as UseCase}
+              hasProjects={dashboardStats.hasProjects}
+              hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
+              profileComplete={profileComplete}
+            />
+
+            {/* Beta Program Card - Show for all users but customize message */}
+            <BetaProgramCard />
           </div>
-          
-          {/* Only show the beta role debugger in development mode */}
-          {import.meta.env.DEV && (
-            <div className="mt-4 md:mt-8">
-              <h2 className="text-xl md:text-2xl font-semibold text-white mb-3 md:mb-4">Developer Tools</h2>
-              <BetaRoleDebugger />
-            </div>
-          )}
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
-};
-
-export default Dashboard;
+}

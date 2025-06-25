@@ -34,7 +34,7 @@ export async function isAdmin(): Promise<boolean> {
  * Check if current user has system_admin role
  * @returns Promise<boolean> - True if user has system_admin role
  */
-export async function isSystemAdmin(): Promise<boolean> {
+async function checkSystemAdminRole(): Promise<boolean> {
   try {
     const { data, error } = await supabase.rpc('is_system_admin');
     
@@ -159,7 +159,7 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
     
     // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    const systemAdminStatus = await isSystemAdmin();
+    const systemAdminStatus = await checkSystemAdminRole();
     
     if (!adminStatus && !systemAdminStatus) {
       toast({
@@ -213,7 +213,7 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
   try {
     // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    const systemAdminStatus = await isSystemAdmin();
+    const systemAdminStatus = await checkSystemAdminRole();
     
     if (!adminStatus && !systemAdminStatus) {
       toast({
@@ -272,7 +272,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
   try {
     // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    const systemAdminStatus = await isSystemAdmin();
+    const systemAdminStatus = await checkSystemAdminRole();
     
     console.log("Admin status check result:", adminStatus);
     console.log("System Admin status check result:", systemAdminStatus);
@@ -348,7 +348,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
 
     const userRolesMap = new Map<string, UserRole[]>();
-    const userEmailMap = new Map<string, string>();
     
     // Process the roles data from the edge function
     if (userRolesData && userRolesData.roles && Array.isArray(userRolesData.roles)) {
@@ -364,8 +363,6 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       });
     }
 
-    // For email mapping, we need to get the email from the profile's username field
-    // since the edge function doesn't return emails in the current implementation
     console.log("Processed user subscriptions:", Object.fromEntries(userSubscriptionMap));
 
     // Build the final user profiles array
@@ -430,7 +427,7 @@ export async function getUserDetailsForAdmin(userId: string): Promise<UserProfil
   try {
     // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    const systemAdminStatus = await isSystemAdmin();
+    const systemAdminStatus = await checkSystemAdminRole();
     
     if (!adminStatus && !systemAdminStatus) {
       toast({
@@ -461,20 +458,37 @@ export async function getUserDetailsForAdmin(userId: string): Promise<UserProfil
     
     const userDetail = data[0];
     
+    // Safely cast the roles array
+    const roles = Array.isArray(userDetail.roles) 
+      ? userDetail.roles.filter((role: string) => 
+          ['admin', 'beta_tester', 'user', 'system_admin'].includes(role)
+        ) as UserRole[]
+      : [];
+    
+    // Safely handle subscription info
+    const subscriptionInfo = userDetail.subscription_info && typeof userDetail.subscription_info === 'object' 
+      ? userDetail.subscription_info as { plan_type?: string; status?: string }
+      : null;
+    
+    // Safely handle organizations array
+    const organizations = Array.isArray(userDetail.organizations) 
+      ? userDetail.organizations as Array<{id: string; name: string; role: string; joined_at: string}>
+      : [];
+    
     return {
       userId: userDetail.user_id,
       email: userDetail.email || '',
       firstName: userDetail.first_name,
       lastName: userDetail.last_name,
       businessName: userDetail.business_name,
-      roles: userDetail.roles || [],
-      subscription: userDetail.subscription_info ? {
-        plan: userDetail.subscription_info.plan_type || 'trial',
-        status: userDetail.subscription_info.status || 'inactive'
+      roles: roles,
+      subscription: subscriptionInfo ? {
+        plan: subscriptionInfo.plan_type || 'trial',
+        status: subscriptionInfo.status || 'inactive'
       } : null,
       createdAt: userDetail.created_at,
       lastSignIn: userDetail.last_sign_in,
-      organizations: userDetail.organizations || [],
+      organizations: organizations,
       projectCount: userDetail.project_count || 0,
       knowledgeEntriesCount: userDetail.knowledge_entries_count || 0,
       industry: userDetail.industry,
@@ -998,4 +1012,4 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
-export { isSystemAdmin };
+export { checkSystemAdminRole as isSystemAdmin };

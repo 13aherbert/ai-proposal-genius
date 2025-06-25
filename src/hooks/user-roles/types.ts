@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'beta_tester' | 'user';
+export type UserRole = 'admin' | 'beta_tester' | 'user' | 'system_admin';
 
 export interface UserRoleState {
   isAdmin: boolean;

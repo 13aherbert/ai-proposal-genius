@@ -1,7 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
 import { useRoleCheckEffect } from "./use-role-check-effect";
 import { UserRoleState, UserRoleRefs } from "./types";
 
@@ -18,15 +18,17 @@ export function useUserRoles() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isBetaTester, setIsBetaTester] = useState(false);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [isUser, setIsUser] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(false); 
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   
   // References to track state between renders
-  const refs = useRef<UserRoleRefs>({
+  const refs = useRef<UserRoleRefs & { systemAdminStatus: boolean }>({
     rolesInitialized: false,
     adminStatus: false,
     betaTesterStatus: false,
+    systemAdminStatus: false,
     userStatus: false,
     checkingInProgress: false,
     lastNetworkErrorTime: null,
@@ -44,7 +46,8 @@ export function useUserRoles() {
     setIsUser,
     setIsCheckingRoles,
     setRoleCheckError,
-    refs
+    refs,
+    setIsSystemAdmin
   );
   
   // Function to force a full role check synchronously - with rate limiting
@@ -80,8 +83,13 @@ export function useUserRoles() {
       checkBetaTesterRole(session.user.id, refs, true).then(betaStatus => {
         updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
       });
+      
+      // Check system admin status
+      checkSystemAdminRole(session.user.id, refs, true).then(systemAdminStatus => {
+        updateSystemAdminState(systemAdminStatus, refs.systemAdminStatus, refs, setIsSystemAdmin, true);
+      });
     }
-  }, [session, refs, setIsAdmin, setIsBetaTester]);
+  }, [session, refs, setIsAdmin, setIsBetaTester, setIsSystemAdmin]);
 
   // Effect for session changes and timer-based role checking
   useEffect(() => {
@@ -89,6 +97,7 @@ export function useUserRoles() {
     if (!session?.user) {
       if (isAdmin) setIsAdmin(false);
       if (isBetaTester) setIsBetaTester(false);
+      if (isSystemAdmin) setIsSystemAdmin(false);
       if (isUser) setIsUser(false);
       if (isCheckingRoles) setIsCheckingRoles(false);
       if (roleCheckError) setRoleCheckError(null);
@@ -97,6 +106,7 @@ export function useUserRoles() {
       refs.lastNetworkErrorTime = null;
       refs.betaTesterStatus = false;
       refs.adminStatus = false;
+      refs.systemAdminStatus = false;
       refs.lastCheckedTime = null;
       refs.lastForceCheckTime = null;
       
@@ -147,11 +157,12 @@ export function useUserRoles() {
         refs.timeout = null;
       }
     };
-  }, [session, checkRoles, refs, isAdmin, isBetaTester, isUser, isCheckingRoles, roleCheckError]);
+  }, [session, checkRoles, refs, isAdmin, isBetaTester, isSystemAdmin, isUser, isCheckingRoles, roleCheckError]);
   
   // Make these derive directly from state
-  const showAdminButton = isAdmin;
+  const showAdminButton = isAdmin || isSystemAdmin;
   const showBetaBadge = isBetaTester;
+  const showSystemAdminButton = isSystemAdmin;
 
   // Debug logging for admin status changes
   useEffect(() => {
@@ -165,14 +176,28 @@ export function useUserRoles() {
     }
   }, [isAdmin, refs]);
 
+  // Debug logging for system admin status changes
+  useEffect(() => {
+    if (refs.systemAdminStatus !== isSystemAdmin) {
+      console.log("System Admin status changed in hook:", {
+        from: refs.systemAdminStatus,
+        to: isSystemAdmin,
+        timestamp: new Date().toISOString()
+      });
+      refs.systemAdminStatus = isSystemAdmin;
+    }
+  }, [isSystemAdmin, refs]);
+
   return {
     isAdmin,
     isBetaTester,
+    isSystemAdmin,
     isUser,
     isCheckingRoles,
     roleCheckError,
     showAdminButton,
     showBetaBadge,
+    showSystemAdminButton,
     forceRoleCheck
   };
 }

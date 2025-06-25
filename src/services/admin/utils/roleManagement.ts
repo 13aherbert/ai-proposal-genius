@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserRole } from "../types";
-import { isAdmin } from "./roleCheckers";
+import { isAdmin, isSystemAdmin } from "./roleCheckers";
 
 /**
  * Assign a role to a user
@@ -10,10 +11,12 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
   try {
     console.log(`Attempting to assign role '${role}' to user ${userId}`);
     
-    // Check admin status first
+    // Check admin or system admin status first
     const adminStatus = await isAdmin();
-    if (!adminStatus) {
-      console.error("Role assignment failed: Not an admin");
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
+      console.error("Role assignment failed: Not an admin or system admin");
       toast.error("Access denied", { description: "You don't have permission to assign roles" });
       return false;
     }
@@ -63,9 +66,11 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
-    // Check admin status first
+    // Check admin or system admin status first
     const adminStatus = await isAdmin();
-    if (!adminStatus) {
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
       toast.error("Access denied", { description: "You don't have permission to remove roles" });
       return false;
     }
@@ -104,10 +109,12 @@ export async function assignRoleByEmail(email: string, role: UserRole): Promise<
   try {
     console.log(`Attempting to assign role '${role}' to user with email ${email}`);
     
-    // Check admin status first
+    // Check admin or system admin status first
     const adminStatus = await isAdmin();
-    if (!adminStatus) {
-      console.error("Role assignment failed: Not an admin");
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
+      console.error("Role assignment failed: Not an admin or system admin");
       toast.error("Access denied", { description: "You don't have permission to assign roles" });
       return false;
     }

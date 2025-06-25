@@ -857,6 +857,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      check_system_admin_role: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       check_user_role: {
         Args: { user_id_param: string; role_param: string }
         Returns: boolean
@@ -912,6 +916,23 @@ export type Database = {
           created_by: string
         }[]
       }
+      get_all_users_with_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          first_name: string
+          last_name: string
+          business_name: string
+          roles: string[]
+          organization_id: string
+          organization_name: string
+          organization_role: string
+          subscription_plan: string
+          subscription_status: string
+          created_at: string
+        }[]
+      }
       get_beta_invitation_direct: {
         Args: { invitation_id_param: string }
         Returns: {
@@ -944,6 +965,27 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: string
       }
+      get_user_details_for_admin: {
+        Args: { target_user_id: string }
+        Returns: {
+          user_id: string
+          email: string
+          first_name: string
+          last_name: string
+          business_name: string
+          industry: string
+          organization_size: string
+          use_case: string
+          job_title: string
+          roles: string[]
+          organizations: Json
+          subscription_info: Json
+          project_count: number
+          knowledge_entries_count: number
+          created_at: string
+          last_sign_in: string
+        }[]
+      }
       get_user_permissions: {
         Args: { user_id_param: string }
         Returns: {
@@ -972,6 +1014,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_for_delete: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_system_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

@@ -1,7 +1,7 @@
 
 import { useCallback } from "react";
 import { UserRoleRefs } from "./types";
-import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState } from "./role-check-utils";
+import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
 import { Session } from "@supabase/supabase-js";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -11,12 +11,13 @@ const MIN_CHECK_INTERVAL = 15000;
 
 export const useRoleCheckEffect = (
   session: Session | null | undefined,
-  setIsAdmin: (value: boolean) => void,  // Updated type definition to match actual usage
+  setIsAdmin: (value: boolean) => void,
   setIsBetaTester: (updater: (prev: boolean) => boolean) => void,
   setIsUser: (value: boolean) => void,
   setIsCheckingRoles: (value: boolean) => void,
   setRoleCheckError: (value: string | null) => void,
-  refs: UserRoleRefs
+  refs: UserRoleRefs & { systemAdminStatus: boolean },
+  setIsSystemAdmin: (updater: (prev: boolean) => boolean) => void
 ) => {
   // Create a stable callback for role checking
   const checkRoles = useCallback(async () => {
@@ -57,6 +58,16 @@ export const useRoleCheckEffect = (
         refs.lastNetworkErrorTime = now;
       }
       
+      // Check system admin role using direct RPC function
+      try {
+        console.log("Checking system admin role directly via RPC at", new Date().toISOString());
+        const systemAdminStatus = await checkSystemAdminRole(session.user.id, refs, false);
+        updateSystemAdminState(systemAdminStatus, refs.systemAdminStatus, refs, setIsSystemAdmin, false);
+      } catch (systemAdminError) {
+        console.error("Error during system admin role check:", systemAdminError);
+        refs.lastNetworkErrorTime = now;
+      }
+      
       // Check beta tester role directly
       try {
         const betaStatus = await checkBetaTesterRole(session.user.id, refs, false);
@@ -84,7 +95,7 @@ export const useRoleCheckEffect = (
     } catch (err) {
       console.error("Error checking user roles:", err);
       
-      if (refs.adminStatus) {
+      if (refs.adminStatus || refs.systemAdminStatus) {
         setRoleCheckError("Could not verify user roles");
         toast.error("Failed to check role status", { 
           description: "Please refresh the page or try again later",
@@ -97,7 +108,7 @@ export const useRoleCheckEffect = (
     } finally {
       refs.checkingInProgress = false;
     }
-  }, [session, setIsAdmin, setIsBetaTester, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
+  }, [session, setIsAdmin, setIsBetaTester, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
 
   // Return the checkRoles function for external use
   return { checkRoles };

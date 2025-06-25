@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { UserProfile, UserRoleRecord, UserRole } from "./types";
+import { UserProfile, UserRoleRecord, UserRole, UserProfileWithOrganizations } from "./types";
 import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimitByKey } from "@/utils/network";
 
 /**
@@ -26,6 +26,26 @@ export async function isAdmin(): Promise<boolean> {
     return !!data;
   } catch (error) {
     console.error('Exception checking admin status:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if current user has system_admin role
+ * @returns Promise<boolean> - True if user has system_admin role
+ */
+export async function isSystemAdmin(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('is_system_admin');
+    
+    if (error) {
+      console.error('Error checking system admin status:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Exception checking system admin status:', error);
     return false;
   }
 }
@@ -137,8 +157,11 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
     
+    // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    if (!adminStatus) {
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
       toast({
         title: "Access denied", 
         description: "You don't have permission to assign roles",
@@ -188,8 +211,11 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
+    // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    if (!adminStatus) {
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
       toast({
         title: "Access denied", 
         description: "You don't have permission to remove roles",
@@ -244,10 +270,14 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
  */
 export async function getAllUsers(): Promise<UserProfile[]> {
   try {
+    // Check if user has admin or system_admin permissions
     const adminStatus = await isAdmin();
-    console.log("Admin status check result:", adminStatus);
+    const systemAdminStatus = await isSystemAdmin();
     
-    if (!adminStatus) {
+    console.log("Admin status check result:", adminStatus);
+    console.log("System Admin status check result:", systemAdminStatus);
+    
+    if (!adminStatus && !systemAdminStatus) {
       toast({
         title: "Access denied", 
         description: "You don't have permission to view users",
@@ -327,7 +357,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
         
         // Get the user's roles
         const existing = userRolesMap.get(userId) || [];
-        if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {
+        if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user' || record.role === 'system_admin') {
           existing.push(record.role as UserRole);
           userRolesMap.set(userId, existing);
         }
@@ -388,6 +418,88 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
     
     return [];
+  }
+}
+
+/**
+ * Get detailed user information for system admins
+ * @param userId - The ID of the user to get details for
+ * @returns Promise<UserProfileWithOrganizations | null> - Detailed user profile or null
+ */
+export async function getUserDetailsForAdmin(userId: string): Promise<UserProfileWithOrganizations | null> {
+  try {
+    // Check if user has admin or system_admin permissions
+    const adminStatus = await isAdmin();
+    const systemAdminStatus = await isSystemAdmin();
+    
+    if (!adminStatus && !systemAdminStatus) {
+      toast({
+        title: "Access denied", 
+        description: "You don't have permission to view user details",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    const { data, error } = await supabase.rpc('get_user_details_for_admin', {
+      target_user_id: userId
+    });
+    
+    if (error) {
+      console.error('Error fetching user details:', error);
+      toast({
+        title: "Failed to fetch user details", 
+        description: error.message,
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      return null;
+    }
+    
+    const userDetail = data[0];
+    
+    return {
+      userId: userDetail.user_id,
+      email: userDetail.email || '',
+      firstName: userDetail.first_name,
+      lastName: userDetail.last_name,
+      businessName: userDetail.business_name,
+      roles: userDetail.roles || [],
+      subscription: userDetail.subscription_info ? {
+        plan: userDetail.subscription_info.plan_type || 'trial',
+        status: userDetail.subscription_info.status || 'inactive'
+      } : null,
+      createdAt: userDetail.created_at,
+      lastSignIn: userDetail.last_sign_in,
+      organizations: userDetail.organizations || [],
+      projectCount: userDetail.project_count || 0,
+      knowledgeEntriesCount: userDetail.knowledge_entries_count || 0,
+      industry: userDetail.industry,
+      organizationSize: userDetail.organization_size,
+      useCase: userDetail.use_case,
+      jobTitle: userDetail.job_title
+    };
+  } catch (error) {
+    console.error('Error in getUserDetailsForAdmin:', error);
+    
+    if (isNetworkError(error)) {
+      toast({
+        title: "Network error", 
+        description: getNetworkErrorMessage(error),
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Failed to fetch user details", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
+    
+    return null;
   }
 }
 
@@ -886,3 +998,4 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
 export { getAllUsers as getUsers };
 export { assignRole as assignUserRole };
 export { removeRole as removeUserRole };
+export { isSystemAdmin };

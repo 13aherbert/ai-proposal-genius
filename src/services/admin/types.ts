@@ -1,16 +1,9 @@
 
-export type UserRole = 'user' | 'admin' | 'beta_tester';
+// User role types
+export type UserRole = 'admin' | 'beta_tester' | 'user' | 'system_admin';
 
-export type UserRoleRecord = {
-  id: string;
-  user_id: string;
-  role: UserRole;
-  created_at: string;
-  created_by: string | null;
-  email?: string | null;
-};
-
-export type UserProfile = {
+// User profile interface for admin management
+export interface UserProfile {
   userId: string;
   email: string;
   firstName: string | null;
@@ -23,16 +16,30 @@ export type UserProfile = {
   } | null;
   createdAt: string;
   lastSignIn: string | null;
-};
+}
 
-export type BetaInvitation = {
+// User role record interface
+export interface UserRoleRecord {
   id: string;
-  email: string;
-  invite_code: string;
-  invited_by: string;
-  status: 'pending' | 'accepted' | 'expired' | 'canceled';
+  user_id: string;
+  role: UserRole;
   created_at: string;
-  accepted_at: string | null;
-  expires_at: string;
-  invitation_email_sent: boolean;
-};
+  created_by: string;
+  email?: string | null;
+}
+
+// Extended user profile with organization details
+export interface UserProfileWithOrganizations extends UserProfile {
+  organizations: Array<{
+    id: string;
+    name: string;
+    role: string;
+    joined_at: string;
+  }>;
+  projectCount: number;
+  knowledgeEntriesCount: number;
+  industry?: string;
+  organizationSize?: string;
+  useCase?: string;
+  jobTitle?: string;
+}

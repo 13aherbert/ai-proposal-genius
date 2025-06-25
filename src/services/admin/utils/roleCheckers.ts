@@ -1,3 +1,8 @@
+
+import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "../types";
+import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
+
 /**
  * Check if the current user has a specific role
  * Uses the check_existing_role RPC function to avoid row-level security recursion
@@ -143,6 +148,33 @@ export async function isAdmin(): Promise<boolean> {
   return attemptAdminCheck();
 }
 
-import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "../types";
-import { getAdminStatusFromCache, setAdminStatusCache } from "./adminCache";
+/**
+ * Check if the current user is a system admin
+ * Uses the is_system_admin function to avoid row-level security recursion
+ */
+export async function isSystemAdmin(): Promise<boolean> {
+  try {
+    // Call the is_system_admin function which avoids recursion
+    const { data, error } = await supabase.rpc('is_system_admin');
+    
+    if (error) {
+      console.error('Error checking system admin status:', error);
+      return false;
+    }
+    
+    const result = !!data;
+    console.log("Is system admin check result:", result);
+    
+    return result;
+  } catch (error) {
+    console.error('Error in isSystemAdmin:', error);
+    
+    // Fallback: Try to check system_admin role directly using our check_existing_role RPC
+    try {
+      return await checkUserRole('system_admin');
+    } catch (fallbackError) {
+      console.error('Error in fallback system admin check:', fallbackError);
+      return false;
+    }
+  }
+}

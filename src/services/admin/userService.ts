@@ -320,42 +320,56 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     const userRolesMap = new Map<string, UserRole[]>();
     const userEmailMap = new Map<string, string>();
     
-    if (userRolesData && Array.isArray(userRolesData)) {
-      userRolesData.forEach((record: any) => {
-        if (record.email) {
-          userEmailMap.set(record.user_id, record.email);
-        }
+    // Process the roles data from the edge function
+    if (userRolesData && userRolesData.roles && Array.isArray(userRolesData.roles)) {
+      userRolesData.roles.forEach((record: any) => {
+        const userId = record.user_id;
         
-        const existing = userRolesMap.get(record.user_id) || [];
+        // Get the user's roles
+        const existing = userRolesMap.get(userId) || [];
         if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user') {
           existing.push(record.role as UserRole);
-          userRolesMap.set(record.user_id, existing);
+          userRolesMap.set(userId, existing);
         }
       });
     }
 
+    // For email mapping, we need to get the email from the profile's username field
+    // since the edge function doesn't return emails in the current implementation
     console.log("Processed user subscriptions:", Object.fromEntries(userSubscriptionMap));
 
-    return profiles?.map(profile => {
-      const roles = userRolesMap.get(profile.profile_id) || [];
-      const subscription = userSubscriptionMap.get(profile.profile_id);
-      const email = userEmailMap.get(profile.profile_id) || profile.username || '';
-      
-      return {
-        userId: profile.profile_id,
-        email: email,
-        firstName: profile.first_name || null,
-        lastName: profile.last_name || null,
-        businessName: profile.business_name || null,
-        roles: roles,
-        subscription: subscription ? {
-          plan: subscription.plan_type,
-          status: subscription.status
-        } : null,
-        createdAt: profile.created_at,
-        lastSignIn: null
-      };
-    }) || [];
+    // Build the final user profiles array
+    const userProfiles: UserProfile[] = [];
+    
+    // Process each profile
+    if (profiles && Array.isArray(profiles)) {
+      profiles.forEach(profile => {
+        const roles = userRolesMap.get(profile.profile_id) || [];
+        const subscription = userSubscriptionMap.get(profile.profile_id);
+        const email = profile.username || ''; // Use username as email fallback
+        
+        // Only include users who have at least one role (to avoid orphaned profiles)
+        if (roles.length > 0) {
+          userProfiles.push({
+            userId: profile.profile_id,
+            email: email,
+            firstName: profile.first_name || null,
+            lastName: profile.last_name || null,
+            businessName: profile.business_name || null,
+            roles: roles,
+            subscription: subscription ? {
+              plan: subscription.plan_type,
+              status: subscription.status
+            } : null,
+            createdAt: profile.created_at,
+            lastSignIn: null
+          });
+        }
+      });
+    }
+    
+    console.log("Final user profiles:", userProfiles);
+    return userProfiles;
   } catch (error) {
     console.error('Error in getAllUsers:', error);
     

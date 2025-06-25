@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 import { debounce } from "lodash";
 import { getStoredSubscriptionData, isUserOfPlanType } from "./subscription/feature-access";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
+import { useCurrentOrganization } from "./use-current-organization";
 
 export type Project = {
   project_id: string;
@@ -28,6 +30,9 @@ export function useProjects(user: User | null) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
+  
+  // Get user's current organization
+  const { data: organizationId, isLoading: orgLoading, error: orgError } = useCurrentOrganization(user);
   
   useEffect(() => {
     const subscriptionData = getStoredSubscriptionData();
@@ -83,17 +88,25 @@ export function useProjects(user: User | null) {
     }
   }, [user]);
 
-  const fetchProjects = useCallback(async ({ currentPage, pageSize, userId }: { 
+  const fetchProjects = useCallback(async ({ currentPage, pageSize, userId, organizationId }: { 
     currentPage: number;
     pageSize: number;
     userId: string | undefined;
+    organizationId: string | null | undefined;
   }) => {
     try {
-      console.log("Fetching projects for user:", userId);
-      console.log("Pagination:", { currentPage, pageSize });
+      console.log("fetchProjects - Starting fetch for user:", userId);
+      console.log("fetchProjects - Organization ID:", organizationId);
+      console.log("fetchProjects - Pagination:", { currentPage, pageSize });
       
       if (!userId) {
         console.warn("Cannot fetch projects: No user ID provided");
+        return { data: [], totalCount: 0 };
+      }
+      
+      // Handle case where user has no organization yet
+      if (organizationId === null) {
+        console.log("User has no organization, returning empty results");
         return { data: [], totalCount: 0 };
       }
       
@@ -101,14 +114,22 @@ export function useProjects(user: User | null) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      const { count, error: countError } = await supabase
+      // Build the query with organization context
+      let countQuery = supabase
         .from("projects")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId);
+      
+      // Only add organization filter if we have an organization ID
+      if (organizationId) {
+        countQuery = countQuery.eq("organization_id", organizationId);
+      }
+
+      const { count, error: countError } = await countQuery;
 
       if (countError) {
         console.error("Count error:", countError);
-        throw countError;
+        throw new Error(`Count query failed: ${countError.message}`);
       }
 
       const totalCount = count || 0;
@@ -117,7 +138,8 @@ export function useProjects(user: User | null) {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, error } = await supabase
+      // Build the main query with organization context
+      let dataQuery = supabase
         .from("projects")
         .select(`
           project_id,
@@ -133,15 +155,22 @@ export function useProjects(user: User | null) {
         .order("last_update_at", { ascending: false })
         .range(from, to);
 
+      // Only add organization filter if we have an organization ID
+      if (organizationId) {
+        dataQuery = dataQuery.eq("organization_id", organizationId);
+      }
+
+      const { data, error } = await dataQuery;
+
       if (error) {
         console.error("Supabase error:", error);
-        throw error;
+        throw new Error(`Projects query failed: ${error.message}`);
       }
 
       console.log("Projects fetched:", data);
       return { data: data as Project[] || [], totalCount };
     } catch (err) {
-      console.error("Query error:", err);
+      console.error("fetchProjects - Error:", err);
       throw err;
     }
   }, []);
@@ -152,22 +181,26 @@ export function useProjects(user: User | null) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["projects", user?.id, currentPage, pageSize],
+    queryKey: ["projects", user?.id, organizationId, currentPage, pageSize],
     queryFn: async () => {
       if (!user?.id) {
         console.log("Query execution prevented: No user ID available");
         return [];
       }
       
+      console.log("useProjects - Executing query for user:", user.id);
+      console.log("useProjects - Organization ID:", organizationId);
+      
       const result = await fetchProjects({ 
         currentPage, 
         pageSize, 
-        userId: user?.id 
+        userId: user?.id,
+        organizationId: organizationId
       });
       setTotalCount(result.totalCount);
       return result.data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !orgLoading && orgError === null,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
     staleTime: 60000,
@@ -176,7 +209,7 @@ export function useProjects(user: User | null) {
 
   useEffect(() => {
     if (error) {
-      console.error("Projects query error:", error);
+      console.error("useProjects - Query error:", error);
     }
   }, [error]);
 
@@ -237,11 +270,18 @@ export function useProjects(user: User | null) {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("projects")
         .select("*")
         .eq("user_id", user.id)
         .order("last_update_at", { ascending: false });
+
+      // Add organization filter if available
+      if (organizationId) {
+        query = query.eq("organization_id", organizationId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -317,10 +357,13 @@ export function useProjects(user: User | null) {
     console.log(`Project limits: ${projectCount}/${projectLimit}`);
   }, [projectCount, projectLimit]);
 
+  // Include organization loading state in overall loading
+  const isLoadingWithOrg = isLoading || orgLoading;
+
   return {
     projects,
-    isLoading,
-    error,
+    isLoading: isLoadingWithOrg,
+    error: error || orgError,
     refetch,
     deleteProject,
     exportProjects,
@@ -328,6 +371,7 @@ export function useProjects(user: User | null) {
     projectCount,
     canCreateProject,
     updateProjectLimit,
+    organizationId,
     pagination: {
       currentPage,
       pageSize,

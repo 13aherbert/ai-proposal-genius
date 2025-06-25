@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -71,11 +72,26 @@ export default function RecentProjects() {
     projectCount,
     projectLimit,
     refetch,
-    updateProjectLimit
+    updateProjectLimit,
+    organizationId
   } = useProjects(authReady ? session?.user || null : null);
   
   const { hasFeature, refreshSubscription } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
+  
+  console.log("RecentProjects - Auth state:", { 
+    hasSession: !!session?.user, 
+    loading, 
+    userId: session?.user?.id 
+  });
+  console.log("RecentProjects - Projects data:", { 
+    projects: projects?.length || 0, 
+    isLoading, 
+    error: error?.message, 
+    projectCount, 
+    projectLimit,
+    organizationId 
+  });
   
   // Apply project limit when subscription data is available - with faster checking
   useEffect(() => {
@@ -169,6 +185,27 @@ export default function RecentProjects() {
     return <ProjectsAuthError />;
   }
 
+  // Show loading state if organization data is still loading
+  if (isLoading) {
+    return (
+      <div className="container py-10 space-y-8">
+        <ProjectsLoadingState message="Loading your projects..." />
+      </div>
+    );
+  }
+
+  // Handle organization-related errors
+  if (error && error.message.includes('organization')) {
+    return (
+      <div className="container py-10 space-y-8">
+        <ProjectsError 
+          onRetry={refetch}
+          message="There was an issue loading your organization data. Please try again."
+        />
+      </div>
+    );
+  }
+
   // Calculate final display limit with extra safety checks
   const displayProjectLimit = determineDisplayLimit(projectLimit);
 
@@ -182,9 +219,7 @@ export default function RecentProjects() {
         onRefresh={handleManualRefresh}
       />
 
-      {isLoading ? (
-        <ProjectsLoadingState />
-      ) : error ? (
+      {error && !error.message.includes('organization') ? (
         <ProjectsError onRetry={refetch} />
       ) : projects && projects.length > 0 ? (
         <ProjectsTable 
@@ -194,7 +229,10 @@ export default function RecentProjects() {
           pagination={pagination}
         />
       ) : (
-        <ProjectsEmptyState projectLimit={displayProjectLimit} />
+        <ProjectsEmptyState 
+          projectLimit={displayProjectLimit}
+          organizationId={organizationId}
+        />
       )}
     </div>
   );

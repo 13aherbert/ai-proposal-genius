@@ -171,7 +171,7 @@ export type Database = {
           created_at: string
           entry_id: string
           file_path: string | null
-          organization_id: string | null
+          organization_id: string
           parsed_content: string | null
           title: string
           updated_at: string
@@ -183,7 +183,7 @@ export type Database = {
           created_at?: string
           entry_id?: string
           file_path?: string | null
-          organization_id?: string | null
+          organization_id: string
           parsed_content?: string | null
           title: string
           updated_at?: string
@@ -195,7 +195,7 @@ export type Database = {
           created_at?: string
           entry_id?: string
           file_path?: string | null
-          organization_id?: string | null
+          organization_id?: string
           parsed_content?: string | null
           title?: string
           updated_at?: string
@@ -417,6 +417,33 @@ export type Database = {
         }
         Relationships: []
       }
+      orphaned_records_backup: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string
+          record_data: Json
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason: string
+          record_data: Json
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string
+          record_data?: Json
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -557,7 +584,7 @@ export type Database = {
           evaluation: string | null
           is_shared: boolean | null
           last_update_at: string | null
-          organization_id: string | null
+          organization_id: string
           project_id: string
           proposal_outline: string | null
           rfp_file_path: string
@@ -576,7 +603,7 @@ export type Database = {
           evaluation?: string | null
           is_shared?: boolean | null
           last_update_at?: string | null
-          organization_id?: string | null
+          organization_id: string
           project_id?: string
           proposal_outline?: string | null
           rfp_file_path: string
@@ -595,7 +622,7 @@ export type Database = {
           evaluation?: string | null
           is_shared?: boolean | null
           last_update_at?: string | null
-          organization_id?: string | null
+          organization_id?: string
           project_id?: string
           proposal_outline?: string | null
           rfp_file_path?: string
@@ -619,7 +646,7 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
-          organization_id: string | null
+          organization_id: string
           project_id: string
           section_id: string
           section_title: string
@@ -629,7 +656,7 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
-          organization_id?: string | null
+          organization_id: string
           project_id: string
           section_id?: string
           section_title: string
@@ -639,7 +666,7 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
-          organization_id?: string | null
+          organization_id?: string
           project_id?: string
           section_id?: string
           section_title?: string

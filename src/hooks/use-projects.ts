@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,11 +38,10 @@ export function useProjects(user: User | null) {
       console.log("fetchProjects - Starting fetch for user:", userId);
       console.log("fetchProjects - Pagination:", { currentPage, pageSize });
 
-      // First get the total count
+      // Simple count query using the fixed RLS policies
       const { count, error: countError } = await supabase
         .from("projects")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
+        .select("*", { count: "exact", head: true });
 
       if (countError) {
         console.error("fetchProjects - Count error:", countError);
@@ -51,7 +51,7 @@ export function useProjects(user: User | null) {
       const totalCount = count || 0;
       console.log("fetchProjects - Total project count:", totalCount);
 
-      // Then get the actual data with pagination
+      // Get the actual data with pagination using the fixed RLS policies
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -67,7 +67,6 @@ export function useProjects(user: User | null) {
           user_id,
           deadline
         `)
-        .eq("user_id", userId)
         .order("last_update_at", { ascending: false })
         .range(from, to);
 
@@ -199,7 +198,6 @@ export function useProjects(user: User | null) {
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("user_id", user.id)
         .order("last_update_at", { ascending: false });
 
       if (error) throw error;

@@ -30,12 +30,24 @@ export const InitialKnowledgeSetup = ({ onComplete }: InitialKnowledgeSetupProps
     setCompletedEntries(0);
 
     try {
+      // Get user's current organization
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('current_organization_id')
+        .eq('profile_id', session.user.id)
+        .single();
+
+      if (profileError || !profile?.current_organization_id) {
+        toast.error("No organization found. Please contact support.");
+        return;
+      }
+
       const total = initialKnowledgeEntries.length;
       
       for (let i = 0; i < total; i++) {
         const entry = initialKnowledgeEntries[i];
         
-        // Insert the knowledge entry
+        // Insert the knowledge entry with organization_id
         const { error } = await supabase
           .from('knowledge_entries')
           .insert({
@@ -43,6 +55,7 @@ export const InitialKnowledgeSetup = ({ onComplete }: InitialKnowledgeSetupProps
             category: entry.category,
             content: entry.content,
             user_id: session.user.id,
+            organization_id: profile.current_organization_id,
           });
 
         if (error) {

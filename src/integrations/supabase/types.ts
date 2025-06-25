@@ -417,6 +417,33 @@ export type Database = {
         }
         Relationships: []
       }
+      orphaned_records_backup: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string
+          record_data: Json
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason: string
+          record_data: Json
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string
+          record_data?: Json
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

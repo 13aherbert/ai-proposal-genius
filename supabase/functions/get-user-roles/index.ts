@@ -31,7 +31,7 @@ serve(async (req) => {
       }
     }
     
-    // If no user ID found in auth context, try getting it from Authorization header or request body
+    // If no user ID found in auth context, try getting it from Authorization header
     if (!userId) {
       // Get authorization header
       const authHeader = req.headers.get('Authorization');
@@ -44,7 +44,6 @@ serve(async (req) => {
       } else {
         // Try to get token from JSON body if not in headers
         try {
-          // Check if there's a body first by checking content-length
           const contentLength = req.headers.get('content-length');
           const hasBody = contentLength && parseInt(contentLength) > 0;
           
@@ -70,7 +69,6 @@ serve(async (req) => {
       // If we still don't have userId but we have a token, try to validate it
       if (!userId && token) {
         try {
-          // Create Supabase client
           const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
           const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
           
@@ -118,60 +116,90 @@ serve(async (req) => {
     // Use service role key to bypass RLS
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log("Fetching user roles for user ID:", userId);
+    console.log("Checking user permissions for user ID:", userId);
     
-    // Try direct RPC function first (most reliable approach)
-    try {
-      const { data: adminStatus, error: adminError } = await adminClient.rpc('direct_admin_check', { 
-        user_id_param: userId 
-      });
+    // First check if the user is a system admin or admin
+    const { data: systemAdminStatus, error: systemAdminError } = await adminClient.rpc('check_system_admin_role', { 
+      user_id_param: userId 
+    });
+    
+    const { data: adminStatus, error: adminError } = await adminClient.rpc('direct_admin_check', { 
+      user_id_param: userId 
+    });
+    
+    if (systemAdminError || adminError) {
+      console.error("Error checking admin status:", { systemAdminError, adminError });
+    }
+    
+    const isSystemAdmin = !!systemAdminStatus;
+    const isAdmin = !!adminStatus;
+    
+    console.log("User permissions:", { isSystemAdmin, isAdmin, userId });
+    
+    // If user is system admin or admin, return ALL user roles
+    if (isSystemAdmin || isAdmin) {
+      console.log("User has admin privileges, fetching all user roles");
       
-      if (!adminError) {
-        console.log("Admin check via RPC:", adminStatus);
-      }
-      
-      // Get user roles via direct database query using the service role client
-      const { data: roleRecords, error: getRolesError } = await adminClient
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId);
+      try {
+        // Get all user roles with email information
+        const { data: allUserRoles, error: allRolesError } = await adminClient
+          .from('user_roles')
+          .select(`
+            *,
+            profiles!inner(username, first_name, last_name, business_name)
+          `);
 
-      if (getRolesError) {
-        throw new Error(`Error fetching user roles: ${getRolesError.message}`);
-      }
-
-      console.log(`Successfully fetched ${roleRecords?.length || 0} user roles`);
-      return new Response(
-        JSON.stringify({ 
-          roles: roleRecords || [],
-          adminCheckResult: adminStatus
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    } catch (error) {
-      console.error("Error executing query:", error);
-      
-      // Try fallback if we hit a recursion issue
-      if (error.message?.includes("infinite recursion")) {
-        try {
-          console.log("Using RPC fallback to avoid recursion");
-          const { data: rpcRoles, error: rpcError } = await adminClient
-            .rpc('get_all_user_roles_by_id', { user_id_param: userId });
-            
-          if (rpcError) {
-            throw rpcError;
-          }
-          
-          console.log(`Successfully fetched ${rpcRoles?.length || 0} user roles via RPC`);
-          return new Response(
-            JSON.stringify({ roles: rpcRoles || [] }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        } catch (rpcFallbackError) {
-          console.error("RPC fallback failed:", rpcFallbackError);
-          throw rpcFallbackError;
+        if (allRolesError) {
+          console.error("Error fetching all user roles:", allRolesError);
+          throw new Error(`Error fetching all user roles: ${allRolesError.message}`);
         }
-      } else {
+
+        // Transform the data to include email from profiles
+        const rolesWithEmails = allUserRoles.map(role => ({
+          ...role,
+          email: role.profiles?.username || null
+        }));
+
+        console.log(`Successfully fetched ${rolesWithEmails?.length || 0} user roles for admin`);
+        return new Response(
+          JSON.stringify({ 
+            roles: rolesWithEmails || [],
+            adminCheckResult: true,
+            isSystemAdmin,
+            isAdmin
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error executing admin query:", error);
+        throw error;
+      }
+    } else {
+      // For regular users, only return their own roles
+      console.log("Regular user, fetching only their roles");
+      
+      try {
+        const { data: userRoles, error: userRolesError } = await adminClient
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (userRolesError) {
+          throw new Error(`Error fetching user roles: ${userRolesError.message}`);
+        }
+
+        console.log(`Successfully fetched ${userRoles?.length || 0} user roles`);
+        return new Response(
+          JSON.stringify({ 
+            roles: userRoles || [],
+            adminCheckResult: false,
+            isSystemAdmin: false,
+            isAdmin: false
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error executing user query:", error);
         throw error;
       }
     }

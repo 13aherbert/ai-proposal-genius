@@ -294,7 +294,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       throw new Error('Authentication required');
     }
     
-    console.log("Calling edge function to get user roles with emails");
+    console.log("Calling edge function to get all user roles");
     const { data: userRolesData, error: userRolesError } = await withRetry<EdgeFunctionResponse>(
       () => supabase.functions.invoke('get-user-roles', {
         headers: {
@@ -311,6 +311,11 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     }
     
     console.log("User roles data from edge function:", userRolesData);
+    
+    if (!userRolesData || !userRolesData.roles || !Array.isArray(userRolesData.roles)) {
+      console.error("Invalid response from edge function:", userRolesData);
+      throw new Error("Invalid response from user roles service");
+    }
     
     const { data: profiles, error: profileError } = await supabase
       .from('profiles')
@@ -347,53 +352,60 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       });
     }
 
+    // Process roles data - group by user ID
     const userRolesMap = new Map<string, UserRole[]>();
+    const userEmailsMap = new Map<string, string>();
     
-    // Process the roles data from the edge function
-    if (userRolesData && userRolesData.roles && Array.isArray(userRolesData.roles)) {
-      userRolesData.roles.forEach((record: any) => {
-        const userId = record.user_id;
-        
-        // Get the user's roles
-        const existing = userRolesMap.get(userId) || [];
-        if (record.role === 'admin' || record.role === 'beta_tester' || record.role === 'user' || record.role === 'system_admin') {
-          existing.push(record.role as UserRole);
-          userRolesMap.set(userId, existing);
-        }
-      });
-    }
+    userRolesData.roles.forEach((record: any) => {
+      const userId = record.user_id;
+      
+      // Store email if available
+      if (record.email) {
+        userEmailsMap.set(userId, record.email);
+      }
+      
+      // Get the user's roles
+      const existing = userRolesMap.get(userId) || [];
+      if (record.role && ['admin', 'beta_tester', 'user', 'system_admin'].includes(record.role)) {
+        existing.push(record.role as UserRole);
+        userRolesMap.set(userId, existing);
+      }
+    });
 
-    console.log("Processed user subscriptions:", Object.fromEntries(userSubscriptionMap));
+    console.log("Processed user roles map:", Object.fromEntries(userRolesMap));
+    console.log("Processed user emails map:", Object.fromEntries(userEmailsMap));
 
     // Build the final user profiles array
     const userProfiles: UserProfile[] = [];
     
-    // Process each profile
-    if (profiles && Array.isArray(profiles)) {
-      profiles.forEach(profile => {
-        const roles = userRolesMap.get(profile.profile_id) || [];
-        const subscription = userSubscriptionMap.get(profile.profile_id);
-        const email = profile.username || ''; // Use username as email fallback
-        
-        // Only include users who have at least one role (to avoid orphaned profiles)
-        if (roles.length > 0) {
-          userProfiles.push({
-            userId: profile.profile_id,
-            email: email,
-            firstName: profile.first_name || null,
-            lastName: profile.last_name || null,
-            businessName: profile.business_name || null,
-            roles: roles,
-            subscription: subscription ? {
-              plan: subscription.plan_type,
-              status: subscription.status
-            } : null,
-            createdAt: profile.created_at,
-            lastSignIn: null
-          });
-        }
+    // Get all unique user IDs from roles
+    const allUserIds = new Set(userRolesMap.keys());
+    
+    // Process each user that has roles
+    allUserIds.forEach(userId => {
+      const roles = userRolesMap.get(userId) || [];
+      const subscription = userSubscriptionMap.get(userId);
+      
+      // Try to find profile, or use email from roles if profile doesn't exist
+      const profile = profiles?.find(p => p.profile_id === userId);
+      const email = profile?.username || userEmailsMap.get(userId) || '';
+      
+      // Create user profile entry
+      userProfiles.push({
+        userId: userId,
+        email: email,
+        firstName: profile?.first_name || null,
+        lastName: profile?.last_name || null,
+        businessName: profile?.business_name || null,
+        roles: roles,
+        subscription: subscription ? {
+          plan: subscription.plan_type,
+          status: subscription.status
+        } : null,
+        createdAt: profile?.created_at || new Date().toISOString(),
+        lastSignIn: null
       });
-    }
+    });
     
     console.log("Final user profiles:", userProfiles);
     return userProfiles;

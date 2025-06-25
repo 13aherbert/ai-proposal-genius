@@ -30,7 +30,6 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
       .from("projects")
       .select("*")
       .eq("project_id", projectId)
-      .eq("user_id", userId)
       .single();
 
     if (error) {
@@ -43,7 +42,7 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
       throw new Error("Project not found");
     }
 
-    console.log("Project data retrieved:", data);
+    console.log("Project data retrieved successfully:", data);
     return data as Project;
   } catch (error) {
     if (attempt < MAX_RETRIES) {
@@ -68,7 +67,11 @@ export function useProjectDetails(projectId: string | undefined, user: User | nu
         return await fetchProjectWithRetry(projectId, user.id);
       } catch (error) {
         console.error("Failed to fetch project details:", error);
-        toast.error("Failed to load project details");
+        if (error instanceof Error && error.message.includes("infinite recursion")) {
+          toast.error("Database configuration error - please contact support");
+        } else {
+          toast.error("Failed to load project details");
+        }
         throw error;
       }
     },

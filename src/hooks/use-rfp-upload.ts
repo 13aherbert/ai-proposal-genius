@@ -153,17 +153,6 @@ export const useRFPUpload = () => {
     setUploadProgress(0);
     
     try {
-      // Get user's current organization
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('current_organization_id')
-        .eq('profile_id', session.user.id)
-        .single();
-
-      if (profileError || !profile?.current_organization_id) {
-        throw new Error('No organization found. Please contact support.');
-      }
-
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 7);
       const fileName = `${timestamp}-${randomId}-${file.name}`;
@@ -191,7 +180,6 @@ export const useRFPUpload = () => {
       const newProject = {
         project_id: uuidv4(),
         user_id: session.user.id,
-        organization_id: profile.current_organization_id,
         title: file.name.replace(/\.[^/.]+$/, ""),
         status: "draft",
         rfp_file_path: fileName,

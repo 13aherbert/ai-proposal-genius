@@ -48,7 +48,6 @@ export const useEntryForm = (onSuccess: () => void) => {
 
   const createKnowledgeEntry = async (
     userId: string,
-    organizationId: string,
     data: EntryFormData,
     filePath?: string
   ): Promise<string> => {
@@ -60,7 +59,6 @@ export const useEntryForm = (onSuccess: () => void) => {
         category: data.category.toLowerCase().replace(/\s+/g, '-'),
         file_path: filePath || null,
         user_id: userId,
-        organization_id: organizationId,
       })
       .select('entry_id')
       .single();
@@ -77,17 +75,6 @@ export const useEntryForm = (onSuccess: () => void) => {
     setIsSubmitting(true);
 
     try {
-      // Get user's current organization
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('current_organization_id')
-        .eq('profile_id', userId)
-        .single();
-
-      if (profileError || !profile?.current_organization_id) {
-        throw new Error('No organization found. Please contact support.');
-      }
-
       let filePath: string | undefined;
       
       if (formData.uploadMode === 'file' && formData.selectedFile) {
@@ -98,7 +85,7 @@ export const useEntryForm = (onSuccess: () => void) => {
         );
       }
 
-      await createKnowledgeEntry(userId, profile.current_organization_id, formData, filePath);
+      await createKnowledgeEntry(userId, formData, filePath);
 
       toast.success("Entry created successfully");
       onSuccess();

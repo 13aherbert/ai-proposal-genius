@@ -16,22 +16,10 @@ const Dashboard = () => {
   const { recentActivity, isLoading } = useRecentActivity(session?.user ?? null);
 
   const handleActivityClick = (activity: { type: 'project' | 'knowledge', id: string }) => {
-    try {
-      if (activity.type === 'project') {
-        navigate(`/projects/${activity.id}`);
-      } else {
-        navigate('/knowledge-base');
-      }
-    } catch (error) {
-      console.error("Navigation error:", error);
-    }
-  };
-
-  const handleQuickActionClick = (path: string) => {
-    try {
-      navigate(path);
-    } catch (error) {
-      console.error("Navigation error:", error);
+    if (activity.type === 'project') {
+      navigate(`/projects/${activity.id}`);
+    } else {
+      navigate('/knowledge-base');
     }
   };
 
@@ -70,7 +58,7 @@ const Dashboard = () => {
                 icon={action.icon}
                 title={action.title}
                 description={action.description}
-                onClick={() => handleQuickActionClick(action.path)}
+                onClick={() => navigate(action.path)}
               />
             ))}
           </div>

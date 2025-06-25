@@ -18,9 +18,6 @@ export const useRecentActivity = (user: User | null) => {
       }
 
       try {
-        console.log("Fetching recent activity for user:", user.id);
-
-        // Fetch projects with simpler query
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
           .select('project_id, title, created_at, last_update_at')
@@ -28,12 +25,8 @@ export const useRecentActivity = (user: User | null) => {
           .order('last_update_at', { ascending: false })
           .limit(5);
 
-        if (projectsError) {
-          console.error("Projects query error:", projectsError);
-          throw projectsError;
-        }
+        if (projectsError) throw projectsError;
 
-        // Fetch knowledge entries with simpler query
         const { data: entries, error: entriesError } = await supabase
           .from('knowledge_entries')
           .select('entry_id, title, created_at')
@@ -41,10 +34,7 @@ export const useRecentActivity = (user: User | null) => {
           .order('created_at', { ascending: false })
           .limit(3);
 
-        if (entriesError) {
-          console.error("Knowledge entries query error:", entriesError);
-          // Don't throw error for knowledge entries - just continue with empty array
-        }
+        if (entriesError) throw entriesError;
 
         const activities: RecentActivity[] = [
           ...(projects?.map(p => {
@@ -66,20 +56,17 @@ export const useRecentActivity = (user: User | null) => {
         ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 5);
 
-        console.log("Recent activity fetched successfully:", activities.length, "items");
         setRecentActivity(activities);
       } catch (error: any) {
         console.error('Error fetching recent activity:', error);
-        // Only show toast for actual errors, not "no rows" situations
-        if (error.message && !error.message.includes('contains 0 rows') && !error.message.includes('No rows found')) {
+        // Don't show toast for "no rows" errors which are expected for new users
+        if (error.message && !error.message.includes('contains 0 rows')) {
           toast({
             variant: "destructive",
             title: "Error",
             description: "Failed to load recent activity"
           });
         }
-        // Set empty array on error so component can still render
-        setRecentActivity([]);
       } finally {
         setIsLoading(false);
       }

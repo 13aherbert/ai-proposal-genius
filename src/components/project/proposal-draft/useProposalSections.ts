@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,24 +174,12 @@ export function useProposalSections(projectId: string) {
         throw new Error("No authenticated user");
       }
 
-      // Get user's current organization
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('current_organization_id')
-        .eq('profile_id', session.user.id)
-        .single();
-
-      if (profileError || !profile?.current_organization_id) {
-        throw new Error('No organization found. Please contact support.');
-      }
-
       const { data, error } = await supabase
         .from("proposal_sections")
         .insert({
           project_id: projectId,
           section_title: title,
           user_id: session.user.id,
-          organization_id: profile.current_organization_id,
         })
         .select()
         .single();

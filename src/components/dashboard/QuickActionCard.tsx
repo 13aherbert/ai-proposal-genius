@@ -1,27 +1,59 @@
 
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 interface QuickActionCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
-  onClick: () => void;
+  href?: string;
+  variant?: 'primary' | 'secondary';
+  onClick?: () => void;
 }
 
-export function QuickActionCard({ icon: Icon, title, description, onClick }: QuickActionCardProps) {
+export function QuickActionCard({ 
+  icon: Icon, 
+  title, 
+  description, 
+  href, 
+  variant = 'secondary',
+  onClick 
+}: QuickActionCardProps) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (href) {
+      navigate(href);
+    }
+  };
+
   return (
     <Card
-      className="bg-black/30 backdrop-blur-sm border-brand-silver hover:bg-black/40 transition-colors cursor-pointer overflow-hidden h-full"
-      onClick={onClick}
+      className={`cursor-pointer hover:shadow-md transition-all duration-200 overflow-hidden h-full ${
+        variant === 'primary' 
+          ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
+          : 'bg-card hover:bg-muted/50'
+      }`}
+      onClick={handleClick}
     >
       <CardContent className="p-5">
         <div className="flex items-start space-x-4">
-          <div className="bg-brand-green/20 p-3 rounded-full">
-            <Icon className="h-6 w-6 text-brand-green" />
+          <div className={`p-3 rounded-full ${
+            variant === 'primary' 
+              ? 'bg-primary/20' 
+              : 'bg-muted'
+          }`}>
+            <Icon className={`h-6 w-6 ${
+              variant === 'primary' 
+                ? 'text-primary' 
+                : 'text-foreground'
+            }`} />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-lg text-white mb-0.5">
+            <h3 className="font-semibold text-lg mb-0.5">
               {title}
             </h3>
             <p className="text-muted-foreground text-sm">

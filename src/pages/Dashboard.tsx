@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
-import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import DashboardLayout from "@/layouts/DashboardLayout";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
 import { BetaProgramCard } from "@/components/dashboard/BetaProgramCard";
@@ -10,14 +10,17 @@ import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
 import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Database, Users, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 
 export default function Dashboard() {
   const { session } = useAuth();
   const { profileData } = useProfile();
+  const navigate = useNavigate();
   const [dashboardStats, setDashboardStats] = useState({
     projectCount: 0,
     knowledgeCount: 0,
@@ -25,6 +28,8 @@ export default function Dashboard() {
     hasKnowledgeEntries: false
   });
   const [isNewUser, setIsNewUser] = useState(false);
+  
+  const { activities, loading: activitiesLoading } = useRecentActivity();
 
   useEffect(() => {
     if (session?.user) {
@@ -74,6 +79,14 @@ export default function Dashboard() {
     profileData.last_name && 
     profileData.business_name
   );
+
+  const handleActivityClick = (activity: any) => {
+    if (activity.type === 'project') {
+      navigate(`/project/${activity.id}`);
+    } else if (activity.type === 'knowledge') {
+      navigate('/knowledge-base');
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -138,7 +151,14 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Activity */}
-            <RecentActivityList />
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Recent Activity</h2>
+              <RecentActivityList 
+                activities={activities}
+                isLoading={activitiesLoading}
+                onActivityClick={handleActivityClick}
+              />
+            </div>
           </div>
 
           {/* Right Column - Sidebar */}

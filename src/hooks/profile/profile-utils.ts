@@ -12,7 +12,7 @@ export const fetchProfileFromSupabase = async (userId: string) => {
   console.log("Executing Supabase query to fetch profile");
   return await supabase
     .from('profiles')
-    .select('username, first_name, last_name, business_name, birthday, industry')
+    .select('username, first_name, last_name, business_name, birthday, industry, organization_size, use_case, job_title, onboarding_segment')
     .eq('profile_id', userId)
     .maybeSingle();
 };
@@ -31,7 +31,11 @@ export const createProfileInSupabase = async (userId: string, email: string | un
       last_name: '',
       business_name: '',
       birthday: null,
-      industry: null
+      industry: null,
+      organization_size: null,
+      use_case: null,
+      job_title: null,
+      onboarding_segment: null
     });
   
   console.log("Profile creation result:", { error, data });
@@ -51,7 +55,11 @@ export const createProfileInSupabase = async (userId: string, email: string | un
     last_name: "",
     business_name: "",
     birthday: "",
-    industry: ""
+    industry: "",
+    organization_size: "",
+    use_case: "",
+    job_title: "",
+    onboarding_segment: ""
   };
 };
 
@@ -69,7 +77,11 @@ export const updateProfileInSupabase = async (userId: string, profileData: Profi
       last_name: profileData.last_name || null,
       business_name: profileData.business_name || null,
       birthday: profileData.birthday || null,
-      industry: profileData.industry as any || null
+      industry: profileData.industry as any || null,
+      organization_size: profileData.organization_size as any || null,
+      use_case: profileData.use_case as any || null,
+      job_title: profileData.job_title || null,
+      onboarding_segment: profileData.onboarding_segment || null
     })
     .eq('profile_id', userId);
 

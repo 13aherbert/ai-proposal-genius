@@ -6,6 +6,10 @@ export interface ProfileData {
   business_name: string;
   birthday: string;
   industry?: string;
+  organization_size?: string;
+  use_case?: string;
+  job_title?: string;
+  onboarding_segment?: string;
 }
 
 export interface UseProfileReturn {

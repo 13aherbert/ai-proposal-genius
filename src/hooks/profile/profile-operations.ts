@@ -20,7 +20,11 @@ export const useProfileOperations = (
     last_name: "",
     business_name: "",
     birthday: "",
-    industry: ""
+    industry: "",
+    organization_size: "",
+    use_case: "",
+    job_title: "",
+    onboarding_segment: ""
   });
   const [initialValues, setInitialValues] = useState<ProfileData>({
     username: "",
@@ -28,7 +32,11 @@ export const useProfileOperations = (
     last_name: "",
     business_name: "",
     birthday: "",
-    industry: ""
+    industry: "",
+    organization_size: "",
+    use_case: "",
+    job_title: "",
+    onboarding_segment: ""
   });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +146,11 @@ export const useProfileOperations = (
           last_name: result.data.last_name || "",
           business_name: result.data.business_name || "",
           birthday: result.data.birthday || "",
-          industry: result.data.industry || ""
+          industry: result.data.industry || "",
+          organization_size: result.data.organization_size || "",
+          use_case: result.data.use_case || "",
+          job_title: result.data.job_title || "",
+          onboarding_segment: result.data.onboarding_segment || ""
         };
         
         setProfileData(profileData);

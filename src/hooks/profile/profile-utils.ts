@@ -69,7 +69,7 @@ export const updateProfileInSupabase = async (userId: string, profileData: Profi
       last_name: profileData.last_name || null,
       business_name: profileData.business_name || null,
       birthday: profileData.birthday || null,
-      industry: profileData.industry || null
+      industry: profileData.industry as any || null
     })
     .eq('profile_id', userId);
 

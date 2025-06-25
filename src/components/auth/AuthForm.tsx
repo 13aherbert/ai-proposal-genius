@@ -10,9 +10,13 @@ import { toast } from "sonner";
 import { EnhancedSignupForm } from "./onboarding/EnhancedSignupForm";
 import { OnboardingRouter } from "./onboarding/OnboardingRouter";
 
-export function AuthForm() {
+interface AuthFormProps {
+  defaultView?: 'sign_in' | 'sign_up';
+}
+
+export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
   const { session } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(defaultView === 'sign_in');
   const [isLoading, setIsLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [email, setEmail] = useState("");

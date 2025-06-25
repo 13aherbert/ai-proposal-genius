@@ -17,10 +17,11 @@ const INDUSTRIES = [
   { id: "education", name: "Education & Training" },
   { id: "retail", name: "Retail & E-Commerce" },
   { id: "manufacturing", name: "Manufacturing & Industrial" },
-  { id: "legal", name: "Legal Services" },
-  { id: "marketing", name: "Marketing & Advertising" },
+  { id: "consulting", name: "Consulting Services" },
+  { id: "real_estate", name: "Real Estate" },
   { id: "construction", name: "Construction & Engineering" },
-  { id: "hospitality", name: "Hospitality & Tourism" },
+  { id: "government", name: "Government" },
+  { id: "non_profit", name: "Non-Profit" },
   { id: "other", name: "Other Industry" }
 ];
 
@@ -49,7 +50,7 @@ export function IndustryProfileDialog({ open, onOpenChange, onComplete }: Indust
       
       const { error } = await supabase
         .from('profiles')
-        .update({ industry: industryValue })
+        .update({ industry: industryValue as any })
         .eq('profile_id', session.user.id);
 
       if (error) throw error;

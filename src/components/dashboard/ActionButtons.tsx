@@ -24,23 +24,33 @@ export function ActionButtons({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
-    console.log("ActionButtons rendered with props:", { 
-      isCheckingRoles, 
-      showAdminButton, 
-      showBetaBadge, 
-      roleCheckError,
-      timestamp: new Date().toISOString()
-    });
+    if (import.meta.env.DEV) {
+      console.log("ActionButtons rendered with props:", { 
+        isCheckingRoles, 
+        showAdminButton, 
+        showBetaBadge, 
+        roleCheckError,
+        timestamp: new Date().toISOString()
+      });
+    }
   }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
 
   useEffect(() => {
-    if (showBetaBadge) {
+    if (showBetaBadge && import.meta.env.DEV) {
       console.log("🔍 Beta badge should be visible now", {
         showBetaBadge,
         timestamp: new Date().toISOString()
       });
     }
   }, [showBetaBadge]);
+
+  const handleNavigation = (path: string) => {
+    try {
+      navigate(path);
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
+  };
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
@@ -54,7 +64,7 @@ export function ActionButtons({
         <Button 
           variant="outline" 
           className="bg-black/20 border-brand-silver hover:bg-black/40"
-          onClick={() => navigate('/admin')}
+          onClick={() => handleNavigation('/admin')}
         >
           <Shield className="h-5 w-5 mr-2" />
           Admin Dashboard
@@ -70,7 +80,7 @@ export function ActionButtons({
               timestamp: new Date().toISOString(),
               showBetaBadge
             });
-            navigate('/beta');
+            handleNavigation('/beta');
           }}
         >
           <Beaker className="h-5 w-5 mr-2" />
@@ -115,7 +125,7 @@ export function ActionButtons({
                 variant="ghost" 
                 size="icon"
                 className="h-9 w-9 rounded-full"
-                onClick={() => navigate('/docs')}
+                onClick={() => handleNavigation('/docs')}
               >
                 <Book className="h-5 w-5" />
               </Button>
@@ -131,7 +141,7 @@ export function ActionButtons({
                 variant="ghost" 
                 size="icon"
                 className="h-9 w-9 rounded-full"
-                onClick={() => navigate('/account-settings')}
+                onClick={() => handleNavigation('/account-settings')}
               >
                 <Settings className="h-5 w-5" />
               </Button>
@@ -143,7 +153,6 @@ export function ActionButtons({
         </div>
       </TooltipProvider>
       
-      {/* Render the feedback dialog */}
       <UserFeedbackDialog
         open={feedbackOpen}
         onOpenChange={setFeedbackOpen}

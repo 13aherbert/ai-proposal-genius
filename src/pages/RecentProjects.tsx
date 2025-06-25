@@ -83,7 +83,7 @@ export default function RecentProjects() {
     <div className="container py-10 space-y-8">
       <ProjectsToolbar 
         canCreateProject={canCreateProject}
-        displayProjectLimit={projectLimit || 3}
+        displayProjectLimit={projectLimit}
         projectCount={projectCount}
         isSubscriptionLoading={false}
         onRefresh={handleManualRefresh}
@@ -101,7 +101,7 @@ export default function RecentProjects() {
           pagination={pagination}
         />
       ) : (
-        <ProjectsEmptyState projectLimit={projectLimit || 3} />
+        <ProjectsEmptyState projectLimit={projectLimit} />
       )}
     </div>
   );

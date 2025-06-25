@@ -29,9 +29,6 @@ export function useProjects(user: User | null) {
   
   console.log("useProjects - Hook called with user:", user?.id);
   
-  // Get project limit with fallback
-  const projectLimit = getProjectLimit() || 3;
-  
   const fetchProjects = useCallback(async ({ currentPage, pageSize, userId }: { 
     currentPage: number;
     pageSize: number;
@@ -40,10 +37,6 @@ export function useProjects(user: User | null) {
     try {
       console.log("fetchProjects - Starting fetch for user:", userId);
       console.log("fetchProjects - Pagination:", { currentPage, pageSize });
-      
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
 
       const { count, error: countError } = await supabase
         .from("projects")
@@ -104,7 +97,7 @@ export function useProjects(user: User | null) {
     queryFn: async () => {
       if (!user?.id) {
         console.log("useProjects - Query skipped: No user ID");
-        return [];
+        return { data: [], totalCount: 0 };
       }
       
       console.log("useProjects - Executing query for user:", user.id);
@@ -114,12 +107,12 @@ export function useProjects(user: User | null) {
         userId: user.id 
       });
       setTotalCount(result.totalCount);
-      return result.data;
+      return result;
     },
     enabled: !!user?.id,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
-    staleTime: 30000, // Reduced from 60000
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 10000,
     gcTime: 300000,
   });
 
@@ -129,8 +122,11 @@ export function useProjects(user: User | null) {
     }
   }, [error]);
 
-  const projects = projectsData || [];
+  const projects = projectsData?.data || [];
   const projectCount = totalCount;
+  
+  // Get project limit separately - don't block the main query
+  const projectLimit = getProjectLimit();
   const canCreateProject = projectCount < projectLimit;
 
   console.log("useProjects - Current state:", {

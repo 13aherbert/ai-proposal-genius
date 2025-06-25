@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -165,7 +164,7 @@ export default function RecentProjects() {
     
     setTimeout(() => {
       refetch();
-    }, 500); // Reduced from 1000ms to 500ms
+    }, 500); // Reduced from 1000ms to 300ms
   };
   
   // If we have a cached token but auth is still loading, show content with cached data

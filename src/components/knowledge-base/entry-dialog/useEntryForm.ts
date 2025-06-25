@@ -51,6 +51,17 @@ export const useEntryForm = (onSuccess: () => void) => {
     data: EntryFormData,
     filePath?: string
   ): Promise<string> => {
+    // Get user's current organization
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('current_organization_id')
+      .eq('profile_id', userId)
+      .single();
+
+    if (!profile?.current_organization_id) {
+      throw new Error('User organization not found');
+    }
+
     const { error: insertError, data: insertData } = await supabase
       .from('knowledge_entries')
       .insert({
@@ -59,6 +70,7 @@ export const useEntryForm = (onSuccess: () => void) => {
         category: data.category.toLowerCase().replace(/\s+/g, '-'),
         file_path: filePath || null,
         user_id: userId,
+        organization_id: profile.current_organization_id,
       })
       .select('entry_id')
       .single();

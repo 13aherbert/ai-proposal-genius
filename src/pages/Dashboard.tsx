@@ -88,94 +88,92 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <DashboardHeader />
-        
-        {/* Show segmented welcome for new users or those with minimal activity */}
-        {(isNewUser || (!dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries)) && (
-          <SegmentedWelcome
-            firstName={profileData.first_name}
-            organizationSize={profileData.organization_size as OrganizationSize}
-            useCase={profileData.use_case as UseCase}
-            industry={profileData.industry}
-          />
-        )}
+    <div className="space-y-6">
+      <DashboardHeader />
+      
+      {/* Show segmented welcome for new users or those with minimal activity */}
+      {(isNewUser || (!dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries)) && (
+        <SegmentedWelcome
+          firstName={profileData.first_name}
+          organizationSize={profileData.organization_size as OrganizationSize}
+          useCase={profileData.use_case as UseCase}
+          industry={profileData.industry}
+        />
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Feature Spotlight for new users */}
-            {isNewUser && (
-              <FeatureSpotlight
-                organizationSize={profileData.organization_size as OrganizationSize}
-                useCase={profileData.use_case as UseCase}
-              />
-            )}
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <QuickActionCard
-                title="Upload New RFP"
-                description="Start a new proposal project"
-                icon={FileText}
-                href="/upload-rfp"
-                variant="primary"
-              />
-              <QuickActionCard
-                title="Knowledge Base"
-                description="Manage your content library"
-                icon={Database}
-                href="/knowledge-base"
-                variant="secondary"
-              />
-              {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && (
-                <>
-                  <QuickActionCard
-                    title="Team Collaboration"
-                    description="Work with your team"
-                    icon={Users}
-                    href="/projects"
-                    variant="secondary"
-                  />
-                  <QuickActionCard
-                    title="Analytics"
-                    description="Track your success"
-                    icon={BarChart3}
-                    href="/projects"
-                    variant="secondary"
-                  />
-                </>
-              )}
-            </div>
-
-            {/* Recent Activity */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Recent Activity</h2>
-              <RecentActivityList 
-                activities={recentActivity}
-                isLoading={activitiesLoading}
-                onActivityClick={handleActivityClick}
-              />
-            </div>
-          </div>
-
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Onboarding Progress */}
-            <OnboardingProgress
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Feature Spotlight for new users */}
+          {isNewUser && (
+            <FeatureSpotlight
               organizationSize={profileData.organization_size as OrganizationSize}
               useCase={profileData.use_case as UseCase}
-              hasProjects={dashboardStats.hasProjects}
-              hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
-              profileComplete={profileComplete}
             />
+          )}
 
-            {/* Beta Program Card - Show for all users but customize message */}
-            <BetaProgramCard />
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <QuickActionCard
+              title="Upload New RFP"
+              description="Start a new proposal project"
+              icon={FileText}
+              href="/upload-rfp"
+              variant="primary"
+            />
+            <QuickActionCard
+              title="Knowledge Base"
+              description="Manage your content library"
+              icon={Database}
+              href="/knowledge-base"
+              variant="secondary"
+            />
+            {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && (
+              <>
+                <QuickActionCard
+                  title="Team Collaboration"
+                  description="Work with your team"
+                  icon={Users}
+                  href="/projects"
+                  variant="secondary"
+                />
+                <QuickActionCard
+                  title="Analytics"
+                  description="Track your success"
+                  icon={BarChart3}
+                  href="/projects"
+                  variant="secondary"
+                />
+              </>
+            )}
+          </div>
+
+          {/* Recent Activity */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Recent Activity</h2>
+            <RecentActivityList 
+              activities={recentActivity}
+              isLoading={activitiesLoading}
+              onActivityClick={handleActivityClick}
+            />
           </div>
         </div>
+
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Onboarding Progress */}
+          <OnboardingProgress
+            organizationSize={profileData.organization_size as OrganizationSize}
+            useCase={profileData.use_case as UseCase}
+            hasProjects={dashboardStats.hasProjects}
+            hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
+            profileComplete={profileComplete}
+          />
+
+          {/* Beta Program Card - Show for all users but customize message */}
+          <BetaProgramCard />
+        </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

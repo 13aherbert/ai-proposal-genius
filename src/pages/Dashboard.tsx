@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -29,7 +28,7 @@ export default function Dashboard() {
   });
   const [isNewUser, setIsNewUser] = useState(false);
   
-  const { activities, loading: activitiesLoading } = useRecentActivity();
+  const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
 
   useEffect(() => {
     if (session?.user) {
@@ -154,7 +153,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Recent Activity</h2>
               <RecentActivityList 
-                activities={activities}
+                activities={recentActivity}
                 isLoading={activitiesLoading}
                 onActivityClick={handleActivityClick}
               />

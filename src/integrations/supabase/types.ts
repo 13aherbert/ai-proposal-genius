@@ -452,10 +452,16 @@ export type Database = {
           created_at: string
           current_organization_id: string | null
           first_name: string | null
-          industry: string | null
+          industry: Database["public"]["Enums"]["industry_type"] | null
+          job_title: string | null
           last_name: string | null
+          onboarding_segment: string | null
+          organization_size:
+            | Database["public"]["Enums"]["organization_size_type"]
+            | null
           profile_id: string
           updated_at: string
+          use_case: Database["public"]["Enums"]["use_case_type"] | null
           username: string | null
         }
         Insert: {
@@ -465,10 +471,16 @@ export type Database = {
           created_at?: string
           current_organization_id?: string | null
           first_name?: string | null
-          industry?: string | null
+          industry?: Database["public"]["Enums"]["industry_type"] | null
+          job_title?: string | null
           last_name?: string | null
+          onboarding_segment?: string | null
+          organization_size?:
+            | Database["public"]["Enums"]["organization_size_type"]
+            | null
           profile_id: string
           updated_at?: string
+          use_case?: Database["public"]["Enums"]["use_case_type"] | null
           username?: string | null
         }
         Update: {
@@ -478,10 +490,16 @@ export type Database = {
           created_at?: string
           current_organization_id?: string | null
           first_name?: string | null
-          industry?: string | null
+          industry?: Database["public"]["Enums"]["industry_type"] | null
+          job_title?: string | null
           last_name?: string | null
+          onboarding_segment?: string | null
+          organization_size?:
+            | Database["public"]["Enums"]["organization_size_type"]
+            | null
           profile_id?: string
           updated_at?: string
+          use_case?: Database["public"]["Enums"]["use_case_type"] | null
           username?: string | null
         }
         Relationships: [
@@ -1016,6 +1034,24 @@ export type Database = {
       }
     }
     Enums: {
+      industry_type:
+        | "technology"
+        | "healthcare"
+        | "finance"
+        | "education"
+        | "manufacturing"
+        | "retail"
+        | "consulting"
+        | "real_estate"
+        | "construction"
+        | "government"
+        | "non_profit"
+        | "other"
+      organization_size_type:
+        | "solo"
+        | "small_team"
+        | "enterprise"
+        | "white_label"
       subscription_status:
         | "trialing"
         | "active"
@@ -1024,6 +1060,13 @@ export type Database = {
         | "incomplete_expired"
         | "past_due"
         | "unpaid"
+      use_case_type:
+        | "rfp_response"
+        | "proposal_management"
+        | "team_collaboration"
+        | "enterprise_solution"
+        | "white_label_integration"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1139,6 +1182,26 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      industry_type: [
+        "technology",
+        "healthcare",
+        "finance",
+        "education",
+        "manufacturing",
+        "retail",
+        "consulting",
+        "real_estate",
+        "construction",
+        "government",
+        "non_profit",
+        "other",
+      ],
+      organization_size_type: [
+        "solo",
+        "small_team",
+        "enterprise",
+        "white_label",
+      ],
       subscription_status: [
         "trialing",
         "active",
@@ -1147,6 +1210,14 @@ export const Constants = {
         "incomplete_expired",
         "past_due",
         "unpaid",
+      ],
+      use_case_type: [
+        "rfp_response",
+        "proposal_management",
+        "team_collaboration",
+        "enterprise_solution",
+        "white_label_integration",
+        "other",
       ],
     },
   },

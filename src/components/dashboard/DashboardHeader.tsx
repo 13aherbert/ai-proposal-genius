@@ -70,7 +70,7 @@ export default function DashboardHeader() {
     }
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
   return <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-      <CardContent className="p-40 md:p-6 ">
+      <CardContent className="p-4 md:p-6 ">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <WelcomeMessage />
           

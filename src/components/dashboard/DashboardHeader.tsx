@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
@@ -19,22 +20,20 @@ import { useSubscription } from "@/hooks/subscription";
  * - Showing beta dashboard button for beta testers
  */
 export default function DashboardHeader() {
-  const {
-    isLoading,
-    error
-  } = useSubscriptionFeatures();
+  const { isLoading, error } = useSubscriptionFeatures();
   const subscriptionData = useSubscription();
-  const {
-    isCheckingRoles,
-    showAdminButton,
-    showBetaBadge,
+  const { 
+    isCheckingRoles, 
+    showAdminButton, 
+    showBetaBadge, 
     roleCheckError,
     isBetaTester,
     isAdmin,
     forceRoleCheck
   } = useUserRoles();
+  
   const hasCheckedRoles = useRef(false);
-
+  
   // Only force a check once on initial render
   useEffect(() => {
     if (!hasCheckedRoles.current) {
@@ -44,7 +43,7 @@ export default function DashboardHeader() {
       hasCheckedRoles.current = true;
     }
   }, [forceRoleCheck]);
-
+  
   // Log subscription states in development
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -55,7 +54,7 @@ export default function DashboardHeader() {
       });
     }
   }, [subscriptionData.subscription, subscriptionData.hasCheckedSubscription]);
-
+  
   // Log role states in development
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -69,13 +68,21 @@ export default function DashboardHeader() {
       });
     }
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
-  return <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-      <CardContent className="p-4 md:p-60 ">
+
+  return (
+    <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
+      <CardContent className="p-4 md:p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <WelcomeMessage />
           
-          <ActionButtons isCheckingRoles={isCheckingRoles} showAdminButton={showAdminButton} showBetaBadge={showBetaBadge} roleCheckError={roleCheckError} />
+          <ActionButtons 
+            isCheckingRoles={isCheckingRoles}
+            showAdminButton={showAdminButton}
+            showBetaBadge={showBetaBadge}
+            roleCheckError={roleCheckError}
+          />
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 }

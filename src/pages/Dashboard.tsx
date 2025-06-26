@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -16,10 +15,13 @@ import { FileText, Database, Users, BarChart3, FolderOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
-
 export default function Dashboard() {
-  const { session } = useAuth();
-  const { profileData } = useProfile();
+  const {
+    session
+  } = useAuth();
+  const {
+    profileData
+  } = useProfile();
   const navigate = useNavigate();
   const [dashboardStats, setDashboardStats] = useState({
     projectCount: 0,
@@ -29,45 +31,40 @@ export default function Dashboard() {
   });
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
-  
-  const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
-
+  const {
+    recentActivity,
+    isLoading: activitiesLoading
+  } = useRecentActivity(session?.user || null);
   useEffect(() => {
     if (session?.user) {
       // Check if user is new (created within last 24 hours)
       const userCreatedAt = new Date(session.user.created_at);
       const now = new Date();
-      const isNew = (now.getTime() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000;
+      const isNew = now.getTime() - userCreatedAt.getTime() < 24 * 60 * 60 * 1000;
       setIsNewUser(isNew);
 
       // Check tutorial completion status
       const tutorialCompleted = localStorage.getItem('tutorial_completed') === 'true';
       setHasCompletedTutorial(tutorialCompleted);
-
       fetchDashboardStats();
     }
   }, [session]);
-
   const fetchDashboardStats = async () => {
     if (!session?.user?.id) return;
-
     try {
       // Fetch project count
-      const { data: projects, error: projectError } = await supabase
-        .from('projects')
-        .select('project_id')
-        .eq('user_id', session.user.id);
-
+      const {
+        data: projects,
+        error: projectError
+      } = await supabase.from('projects').select('project_id').eq('user_id', session.user.id);
       if (projectError) throw projectError;
 
       // Fetch knowledge entries count
-      const { data: knowledge, error: knowledgeError } = await supabase
-        .from('knowledge_entries')
-        .select('entry_id')
-        .eq('user_id', session.user.id);
-
+      const {
+        data: knowledge,
+        error: knowledgeError
+      } = await supabase.from('knowledge_entries').select('entry_id').eq('user_id', session.user.id);
       if (knowledgeError) throw knowledgeError;
-
       setDashboardStats({
         projectCount: projects?.length || 0,
         knowledgeCount: knowledge?.length || 0,
@@ -78,13 +75,7 @@ export default function Dashboard() {
       console.error('Error fetching dashboard stats:', error);
     }
   };
-
-  const profileComplete = !!(
-    profileData.first_name && 
-    profileData.last_name && 
-    profileData.business_name
-  );
-
+  const profileComplete = !!(profileData.first_name && profileData.last_name && profileData.business_name);
   const handleActivityClick = (activity: any) => {
     if (activity.type === 'project') {
       navigate(`/project/${activity.id}`);
@@ -92,19 +83,15 @@ export default function Dashboard() {
       navigate('/knowledge-base');
     }
   };
-
   const handleTutorialComplete = () => {
     localStorage.setItem('tutorial_completed', 'true');
     setHasCompletedTutorial(true);
   };
 
   // Solo user detection - show solo dashboard for individual users or new users
-  const isSoloUser = profileData.organization_size === 'individual' || 
-                     (isNewUser && !dashboardStats.hasProjects);
-
+  const isSoloUser = profileData.organization_size === 'individual' || isNewUser && !dashboardStats.hasProjects;
   if (isSoloUser) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <DashboardHeader />
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -115,40 +102,15 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {/* Quick Actions with tour targets - Full width with padding */}
                 <div className="w-full px-4 flex gap-4 justify-between">
-                  <QuickActionCard
-                    title="Upload New RFP"
-                    description="Start a new proposal project"
-                    icon={FileText}
-                    href="/upload-rfp"
-                    variant="primary"
-                    data-tour="upload-rfp"
-                  />
-                  <QuickActionCard
-                    title="View All Projects"
-                    description="Manage your existing projects"
-                    icon={FolderOpen}
-                    href="/projects"
-                    variant="secondary"
-                    data-tour="projects"
-                  />
-                  <QuickActionCard
-                    title="Knowledge Base"
-                    description="Manage your content library"
-                    icon={Database}
-                    href="/knowledge-base"
-                    variant="secondary"
-                    data-tour="knowledge-base"
-                  />
+                  <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
+                  <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
+                  <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
                 </div>
 
                 {/* Recent Activity with tour target */}
                 <div className="space-y-4" data-tour="recent-activity">
                   <h2 className="text-xl font-semibold">Recent Activity</h2>
-                  <RecentActivityList 
-                    activities={recentActivity}
-                    isLoading={activitiesLoading}
-                    onActivityClick={handleActivityClick}
-                  />
+                  <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
                 </div>
               </div>
             </div>
@@ -160,120 +122,57 @@ export default function Dashboard() {
             <div className="h-32"></div>
             
             {/* Onboarding Progress */}
-            <OnboardingProgress
-              organizationSize={profileData.organization_size as OrganizationSize}
-              useCase={profileData.use_case as UseCase}
-              hasProjects={dashboardStats.hasProjects}
-              hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
-              profileComplete={profileComplete}
-            />
+            <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 
             {/* Beta Program Card */}
             <BetaProgramCard />
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Regular dashboard for team/enterprise users
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <DashboardHeader />
       
       {/* Show segmented welcome for new users or those with minimal activity */}
-      {(isNewUser || (!dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries)) && (
-        <SegmentedWelcome
-          firstName={profileData.first_name}
-          organizationSize={profileData.organization_size as OrganizationSize}
-          useCase={profileData.use_case as UseCase}
-          industry={profileData.industry}
-        />
-      )}
+      {(isNewUser || !dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries) && <SegmentedWelcome firstName={profileData.first_name} organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} industry={profileData.industry} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Main Content */}
         <div className="lg:col-span-3 space-y-6">
           {/* Feature Spotlight for new users */}
-          {isNewUser && (
-            <FeatureSpotlight
-              organizationSize={profileData.organization_size as OrganizationSize}
-              useCase={profileData.use_case as UseCase}
-            />
-          )}
+          {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
           {/* Quick Actions - Full width with padding */}
           <div className="w-full px-4 flex gap-4 justify-between">
-            <QuickActionCard
-              title="Upload New RFP"
-              description="Start a new proposal project"
-              icon={FileText}
-              href="/upload-rfp"
-              variant="primary"
-            />
-            <QuickActionCard
-              title="View All Projects"
-              description="Manage your existing projects"
-              icon={FolderOpen}
-              href="/projects"
-              variant="secondary"
-            />
-            <QuickActionCard
-              title="Knowledge Base"
-              description="Manage your content library"
-              icon={Database}
-              href="/knowledge-base"
-              variant="secondary"
-            />
-            {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && (
-              <>
-                <QuickActionCard
-                  title="Team Collaboration"
-                  description="Work with your team"
-                  icon={Users}
-                  href="/projects"
-                  variant="secondary"
-                />
-                <QuickActionCard
-                  title="Analytics"
-                  description="Track your success"
-                  icon={BarChart3}
-                  href="/projects"
-                  variant="secondary"
-                />
-              </>
-            )}
+            <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
+            <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
+            <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
+            {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && <>
+                <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
+                <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
+              </>}
           </div>
 
           {/* Recent Activity */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Recent Activity</h2>
-            <RecentActivityList 
-              activities={recentActivity}
-              isLoading={activitiesLoading}
-              onActivityClick={handleActivityClick}
-            />
+            <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
           </div>
         </div>
 
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Empty space to align with Recent Activity section */}
-          <div className="h-32"></div>
+          
           
           {/* Onboarding Progress */}
-          <OnboardingProgress
-            organizationSize={profileData.organization_size as OrganizationSize}
-            useCase={profileData.use_case as UseCase}
-            hasProjects={dashboardStats.hasProjects}
-            hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
-            profileComplete={profileComplete}
-          />
+          <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 
           {/* Beta Program Card */}
           <BetaProgramCard />
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }

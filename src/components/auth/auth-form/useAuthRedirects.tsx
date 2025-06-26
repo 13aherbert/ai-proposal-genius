@@ -107,9 +107,10 @@ export const useAuthRedirects = () => {
         // If there's a beta invite code, redirect to the beta page
         const storedInvite = sessionStorage.getItem('beta_invite_code');
         if (storedInvite) {
-          navigate(`/beta?invite=${storedInvite}`);
+          // Use window.location for navigation when outside router context
+          window.location.href = `/beta?invite=${storedInvite}`;
         } else {
-          navigate("/");
+          window.location.href = "/";
         }
       }
       if (event === "PASSWORD_RECOVERY") {
@@ -157,19 +158,32 @@ export const useAuthRedirects = () => {
       const inviteCode = storedInvite || inviteParam;
       console.log('Redirecting to beta program with invite code:', inviteCode);
       
-      // Redirect to beta page with invite code
-      navigate(`/beta?invite=${inviteCode}`);
+      // Use navigate when inside router context
+      try {
+        navigate(`/beta?invite=${inviteCode}`);
+      } catch (e) {
+        // Fallback to window.location if navigate fails
+        window.location.href = `/beta?invite=${inviteCode}`;
+      }
     } else {
       // Check if we have a redirect path stored
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
       if (redirectPath) {
         console.log("Redirecting to stored path:", redirectPath);
         sessionStorage.removeItem('redirectAfterLogin');
-        navigate(redirectPath);
+        try {
+          navigate(redirectPath);
+        } catch (e) {
+          window.location.href = redirectPath;
+        }
         toast.success("Successfully logged in");
       } else {
         console.log("Redirecting to dashboard (default)");
-        navigate("/dashboard");
+        try {
+          navigate("/dashboard");
+        } catch (e) {
+          window.location.href = "/dashboard";
+        }
         toast.success("Successfully logged in");
       }
     }

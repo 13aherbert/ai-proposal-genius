@@ -39,6 +39,11 @@ export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
 
       if (error) throw error;
       toast.success("Signed in successfully!");
+      
+      // Use window.location for reliable redirect after login
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1000);
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || "An error occurred during login");

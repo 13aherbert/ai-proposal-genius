@@ -15,7 +15,6 @@ import { FileText, Database, Users, BarChart3, FolderOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
-
 export default function Dashboard() {
   const {
     session
@@ -170,7 +169,7 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Activity */}
-          <div className="space-y-4 pl-4">
+          <div className="space-y-4 pl-40 ">
             <h2 className="text-xl font-semibold">Recent Activity</h2>
             <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
           </div>

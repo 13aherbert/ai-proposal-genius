@@ -102,9 +102,15 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {/* Quick Actions with tour targets - Full width with padding */}
                 <div className="w-screen flex gap-4 justify-between px-4">
-                  <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
-                  <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
-                  <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
+                  <div className="flex-1">
+                    <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
+                  </div>
+                  <div className="flex-1">
+                    <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
+                  </div>
+                  <div className="flex-1">
+                    <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
+                  </div>
                 </div>
 
                 {/* Recent Activity with tour target */}
@@ -146,12 +152,22 @@ export default function Dashboard() {
 
           {/* Quick Actions - Full width with padding */}
           <div className="w-screen flex gap-4 justify-between px-4">
-            <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
-            <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
-            <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
+            <div className="flex-1">
+              <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
+            </div>
+            <div className="flex-1">
+              <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
+            </div>
+            <div className="flex-1">
+              <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
+            </div>
             {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && <>
-                <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
-                <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
+                <div className="flex-1">
+                  <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
+                </div>
+                <div className="flex-1">
+                  <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
+                </div>
               </>}
           </div>
 

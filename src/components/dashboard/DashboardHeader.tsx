@@ -71,7 +71,7 @@ export default function DashboardHeader() {
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
   return <div className="mt-3 flex justify-center">
       <Card className="bg-brand-green border-0 w-full max-w-4xl">
-        <CardContent className="p-1 md:p-4">
+        <CardContent className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <WelcomeMessage />
             

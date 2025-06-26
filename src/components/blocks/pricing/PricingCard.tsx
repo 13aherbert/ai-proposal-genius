@@ -42,6 +42,23 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const { subscription } = useSubscription();
 
   const handleSubscribe = async () => {
+    // Handle free trial selection
+    if (plan.name === "Free Trial" || plan.price === "0") {
+      if (session) {
+        toast.success("You're all set with the free plan!", {
+          description: "Continue exploring and upgrade when you're ready"
+        });
+        navigate('/dashboard');
+      } else {
+        // For non-authenticated users, store the selection and trigger signup
+        localStorage.setItem('selected_plan', JSON.stringify({
+          planType: 'free',
+          isMonthly
+        }));
+      }
+      return;
+    }
+
     if (!session) {
       localStorage.setItem('selected_plan', JSON.stringify({
         priceId: isMonthly ? plan.priceId?.monthly : plan.priceId?.annual,
@@ -128,6 +145,15 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           </span>
         </div>
       )}
+      
+      {plan.name === "Free Trial" && (
+        <div className="absolute top-0 left-0 bg-blue-500 py-0.5 px-2 rounded-br-xl rounded-tl-xl">
+          <span className="text-white text-xs font-semibold">
+            No Credit Card
+          </span>
+        </div>
+      )}
+      
       <div className="flex-1 flex flex-col">
         <p className="text-base font-semibold text-[#F1F0FB]">
           {plan.name}
@@ -150,7 +176,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               className="font-variant-numeric: tabular-nums"
             />
           </span>
-          {plan.period !== "Next 3 months" && (
+          {plan.period !== "Forever" && plan.period !== "Next 3 months" && (
             <span className="text-sm font-semibold leading-6 tracking-wide text-[#C8C8C9]">
               / {isMonthly ? "month" : "year"}
             </span>
@@ -158,7 +184,8 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </div>
 
         <p className="text-xs leading-5 text-[#C8C8C9]">
-          {isMonthly ? "billed monthly" : "billed annually"}
+          {plan.period === "Forever" ? "Always free" : 
+           isMonthly ? "billed monthly" : "billed annually"}
         </p>
 
         <ul className="mt-5 gap-2 flex flex-col">
@@ -183,6 +210,8 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
               plan.isPopular
                 ? "bg-[#34D399] text-white"
+                : plan.name === "Free Trial"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-[#f3f3f3] text-[#4B4F54]"
             )}
           >
@@ -200,10 +229,12 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
                   "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
                   plan.isPopular
                     ? "bg-[#34D399] text-white"
+                    : plan.name === "Free Trial"
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
                     : "bg-[#f3f3f3] text-[#4B4F54]"
                 )}
               >
-                Sign Up
+                {plan.name === "Free Trial" ? "Start Free" : "Sign Up"}
               </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">

@@ -3,23 +3,24 @@ import { Pricing } from "./pricing";
 
 const plans = [
   {
-    name: "Trial",
+    name: "Free Trial",
     price: "0",
     yearlyPrice: "0",
-    period: "Next 3 months",
+    period: "Forever",
     features: [
       "Process up to 3 Projects",
       "AI RFP Summary",
       "AI Proposal Outline",
-      "AI Proposal Draft",
+      "Basic AI Proposal Draft",
+      "Email support",
     ],
-    description: "No credit card required",
-    buttonText: "Start Free Trial",
-    href: "/signup",
+    description: "Perfect for getting started - no credit card required",
+    buttonText: "Continue with Free",
+    href: "/dashboard",
     isPopular: false,
     priceId: {
-      monthly: "prod_Rn5PqfqaiB7u3T",
-      annual: "prod_Rn5PqfqaiB7u3T"
+      monthly: "",
+      annual: ""
     }
   },
   {
@@ -56,7 +57,7 @@ const plans = [
       "Advanced AI Proposal Draft",
       "Compiled Draft Preview",
       "AI Proposal Evaluation",
-      "24-hour support response time",
+      "Priority support response time",
       "Email support",
     ],
     description: "Best for growing businesses",
@@ -74,8 +75,8 @@ export function PricingDemo() {
   return (
     <Pricing
       plans={plans}
-      title="Simple, Transparent Pricing"
-      description="Choose the plan that works for you"
+      title="Choose Your Plan"
+      description="Start free and upgrade when you're ready for more features"
     />
   );
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -604,26 +603,37 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Choose an Upgrade Option</AlertDialogTitle>
+                  <AlertDialogTitle>Choose an Option</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Select a plan to upgrade your subscription.
+                    You can upgrade to unlock more features, or continue with your current plan.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="grid gap-4 py-4">
                   {currentPlanType === 'trial' && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Starter Plan</h3>
-                      <p className="text-sm text-muted-foreground">Get access to basic features</p>
-                      <UpgradeButton 
-                        currentPlan={subscription} 
-                        targetPlan="starter" 
-                        variant="monthly" 
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Keep Free Plan</h3>
+                        <p className="text-sm text-muted-foreground">Continue with 3 projects and basic features - no cost</p>
+                        <UpgradeButton 
+                          currentPlan={subscription} 
+                          targetPlan="trial" 
+                          variant="monthly" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Starter Plan</h3>
+                        <p className="text-sm text-muted-foreground">Get access to 10 projects and enhanced features</p>
+                        <UpgradeButton 
+                          currentPlan={subscription} 
+                          targetPlan="starter" 
+                          variant="monthly" 
+                        />
+                      </div>
+                    </>
                   )}
                   <div className="space-y-2">
                     <h3 className="font-medium">Pro Plan</h3>
-                    <p className="text-sm text-muted-foreground">Get access to all premium features</p>
+                    <p className="text-sm text-muted-foreground">Get access to all premium features with 30 projects</p>
                     <UpgradeButton 
                       currentPlan={subscription} 
                       targetPlan="pro" 

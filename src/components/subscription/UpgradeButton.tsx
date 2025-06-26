@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -15,7 +14,7 @@ const PRICE_IDS = {
 
 interface UpgradeButtonProps {
   currentPlan: SubscriptionPlan | null;
-  targetPlan: 'starter' | 'pro';
+  targetPlan: 'starter' | 'pro' | 'trial';
   variant?: 'monthly' | 'annual';
 }
 
@@ -26,15 +25,30 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
     if (targetPlan === 'starter') {
       return variant === 'monthly' ? PRICE_IDS.starterMonthly : PRICE_IDS.starterAnnual;
     }
-    return variant === 'monthly' ? PRICE_IDS.proMonthly : PRICE_IDS.proAnnual;
+    if (targetPlan === 'pro') {
+      return variant === 'monthly' ? PRICE_IDS.proMonthly : PRICE_IDS.proAnnual;
+    }
+    return null; // For trial plan
   };
 
   const handleUpgrade = async () => {
+    if (targetPlan === 'trial') {
+      // For keeping the trial, just show a success message and close any modal
+      toast.success("Great! You can continue using the free plan", {
+        description: "You can upgrade anytime when you're ready for more features"
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       toast.loading("Processing your request...");
 
       const priceId = getPriceId();
+      if (!priceId) {
+        throw new Error('Invalid plan selected');
+      }
+      
       console.log(`Upgrading to ${targetPlan} (${variant}) with price ID: ${priceId}`);
       
       // Use the createCheckoutSession function from our actions
@@ -73,22 +87,27 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const isCurrentPlan = currentPlan?.plan_type === targetPlan;
   const isUpgradeDisabled = isLoading || isCurrentPlan;
 
+  const getButtonText = () => {
+    if (isLoading) return "Processing...";
+    if (isCurrentPlan) return "Current Plan";
+    if (targetPlan === 'trial') return "Continue with Free Plan";
+    return `Upgrade to ${targetPlan}`;
+  };
+
   return (
     <Button 
       onClick={handleUpgrade} 
       disabled={isUpgradeDisabled}
       className="w-full"
-      variant={isCurrentPlan ? "outline" : "default"}
+      variant={isCurrentPlan ? "outline" : targetPlan === 'trial' ? "outline" : "default"}
     >
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Processing...
         </>
-      ) : isCurrentPlan ? (
-        "Current Plan"
       ) : (
-        `Upgrade to ${targetPlan}`
+        getButtonText()
       )}
     </Button>
   );

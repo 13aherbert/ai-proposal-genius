@@ -316,18 +316,8 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       console.error("Invalid response from edge function:", userRolesData);
       throw new Error("Invalid response from user roles service");
     }
-    
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('*');
 
-    if (profileError) {
-      console.error('Error fetching profiles:', profileError);
-      throw new Error(profileError.message || 'Failed to fetch user profiles');
-    }
-
-    console.log("Fetched profiles:", profiles);
-
+    // Get subscription data
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
@@ -354,14 +344,19 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 
     // Process roles data - group by user ID
     const userRolesMap = new Map<string, UserRole[]>();
-    const userEmailsMap = new Map<string, string>();
+    const userProfileMap = new Map<string, any>();
     
     userRolesData.roles.forEach((record: any) => {
       const userId = record.user_id;
       
-      // Store email if available
-      if (record.email) {
-        userEmailsMap.set(userId, record.email);
+      // Store profile info if available
+      if (record.email || record.first_name || record.last_name || record.business_name) {
+        userProfileMap.set(userId, {
+          email: record.email,
+          first_name: record.first_name,
+          last_name: record.last_name,
+          business_name: record.business_name
+        });
       }
       
       // Get the user's roles
@@ -373,7 +368,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     });
 
     console.log("Processed user roles map:", Object.fromEntries(userRolesMap));
-    console.log("Processed user emails map:", Object.fromEntries(userEmailsMap));
+    console.log("Processed user profile map:", Object.fromEntries(userProfileMap));
 
     // Build the final user profiles array
     const userProfiles: UserProfile[] = [];
@@ -385,15 +380,12 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     allUserIds.forEach(userId => {
       const roles = userRolesMap.get(userId) || [];
       const subscription = userSubscriptionMap.get(userId);
-      
-      // Try to find profile, or use email from roles if profile doesn't exist
-      const profile = profiles?.find(p => p.profile_id === userId);
-      const email = profile?.username || userEmailsMap.get(userId) || '';
+      const profile = userProfileMap.get(userId);
       
       // Create user profile entry
       userProfiles.push({
         userId: userId,
-        email: email,
+        email: profile?.email || '',
         firstName: profile?.first_name || null,
         lastName: profile?.last_name || null,
         businessName: profile?.business_name || null,
@@ -402,7 +394,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
           plan: subscription.plan_type,
           status: subscription.status
         } : null,
-        createdAt: profile?.created_at || new Date().toISOString(),
+        createdAt: new Date().toISOString(), // We don't have this from the edge function
         lastSignIn: null
       });
     });

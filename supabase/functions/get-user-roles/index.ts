@@ -141,29 +141,51 @@ serve(async (req) => {
       console.log("User has admin privileges, fetching all user roles");
       
       try {
-        // Get all user roles with email information
+        // First, get all user roles
         const { data: allUserRoles, error: allRolesError } = await adminClient
           .from('user_roles')
-          .select(`
-            *,
-            profiles!inner(username, first_name, last_name, business_name)
-          `);
+          .select('*');
 
         if (allRolesError) {
           console.error("Error fetching all user roles:", allRolesError);
           throw new Error(`Error fetching all user roles: ${allRolesError.message}`);
         }
 
-        // Transform the data to include email from profiles
-        const rolesWithEmails = allUserRoles.map(role => ({
-          ...role,
-          email: role.profiles?.username || null
-        }));
+        console.log(`Fetched ${allUserRoles?.length || 0} user roles`);
 
-        console.log(`Successfully fetched ${rolesWithEmails?.length || 0} user roles for admin`);
+        // Get all unique user IDs from roles
+        const userIds = [...new Set(allUserRoles?.map(role => role.user_id) || [])];
+        console.log(`Found ${userIds.length} unique users with roles`);
+
+        // Now fetch profile information for all these users
+        const { data: profiles, error: profilesError } = await adminClient
+          .from('profiles')
+          .select('profile_id, username, first_name, last_name, business_name')
+          .in('profile_id', userIds);
+
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          throw new Error(`Error fetching profiles: ${profilesError.message}`);
+        }
+
+        console.log(`Fetched ${profiles?.length || 0} profiles`);
+
+        // Combine the data by adding email from profiles to user roles
+        const rolesWithEmails = (allUserRoles || []).map(role => {
+          const profile = profiles?.find(p => p.profile_id === role.user_id);
+          return {
+            ...role,
+            email: profile?.username || null,
+            first_name: profile?.first_name || null,
+            last_name: profile?.last_name || null,
+            business_name: profile?.business_name || null
+          };
+        });
+
+        console.log(`Successfully processed ${rolesWithEmails.length} user roles with profile data for admin`);
         return new Response(
           JSON.stringify({ 
-            roles: rolesWithEmails || [],
+            roles: rolesWithEmails,
             adminCheckResult: true,
             isSystemAdmin,
             isAdmin

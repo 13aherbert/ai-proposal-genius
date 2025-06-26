@@ -39,7 +39,7 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
       });
 
       if (error) throw error;
-      toast.success("Signed in successfully!");
+      // Removed duplicate success toast - AuthProvider handles this
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || "An error occurred during login");

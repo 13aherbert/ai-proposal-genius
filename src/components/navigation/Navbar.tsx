@@ -34,6 +34,9 @@ export function Navbar() {
                 <Link to="/knowledge-base" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                   Knowledge Base
                 </Link>
+                <Link to="/white-label" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                  White Label
+                </Link>
               </nav>
             )}
           </div>

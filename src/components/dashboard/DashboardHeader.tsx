@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WelcomeMessage } from "./WelcomeMessage";
@@ -69,13 +70,18 @@ export default function DashboardHeader() {
       });
     }
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
-  return <Card className="bg-black/30 backdrop-blur-sm border-brand-silver">
-      <CardContent className="p-4 md:p-6 ">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <WelcomeMessage />
-          
-          <ActionButtons isCheckingRoles={isCheckingRoles} showAdminButton={showAdminButton} showBetaBadge={showBetaBadge} roleCheckError={roleCheckError} />
-        </div>
-      </CardContent>
-    </Card>;
+  
+  return (
+    <div className="mt-6 flex justify-center">
+      <Card className="bg-brand-green border-0 w-full max-w-4xl">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <WelcomeMessage />
+            
+            <ActionButtons isCheckingRoles={isCheckingRoles} showAdminButton={showAdminButton} showBetaBadge={showBetaBadge} roleCheckError={roleCheckError} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

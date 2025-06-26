@@ -28,15 +28,12 @@ class ErrorBoundary extends Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    console.error("ErrorBoundary caught error:", error);
+  static getDerivedStateFromError(_: Error): State {
     // Update state so the next render will show the fallback UI
-    return { hasError: true, error: error, errorInfo: null };
+    return { hasError: true, error: _, errorInfo: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary componentDidCatch:", error, errorInfo);
-    
     // Track the error
     this.errorService.captureError({
       message: `Error in ${this.props.name || 'unknown component'}: ${error.message}`,
@@ -44,9 +41,7 @@ class ErrorBoundary extends Component<Props, State> {
       context: {
         componentStack: errorInfo.componentStack,
         errorStack: error.stack,
-        componentName: this.props.name,
-        errorName: error.name,
-        errorMessage: error.message
+        componentName: this.props.name
       },
       timestamp: new Date()
     });
@@ -59,7 +54,6 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
-    console.log("ErrorBoundary reset requested");
     this.setState({
       hasError: false,
       error: null,
@@ -100,15 +94,8 @@ class ErrorBoundary extends Component<Props, State> {
             An error occurred while rendering this part of the application.
           </p>
           {this.state.error && (
-            <div className="mt-4 max-w-full overflow-auto rounded bg-muted p-4 text-left text-xs">
-              <p className="font-mono text-destructive mb-2">
-                <strong>Error:</strong> {this.state.error.name}: {this.state.error.message}
-              </p>
-              {this.state.error.stack && (
-                <pre className="font-mono text-destructive text-xs whitespace-pre-wrap">
-                  {this.state.error.stack.substring(0, 500)}...
-                </pre>
-              )}
+            <div className="mt-4 max-w-full overflow-auto rounded bg-muted p-2 text-left text-xs">
+              <p className="font-mono text-destructive">{this.state.error.toString()}</p>
             </div>
           )}
           <div className="mt-6 flex space-x-2">

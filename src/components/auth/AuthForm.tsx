@@ -15,116 +15,97 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
-  console.log("AuthForm rendering with defaultView:", defaultView);
-  
-  try {
-    const { session } = useAuth();
-    const [isLogin, setIsLogin] = useState(defaultView === 'sign_in');
-    const [isLoading, setIsLoading] = useState(false);
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+  const { session } = useAuth();
+  const [isLogin, setIsLogin] = useState(defaultView === 'sign_in');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-    console.log("AuthForm state:", { isLogin, isLoading, showOnboarding, hasSession: !!session });
+  // If user just signed up, show onboarding
+  if (showOnboarding && session) {
+    return <OnboardingRouter />;
+  }
 
-    // If user just signed up, show onboarding
-    if (showOnboarding && session) {
-      console.log("AuthForm showing onboarding");
-      return <OnboardingRouter />;
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      toast.success("Signed in successfully!");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || "An error occurred during login");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const handleLogin = async (e: React.FormEvent) => {
-      e.preventDefault();
-      console.log("AuthForm handleLogin called");
-      setIsLoading(true);
+  const handleSignupSuccess = () => {
+    setShowOnboarding(true);
+  };
 
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-        toast.success("Signed in successfully!");
-        
-        // Use window.location for reliable redirect after login
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 1000);
-      } catch (error: any) {
-        console.error('Login error:', error);
-        toast.error(error.message || "An error occurred during login");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const handleSignupSuccess = () => {
-      console.log("AuthForm handleSignupSuccess called");
-      setShowOnboarding(true);
-    };
-
-    if (!isLogin) {
-      console.log("AuthForm rendering signup form");
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-          <EnhancedSignupForm
-            onSuccess={handleSignupSuccess}
-            onSwitchToLogin={() => setIsLogin(true)}
-          />
-        </div>
-      );
-    }
-
-    console.log("AuthForm rendering login form");
+  if (!isLogin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>Sign in to your account</CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <Button variant="link" onClick={() => setIsLogin(false)}>
-                Don't have an account? Sign up
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <EnhancedSignupForm
+          onSuccess={handleSignupSuccess}
+          onSwitchToLogin={() => setIsLogin(true)}
+        />
       </div>
     );
-  } catch (error) {
-    console.error("Error in AuthForm component:", error);
-    throw error;
   }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle>Welcome Back</CardTitle>
+          <CardDescription>Sign in to your account</CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Button variant="link" onClick={() => setIsLogin(false)}>
+              Don't have an account? Sign up
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

@@ -122,11 +122,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Empty space to align with Recent Activity section */}
-            <div className="h-32"></div>
-            
+          {/* Right Column - Sidebar with reduced height */}
+          <div className="space-y-4 mt-32">
             {/* Onboarding Progress */}
             <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 
@@ -178,11 +175,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
-        <div className="space-y-6">
-          {/* Empty space to align with Recent Activity section */}
-          <div className="h-32"></div>
-          
+        {/* Right Column - Sidebar with reduced height */}
+        <div className="space-y-4 mt-32">
           {/* Onboarding Progress */}
           <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 

@@ -156,6 +156,9 @@ export default function Dashboard() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
+            {/* Empty space to align with Recent Activity section */}
+            <div className="h-32"></div>
+            
             {/* Onboarding Progress */}
             <OnboardingProgress
               organizationSize={profileData.organization_size as OrganizationSize}
@@ -255,6 +258,9 @@ export default function Dashboard() {
 
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
+          {/* Empty space to align with Recent Activity section */}
+          <div className="h-32"></div>
+          
           {/* Onboarding Progress */}
           <OnboardingProgress
             organizationSize={profileData.organization_size as OrganizationSize}

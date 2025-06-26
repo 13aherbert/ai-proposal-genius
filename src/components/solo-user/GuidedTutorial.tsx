@@ -24,7 +24,7 @@ export function GuidedTutorial({ steps, onComplete, onSkip }: GuidedTutorialProp
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, index } = data;
     
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
       if (status === STATUS.FINISHED) {
         onComplete();

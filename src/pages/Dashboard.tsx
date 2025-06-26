@@ -11,7 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Database, Users, BarChart3 } from "lucide-react";
+import { FileText, Database, Users, BarChart3, FolderOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
@@ -120,6 +120,13 @@ export default function Dashboard() {
               icon={FileText}
               href="/upload-rfp"
               variant="primary"
+            />
+            <QuickActionCard
+              title="View All Projects"
+              description="Manage your existing projects"
+              icon={FolderOpen}
+              href="/projects"
+              variant="secondary"
             />
             <QuickActionCard
               title="Knowledge Base"

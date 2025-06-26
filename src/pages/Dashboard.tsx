@@ -113,8 +113,8 @@ export default function Dashboard() {
             <div className="space-y-6" data-tour="solo-dashboard">
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
-                {/* Quick Actions with tour targets - Changed to 3 columns */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Quick Actions with tour targets - Full width with padding */}
+                <div className="w-full px-4 flex gap-4 justify-between">
                   <QuickActionCard
                     title="Upload New RFP"
                     description="Start a new proposal project"
@@ -202,8 +202,8 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Quick Actions - Changed to 3 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Quick Actions - Full width with padding */}
+          <div className="w-full px-4 flex gap-4 justify-between">
             <QuickActionCard
               title="Upload New RFP"
               description="Start a new proposal project"

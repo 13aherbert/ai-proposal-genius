@@ -101,7 +101,7 @@ export default function Dashboard() {
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
                 {/* Quick Actions with tour targets - Full width with padding */}
-                <div className="w-full px-4 flex gap-4 justify-between">
+                <div className="w-screen flex gap-4 justify-between px-4">
                   <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
                   <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
                   <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
@@ -145,7 +145,7 @@ export default function Dashboard() {
           {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
           {/* Quick Actions - Full width with padding */}
-          <div className="w-full px-4 flex gap-4 justify-between">
+          <div className="w-screen flex gap-4 justify-between px-4">
             <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
             <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
             <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
@@ -165,7 +165,7 @@ export default function Dashboard() {
         {/* Right Column - Sidebar */}
         <div className="space-y-6">
           {/* Empty space to align with Recent Activity section */}
-          
+          <div className="h-32"></div>
           
           {/* Onboarding Progress */}
           <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />

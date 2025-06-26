@@ -1,4 +1,3 @@
-
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -69,7 +68,7 @@ const Index = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <AuthForm defaultView="sign_in" />
+              <AuthForm defaultView="sign_in" variant="dialog" />
             </DialogContent>
           </Dialog>
         </div>
@@ -115,7 +114,7 @@ const Index = () => {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
-                  <AuthForm defaultView="sign_up" />
+                  <AuthForm defaultView="sign_up" variant="dialog" />
                 </DialogContent>
               </Dialog>
             </div>

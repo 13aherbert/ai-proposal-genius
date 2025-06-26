@@ -12,9 +12,10 @@ import { OnboardingRouter } from "./onboarding/OnboardingRouter";
 
 interface AuthFormProps {
   defaultView?: 'sign_in' | 'sign_up';
+  variant?: 'page' | 'dialog';
 }
 
-export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
+export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthFormProps) {
   const { session } = useAuth();
   const [isLogin, setIsLogin] = useState(defaultView === 'sign_in');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,9 +52,14 @@ export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
     setShowOnboarding(true);
   };
 
+  // Determine container classes based on variant
+  const containerClasses = variant === 'page' 
+    ? "min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4"
+    : "";
+
   if (!isLogin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className={containerClasses}>
         <EnhancedSignupForm
           onSuccess={handleSignupSuccess}
           onSwitchToLogin={() => setIsLogin(true)}
@@ -63,7 +69,7 @@ export function AuthForm({ defaultView = 'sign_in' }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className={containerClasses}>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
           <CardTitle>Welcome Back</CardTitle>

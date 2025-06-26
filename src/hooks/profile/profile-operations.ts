@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ProfileData } from "./types";
 import { 
@@ -8,6 +9,7 @@ import {
 } from "./profile-utils";
 import { toast } from "sonner";
 import { withRetry } from "@/utils/network";
+import { isNetworkError } from "@/utils/network";
 
 export const useProfileOperations = (
   userId: string | undefined,
@@ -68,9 +70,11 @@ export const useProfileOperations = (
       return newProfile;
     } catch (error) {
       console.error('Error creating profile:', error);
-      toast.error("Failed to create profile", {
-        description: "Please try refreshing the page.",
-      });
+      if (!isNetworkError(error)) {
+        toast.error("Failed to create profile", {
+          description: "Please try refreshing the page.",
+        });
+      }
       throw error;
     }
   }, [userId, userEmail, updateProfileData]);
@@ -78,6 +82,7 @@ export const useProfileOperations = (
   const fetchProfile = useCallback(async () => {
     if (!userId) {
       console.log("No user session available for profile fetch");
+      setIsLoadingProfile(false);
       return;
     }
     
@@ -86,24 +91,22 @@ export const useProfileOperations = (
       return;
     }
     
-    if (lastSuccessfulFetchRef.current && (new Date().getTime() - lastSuccessfulFetchRef.current.getTime() < 10000)) {
-      console.log("Successful fetch was recent, skipping redundant fetch");
+    // If we recently had a successful fetch, don't retry immediately
+    if (lastSuccessfulFetchRef.current && (new Date().getTime() - lastSuccessfulFetchRef.current.getTime() < 30000)) {
+      console.log("Recent successful fetch, skipping redundant fetch");
       setIsLoadingProfile(false);
       setFetchError(null);
       return;
     }
     
-    if (fetchAttemptsRef.current >= 3) {
-      console.log("Maximum retry attempts reached, giving up");
-      if (!profileData.username) {
-        toast.error("Couldn't load profile after multiple attempts", {
-          description: "Please check your connection and try again later."
-        });
-      } else {
-        console.log("Profile data already loaded, not showing error toast");
-        setFetchError(null);
-      }
+    // Limit retry attempts
+    if (fetchAttemptsRef.current >= 2) {
+      console.log("Maximum retry attempts reached");
       setIsLoadingProfile(false);
+      // Only show error if we don't have any profile data loaded
+      if (!profileData.username) {
+        setFetchError("Unable to load profile data. Using default values.");
+      }
       return;
     }
     
@@ -116,8 +119,8 @@ export const useProfileOperations = (
       
       const result = await withRetry(
         async () => fetchProfileFromSupabase(userId),
-        2,
-        3000
+        1, // Only 1 retry to avoid long waits
+        2000 // 2 second timeout
       );
       
       if (!isComponentMounted.current) {
@@ -129,12 +132,15 @@ export const useProfileOperations = (
       
       if (result.error) {
         console.error('Error fetching profile:', result.error);
-        console.log('Error code:', result.error.code);
-        console.log('Error message:', result.error.message);
-        console.log('Error details:', result.error.details);
         
-        const errorMessage = handleProfileError(result.error, isLoadingProfile);
-        setFetchError(errorMessage);
+        // Only show network errors to user, handle others silently
+        if (isNetworkError(result.error)) {
+          const errorMessage = handleProfileError(result.error, isLoadingProfile);
+          setFetchError(errorMessage);
+        } else {
+          console.log("Non-network error, handling silently");
+          setFetchError(null);
+        }
         return;
       }
       
@@ -167,8 +173,17 @@ export const useProfileOperations = (
         return;
       }
       
-      const errorMessage = handleProfileError(error, isLoadingProfile, profileData);
-      setFetchError(errorMessage);
+      console.error("Exception in profile fetch:", error);
+      
+      // Only show network-related errors to user
+      if (isNetworkError(error)) {
+        const errorMessage = handleProfileError(error, isLoadingProfile, profileData);
+        setFetchError(errorMessage);
+      } else {
+        // For non-network errors, log but don't show to user
+        console.log("Non-network error in profile fetch, handling silently");
+        setFetchError(null);
+      }
     } finally {
       if (isComponentMounted.current) {
         setIsLoadingProfile(false);
@@ -206,7 +221,17 @@ export const useProfileOperations = (
       
       return true;
     } catch (error: any) {
-      handleProfileError(error, false);
+      console.error("Error saving profile:", error);
+      
+      if (isNetworkError(error)) {
+        toast.error("Network error while saving", {
+          description: "Please check your connection and try again.",
+        });
+      } else {
+        toast.error("Failed to save profile", {
+          description: "Please try again later.",
+        });
+      }
       return false;
     } finally {
       if (isComponentMounted.current) {
@@ -219,7 +244,7 @@ export const useProfileOperations = (
   const handleRetryFetch = useCallback(() => {
     if (!isFetchingRef.current) {
       console.log("Manually retrying profile fetch");
-      fetchAttemptsRef.current = 0;
+      fetchAttemptsRef.current = 0; // Reset attempts for manual retry
       setFetchError(null);
       fetchProfile();
     } else {

@@ -41,51 +41,67 @@ const queryClient = new QueryClient({
 function App() {
   console.log("App component rendering");
   
-  return (
-    <QueryClientProvider client={queryClient}>
-      <NetworkStatusProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <TooltipProvider>
-              <Toaster />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/set-initial-admin" element={<SetInitialAdmin />} />
-                  <Route path="/beta-invite" element={<BetaInviteRedirect />} />
-                  
-                  {/* Protected Routes */}
-                  <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/projects" element={<RecentProjects />} />
-                    <Route path="/project/:id" element={<ProjectDetails />} />
-                    <Route path="/upload-rfp" element={<UploadRFP />} />
-                    <Route path="/account-settings" element={<AccountSettings />} />
-                    <Route path="/knowledge-base" element={<KnowledgeBase />} />
-                    <Route path="/subscription" element={<Subscription />} />
-                    <Route path="/documentation" element={<Documentation />} />
-                    <Route path="/help" element={<HelpCenter />} />
-                    <Route path="/beta" element={<BetaProgram />} />
-                    <Route path="/beta-roadmap" element={<BetaRoadmap />} />
-                    <Route path="/white-label" element={<WhiteLabelDashboard />} />
+  try {
+    console.log("About to create QueryClientProvider");
+    
+    return (
+      <QueryClientProvider client={queryClient}>
+        {console.log("QueryClientProvider created, creating NetworkStatusProvider")}
+        <NetworkStatusProvider>
+          {console.log("NetworkStatusProvider created, creating AuthProvider")}
+          <AuthProvider>
+            {console.log("AuthProvider created, creating SubscriptionProvider")}
+            <SubscriptionProvider>
+              {console.log("SubscriptionProvider created, creating TooltipProvider")}
+              <TooltipProvider>
+                {console.log("TooltipProvider created, adding Toaster")}
+                <Toaster />
+                {console.log("Toaster added, creating BrowserRouter")}
+                <BrowserRouter>
+                  {console.log("BrowserRouter created, creating Routes")}
+                  <Routes>
+                    {console.log("Routes created, adding route definitions")}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/set-initial-admin" element={<SetInitialAdmin />} />
+                    <Route path="/beta-invite" element={<BetaInviteRedirect />} />
                     
-                    {/* Admin Routes */}
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/users" element={<UserManagementPage />} />
-                    <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
-                  </Route>
-                  
-                  <Route path="/*" element={<Redirects />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </SubscriptionProvider>
-        </AuthProvider>
-      </NetworkStatusProvider>
-    </QueryClientProvider>
-  );
+                    {/* Protected Routes */}
+                    <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/projects" element={<RecentProjects />} />
+                      <Route path="/project/:id" element={<ProjectDetails />} />
+                      <Route path="/upload-rfp" element={<UploadRFP />} />
+                      <Route path="/account-settings" element={<AccountSettings />} />
+                      <Route path="/knowledge-base" element={<KnowledgeBase />} />
+                      <Route path="/subscription" element={<Subscription />} />
+                      <Route path="/documentation" element={<Documentation />} />
+                      <Route path="/help" element={<HelpCenter />} />
+                      <Route path="/beta" element={<BetaProgram />} />
+                      <Route path="/beta-roadmap" element={<BetaRoadmap />} />
+                      <Route path="/white-label" element={<WhiteLabelDashboard />} />
+                      
+                      {/* Admin Routes */}
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin/users" element={<UserManagementPage />} />
+                      <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
+                    </Route>
+                    
+                    <Route path="/*" element={<Redirects />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  {console.log("All routes defined successfully")}
+                </BrowserRouter>
+              </TooltipProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </NetworkStatusProvider>
+      </QueryClientProvider>
+    );
+  } catch (error) {
+    console.error("Error in App component:", error);
+    throw error;
+  }
 }
 
 export default App;

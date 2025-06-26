@@ -32,3 +32,23 @@ export function BetaInviteRedirect() {
     return <Navigate to="/" replace />;
   }
 }
+
+/**
+ * Main redirects component that handles various legacy routes
+ */
+export function Redirects() {
+  const location = useLocation();
+  
+  // Handle /recent-projects redirect
+  if (location.pathname === '/recent-projects') {
+    return <RecentProjectsRedirect />;
+  }
+  
+  // Handle /project/:id redirect to /projects/:id
+  if (location.pathname.startsWith('/project/')) {
+    return <ProjectDetailsRedirect />;
+  }
+  
+  // Default redirect to 404
+  return <Navigate to="/404" replace />;
+}

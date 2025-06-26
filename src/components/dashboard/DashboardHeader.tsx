@@ -69,9 +69,9 @@ export default function DashboardHeader() {
       });
     }
   }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
-  return <div className="mt-6 flex justify-center">
+  return <div className="mt-3 flex justify-center">
       <Card className="bg-brand-green border-0 w-full max-w-4xl">
-        <CardContent className="p-3 md:p-40">
+        <CardContent className="p-3 md:p-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <WelcomeMessage />
             

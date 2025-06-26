@@ -27,6 +27,7 @@ export default function Dashboard() {
     hasKnowledgeEntries: false
   });
   const [isNewUser, setIsNewUser] = useState(false);
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
   
   const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
 
@@ -37,6 +38,10 @@ export default function Dashboard() {
       const now = new Date();
       const isNew = (now.getTime() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000;
       setIsNewUser(isNew);
+
+      // Check tutorial completion status
+      const tutorialCompleted = localStorage.getItem('tutorial_completed') === 'true';
+      setHasCompletedTutorial(tutorialCompleted);
 
       fetchDashboardStats();
     }
@@ -87,6 +92,87 @@ export default function Dashboard() {
     }
   };
 
+  const handleTutorialComplete = () => {
+    localStorage.setItem('tutorial_completed', 'true');
+    setHasCompletedTutorial(true);
+  };
+
+  // Solo user detection - show solo dashboard for individual users or new users
+  const isSoloUser = profileData.organization_size === 'individual' || 
+                     (isNewUser && !dashboardStats.hasProjects);
+
+  if (isSoloUser) {
+    return (
+      <div className="space-y-6">
+        <DashboardHeader />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Solo User Dashboard */}
+          <div className="lg:col-span-2">
+            <div className="space-y-6" data-tour="solo-dashboard">
+              {/* Import and use the SoloUserDashboard component */}
+              <div className="space-y-6">
+                {/* Quick Actions with tour targets */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <QuickActionCard
+                    title="Upload New RFP"
+                    description="Start a new proposal project"
+                    icon={FileText}
+                    href="/upload-rfp"
+                    variant="primary"
+                    data-tour="upload-rfp"
+                  />
+                  <QuickActionCard
+                    title="View All Projects"
+                    description="Manage your existing projects"
+                    icon={FolderOpen}
+                    href="/projects"
+                    variant="secondary"
+                    data-tour="projects"
+                  />
+                  <QuickActionCard
+                    title="Knowledge Base"
+                    description="Manage your content library"
+                    icon={Database}
+                    href="/knowledge-base"
+                    variant="secondary"
+                    data-tour="knowledge-base"
+                  />
+                </div>
+
+                {/* Recent Activity with tour target */}
+                <div className="space-y-4" data-tour="recent-activity">
+                  <h2 className="text-xl font-semibold">Recent Activity</h2>
+                  <RecentActivityList 
+                    activities={recentActivity}
+                    isLoading={activitiesLoading}
+                    onActivityClick={handleActivityClick}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Onboarding Progress */}
+            <OnboardingProgress
+              organizationSize={profileData.organization_size as OrganizationSize}
+              useCase={profileData.use_case as UseCase}
+              hasProjects={dashboardStats.hasProjects}
+              hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
+              profileComplete={profileComplete}
+            />
+
+            {/* Beta Program Card */}
+            <BetaProgramCard />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular dashboard for team/enterprise users
   return (
     <div className="space-y-6">
       <DashboardHeader />
@@ -177,7 +263,7 @@ export default function Dashboard() {
             profileComplete={profileComplete}
           />
 
-          {/* Beta Program Card - Show for all users but customize message */}
+          {/* Beta Program Card */}
           <BetaProgramCard />
         </div>
       </div>

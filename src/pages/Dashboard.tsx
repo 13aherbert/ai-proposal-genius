@@ -92,7 +92,7 @@ export default function Dashboard() {
   // Solo user detection - show solo dashboard for individual users or new users
   const isSoloUser = profileData.organization_size === 'individual' || isNewUser && !dashboardStats.hasProjects;
   if (isSoloUser) {
-    return <div className="space-y-6 px-6">
+    return <div className="space-y-6">
         <DashboardHeader />
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -101,15 +101,21 @@ export default function Dashboard() {
             <div className="space-y-6" data-tour="solo-dashboard">
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
-                {/* Quick Actions with tour targets */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
-                  <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
-                  <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
+                {/* Quick Actions with tour targets - Full width with padding */}
+                <div className="w-screen flex gap-4 justify-between px-4">
+                  <div className="flex-1">
+                    <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
+                  </div>
+                  <div className="flex-1">
+                    <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
+                  </div>
+                  <div className="flex-1">
+                    <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
+                  </div>
                 </div>
 
                 {/* Recent Activity with tour target */}
-                <div className="space-y-4" data-tour="recent-activity">
+                <div className="space-y-4 ml-4" data-tour="recent-activity">
                   <h2 className="text-xl font-semibold">Recent Activity</h2>
                   <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
                 </div>
@@ -117,8 +123,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-4">
+          {/* Right Column - Sidebar with reduced height */}
+          <div className="space-y-4 mt-32">
             {/* Onboarding Progress */}
             <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 
@@ -130,7 +136,7 @@ export default function Dashboard() {
   }
 
   // Regular dashboard for team/enterprise users
-  return <div className="space-y-6 px-6">
+  return <div className="space-y-6">
       <DashboardHeader />
       
       {/* Show segmented welcome for new users or those with minimal activity */}
@@ -142,26 +148,36 @@ export default function Dashboard() {
           {/* Feature Spotlight for new users */}
           {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
-            <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
-            <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
+          {/* Quick Actions - Full width with padding */}
+          <div className="w-screen flex gap-4 justify-between px-4">
+            <div className="flex-1">
+              <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
+            </div>
+            <div className="flex-1">
+              <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
+            </div>
+            <div className="flex-1">
+              <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
+            </div>
             {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && <>
-                <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
-                <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
+                <div className="flex-1">
+                  <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
+                </div>
+                <div className="flex-1">
+                  <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
+                </div>
               </>}
           </div>
 
           {/* Recent Activity */}
-          <div className="space-y-4">
+          <div className="space-y-4 ml-4">
             <h2 className="text-xl font-semibold">Recent Activity</h2>
             <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
-        <div className="space-y-4">
+        {/* Right Column - Sidebar with reduced height */}
+        <div className="space-y-4 mt-32">
           {/* Onboarding Progress */}
           <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -106,14 +107,14 @@ export default function Dashboard() {
       <div className="space-y-6">
         <DashboardHeader />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Solo User Dashboard */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <div className="space-y-6" data-tour="solo-dashboard">
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
-                {/* Quick Actions with tour targets */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Quick Actions with tour targets - Changed to 3 columns */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <QuickActionCard
                     title="Upload New RFP"
                     description="Start a new proposal project"
@@ -187,9 +188,9 @@ export default function Dashboard() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           {/* Feature Spotlight for new users */}
           {isNewUser && (
             <FeatureSpotlight
@@ -198,8 +199,8 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Quick Actions - Changed to 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <QuickActionCard
               title="Upload New RFP"
               description="Start a new proposal project"

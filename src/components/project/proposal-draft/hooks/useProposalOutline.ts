@@ -40,7 +40,15 @@ export function useProposalOutline(projectId: string) {
           .replace(/\*/g, '') // Remove italic markdown
           .trim();
         
-        if (title && title.length > 3 && title.length < 100) {
+        // Filter out proposal outline headers and appendices sections
+        const titleLower = title.toLowerCase();
+        const isProposalHeader = titleLower.includes('proposal outline') || 
+                                titleLower.includes('outline') && titleLower.includes('proposal');
+        const isAppendices = titleLower.includes('appendix') || 
+                            titleLower.includes('appendices') ||
+                            titleLower.includes('appendix');
+        
+        if (title && title.length > 3 && title.length < 100 && !isProposalHeader && !isAppendices) {
           titles.push(title);
         }
       }

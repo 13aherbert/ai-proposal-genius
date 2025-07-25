@@ -29,6 +29,7 @@ export const useRFPUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("");
+  const [rfpFilePath, setRfpFilePath] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
   const storedSubscriptionData = getStoredSubscriptionData();
@@ -211,6 +212,7 @@ export const useRFPUpload = () => {
       
       setProjectId(project.project_id);
       setProjectTitle(project.title);
+      setRfpFilePath(fileName);
       
       setUploadProgress(90);
       
@@ -273,6 +275,7 @@ export const useRFPUpload = () => {
     isUploading,
     projectId,
     projectTitle,
+    rfpFilePath,
     projectLimit,
     currentProjectCount,
     fetchError,

@@ -10,6 +10,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
 import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
+import { AutomatedProposalCreation } from "@/components/project/AutomatedProposalCreation";
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
@@ -26,6 +27,7 @@ const UploadRFP = () => {
     isUploading,
     projectId,
     projectTitle,
+    rfpFilePath,
     projectLimit,
     currentProjectCount,
     fetchError,
@@ -210,6 +212,16 @@ const UploadRFP = () => {
               )}
             </div>
           </div>
+
+          {/* Automated Proposal Creation */}
+          {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
+            <div className="mt-8">
+              <AutomatedProposalCreation 
+                projectId={projectId} 
+                filePath={rfpFilePath} 
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

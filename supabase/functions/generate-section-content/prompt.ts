@@ -46,14 +46,11 @@ For this cost-related section:
    - Maintain any specific payment terms or conditions mentioned
    - Include any volume discounts or special pricing arrangements
 3. If NO cost information is found in existing sections or the knowledge base:
-   - Draw from your knowledge of industry standards and competitive market rates
-   - Consider the project scope and requirements
-   - Propose reasonable cost structures that align with industry practices
-   - Ensure pricing reflects market value while remaining competitive
-   - Include standard payment terms and conditions
-   - DO NOT invent or reference any past projects, clients, or case studies
-   - Only discuss pricing structures and terms in general industry terms
-   - Focus on the specific requirements of THIS project only` : '';
+   - State clearly: "Pricing information is not available in the current knowledge base"
+   - DO NOT create, estimate, or invent any pricing information
+   - DO NOT reference market rates or industry standards
+   - DO NOT provide sample pricing structures
+   - Simply indicate that specific pricing will need to be provided separately` : '';
 
   return `${basePrompt}
 
@@ -90,16 +87,21 @@ STRICT CONTENT GENERATION RULES:
    - Be authoritative and confident in tone
    - Focus entirely on the client's needs and your business's solutions
 
-5. CONTENT REQUIREMENTS:
-   - For non-cost sections: ONLY use real examples and information that exists verbatim in the knowledge base
+5. CONTENT REQUIREMENTS - CRITICAL RULE: NO FAKE INFORMATION:
+   - ONLY use information that exists explicitly in the knowledge base
    - If specific information doesn't exist in the knowledge base:
-     * DO NOT make up examples or content
-     * DO NOT use placeholder text
-     * Simply omit that topic and focus on available information
+     * DO NOT make up examples, statistics, or content
+     * DO NOT use placeholder text or generic statements
+     * DO NOT invent capabilities, services, or features
+     * Simply state: "This information is not available in the current knowledge base"
    - When using knowledge base content:
-     * Copy exact text, numbers, and examples
+     * Copy exact text, numbers, and examples verbatim
      * Make only minimal grammatical adjustments for flow
      * Keep all specific details exactly as they appear
+     * Quote directly from knowledge base entries when possible
+   - If the knowledge base lacks sufficient information for a meaningful section:
+     * Clearly state the limitation rather than fabricating content
+     * Indicate what specific information would be needed
 
 6. CONSISTENCY REQUIREMENTS:
    - Maintain absolute consistency with all existing sections

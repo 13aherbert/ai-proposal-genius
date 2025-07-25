@@ -199,46 +199,37 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         overallProgress: calculateOverallProgress('sections', 0)
       });
 
-      // Extract section titles from outline (reuse existing logic)
+      // Extract section titles from outline using the same logic as the manual process
       const extractSectionTitles = (outline: string): string[] => {
         const lines = outline.split('\n');
         const titles: string[] = [];
         
         for (const line of lines) {
-          const trimmedLine = line.trim();
-          
-          // Skip empty lines
-          if (!trimmedLine) continue;
-          
-          // Skip "Proposal Outline Header" and "appendices" sections
-          if (trimmedLine.toLowerCase().includes('proposal outline header') || 
-              trimmedLine.toLowerCase().includes('appendices')) {
-            continue;
-          }
-          
-          // Match numbered sections (e.g., "1. Introduction", "2.1 Approach")
-          const numberedMatch = trimmedLine.match(/^\d+(?:\.\d+)*\.\s*(.+)$/);
-          if (numberedMatch) {
-            titles.push(numberedMatch[1].trim());
-            continue;
-          }
-          
-          // Match lettered sections (e.g., "A. Introduction", "B.1 Approach") 
-          const letteredMatch = trimmedLine.match(/^[A-Z](?:\.\d+)*\.\s*(.+)$/);
-          if (letteredMatch) {
-            titles.push(letteredMatch[1].trim());
-            continue;
-          }
-          
-          // Match bullet points and other list items
-          const bulletMatch = trimmedLine.match(/^[-•*]\s*(.+)$/);
-          if (bulletMatch) {
-            titles.push(bulletMatch[1].trim());
-            continue;
+          const trimmed = line.trim();
+          // Match markdown headers (# ## ###) and numbered items (1. 2. etc.)
+          if (trimmed.match(/^#{1,3}\s+(.+)/) || trimmed.match(/^\d+\.\s+(.+)/)) {
+            let title = trimmed
+              .replace(/^#{1,3}\s+/, '') // Remove markdown headers
+              .replace(/^\d+\.\s+/, '') // Remove numbered list items
+              .replace(/\*\*/g, '') // Remove bold markdown
+              .replace(/\*/g, '') // Remove italic markdown
+              .trim();
+            
+            // Filter out proposal outline headers and appendices sections
+            const titleLower = title.toLowerCase();
+            const isProposalHeader = titleLower.includes('proposal outline') || 
+                                    titleLower.includes('outline') && titleLower.includes('proposal');
+            const isAppendices = titleLower.includes('appendix') || 
+                                titleLower.includes('appendices') ||
+                                titleLower.includes('appendix');
+            
+            if (title && title.length > 3 && title.length < 100 && !isProposalHeader && !isAppendices) {
+              titles.push(title);
+            }
           }
         }
         
-        return titles.filter(title => title.length > 0);
+        return titles;
       };
 
       const sectionTitles = extractSectionTitles(outline);

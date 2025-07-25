@@ -168,7 +168,7 @@ export function useProposalSections(projectId: string) {
   });
 
   const addSectionMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async ({ title, suppressToast = false }: { title: string; suppressToast?: boolean }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         throw new Error("No authenticated user");
@@ -197,11 +197,13 @@ export function useProposalSections(projectId: string) {
         .single();
 
       if (error) throw error;
-      return data;
+      return { data, suppressToast };
     },
-    onSuccess: () => {
+    onSuccess: ({ data, suppressToast }) => {
       queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
-      toast.success("Section added successfully");
+      if (!suppressToast) {
+        toast.success("Section added successfully");
+      }
       setTimeout(createLocalBackup, 1000);
     },
     onError: (error: Error) => {
@@ -264,7 +266,8 @@ export function useProposalSections(projectId: string) {
     isLoading,
     error,
     localBackups,
-    addSection: (title: string) => addSectionMutation.mutate(title),
+    addSection: (title: string, suppressToast?: boolean) => 
+      addSectionMutation.mutate({ title, suppressToast }),
     updateSection: (sectionId: string, content: string, title: string) =>
       updateSectionMutation.mutate({ sectionId, content, title }),
     reorderSections: (sections: ProposalSection[]) =>

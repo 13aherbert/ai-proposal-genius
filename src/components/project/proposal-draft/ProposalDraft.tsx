@@ -41,11 +41,23 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   };
 
   const handleCreateSections = async (titles: string[]) => {
-    // Create sections sequentially to maintain order
-    for (const title of titles) {
-      await addSection(title);
-      // Small delay to ensure proper ordering
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      // Create sections sequentially to maintain order, but suppress individual toasts
+      for (const title of titles) {
+        await addSection(title, true);
+        // Small delay to ensure proper ordering
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Show single success toast after all sections are created
+      toast.success(`Created ${titles.length} sections from outline`, {
+        description: "You can now start adding content to each section."
+      });
+    } catch (error) {
+      console.error('Error creating sections:', error);
+      toast.error("Failed to create some sections", {
+        description: "Please try again or create sections manually."
+      });
     }
   };
 

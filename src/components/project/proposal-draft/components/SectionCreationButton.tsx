@@ -44,9 +44,6 @@ export function SectionCreationButton({
       await onCreateSections(sectionTitles);
 
       toast.dismiss();
-      toast.success(`Created ${sectionTitles.length} sections from outline`, {
-        description: "You can now start adding content to each section."
-      });
     } catch (error) {
       console.error('Error creating sections from outline:', error);
       toast.dismiss();

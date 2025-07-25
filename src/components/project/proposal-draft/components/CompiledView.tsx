@@ -17,7 +17,11 @@ export function CompiledView({ sections }: CompiledViewProps) {
   const [showMarkdown, setShowMarkdown] = useState(true);
 
   const compiledContent = sections
-    .map((section) => section.content || "")
+    .map((section) => {
+      const title = section.section_title;
+      const content = section.content || "";
+      return content ? `# ${title}\n\n${content}` : `# ${title}\n\n*[Content not generated yet]*`;
+    })
     .join("\n\n---\n\n");
 
   const handleCopy = async () => {

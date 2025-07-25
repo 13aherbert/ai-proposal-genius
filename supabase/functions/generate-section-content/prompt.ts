@@ -1,4 +1,3 @@
-
 import { Project } from './types.ts';
 
 export function generatePrompt(
@@ -46,11 +45,12 @@ For this cost-related section:
    - Maintain any specific payment terms or conditions mentioned
    - Include any volume discounts or special pricing arrangements
 3. If NO cost information is found in existing sections or the knowledge base:
-   - State clearly: "Pricing information is not available in the current knowledge base"
-   - DO NOT create, estimate, or invent any pricing information
-   - DO NOT reference market rates or industry standards
-   - DO NOT provide sample pricing structures
-   - Simply indicate that specific pricing will need to be provided separately` : '';
+   - Draw from the RFP requirements and any budget information in the project details
+   - Use industry knowledge to generate reasonable pricing based on project scope
+   - Consider market rates and competitive pricing for similar services
+   - Ensure pricing reflects the specific requirements and complexity of THIS project
+   - Include appropriate payment terms and milestone structures
+   - Base estimates on the actual deliverables and timeline requirements outlined in the RFP` : '';
 
   return `${basePrompt}
 
@@ -102,6 +102,7 @@ STRICT CONTENT GENERATION RULES:
    - If the knowledge base lacks sufficient information for a meaningful section:
      * Clearly state the limitation rather than fabricating content
      * Indicate what specific information would be needed
+   - EXCEPTION FOR PRICING SECTIONS: When no pricing exists in knowledge base, you may generate intelligent pricing based on RFP requirements, project scope, and industry standards
 
 6. CONSISTENCY REQUIREMENTS:
    - Maintain absolute consistency with all existing sections

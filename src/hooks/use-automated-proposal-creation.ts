@@ -325,7 +325,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         .from('proposal_sections')
         .select('*')
         .eq('project_id', projectId)
-        .order('sort_order');
+        .order('created_at');
 
       if (!sections || sections.length === 0) {
         return { success: false, error: 'No sections found to generate content for' };

@@ -182,13 +182,23 @@ serve(async (req) => {
     );
     console.log('Prompt generated with consistency context, calling Claude API');
 
-    // Implement retry logic for Claude API with exponential backoff
+    // Enhanced retry logic with intelligent backoff and jitter
     let response: Response;
     let result: any;
     let lastError: Error | null = null;
+    const maxAttempts = 5; // Increased retries for better resilience
     
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        // Add jitter to prevent thundering herd
+        if (attempt > 1) {
+          const baseDelay = Math.min(1000 * Math.pow(2, attempt - 2), 20000);
+          const jitter = baseDelay * 0.1 * Math.random();
+          const totalDelay = baseDelay + jitter;
+          console.log(`Waiting ${Math.round(totalDelay)}ms before attempt ${attempt}`);
+          await new Promise(resolve => setTimeout(resolve, totalDelay));
+        }
+
         response = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -197,7 +207,7 @@ serve(async (req) => {
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-4-sonnet-20250514',
             max_tokens: 4000,
             temperature: 0.3,
             messages: [{
@@ -208,21 +218,27 @@ serve(async (req) => {
         });
 
         result = await response.json();
-        console.log('Claude API response received');
+        console.log(`Claude API response received on attempt ${attempt}`);
 
         if (!response.ok) {
-          // Check if it's a rate limiting error
-          if (result.error?.type === 'overloaded_error' || response.status === 429) {
-            console.log(`Rate limited on attempt ${attempt}, retrying...`);
-            if (attempt < 3) {
-              const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Exponential backoff
-              await new Promise(resolve => setTimeout(resolve, delay));
-              continue;
+          const errorType = result.error?.type;
+          const errorMessage = result.error?.message || 'Unknown error';
+          
+          // Handle different error types
+          if (errorType === 'overloaded_error' || response.status === 429 || response.status === 503) {
+            console.log(`API overloaded/rate limited on attempt ${attempt}/${maxAttempts}`);
+            if (attempt < maxAttempts) {
+              continue; // Retry with backoff
+            }
+          } else if (response.status === 500 || response.status === 502 || response.status === 504) {
+            console.log(`Server error on attempt ${attempt}/${maxAttempts}: ${response.status}`);
+            if (attempt < maxAttempts) {
+              continue; // Retry server errors
             }
           }
           
           console.error('Claude API error:', result);
-          throw new Error(`${result.error?.message || result.error?.type || 'Unknown error'}`);
+          throw new Error(`${errorMessage} (${errorType || response.status})`);
         }
         
         // Success - break out of retry loop
@@ -230,12 +246,11 @@ serve(async (req) => {
         
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`Claude API attempt ${attempt} failed:`, error);
+        console.error(`Claude API attempt ${attempt}/${maxAttempts} failed:`, error);
         
-        if (attempt < 3) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+        // Don't retry on final attempt
+        if (attempt === maxAttempts) {
+          break;
         }
       }
     }

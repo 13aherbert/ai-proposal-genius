@@ -55,7 +55,7 @@ Format your response in clear sections with markdown headings and bullet points.
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
         messages: [{
           role: 'user',
@@ -65,7 +65,9 @@ Format your response in clear sections with markdown headings and bullet points.
     });
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Claude API error details:', errorText);
+      throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();

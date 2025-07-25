@@ -129,18 +129,18 @@ export function AutomatedProposalCreation({ projectId, filePath }: AutomatedProp
         {/* Current Step Highlight */}
         {progress.isRunning && (
           <Alert className="border-blue-200 bg-blue-50">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4 text-blue-700" />
             <AlertDescription>
-              <div className="font-medium">
+              <div className="font-semibold text-blue-900">
                 {stepDisplayNames[progress.currentStep]}
               </div>
-              <div className="text-sm mt-1">
+              <div className="text-sm mt-1 text-blue-800">
                 {stepDescriptions[progress.currentStep]}
               </div>
               {progress.stepProgress > 0 && (
                 <div className="mt-2">
                   <Progress value={progress.stepProgress} className="h-1" />
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs text-blue-700 mt-1 font-medium">
                     Step Progress: {progress.stepProgress}%
                   </div>
                 </div>

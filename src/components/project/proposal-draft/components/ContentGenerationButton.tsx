@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { withRetry } from "@/utils/network/retry";
 import type { ProposalSection } from "../useProposalSections";
 
 interface ContentGenerationButtonProps {
@@ -62,55 +63,96 @@ export function ContentGenerationButton({
 
     let successCount = 0;
     let errorCount = 0;
+    let actualFailures: string[] = [];
 
     try {
       // Generate content for each section sequentially
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
+        let sectionSuccess = false;
         
         try {
           console.log(`Generating content for section: ${section.section_title}`);
           
-          const { data, error } = await supabase.functions.invoke('generate-section-content', {
-            body: { 
-              sectionTitle: section.section_title,
-              projectId: projectId,
-              userId: session!.user.id
-            },
-          });
+          // Retry generation with exponential backoff for rate limiting
+          await withRetry(async () => {
+            const { data, error } = await supabase.functions.invoke('generate-section-content', {
+              body: { 
+                sectionTitle: section.section_title,
+                projectId: projectId,
+                userId: session!.user.id
+              },
+            });
 
-          if (error) throw error;
-          if (!data?.content) throw new Error('No content generated');
+            if (error) {
+              // Check if it's a rate limiting error
+              const errorMessage = error.message?.toLowerCase() || '';
+              if (errorMessage.includes('overloaded') || errorMessage.includes('rate limit')) {
+                throw new Error('RATE_LIMITED'); // Will be retried
+              }
+              throw error;
+            }
+            
+            if (!data?.content) throw new Error('No content generated');
 
-          // Update the section with the generated content
-          await onUpdateSection(section.section_id, data.content, section.section_title);
+            // Update the section with the generated content
+            await onUpdateSection(section.section_id, data.content, section.section_title);
+            return data;
+          }, 3, 2000, 30000); // 3 retries, 2s initial delay, max 30s
+          
+          sectionSuccess = true;
           successCount++;
           
-          // Update progress
-          const progress = ((i + 1) / sections.length) * 100;
-          onProgressUpdate(progress, true);
-          
-          // Small delay between requests to avoid overwhelming the API
-          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           console.error(`Error generating content for section ${section.section_title}:`, error);
-          errorCount++;
           
-          // Still update progress even on error
-          const progress = ((i + 1) / sections.length) * 100;
-          onProgressUpdate(progress, true);
+          // Verify if content was actually generated despite the error
+          try {
+            // Check the database to see if content was saved
+            const { data: updatedSection } = await supabase
+              .from('proposal_sections')
+              .select('content')
+              .eq('section_id', section.section_id)
+              .single();
+            
+            if (updatedSection?.content && updatedSection.content.trim().length > 0) {
+              console.log(`Content was actually generated for ${section.section_title} despite error`);
+              sectionSuccess = true;
+              successCount++;
+            } else {
+              actualFailures.push(section.section_title);
+              errorCount++;
+            }
+          } catch (dbError) {
+            console.error('Error checking section content:', dbError);
+            actualFailures.push(section.section_title);
+            errorCount++;
+          }
+        }
+        
+        // Update progress
+        const progress = ((i + 1) / sections.length) * 100;
+        onProgressUpdate(progress, true);
+        
+        // Add delay between requests to be respectful to the API
+        if (i < sections.length - 1) { // Don't delay after the last section
+          await new Promise(resolve => setTimeout(resolve, sectionSuccess ? 1000 : 2000));
         }
       }
 
       toast.dismiss();
       
-      if (successCount > 0 && errorCount === 0) {
+      if (successCount > 0 && actualFailures.length === 0) {
         toast.success(`Successfully generated content for all ${successCount} sections!`, {
           description: "You can now review and edit the generated content."
         });
-      } else if (successCount > 0 && errorCount > 0) {
+      } else if (successCount > 0 && actualFailures.length > 0) {
         toast.warning(`Generated content for ${successCount} sections`, {
-          description: `${errorCount} section(s) failed to generate. You can try generating them individually.`
+          description: `${actualFailures.length} section(s) failed to generate: ${actualFailures.join(', ')}. You can try generating them individually.`
+        });
+      } else if (actualFailures.length > 0) {
+        toast.error("Failed to generate content for any sections", {
+          description: `Failed sections: ${actualFailures.join(', ')}. Please try again or generate sections individually.`
         });
       } else {
         toast.error("Failed to generate content for any sections", {

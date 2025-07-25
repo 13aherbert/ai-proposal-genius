@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { NetworkStatusProvider } from "@/hooks/network";
 import { SubscriptionProvider } from "@/hooks/subscription";
-import React from "react"; // Added React import
+import { useAnalytics } from "@/hooks/use-analytics";
+import React from "react";
 
 // Pages
 import Index from "@/pages/Index";
@@ -44,6 +45,127 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppContent() {
+  // Initialize analytics tracking for route changes
+  useAnalytics();
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload-rfp"
+        element={
+          <ProtectedRoute>
+            <UploadRFP />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Primary project routes */}
+      <Route
+        path="/projects"
+        element={
+          <ProtectedRoute>
+            <RecentProjects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetails />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Legacy route redirects for backward compatibility */}
+      <Route
+        path="/recent-projects"
+        element={
+          <ProtectedRoute>
+            <RecentProjectsRedirect />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetailsRedirect />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/subscription"
+        element={
+          <ProtectedRoute>
+            <Subscription />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/knowledge-base"
+        element={
+          <ProtectedRoute>
+            <KnowledgeBase />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account-settings"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
+      <Route path="/beta" element={<BetaProgram />} />
+      <Route
+        path="/beta/dashboard"
+        element={
+          <ProtectedRoute>
+            <BetaProgram />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/beta/roadmap"
+        element={
+          <ProtectedRoute>
+            <BetaRoadmap />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Legacy beta invite redirect */}
+      <Route path="/beta-invite" element={<BetaInviteRedirect />} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/users" element={<UserManagementPage />} />
+      <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
+      <Route path="/admin/beta-requests" element={<BetaRequests />} />
+      
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/docs" element={<Documentation />} />
+      <Route path="/docs/:docId" element={<Documentation />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -53,119 +175,7 @@ export default function App() {
             <AuthProvider>
               <SubscriptionProvider>
                 <ErrorBoundary>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route
-                      path="/dashboard"
-                      element={
-                        <ProtectedRoute>
-                          <Dashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/upload-rfp"
-                      element={
-                        <ProtectedRoute>
-                          <UploadRFP />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Primary project routes */}
-                    <Route
-                      path="/projects"
-                      element={
-                        <ProtectedRoute>
-                          <RecentProjects />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/projects/:projectId"
-                      element={
-                        <ProtectedRoute>
-                          <ProjectDetails />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Legacy route redirects for backward compatibility */}
-                    <Route
-                      path="/recent-projects"
-                      element={
-                        <ProtectedRoute>
-                          <RecentProjectsRedirect />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/project/:projectId"
-                      element={
-                        <ProtectedRoute>
-                          <ProjectDetailsRedirect />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    <Route
-                      path="/subscription"
-                      element={
-                        <ProtectedRoute>
-                          <Subscription />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/knowledge-base"
-                      element={
-                        <ProtectedRoute>
-                          <KnowledgeBase />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/account-settings"
-                      element={
-                        <ProtectedRoute>
-                          <AccountSettings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
-                    <Route path="/beta" element={<BetaProgram />} />
-                    <Route
-                      path="/beta/dashboard"
-                      element={
-                        <ProtectedRoute>
-                          <BetaProgram />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/beta/roadmap"
-                      element={
-                        <ProtectedRoute>
-                          <BetaRoadmap />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Legacy beta invite redirect */}
-                    <Route path="/beta-invite" element={<BetaInviteRedirect />} />
-                    
-                    {/* Admin Routes */}
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/users" element={<UserManagementPage />} />
-                    <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
-                    <Route path="/admin/beta-requests" element={<BetaRequests />} />
-                    
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/docs" element={<Documentation />} />
-                    <Route path="/docs/:docId" element={<Documentation />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <AppContent />
                 </ErrorBoundary>
                 <Toaster position="top-right" richColors closeButton />
                 <NetworkStatusIndicator />

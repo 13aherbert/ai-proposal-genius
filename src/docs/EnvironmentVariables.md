@@ -61,8 +61,8 @@ Production environments should include:
 
 ```
 NODE_ENV=production
+VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
 VITE_SENTRY_DSN=your-sentry-dsn
-VITE_ANALYTICS_ID=your-analytics-id
 VITE_MAX_UPLOAD_SIZE=50000000
 VITE_RATE_LIMIT=100
 ```

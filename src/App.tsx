@@ -34,6 +34,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect, BetaInviteRedirect } from "./components/routing/Redirects";
+import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -173,13 +174,15 @@ export default function App() {
         <NetworkStatusProvider>
           <BrowserRouter>
             <AuthProvider>
-              <SubscriptionProvider>
-                <ErrorBoundary>
-                  <AppContent />
-                </ErrorBoundary>
-                <Toaster position="top-right" richColors closeButton />
-                <NetworkStatusIndicator />
-              </SubscriptionProvider>
+              <SecurityProvider>
+                <SubscriptionProvider>
+                  <ErrorBoundary>
+                    <AppContent />
+                  </ErrorBoundary>
+                  <Toaster position="top-right" richColors closeButton />
+                  <NetworkStatusIndicator />
+                </SubscriptionProvider>
+              </SecurityProvider>
             </AuthProvider>
           </BrowserRouter>
         </NetworkStatusProvider>

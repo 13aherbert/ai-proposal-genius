@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, AlertTriangle, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { validateFile } from "@/utils/security/input-sanitizer";
 
 interface UploadDropzoneProps {
   onDrop: (files: File[]) => void;
@@ -22,25 +23,32 @@ export const UploadDropzone = ({
   const [draggedFile, setDraggedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
-  const validateFileType = (file: File) => {
+  const onDropAccepted = (acceptedFiles: File[]) => {
+    if (disabled) return;
+    
+    setFileError(null);
+    
+    // Enhanced security validation
+    const file = acceptedFiles[0];
     const allowedTypes = [
       'application/pdf', 
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
-    return allowedTypes.includes(file.type);
-  };
-
-  const validateFileSize = (file: File) => {
-    const maxSize = 20 * 1024 * 1024; // 20MB
-    return file.size <= maxSize;
-  };
-  
-  const onDropAccepted = (acceptedFiles: File[]) => {
-    if (disabled) return;
     
-    setFileError(null);
-    setDraggedFile(acceptedFiles[0]);
+    const validation = validateFile(file, allowedTypes);
+    if (!validation.isValid) {
+      setFileError(validation.errors[0]);
+      return;
+    }
+    
+    // Additional content-based validation
+    if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+      setFileError('Invalid file name');
+      return;
+    }
+    
+    setDraggedFile(file);
     onDrop(acceptedFiles);
   };
 

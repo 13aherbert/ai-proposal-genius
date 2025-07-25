@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EnhancedSignupForm } from "./onboarding/EnhancedSignupForm";
 import { OnboardingRouter } from "./onboarding/OnboardingRouter";
+import { validateEmail, ClientRateLimit } from "@/utils/security/input-sanitizer";
+import { CSRFProtection } from "@/utils/security/auth-security";
 
 interface AuthFormProps {
   defaultView?: 'sign_in' | 'sign_up';
@@ -33,12 +35,33 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
     setIsLoading(true);
 
     try {
+      // Rate limiting check
+      const rateLimit = ClientRateLimit.getInstance('login');
+      if (!rateLimit.checkLimit(email, 5, 300000)) { // 5 attempts per 5 minutes
+        throw new Error('Too many login attempts. Please try again later.');
+      }
+
+      // Validate email format
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        throw new Error(emailValidation.errors[0]);
+      }
+
+      // Basic password validation
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailValidation.sanitized,
         password,
       });
 
       if (error) throw error;
+      
+      // Reset rate limit on successful login
+      rateLimit.reset(email);
+      
       // Removed duplicate success toast - AuthProvider handles this
     } catch (error: any) {
       console.error('Login error:', error);

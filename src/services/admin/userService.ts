@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { UserProfile, UserRoleRecord, UserRole, UserProfileWithOrganizations } from "./types";
 import { withRetry, isNetworkError, getNetworkErrorMessage, EdgeFunctionResponse, withRateLimitByKey } from "@/utils/network";
+import { CSRFProtection } from "@/utils/security/auth-security";
 
 /**
  * ==================================
@@ -140,7 +141,7 @@ export async function ensureUserRole(): Promise<boolean> {
  */
 
 /**
- * High-level function to assign a role to a user
+ * High-level function to assign a role to a user using secure edge function
  * @param userId - The ID of the user to assign the role to
  * @param role - The role to assign
  * @returns Promise<boolean> - True if role was assigned successfully
@@ -157,23 +158,32 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
     
-    // Check if user has admin or system_admin permissions
-    const adminStatus = await isAdmin();
-    const systemAdminStatus = await checkSystemAdminRole();
+    // Get session for authorization
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
     
-    if (!adminStatus && !systemAdminStatus) {
+    if (!accessToken) {
       toast({
-        title: "Access denied", 
-        description: "You don't have permission to assign roles",
+        title: "Authentication required", 
+        description: "Valid session required",
         variant: "destructive"
       });
       return false;
     }
     
-    const { data, error } = await supabase.rpc('assign_user_role', {
-      _user_id: userId,
-      _role: role,
-      _created_by: userData.user.id
+    // Use secure edge function with CSRF protection
+    const { data, error } = await supabase.functions.invoke('secure-admin-operations', {
+      body: {
+        operation: 'assign_role',
+        data: {
+          user_id: userId,
+          role: role
+        }
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...CSRFProtection.getHeaders()
+      }
     });
     
     if (error) {
@@ -181,6 +191,15 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
       toast({
         title: "Failed to assign role", 
         description: error.message,
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    if (!data?.success) {
+      toast({
+        title: "Failed to assign role", 
+        description: "Operation was not successful",
         variant: "destructive"
       });
       return false;
@@ -204,29 +223,39 @@ export async function assignRole(userId: string, role: UserRole): Promise<boolea
 }
 
 /**
- * High-level function to remove a role from a user
+ * High-level function to remove a role from a user using secure edge function
  * @param userId - The ID of the user to remove the role from
  * @param role - The role to remove
  * @returns Promise<boolean> - True if role was removed successfully
  */
 export async function removeRole(userId: string, role: UserRole): Promise<boolean> {
   try {
-    // Check if user has admin or system_admin permissions
-    const adminStatus = await isAdmin();
-    const systemAdminStatus = await checkSystemAdminRole();
+    // Get session for authorization
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
     
-    if (!adminStatus && !systemAdminStatus) {
+    if (!accessToken) {
       toast({
-        title: "Access denied", 
-        description: "You don't have permission to remove roles",
+        title: "Authentication required", 
+        description: "Valid session required",
         variant: "destructive"
       });
       return false;
     }
     
-    const { data, error } = await supabase.rpc('remove_user_role', {
-      _user_id: userId,
-      _role: role
+    // Use secure edge function with CSRF protection
+    const { data, error } = await supabase.functions.invoke('secure-admin-operations', {
+      body: {
+        operation: 'remove_role',
+        data: {
+          user_id: userId,
+          role: role
+        }
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...CSRFProtection.getHeaders()
+      }
     });
     
     if (error) {
@@ -239,12 +268,21 @@ export async function removeRole(userId: string, role: UserRole): Promise<boolea
       return false;
     }
     
+    if (!data?.success) {
+      toast({
+        title: "Failed to remove role", 
+        description: "Operation was not successful",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
     toast({
       title: "Success", 
       description: `Role '${role}' removed successfully`,
       variant: "default"
     });
-    return !!data;
+    return true;
   } catch (error) {
     console.error('Exception in removeRole:', error);
     toast({

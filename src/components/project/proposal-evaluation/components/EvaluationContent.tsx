@@ -24,18 +24,27 @@ export function EvaluationContent({ content }: EvaluationContentProps) {
             h3: ({ children }) => (
               <h3 className="text-lg font-medium mb-2 mt-4 text-brand-green">{children}</h3>
             ),
-            p: ({ children }) => (
-              <p className="mb-4 leading-relaxed text-foreground">{children}</p>
-            ),
+            p: ({ children }) => {
+              const content = String(children);
+              const textClass = content.includes('Medium') ? 'text-yellow-600' : 
+                               content.includes('Weak') ? 'text-red-600' : 'text-foreground';
+              return <p className={`mb-4 leading-relaxed ${textClass}`}>{children}</p>;
+            },
             ul: ({ children }) => (
               <ul className="list-disc pl-6 mb-4 space-y-2">{children}</ul>
             ),
-            li: ({ children }) => (
-              <li className="text-foreground">{children}</li>
-            ),
-            strong: ({ children }) => (
-              <strong className="font-semibold text-foreground">{children}</strong>
-            ),
+            li: ({ children }) => {
+              const content = String(children);
+              const textClass = content.includes('Medium') ? 'text-yellow-600' : 
+                               content.includes('Weak') ? 'text-red-600' : 'text-foreground';
+              return <li className={textClass}>{children}</li>;
+            },
+            strong: ({ children }) => {
+              const content = String(children);
+              const textClass = content.includes('Medium') ? 'text-yellow-600' : 
+                               content.includes('Weak') ? 'text-red-600' : 'text-foreground';
+              return <strong className={`font-semibold ${textClass}`}>{children}</strong>;
+            },
           }}
         >
           {content}

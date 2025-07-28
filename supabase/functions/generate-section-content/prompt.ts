@@ -45,12 +45,8 @@ For this cost-related section:
    - Maintain any specific payment terms or conditions mentioned
    - Include any volume discounts or special pricing arrangements
 3. If NO cost information is found in existing sections or the knowledge base:
-   - Draw from the RFP requirements and any budget information in the project details
-   - Use industry knowledge to generate reasonable pricing based on project scope
-   - Consider market rates and competitive pricing for similar services
-   - Ensure pricing reflects the specific requirements and complexity of THIS project
-   - Include appropriate payment terms and milestone structures
-   - Base estimates on the actual deliverables and timeline requirements outlined in the RFP` : '';
+   - You MUST respond with: "This section requires pricing information in the Knowledge Base. Please add specific pricing details, service rates, or cost structures to generate accurate pricing content."
+   - DO NOT generate estimated pricing without knowledge base data` : '';
 
   return `${basePrompt}
 
@@ -87,22 +83,28 @@ STRICT CONTENT GENERATION RULES:
    - Be authoritative and confident in tone
    - Focus entirely on the client's needs and your business's solutions
 
-5. CONTENT REQUIREMENTS - CRITICAL RULE: NO FAKE INFORMATION:
-   - ONLY use information that exists explicitly in the knowledge base
-   - If specific information doesn't exist in the knowledge base:
-     * DO NOT make up examples, statistics, or content
-     * DO NOT use placeholder text or generic statements
-     * DO NOT invent capabilities, services, or features
-     * Simply state: "This information is not available in the current knowledge base"
+5. CONTENT REQUIREMENTS - CRITICAL RULE: KNOWLEDGE BASE ONLY:
+   - You MUST ONLY use information that exists explicitly in the knowledge base
+   - If specific information doesn't exist in the knowledge base, you MUST respond with:
+     "This section requires more specific information in the Knowledge Base. Please add relevant content about [specific topic needed] to generate accurate proposal content."
+   - ABSOLUTELY FORBIDDEN TO CREATE:
+     * Any examples, statistics, or content not in the knowledge base
+     * Past project references unless explicitly documented
+     * Client testimonials or case studies unless in knowledge base
+     * Company capabilities not specifically listed
+     * Team member names or qualifications not documented
+     * Timeline estimates not based on knowledge base data
+     * Technical specifications not provided in knowledge base
+     * Service offerings not explicitly documented
    - When using knowledge base content:
      * Copy exact text, numbers, and examples verbatim
      * Make only minimal grammatical adjustments for flow
      * Keep all specific details exactly as they appear
      * Quote directly from knowledge base entries when possible
-   - If the knowledge base lacks sufficient information for a meaningful section:
-     * Clearly state the limitation rather than fabricating content
-     * Indicate what specific information would be needed
-   - EXCEPTION FOR PRICING SECTIONS: When no pricing exists in knowledge base, you may generate intelligent pricing based on RFP requirements, project scope, and industry standards
+   - If the knowledge base lacks sufficient information for ANY part of a section:
+     * Do NOT fill gaps with generic content
+     * State exactly what information is missing
+     * Request specific knowledge base additions needed
 
 6. CONSISTENCY REQUIREMENTS:
    - Maintain absolute consistency with all existing sections
@@ -111,8 +113,8 @@ STRICT CONTENT GENERATION RULES:
    - Align your content tone and detail level with existing sections
 
 7. ABSOLUTELY FORBIDDEN:
-   - NO hypothetical examples or case studies (except for cost sections without knowledge base data)
-   - NO references to non-existent past projects
+   - NO hypothetical examples or case studies
+   - NO references to non-existent past projects  
    - NO invented client testimonials or experiences
    - NO "such as" phrases unless directly quoting knowledge base
    - NO generalizations about capabilities unless explicitly stated in knowledge base

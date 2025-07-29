@@ -166,4 +166,4 @@ WRITING STYLE:
 - Use strong action verbs and specific commitments
 - End with clear value proposition or next step
 
-Generate ONLY the body content for "${sectionTitle}" - be the winning proposal section that beats the competition:
+Generate ONLY the body content for "${sectionTitle}" - be the winning proposal section that beats the competition:`;

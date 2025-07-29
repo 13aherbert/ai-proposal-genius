@@ -75,7 +75,7 @@ export default function RecentProjects() {
     organizationId
   } = useProjects(authReady ? session?.user || null : null);
   
-  const { hasFeature, refreshSubscription } = useSubscriptionFeatures();
+  const { hasFeature, refreshSubscription, disableTestMode, isTestMode } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
   
   console.log("RecentProjects - Auth state:", { 
@@ -108,18 +108,14 @@ export default function RecentProjects() {
       // Faster refetch
       setTimeout(() => {
         refetch();
-      }, 300); // Reduced from 1000ms to 300ms
+      }, 300);
     }
   }, [
-    subscriptionData, 
+    subscriptionData?.subscription_id, // Only depend on ID to avoid object changes
     projectLimit, 
     projectLimitApplied, 
     forceStarterPlan, 
-    session?.user, 
-    getProjectLimit, 
-    updateProjectLimit, 
-    setProjectLimitApplied, 
-    refetch
+    session?.user?.id // Only depend on ID to avoid object changes
   ]);
   
   // Reset project limit flag when subscription ID changes
@@ -146,6 +142,13 @@ export default function RecentProjects() {
     toast.info("Refreshing subscription data...");
     localStorage.removeItem("projectLimit");
     
+    // Disable test mode if it's enabled
+    if (isTestMode) {
+      console.log("Disabling test mode to fix re-render issues");
+      disableTestMode();
+      toast.success("Test mode disabled");
+    }
+    
     try {
       if (window.featureCache && typeof window.featureCache.clear === 'function') {
         window.featureCache.clear();
@@ -164,7 +167,7 @@ export default function RecentProjects() {
     
     setTimeout(() => {
       refetch();
-    }, 500); // Reduced from 1000ms to 300ms
+    }, 500);
   };
   
   // If we have a cached token but auth is still loading, show content with cached data
@@ -210,6 +213,12 @@ export default function RecentProjects() {
 
   return (
     <div className="container py-10 space-y-8">
+      {isTestMode && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-700">
+          ⚠️ Test mode is active. Click "Refresh Data" to disable it and fix render issues.
+        </div>
+      )}
+      
       <ProjectsToolbar 
         canCreateProject={canCreateProject}
         displayProjectLimit={displayProjectLimit}

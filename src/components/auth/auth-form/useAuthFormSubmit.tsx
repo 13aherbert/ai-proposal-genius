@@ -7,6 +7,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthForm } from "./AuthFormContext";
 import { withRetry } from "@/utils/network/retry";
 import { setAuthToken, setUserRoles, setSubscriptionData } from "@/utils/network";
+import { PasswordSecurity, SessionSecurity } from "@/utils/security/auth-security";
+import { validateEmail } from "@/utils/security/input-sanitizer";
 
 export const useAuthFormSubmit = () => {
   const { isSignUp, email, password, firstName, lastName, companyName, birthday, setError } = useAuthForm();
@@ -66,12 +68,62 @@ export const useAuthFormSubmit = () => {
     e.preventDefault();
     setError("");
     
+    // Enhanced client-side validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.errors[0]);
+      return;
+    }
+    
+    // Password validation for signup
+    if (isSignUp) {
+      const passwordValidation = PasswordSecurity.validateStrength(password);
+      if (!passwordValidation.isStrong) {
+        setError(`Password requirements not met: ${passwordValidation.feedback.join(', ')}`);
+        return;
+      }
+      
+      // Business rule validation
+      const businessViolations = PasswordSecurity.validateBusinessRules(password, {
+        email: emailValidation.sanitized,
+        firstName,
+        lastName,
+        businessName: companyName,
+      });
+      
+      if (businessViolations.length > 0) {
+        setError(businessViolations[0]);
+        return;
+      }
+      
+      // Check against known breach patterns
+      const isSecurePassword = await PasswordSecurity.checkBreachHeuristics(password);
+      if (!isSecurePassword) {
+        setError('This password appears in data breaches. Please choose a different password.');
+        return;
+      }
+    }
+    
     // Show loading toast for better UX
     const loadingToastId = toast.loading(
       isSignUp ? "Creating your account..." : "Signing you in..."
     );
 
     try {
+      // Log security event
+      try {
+        await supabase.rpc('log_security_event', {
+          event_type_param: isSignUp ? 'signup_attempt' : 'signin_attempt',
+          details_param: { 
+            email: emailValidation.sanitized,
+            timestamp: new Date().toISOString(),
+            user_agent: navigator.userAgent
+          }
+        });
+      } catch (logError) {
+        console.warn('Failed to log security event:', logError);
+      }
+      
       if (isSignUp) {
         const { error, data } = await supabase.auth.signUp({
           email,

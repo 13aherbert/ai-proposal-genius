@@ -476,6 +476,30 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_attempts: {
+        Row: {
+          attempt_time: string | null
+          email: string
+          id: string
+          ip_address: unknown | null
+          success: boolean | null
+        }
+        Insert: {
+          attempt_time?: string | null
+          email: string
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+        }
+        Update: {
+          attempt_time?: string | null
+          email?: string
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -740,6 +764,39 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          target_user_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          target_user_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -878,6 +935,10 @@ export type Database = {
       }
       check_existing_role: {
         Args: { _user_id: string; _role: string }
+        Returns: boolean
+      }
+      check_password_reset_rate_limit: {
+        Args: { email_param: string }
         Returns: boolean
       }
       check_pending_invitation: {
@@ -1079,6 +1140,14 @@ export type Database = {
           action_type: string
           target_user_id?: string
           details?: Json
+        }
+        Returns: string
+      }
+      log_security_event: {
+        Args: {
+          event_type_param: string
+          target_user_id_param?: string
+          details_param?: Json
         }
         Returns: string
       }

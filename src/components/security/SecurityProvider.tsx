@@ -39,14 +39,19 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
       meta.httpEquiv = 'Content-Security-Policy';
       meta.content = `
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
         font-src 'self' https://fonts.gstatic.com;
         img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
-        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co;
+        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com;
         frame-ancestors 'none';
         base-uri 'self';
         form-action 'self';
+        object-src 'none';
+        media-src 'self' blob:;
+        worker-src 'self' blob:;
+        manifest-src 'self';
+        upgrade-insecure-requests;
       `.replace(/\s+/g, ' ').trim();
       
       // Only add if not already present
@@ -85,13 +90,24 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
   useEffect(() => {
     if (!session) return;
 
-    // Start session monitoring for authenticated users
-    const stopMonitoring = SessionSecurity.startActivityMonitoring(() => {
-      toast.error('Session expired due to inactivity', {
-        description: 'Please sign in again to continue',
-      });
-      signOut();
-    });
+    // Start enhanced session monitoring with warning support
+    const stopMonitoring = SessionSecurity.startActivityMonitoring(
+      () => {
+        // Session expired callback
+        toast.error('Session expired due to inactivity', {
+          description: 'Please sign in again to continue',
+        });
+        SessionSecurity.invalidateSession();
+        signOut();
+      },
+      () => {
+        // Session warning callback
+        toast.warning('Session will expire soon', {
+          description: 'Your session will expire in 10 minutes due to inactivity',
+          duration: 10000,
+        });
+      }
+    );
 
     return stopMonitoring;
   }, [session, signOut]);

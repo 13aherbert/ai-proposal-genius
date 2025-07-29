@@ -70,19 +70,45 @@ export function ProjectContent({ project }: ProjectContentProps) {
     setShownToasts(new Set());
   }, [activeSection]);
 
-  const showFeatureToast = (feature: string) => {
-    // Only show toast once per session
-    if (!shownToasts.has(feature)) {
-      toast.error(`This feature requires a subscription upgrade`, {
-        description: "Visit the subscription page to learn more",
-        action: {
-          label: "Upgrade",
-          onClick: () => navigate('/subscription')
-        }
-      });
-      setShownToasts(prev => new Set([...prev, feature]));
-    }
-  };
+  // Handle feature access checks and toasts
+  useEffect(() => {
+    const checkFeatureAccess = () => {
+      let requiredFeature = "";
+      
+      switch (activeSection) {
+        case "analysis":
+          requiredFeature = "rfp_summary";
+          break;
+        case "outline":
+          requiredFeature = "proposal_outline";
+          break;
+        case "draft":
+          requiredFeature = "proposal_draft";
+          break;
+        case "compiled":
+          requiredFeature = "compiled_draft";
+          break;
+        case "evaluation":
+          requiredFeature = "evaluation";
+          break;
+        default:
+          return;
+      }
+
+      if (requiredFeature && !hasFeature(requiredFeature as any) && !shownToasts.has(requiredFeature)) {
+        toast.error(`This feature requires a subscription upgrade`, {
+          description: "Visit the subscription page to learn more",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate('/subscription')
+          }
+        });
+        setShownToasts(prev => new Set([...prev, requiredFeature]));
+      }
+    };
+
+    checkFeatureAccess();
+  }, [activeSection, hasFeature, shownToasts, navigate]);
 
   const renderSection = () => {
     switch (activeSection) {
@@ -99,7 +125,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          showFeatureToast("rfp_summary");
           return <FeatureLocked featureName="RFP Analysis" planName={getPlanName("rfp_summary")} />;
         }
       
@@ -113,7 +138,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          showFeatureToast("proposal_outline");
           return <FeatureLocked featureName="Proposal Outline" planName={getPlanName("proposal_outline")} />;
         }
       
@@ -130,7 +154,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          showFeatureToast("proposal_draft");
           return <FeatureLocked featureName="Proposal Draft" planName={getPlanName("proposal_draft")} />;
         }
       
@@ -147,7 +170,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          showFeatureToast("compiled_draft");
           return <FeatureLocked featureName="Compiled Draft" planName={getPlanName("compiled_draft")} />;
         }
       
@@ -161,7 +183,6 @@ export function ProjectContent({ project }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          showFeatureToast("evaluation");
           return <FeatureLocked featureName="Proposal Evaluation" planName={getPlanName("evaluation")} />;
         }
       

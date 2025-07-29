@@ -3,6 +3,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import pdfParse from "npm:pdf-parse@1.1.1";
+import mammoth from "npm:mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,12 +38,37 @@ async function extractTextFromFile(arrayBuffer: ArrayBuffer, filePath: string): 
       
       case 'doc':
       case 'docx':
-        console.log('Processing Word document');
-        // For now, return a placeholder text indicating the document type
-        // In a production environment, you'd want to use a proper library like mammoth
-        const placeholderText = `This is a Microsoft Word document (.${fileType}) that has been uploaded. The document contains the RFP requirements and specifications. Please note that automatic text extraction from Word documents is not yet implemented in this version. For full analysis, please convert the document to PDF format and re-upload.`;
-        console.log('Word document placeholder created');
-        return placeholderText;
+        console.log('Processing Word document with Mammoth.js');
+        try {
+          const buffer = Buffer.from(arrayBuffer);
+          const result = await mammoth.extractRawText({ buffer });
+          
+          if (result.text && result.text.trim().length > 0) {
+            console.log('Word document text extraction completed, length:', result.text.length);
+            
+            // Log any warnings from mammoth
+            if (result.messages && result.messages.length > 0) {
+              console.log('Mammoth warnings:', result.messages.map(m => m.message).join(', '));
+            }
+            
+            return result.text;
+          } else {
+            throw new Error('No text content found in Word document');
+          }
+        } catch (mammothError) {
+          console.error('Mammoth.js extraction failed:', mammothError);
+          // Fallback: try to decode as text if mammoth fails
+          console.log('Attempting fallback text extraction for Word document');
+          const fallbackDecoder = new TextDecoder('utf-8');
+          const fallbackText = fallbackDecoder.decode(arrayBuffer);
+          
+          if (fallbackText && fallbackText.trim().length > 50) {
+            console.log('Fallback extraction successful');
+            return fallbackText;
+          }
+          
+          throw new Error(`Failed to extract text from Word document: ${mammothError.message}`);
+        }
       
       case 'rtf':
         console.log('Processing RTF document');

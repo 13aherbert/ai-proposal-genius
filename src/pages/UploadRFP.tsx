@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, AlertTriangle, RefreshCw, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback, memo, useEffect } from "react";
+import { useState, useCallback, memo, useEffect, useRef } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
@@ -21,6 +21,7 @@ const UploadRFP = () => {
   const [deadline, setDeadline] = useState<Date>();
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const automationRef = useRef<HTMLDivElement>(null);
   
   const {
     uploadProgress,
@@ -87,6 +88,15 @@ const UploadRFP = () => {
   const handleUpgradeClick = useCallback(() => {
     navigate('/subscription', { state: { fromTrialExpired: true } });
   }, [navigate]);
+
+  const handleStartAutomation = useCallback(() => {
+    if (automationRef.current) {
+      automationRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  }, []);
 
   const hasReachedLimit = 
     projectLimit !== null && 
@@ -180,12 +190,25 @@ const UploadRFP = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MemoizedUploadDropzone
-              onDrop={handleDrop}
-              isUploading={isUploading}
-              uploadProgress={uploadProgress}
-              disabled={hasReachedLimit || isUserTrialExpired}
-            />
+            <div className="space-y-4">
+              <MemoizedUploadDropzone
+                onDrop={handleDrop}
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+                disabled={hasReachedLimit || isUserTrialExpired}
+              />
+              
+              {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
+                <Button 
+                  onClick={handleStartAutomation}
+                  className="w-full flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <Zap className="h-4 w-4" />
+                  Start Full Automation
+                </Button>
+              )}
+            </div>
+            
             <div className="flex flex-col gap-6">
               <ProjectForm
                 projectTitle={projectTitle}
@@ -205,6 +228,7 @@ const UploadRFP = () => {
                 <Button 
                   onClick={handleViewProject}
                   className="mt-2 w-full flex items-center gap-2"
+                  variant="outline"
                 >
                   <ExternalLink className="h-4 w-4" />
                   View Project Details
@@ -215,7 +239,7 @@ const UploadRFP = () => {
 
           {/* Automated Proposal Creation */}
           {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
-            <div className="mt-8">
+            <div ref={automationRef} className="mt-8">
               <AutomatedProposalCreation 
                 projectId={projectId} 
                 filePath={rfpFilePath} 

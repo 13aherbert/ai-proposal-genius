@@ -15,6 +15,99 @@ function getFileType(filePath: string): string {
   return extension;
 }
 
+// Check if the analysis is too generic (indicates insufficient content was processed)
+function isGenericAnalysis(analysis: string): boolean {
+  const genericPhrases = [
+    'I don\'t have the ability to analyze',
+    'without the details being provided',
+    'I can provide a general',
+    'based on a typical RFP',
+    'I cannot access',
+    'I don\'t have access to',
+    'general proposal outline',
+    'typical proposal structure'
+  ];
+  
+  const lowerAnalysis = analysis.toLowerCase();
+  return genericPhrases.some(phrase => lowerAnalysis.includes(phrase.toLowerCase()));
+}
+
+// Intelligently process RFP content to extract the most relevant sections
+async function processRFPContent(fullText: string): Promise<string> {
+  const MAX_TOKENS = 50000; // Increased from 15,000 to 50,000 characters
+  
+  // If text is within limit, return as-is
+  if (fullText.length <= MAX_TOKENS) {
+    console.log('Document within size limit, using full content');
+    return fullText;
+  }
+  
+  console.log(`Document is large (${fullText.length} chars), applying intelligent processing`);
+  
+  // Keywords that indicate important RFP sections
+  const importantSectionKeywords = [
+    'requirement', 'deadline', 'due date', 'submission', 'evaluation', 'criteria',
+    'scope of work', 'deliverable', 'timeline', 'milestone', 'budget', 'proposal',
+    'mandatory', 'must', 'shall', 'objective', 'goal', 'specification', 'technical',
+    'qualification', 'experience', 'format', 'attachment', 'appendix'
+  ];
+  
+  // Split text into paragraphs and sections
+  const sections = fullText.split(/\n\s*\n/);
+  const prioritizedSections: { content: string; priority: number }[] = [];
+  
+  for (const section of sections) {
+    if (section.trim().length < 50) continue; // Skip very short sections
+    
+    let priority = 0;
+    const lowerSection = section.toLowerCase();
+    
+    // Calculate priority based on important keywords
+    for (const keyword of importantSectionKeywords) {
+      const matches = (lowerSection.match(new RegExp(keyword, 'g')) || []).length;
+      priority += matches;
+    }
+    
+    // Boost priority for sections with dates, numbers, or lists
+    if (lowerSection.match(/\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}|\b\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i)) {
+      priority += 5; // Date patterns
+    }
+    if (lowerSection.match(/^\s*[\d\w]\.\s|^\s*\([\d\w]\)\s|^\s*[-•]\s/m)) {
+      priority += 3; // Lists
+    }
+    if (lowerSection.match(/\$[\d,]+|\b\d+\s*(hours?|days?|weeks?|months?)\b/i)) {
+      priority += 4; // Budget or time references
+    }
+    
+    prioritizedSections.push({ content: section, priority });
+  }
+  
+  // Sort by priority (highest first)
+  prioritizedSections.sort((a, b) => b.priority - a.priority);
+  
+  // Build the processed content within the token limit
+  let processedContent = '';
+  let currentLength = 0;
+  
+  for (const section of prioritizedSections) {
+    const sectionWithNewline = section.content + '\n\n';
+    if (currentLength + sectionWithNewline.length <= MAX_TOKENS) {
+      processedContent += sectionWithNewline;
+      currentLength += sectionWithNewline.length;
+    } else {
+      // Try to fit a partial section if there's room
+      const remainingSpace = MAX_TOKENS - currentLength;
+      if (remainingSpace > 200) { // Only if we have meaningful space left
+        processedContent += section.content.substring(0, remainingSpace - 50) + '...\n\n';
+      }
+      break;
+    }
+  }
+  
+  console.log(`Processed content length: ${processedContent.length} chars from original ${fullText.length} chars`);
+  return processedContent;
+}
+
 async function extractTextFromFile(arrayBuffer: ArrayBuffer, filePath: string): Promise<string> {
   const fileType = getFileType(filePath);
   console.log('Extracting text from file type:', fileType);
@@ -155,6 +248,10 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured');
     }
 
+    // Intelligently process the extracted text
+    console.log('Processing extracted text for analysis');
+    const processedContent = await processRFPContent(extractedText);
+    
     // Call OpenAI API for analysis
     console.log('Calling OpenAI API for analysis');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -168,11 +265,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing RFP (Request for Proposal) documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points of the most important information.'
+            content: 'You are an expert at analyzing RFP (Request for Proposal) documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points of the most important information. Be specific and detailed based on the actual content provided.'
           },
           {
             role: 'user',
-            content: extractedText.substring(0, 15000)
+            content: processedContent
           }
         ],
       }),
@@ -186,6 +283,31 @@ serve(async (req) => {
 
     const analysisData = await response.json();
     const analysis = analysisData.choices[0].message.content;
+    
+    // Validate that the analysis contains specific content (not generic)
+    if (isGenericAnalysis(analysis)) {
+      console.warn('Generated analysis appears to be generic, document may need manual review');
+      // Still save it but add a note
+      const enhancedAnalysis = `${analysis}\n\n**Note**: This analysis was generated from a large document (${extractedText.length} characters). If the analysis seems generic, please review the original document for additional details or provide specific sections for more targeted analysis.`;
+      
+      // Save enhanced analysis to database
+      console.log('Saving enhanced analysis to database');
+      const { error: updateError } = await supabaseAdmin
+        .from('projects')
+        .update({ analysis: enhancedAnalysis })
+        .eq('project_id', requestData.projectId);
+
+      if (updateError) {
+        console.error('Error saving analysis:', updateError);
+        throw new Error(`Failed to save analysis: ${updateError.message}`);
+      }
+
+      console.log('Enhanced analysis completed and saved successfully');
+      return new Response(
+        JSON.stringify({ analysis: enhancedAnalysis }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Save analysis to database
     console.log('Saving analysis to database');

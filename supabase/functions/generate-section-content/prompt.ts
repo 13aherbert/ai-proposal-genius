@@ -167,3 +167,4 @@ WRITING STYLE:
 - End with clear value proposition or next step
 
 Generate ONLY the body content for "${sectionTitle}" - be the winning proposal section that beats the competition:`;
+}

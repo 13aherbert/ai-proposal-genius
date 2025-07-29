@@ -10,7 +10,7 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
 
-// Enhanced function to remove headers and meta-commentary from generated content
+// Enhanced function to remove headers, meta-commentary and optimize for RFP conciseness
 function cleanGeneratedContent(content: string, sectionTitle: string): string {
   let cleanedContent = content.trim();
   
@@ -87,8 +87,40 @@ function cleanGeneratedContent(content: string, sectionTitle: string): string {
 
   cleanedContent = filteredLines.join('\n');
 
+  // Enhanced RFP-specific cleaning patterns
+  const rfpFillerPhrases = [
+    /\b(obviously|clearly|certainly|surely|undoubtedly)\b/gi,
+    /\b(we believe that|we feel that|we think that)\b/gi,
+    /\b(it is important to note that|it should be noted that)\b/gi,
+    /\b(furthermore|moreover|additionally)\b(?=.*\bfurthermore|moreover|additionally\b)/gi, // Remove excessive transition words
+    /\b(various|numerous|multiple)\s+(different|diverse)\b/gi,
+    /\s+would\s+be\s+able\s+to\s+/gi, // Replace with stronger language
+  ];
+
+  // Apply RFP-specific cleaning
+  for (const pattern of rfpFillerPhrases) {
+    if (pattern.source.includes('would\\s+be\\s+able\\s+to')) {
+      cleanedContent = cleanedContent.replace(pattern, ' will ');
+    } else {
+      cleanedContent = cleanedContent.replace(pattern, ' ');
+    }
+  }
+
+  // Remove redundant phrases and strengthen language
+  cleanedContent = cleanedContent
+    .replace(/\bin order to\b/gi, 'to') // More concise
+    .replace(/\bdue to the fact that\b/gi, 'because') // More direct
+    .replace(/\bat this point in time\b/gi, 'now') // More concise
+    .replace(/\bmake it possible to\b/gi, 'enable') // Stronger verb
+    .replace(/\bis capable of\b/gi, 'can') // More direct
+    .replace(/\bhas the ability to\b/gi, 'can') // More direct
+    .replace(/\bprovide\s+you\s+with\b/gi, 'deliver') // Stronger verb
+
   // Remove any leading/trailing whitespace and multiple consecutive newlines
   cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
+  
+  // Clean up extra spaces
+  cleanedContent = cleanedContent.replace(/\s{2,}/g, ' ');
   
   return cleanedContent;
 }
@@ -207,9 +239,9 @@ serve(async (req) => {
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
-            model: 'claude-4-sonnet-20250514',
-            max_tokens: 4000,
-            temperature: 0.3,
+            model: 'claude-opus-4-20250514',
+            max_tokens: 2500,
+            temperature: 0.6,
             messages: [{
               role: 'user',
               content: prompt

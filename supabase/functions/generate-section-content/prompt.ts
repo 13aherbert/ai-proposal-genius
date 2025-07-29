@@ -1,23 +1,96 @@
 import { Project } from './types.ts';
 
+// Determine section type for specialized prompting
+function getSectionType(sectionTitle: string): 'executive' | 'technical' | 'team' | 'timeline' | 'pricing' | 'general' {
+  const title = sectionTitle.toLowerCase();
+  
+  if (title.includes('executive') || title.includes('summary') || title.includes('overview')) {
+    return 'executive';
+  }
+  if (title.includes('technical') || title.includes('approach') || title.includes('methodology') || title.includes('solution')) {
+    return 'technical';
+  }
+  if (title.includes('team') || title.includes('personnel') || title.includes('staff') || title.includes('experience')) {
+    return 'team';
+  }
+  if (title.includes('timeline') || title.includes('schedule') || title.includes('milestone') || title.includes('delivery')) {
+    return 'timeline';
+  }
+  if (title.includes('cost') || title.includes('price') || title.includes('budget') || title.includes('financial')) {
+    return 'pricing';
+  }
+  return 'general';
+}
+
+// Get section-specific writing guidelines
+function getSectionGuidelines(sectionType: string): string {
+  switch (sectionType) {
+    case 'executive':
+      return `EXECUTIVE SUMMARY GUIDELINES:
+- Lead with the most compelling value proposition and key differentiator
+- Include quantifiable ROI or business impact (percentages, timeframes, savings)
+- State the specific client benefit in the first sentence
+- Keep paragraphs to 2-3 sentences maximum
+- End with a strong call to action or next step`;
+      
+    case 'technical':
+      return `TECHNICAL APPROACH GUIDELINES:
+- Start with the specific outcome this approach will achieve for the client
+- Structure as: Problem → Solution → Benefit → Proof
+- Include specific methodologies, tools, or frameworks with proven results
+- Quantify technical benefits (performance improvements, efficiency gains)
+- Address potential risks and mitigation strategies`;
+      
+    case 'team':
+      return `TEAM/EXPERIENCE GUIDELINES:
+- Lead with most relevant and impressive project achievements
+- Include specific results and outcomes (not just activities)
+- Quantify success metrics from past projects
+- Focus on team members directly relevant to this project
+- Highlight unique qualifications that differentiate from competitors`;
+      
+    case 'timeline':
+      return `TIMELINE/DELIVERY GUIDELINES:
+- Start with the final delivery date and work backwards
+- Include buffer time for risk mitigation
+- Highlight accelerated delivery capabilities if applicable
+- Show parallel work streams to optimize timing
+- Include key client decision points and dependencies`;
+      
+    case 'pricing':
+      return `PRICING GUIDELINES:
+- Lead with total value delivered, not just cost
+- Structure pricing to show clear value at each tier
+- Include payment terms that benefit the client's cash flow
+- Highlight cost savings or ROI compared to alternatives
+- Show pricing transparency with detailed breakdowns`;
+      
+    default:
+      return `GENERAL SECTION GUIDELINES:
+- Start with the most important client benefit
+- Support claims with specific evidence and examples
+- Include quantifiable results where possible
+- Address potential client concerns proactively
+- End with clear next steps or commitments`;
+  }
+}
+
 export function generatePrompt(
   sectionTitle: string,
   project: Project,
   knowledgeBaseContext: string,
   existingSections?: Array<{section_title: string, content: string}>
 ): string {
-  const isCostRelatedSection = sectionTitle.toLowerCase().includes('cost') || 
-    sectionTitle.toLowerCase().includes('price') || 
-    sectionTitle.toLowerCase().includes('budget') ||
-    sectionTitle.toLowerCase().includes('financial');
-
-  const basePrompt = `You are writing content for the "${sectionTitle}" section of a business proposal.`;
+  const sectionType = getSectionType(sectionTitle);
+  const sectionGuidelines = getSectionGuidelines(sectionType);
+  
+  const isCostRelatedSection = sectionType === 'pricing';
 
   // Extract key information from existing sections for consistency
   let consistencyContext = '';
   if (existingSections && existingSections.length > 0) {
-    consistencyContext = `\n\nEXISTING SECTIONS FOR CONSISTENCY REFERENCE:
-This proposal already contains the following sections. You MUST maintain consistency with any pricing, timelines, company information, project scope, deliverables, or other key details mentioned in these existing sections:
+    consistencyContext = `\n\nEXISTING SECTIONS FOR CONSISTENCY:
+These proposal sections already exist. You MUST maintain absolute consistency with all pricing, timelines, company information, project scope, and deliverables:
 
 `;
     
@@ -25,124 +98,72 @@ This proposal already contains the following sections. You MUST maintain consist
       consistencyContext += `=== ${section.section_title} ===\n${section.content}\n\n`;
     });
 
-    consistencyContext += `\nCONSISTENCY REQUIREMENTS:
-- If pricing information exists in any existing section, use the EXACT same pricing structure and amounts
-- If project timelines are mentioned, maintain the same schedule and milestones
-- If company capabilities or team information is referenced, be consistent with those details
-- If project scope or deliverables are defined, align your content with those specifications
-- If contact information, company names, or client details are mentioned, use identical information
-- Maintain the same tone, style, and level of detail as existing sections
-- Never contradict information already established in other sections
-
+    consistencyContext += `CONSISTENCY REQUIREMENTS:
+- Use IDENTICAL pricing, timelines, and project details
+- Maintain same company capabilities and team information  
+- Never contradict established information
+- Align tone and detail level with existing sections
 `;
   }
 
   const costSpecificInstructions = isCostRelatedSection ? `
-For this cost-related section:
-1. FIRST, check existing sections for any pricing or cost information and use those EXACT figures
-2. If specific cost information exists in existing sections OR the knowledge base:
-   - Use those exact numbers and pricing structures
-   - Maintain any specific payment terms or conditions mentioned
-   - Include any volume discounts or special pricing arrangements
-3. If NO cost information is found in existing sections or the knowledge base:
-   - You MAY draw from the RFP requirements and any budget information in the project details
-   - Use industry knowledge to generate reasonable pricing based on project scope
-   - Consider market rates and competitive pricing for similar services
-   - Ensure pricing reflects the specific requirements and complexity of THIS project
-   - Include appropriate payment terms and milestone structures
-   - Base estimates on the actual deliverables and timeline requirements outlined in the RFP` : '';
+PRICING SECTION STRATEGY:
+1. FIRST priority: Use exact pricing from existing sections or knowledge base
+2. If no pricing exists: Create competitive pricing based on RFP requirements and project scope
+3. Structure: Total value delivered → Detailed breakdown → Payment terms → ROI justification
+4. Include risk mitigation through milestone-based payments
+5. Show cost transparency and value comparison to alternatives` : '';
 
-  return `${basePrompt}
+  return `You are an expert RFP proposal writer creating the "${sectionTitle}" section. This section must win against strong competition by demonstrating clear, quantifiable value to the client.
 
-Project Information:
+PROJECT CONTEXT:
 - Title: ${project.title}
 - Client: ${project.client_name || 'Not specified'}
 - Business: ${project.business_name || 'Not specified'}
-- Analysis: ${project.analysis || 'No analysis available'}
+- RFP Analysis: ${project.analysis || 'No analysis available'}
 
 ${knowledgeBaseContext}${consistencyContext}
 
+${sectionGuidelines}
+
 ${costSpecificInstructions}
 
-STRICT CONTENT GENERATION RULES:
-1. You ARE the proposal content itself - write directly as the proposal section
-2. NEVER include meta-commentary, introductory phrases, or explanations about your process
-3. FORBIDDEN PHRASES - NEVER use any of these:
-   - "Here is the [section name]..."
-   - "Based on the knowledge base..."
-   - "Using the provided information..."
-   - "This section covers..."
-   - "The following content..."
-   - "According to the knowledge base..."
-   - "From the information provided..."
-   - "Below is the content for..."
-   - "As mentioned in other sections..."
-   - "Consistent with previous sections..."
-   - Any reference to "knowledge base", "provided information", "existing sections", "consistency", or generation process
+RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
+1. LENGTH: Keep content between 200-500 words unless the section specifically requires more detail
+2. LEAD WITH IMPACT: First sentence must state the specific client benefit or value
+3. QUANTIFY EVERYTHING: Include specific percentages, timeframes, cost savings, or performance improvements
+4. COMPETITIVE EDGE: Highlight unique differentiators that competitors cannot match
+5. RISK MITIGATION: Address potential concerns and show how you minimize client risk
+6. PROOF POINTS: Use specific examples and results from knowledge base (never invent)
+7. ACTIVE VOICE: Write with confidence and authority - avoid passive constructions
+8. CLIENT-FOCUSED: Every paragraph must answer "What's in it for them?"
 
-4. WRITE STYLE:
-   - Start immediately with substantive content
-   - Write as if you are the proposal document speaking directly
-   - Use professional business language appropriate for the section
-   - Be authoritative and confident in tone
-   - Focus entirely on the client's needs and your business's solutions
-   - Write in a detailed and thorough manner while remaining concise
-   - Use a formal, professional tone throughout
-   - Present information clearly and in detail
-   - Write exclusively in active voice
-   - Use bullet points when appropriate to enhance clarity and readability
-   - Ensure content is comprehensive yet focused
-   - Maintain professional business proposal standards
+CONTENT SOURCING RULES:
+- Mine ALL knowledge base entries for relevant information regardless of titles
+- Use exact text, numbers, and examples from knowledge base verbatim
+- For non-pricing sections: ONLY use information found in knowledge base
+- If critical information is missing from knowledge base, state: "This section requires specific [topic] information in the Knowledge Base for accurate content generation"
+- NEVER invent examples, statistics, or capabilities not documented in knowledge base
 
-5. CONTENT REQUIREMENTS - CRITICAL RULE: MINE ALL KNOWLEDGE BASE CONTENT:
-   - You MUST search through ALL knowledge base entries, regardless of their titles or categories
-   - Document titles do not need to match the section you're writing - relevant content can be found anywhere
-   - Look across ALL categories and entries for pricing, past experience, technical details, company capabilities, client testimonials, project examples, team qualifications, and any other relevant information
-   - CROSS-REFERENCE EVERYTHING: A document titled "Company History" might contain pricing information; a "Previous Project" document might have technical specifications relevant to your current section
-   - Extract and use ALL relevant information from ANY knowledge base entry that applies to this section
-   - EXCEPTION: For pricing/cost sections only, you may use industry knowledge and RFP budget information when knowledge base lacks pricing data
-   - If specific information doesn't exist ANYWHERE in the knowledge base after thoroughly searching all entries, you MUST respond with:
-     "This section requires more specific information in the Knowledge Base. Please add relevant content about [specific topic needed] to generate accurate proposal content."
-   - ABSOLUTELY FORBIDDEN TO CREATE (except for pricing sections as noted above):
-     * Any examples, statistics, or content not found somewhere in the knowledge base
-     * Past project references unless documented somewhere in knowledge base
-     * Client testimonials or case studies unless found somewhere in knowledge base
-     * Company capabilities not listed anywhere in knowledge base
-     * Team member names or qualifications not documented anywhere in knowledge base
-     * Timeline estimates not based on knowledge base data found anywhere
-     * Technical specifications not provided anywhere in knowledge base
-     * Service offerings not documented anywhere in knowledge base
-   - When using knowledge base content from ANY entry:
-     * Copy exact text, numbers, and examples verbatim from wherever you find them
-     * Make only minimal grammatical adjustments for flow
-     * Keep all specific details exactly as they appear in any knowledge base entry
-     * Quote directly from knowledge base entries when possible, regardless of their original context
-   - If the knowledge base lacks sufficient information for ANY part of a non-pricing section after searching ALL entries:
-     * Do NOT fill gaps with generic content
-     * State exactly what information is missing
-     * Request specific knowledge base additions needed
+ABSOLUTE CONSISTENCY:
+- Use identical pricing, timelines, and details from existing sections
+- Never contradict previously established information
+- Maintain consistent company capabilities and team qualifications
 
-6. CONSISTENCY REQUIREMENTS:
-   - Maintain absolute consistency with all existing sections
-   - Use identical pricing, timelines, and project details
-   - Never contradict previously established information
-   - Align your content tone and detail level with existing sections
+FORBIDDEN CONTENT:
+- NO meta-commentary about writing process
+- NO generic business language or filler phrases  
+- NO invented examples or capabilities
+- NO section headers or titles in response
+- NO references to "knowledge base," "existing sections," or consistency requirements
+- NO weak language like "we believe," "we think," "would be able to"
 
-7. ABSOLUTELY FORBIDDEN:
-   - NO hypothetical examples or case studies
-   - NO references to non-existent past projects  
-   - NO invented client testimonials or experiences
-   - NO "such as" phrases unless directly quoting knowledge base
-   - NO generalizations about capabilities unless explicitly stated in knowledge base
-   - NO section titles, headers, or headings in your response
-   - NO markdown headers (# ## ###)
-   - NO references to the section name "${sectionTitle}" as a header
-   - NO references to consistency requirements or existing sections in your content
+WRITING STYLE:
+- Use persuasive, confident language that demonstrates expertise
+- Start immediately with substantive content (no introductions)
+- Write as the proposal itself, not about the proposal
+- Focus on measurable outcomes and client success
+- Use strong action verbs and specific commitments
+- End with clear value proposition or next step
 
-CRITICAL FORMATTING REQUIREMENT:
-- Start immediately with the content body - no introductions or headers
-- Your response should be pure proposal content that can be placed directly under the section title
-- Write as if the reader is already looking at the "${sectionTitle}" section
-
-Write ONLY the body content for the ${sectionTitle} section now. Be the proposal itself, not a description of the proposal:`;
-}
+Generate ONLY the body content for "${sectionTitle}" - be the winning proposal section that beats the competition:

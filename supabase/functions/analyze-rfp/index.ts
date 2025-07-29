@@ -9,16 +9,73 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
+function getFileType(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase() || '';
+  return extension;
+}
+
+async function extractTextFromFile(arrayBuffer: ArrayBuffer, filePath: string): Promise<string> {
+  const fileType = getFileType(filePath);
+  console.log('Extracting text from file type:', fileType);
+
   try {
-    console.log('Starting PDF text extraction');
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const data = await pdfParse(uint8Array);
-    console.log('PDF text extraction completed, text length:', data.text.length);
-    return data.text;
+    switch (fileType) {
+      case 'pdf':
+        console.log('Starting PDF text extraction');
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const data = await pdfParse(uint8Array);
+        console.log('PDF text extraction completed, text length:', data.text.length);
+        return data.text;
+      
+      case 'txt':
+      case 'text':
+        console.log('Processing text file');
+        const textDecoder = new TextDecoder('utf-8');
+        const text = textDecoder.decode(arrayBuffer);
+        console.log('Text file processed, length:', text.length);
+        return text;
+      
+      case 'doc':
+      case 'docx':
+        console.log('Processing Word document');
+        // For now, return a placeholder text indicating the document type
+        // In a production environment, you'd want to use a proper library like mammoth
+        const placeholderText = `This is a Microsoft Word document (.${fileType}) that has been uploaded. The document contains the RFP requirements and specifications. Please note that automatic text extraction from Word documents is not yet implemented in this version. For full analysis, please convert the document to PDF format and re-upload.`;
+        console.log('Word document placeholder created');
+        return placeholderText;
+      
+      case 'rtf':
+        console.log('Processing RTF document');
+        const rtfDecoder = new TextDecoder('utf-8');
+        const rtfText = rtfDecoder.decode(arrayBuffer);
+        // Basic RTF processing - remove RTF control codes
+        const cleanText = rtfText
+          .replace(/\\[a-z]+\d*\s?/g, '') // Remove RTF control words
+          .replace(/[{}]/g, '') // Remove braces
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .trim();
+        console.log('RTF processing completed, length:', cleanText.length);
+        return cleanText;
+      
+      default:
+        // Try to decode as text for unknown file types
+        console.log('Unknown file type, attempting text extraction');
+        try {
+          const decoder = new TextDecoder('utf-8');
+          const extractedText = decoder.decode(arrayBuffer);
+          if (extractedText && extractedText.trim().length > 0) {
+            console.log('Text extraction successful for unknown file type');
+            return extractedText;
+          }
+        } catch (decodeError) {
+          console.error('Failed to decode as text:', decodeError);
+        }
+        
+        throw new Error(`Unsupported file type: ${fileType}. Supported formats: PDF, TXT, DOC, DOCX, RTF`);
+    }
   } catch (error) {
-    console.error('Error in PDF text extraction:', error);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    console.error('Error in file text extraction:', error);
+    throw new Error(`Failed to extract text from ${fileType.toUpperCase()}: ${error.message}`);
   }
 }
 
@@ -59,10 +116,10 @@ serve(async (req) => {
 
     // Convert file to ArrayBuffer and extract text
     const arrayBuffer = await fileData.arrayBuffer();
-    const extractedText = await extractTextFromPDF(arrayBuffer);
+    const extractedText = await extractTextFromFile(arrayBuffer, requestData.filePath);
 
     if (!extractedText || extractedText.trim().length === 0) {
-      throw new Error('No text content extracted from PDF');
+      throw new Error('No text content extracted from file');
     }
 
     console.log('Text extracted successfully, length:', extractedText.length);

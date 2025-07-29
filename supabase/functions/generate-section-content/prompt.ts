@@ -86,6 +86,13 @@ STRICT CONTENT GENERATION RULES:
    - Use professional business language appropriate for the section
    - Be authoritative and confident in tone
    - Focus entirely on the client's needs and your business's solutions
+   - Write in a detailed and thorough manner while remaining concise
+   - Use a formal, professional tone throughout
+   - Present information clearly and in detail
+   - Write exclusively in active voice
+   - Use bullet points when appropriate to enhance clarity and readability
+   - Ensure content is comprehensive yet focused
+   - Maintain professional business proposal standards
 
 5. CONTENT REQUIREMENTS - CRITICAL RULE: MINE ALL KNOWLEDGE BASE CONTENT:
    - You MUST search through ALL knowledge base entries, regardless of their titles or categories

@@ -61,7 +61,6 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
         manifest-src 'self';
         upgrade-insecure-requests;
         block-all-mixed-content;
-        require-trusted-types-for 'script';
       `.replace(/\s+/g, ' ').trim();
       
       // Only add if not already present

@@ -5,10 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Clock, Play, Square, RotateCcw, AlertCircle, Zap } from "lucide-react";
 import { useAutomatedProposalCreation, type AutomationStep } from "@/hooks/use-automated-proposal-creation";
+import { forwardRef, useImperativeHandle } from "react";
 
 interface AutomatedProposalCreationProps {
   projectId: string;
   filePath: string;
+}
+
+export interface AutomatedProposalCreationRef {
+  startAutomation: () => void;
 }
 
 const stepDisplayNames: Record<AutomationStep, string> = {
@@ -29,8 +34,13 @@ const stepDescriptions: Record<AutomationStep, string> = {
   completed: "All automation steps completed successfully"
 };
 
-export function AutomatedProposalCreation({ projectId, filePath }: AutomatedProposalCreationProps) {
-  const { progress, startAutomation, stopAutomation, resetAutomation } = useAutomatedProposalCreation(projectId, filePath);
+export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef, AutomatedProposalCreationProps>(
+  ({ projectId, filePath }, ref) => {
+    const { progress, startAutomation, stopAutomation, resetAutomation } = useAutomatedProposalCreation(projectId, filePath);
+
+    useImperativeHandle(ref, () => ({
+      startAutomation
+    }), [startAutomation]);
 
   const renderStepStatus = (step: AutomationStep) => {
     if (progress.completedSteps.includes(step)) {
@@ -234,4 +244,4 @@ export function AutomatedProposalCreation({ projectId, filePath }: AutomatedProp
       </CardContent>
     </Card>
   );
-}
+});

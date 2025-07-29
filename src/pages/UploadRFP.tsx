@@ -10,8 +10,8 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
 import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
-import { AutomatedProposalCreation } from "@/components/project/AutomatedProposalCreation";
-import { useAutomatedProposalCreation } from "@/hooks/use-automated-proposal-creation";
+import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
+
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
@@ -23,6 +23,7 @@ const UploadRFP = () => {
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const automationRef = useRef<HTMLDivElement>(null);
+  const automationComponentRef = useRef<AutomatedProposalCreationRef>(null);
   
   const {
     uploadProgress,
@@ -40,11 +41,6 @@ const UploadRFP = () => {
     fetchProjectCount
   } = useRFPUpload();
 
-  // Use automation hook when we have a project
-  const automation = useAutomatedProposalCreation(
-    projectId || "", 
-    rfpFilePath || ""
-  );
 
   useEffect(() => {
     if (session?.user) {
@@ -97,9 +93,9 @@ const UploadRFP = () => {
   }, [navigate]);
 
   const handleStartAutomation = useCallback(() => {
-    // Start the automation process
-    if (projectId && rfpFilePath) {
-      automation.startAutomation();
+    // Start the automation process through the component ref
+    if (automationComponentRef.current) {
+      automationComponentRef.current.startAutomation();
     }
     
     // Scroll to the automation section
@@ -109,7 +105,7 @@ const UploadRFP = () => {
         block: 'start' 
       });
     }
-  }, [projectId, rfpFilePath, automation.startAutomation]);
+  }, []);
 
   const hasReachedLimit = 
     projectLimit !== null && 
@@ -254,6 +250,7 @@ const UploadRFP = () => {
           {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
             <div ref={automationRef} className="mt-8">
               <AutomatedProposalCreation 
+                ref={automationComponentRef}
                 projectId={projectId} 
                 filePath={rfpFilePath} 
               />

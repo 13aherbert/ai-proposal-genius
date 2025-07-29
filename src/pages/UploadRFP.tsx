@@ -11,6 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 import { AutomatedProposalCreation } from "@/components/project/AutomatedProposalCreation";
+import { useAutomatedProposalCreation } from "@/hooks/use-automated-proposal-creation";
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
@@ -38,6 +39,12 @@ const UploadRFP = () => {
     updateProject,
     fetchProjectCount
   } = useRFPUpload();
+
+  // Use automation hook when we have a project
+  const automation = useAutomatedProposalCreation(
+    projectId || "", 
+    rfpFilePath || ""
+  );
 
   useEffect(() => {
     if (session?.user) {
@@ -90,13 +97,19 @@ const UploadRFP = () => {
   }, [navigate]);
 
   const handleStartAutomation = useCallback(() => {
+    // Start the automation process
+    if (projectId && rfpFilePath) {
+      automation.startAutomation();
+    }
+    
+    // Scroll to the automation section
     if (automationRef.current) {
       automationRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start' 
       });
     }
-  }, []);
+  }, [projectId, rfpFilePath, automation.startAutomation]);
 
   const hasReachedLimit = 
     projectLimit !== null && 

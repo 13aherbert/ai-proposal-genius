@@ -1183,6 +1183,13 @@ export type Database = {
         Args: { user_id_param: string; org_id_param: string }
         Returns: boolean
       }
+      validate_password_policy: {
+        Args: { password: string }
+        Returns: {
+          is_valid: boolean
+          errors: string[]
+        }[]
+      }
       verify_invitation_code: {
         Args: { code_param: string }
         Returns: {

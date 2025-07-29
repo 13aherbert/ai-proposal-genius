@@ -68,19 +68,39 @@ export const useAuthFormSubmit = () => {
     e.preventDefault();
     setError("");
     
-    // Enhanced client-side validation
+    // Enhanced client-side validation with server-side backup
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       setError(emailValidation.errors[0]);
       return;
     }
     
-    // Password validation for signup
+    // Enhanced password validation for both signup and signin
     if (isSignUp) {
-      const passwordValidation = PasswordSecurity.validateStrength(password);
-      if (!passwordValidation.isStrong) {
-        setError(`Password requirements not met: ${passwordValidation.feedback.join(', ')}`);
-        return;
+      // Use server-side validation for signup
+      try {
+        const { data: validationResult, error: validationError } = await supabase
+          .rpc('validate_password_policy', { password });
+        
+        if (validationError) {
+          console.error('Password validation error:', validationError);
+          setError('Password validation failed. Please try again.');
+          return;
+        }
+        
+        if (!validationResult[0]?.is_valid) {
+          const errors = validationResult[0]?.errors || ['Password does not meet security requirements'];
+          setError(errors.join('. '));
+          return;
+        }
+      } catch (dbError) {
+        // Fallback to client-side validation if server validation fails
+        console.warn('Server validation failed, using client-side validation:', dbError);
+        const passwordValidation = PasswordSecurity.validateStrength(password);
+        if (!passwordValidation.isStrong) {
+          setError(`Password requirements not met: ${passwordValidation.feedback.join(', ')}`);
+          return;
+        }
       }
       
       // Business rule validation
@@ -100,6 +120,12 @@ export const useAuthFormSubmit = () => {
       const isSecurePassword = await PasswordSecurity.checkBreachHeuristics(password);
       if (!isSecurePassword) {
         setError('This password appears in data breaches. Please choose a different password.');
+        return;
+      }
+    } else {
+      // Basic validation for signin
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long');
         return;
       }
     }

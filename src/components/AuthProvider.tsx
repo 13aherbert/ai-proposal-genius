@@ -4,6 +4,7 @@ import { Session, AuthChangeEvent, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emailService } from "@/services/EmailService";
+import { SessionSecurity, SecureTokenStorage } from "@/utils/security/auth-security";
 
 type AuthContextType = {
   session: Session | null;
@@ -34,19 +35,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // Enhanced security cleanup
+      SessionSecurity.invalidateSession();
+      SecureTokenStorage.clearAllTokens();
       localStorage.removeItem('userToken');
       localStorage.removeItem('subscriptionData');
       localStorage.removeItem('userRoles');
       
-      const { error } = await supabase.auth.signOut();
+      // Log security event
+      try {
+        await supabase.rpc('log_security_event', {
+          event_type_param: 'user_logout',
+          details_param: {
+            timestamp: new Date().toISOString(),
+            user_agent: navigator.userAgent
+          }
+        });
+      } catch (logError) {
+        console.warn('Failed to log security event:', logError);
+      }
+      
+      // Sign out from Supabase with global scope
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) throw error;
-      navigate("/");
-      toast.success("Successfully signed out");
+      
+      // Force page reload for complete cleanup
+      window.location.href = '/';
     } catch (err: any) {
       console.error("Error signing out:", err);
-      toast.error("Failed to sign out", {
-        description: err.message || "Please try again"
-      });
+      // Even if signout fails, clear local data and navigate
+      SessionSecurity.invalidateSession();
+      SecureTokenStorage.clearAllTokens();
+      localStorage.clear();
+      window.location.href = '/';
     }
   };
 

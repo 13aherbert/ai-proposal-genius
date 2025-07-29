@@ -26,32 +26,42 @@ interface SecurityProviderProps {
 export const SecurityProvider = ({ children }: SecurityProviderProps) => {
   const { session, signOut } = useAuth();
 
+  // Generate nonce for CSP
+  const generateNonce = (): string => {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  };
+
   useEffect(() => {
     // Initialize CSRF protection when app starts
     if (!CSRFProtection.getToken()) {
       CSRFProtection.generateToken();
     }
 
-    // Set up security headers
+    // Set up enhanced security headers
     const addSecurityHeaders = () => {
-      // Content Security Policy
+      // Enhanced Content Security Policy
       const meta = document.createElement('meta');
       meta.httpEquiv = 'Content-Security-Policy';
       meta.content = `
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net 'nonce-${generateNonce()}';
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
-        font-src 'self' https://fonts.gstatic.com;
-        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io;
-        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
+        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io https://via.placeholder.com;
+        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com https://api.stripe.com;
+        frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
         frame-ancestors 'none';
         base-uri 'self';
-        form-action 'self';
+        form-action 'self' https://*.stripe.com;
         object-src 'none';
         media-src 'self' blob:;
         worker-src 'self' blob:;
         manifest-src 'self';
         upgrade-insecure-requests;
+        block-all-mixed-content;
+        require-trusted-types-for 'script';
       `.replace(/\s+/g, ' ').trim();
       
       // Only add if not already present

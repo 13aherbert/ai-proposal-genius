@@ -8,61 +8,41 @@ import { FAQ } from "@/components/blocks/faq";
 import { useState } from "react";
 import { BetaRequestDialog } from "@/components/beta/BetaRequestDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
-
 const Index = () => {
   const [betaDialogOpen, setBetaDialogOpen] = useState(false);
   const isMobile = useIsMobile();
-  
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({
+        behavior: 'smooth'
+      });
     }
   };
-
-  return (
-    <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
+  return <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
         {/* Beta Program Button - Only show in this position on desktop */}
-        {!isMobile && (
-          <div className="absolute top-4 left-4">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-              onClick={() => setBetaDialogOpen(true)}
-            >
+        {!isMobile && <div className="absolute top-4 left-4">
+            <Button size="lg" variant="outline" className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white" onClick={() => setBetaDialogOpen(true)}>
               <Sparkles className="mr-2 h-4 w-4" />
               Join the Beta Program
             </Button>
-          </div>
-        )}
+          </div>}
         
         {/* Navigation Buttons and Login */}
         <div className="absolute top-4 right-4 flex items-center gap-4">
-          <Button
-            variant="secondary"
-            className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-            onClick={() => scrollToSection('pricing')}
-          >
+          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('pricing')}>
             <DollarSign className="h-4 w-4" />
             {!isMobile && "Pricing"}
           </Button>
-          <Button
-            variant="secondary"
-            className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-            onClick={() => scrollToSection('faq')}
-          >
+          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('faq')}>
             <HelpCircle className="h-4 w-4" />
             {!isMobile && "FAQ"}
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button
-                variant="secondary"
-                className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70"
-              >
+              <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70">
                 <LogIn className="h-4 w-4" />
                 {!isMobile && "Login"}
               </Button>
@@ -76,27 +56,16 @@ const Index = () => {
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
           {/* Beta Button for Mobile - Centered below header */}
-          {isMobile && (
-            <div className="flex justify-center mb-8 pt-12">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-                onClick={() => setBetaDialogOpen(true)}
-              >
+          {isMobile && <div className="flex justify-center mb-8 pt-12">
+              <Button size="lg" variant="outline" className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white" onClick={() => setBetaDialogOpen(true)}>
                 <Sparkles className="mr-2 h-4 w-4" />
                 Join the Beta Program
               </Button>
-            </div>
-          )}
+            </div>}
           
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto">
-            <img 
-              src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" 
-              alt="OptiRFP Logo" 
-              className="h-16 md:h-20 mx-auto mb-4"
-            />
+            <img src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" alt="OptiRFP Logo" className="h-16 md:h-20 mx-auto mb-4" />
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-4">
               Optimize Proposals. Win Opportunities.
             </p>
@@ -106,12 +75,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button
-                    size="lg"
-                    className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold"
-                  >
-                    Start Your Free Trial Today
-                  </Button>
+                  <Button size="lg" className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold">Start Forever Free Today</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <AuthForm defaultView="sign_up" variant="dialog" />
@@ -121,10 +85,7 @@ const Index = () => {
           </div>
 
           {/* Beta Request Dialog */}
-          <BetaRequestDialog 
-            open={betaDialogOpen} 
-            onOpenChange={setBetaDialogOpen} 
-          />
+          <BetaRequestDialog open={betaDialogOpen} onOpenChange={setBetaDialogOpen} />
 
           {/* Key Benefits Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">
@@ -173,8 +134,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
+    </div>;
+};
 export default Index;

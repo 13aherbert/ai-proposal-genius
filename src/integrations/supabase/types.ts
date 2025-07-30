@@ -375,6 +375,47 @@ export type Database = {
           },
         ]
       }
+      organization_analytics: {
+        Row: {
+          additional_data: Json | null
+          created_at: string | null
+          id: string
+          metric_category: string
+          metric_date: string
+          metric_type: string
+          metric_value: number
+          organization_id: string
+        }
+        Insert: {
+          additional_data?: Json | null
+          created_at?: string | null
+          id?: string
+          metric_category: string
+          metric_date: string
+          metric_type: string
+          metric_value: number
+          organization_id: string
+        }
+        Update: {
+          additional_data?: Json | null
+          created_at?: string | null
+          id?: string
+          metric_category?: string
+          metric_date?: string
+          metric_type?: string
+          metric_value?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_analytics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_api_keys: {
         Row: {
           api_key_hash: string
@@ -632,6 +673,59 @@ export type Database = {
           },
         ]
       }
+      organization_insights: {
+        Row: {
+          action_suggested: string | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          insight_category: string
+          insight_data: Json
+          insight_description: string
+          insight_title: string
+          insight_type: string
+          is_actionable: boolean | null
+          is_dismissed: boolean | null
+          organization_id: string
+        }
+        Insert: {
+          action_suggested?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          insight_category: string
+          insight_data: Json
+          insight_description: string
+          insight_title: string
+          insight_type: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          organization_id: string
+        }
+        Update: {
+          action_suggested?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          insight_category?: string
+          insight_data?: Json
+          insight_description?: string
+          insight_title?: string
+          insight_type?: string
+          is_actionable?: boolean | null
+          is_dismissed?: boolean | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null
@@ -770,6 +864,107 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_report_outputs: {
+        Row: {
+          expires_at: string | null
+          file_size: number | null
+          file_url: string | null
+          generated_at: string | null
+          generated_by: string
+          id: string
+          organization_id: string
+          output_format: string
+          report_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by: string
+          id?: string
+          organization_id: string
+          output_format: string
+          report_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by?: string
+          id?: string
+          organization_id?: string
+          output_format?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_report_outputs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_report_outputs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "organization_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_reports: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_automated: boolean | null
+          last_generated_at: string | null
+          organization_id: string
+          report_config: Json
+          report_name: string
+          report_type: string
+          schedule_config: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_automated?: boolean | null
+          last_generated_at?: string | null
+          organization_id: string
+          report_config: Json
+          report_name: string
+          report_type: string
+          schedule_config?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_automated?: boolean | null
+          last_generated_at?: string | null
+          organization_id?: string
+          report_config?: Json
+          report_name?: string
+          report_type?: string
+          schedule_config?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_reports_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1483,7 +1678,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      organization_metrics_summary: {
+        Row: {
+          active_users: number | null
+          avg_engagement: number | null
+          metric_date: string | null
+          organization_id: string | null
+          projects_created: number | null
+          total_revenue: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_analytics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_delete_user_cascade: {
@@ -1494,9 +1707,17 @@ export type Database = {
         Args: { admin_id: string; target_user_id: string }
         Returns: boolean
       }
+      aggregate_daily_analytics: {
+        Args: { org_id: string; target_date: string }
+        Returns: undefined
+      }
       assign_user_role: {
         Args: { _user_id: string; _role: string; _created_by: string }
         Returns: string
+      }
+      calculate_user_engagement_score: {
+        Args: { org_id: string; user_id_param: string; date_param: string }
+        Returns: number
       }
       cascade_delete_user_data: {
         Args: { user_id_param: string }

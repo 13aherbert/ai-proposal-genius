@@ -8,6 +8,7 @@ import { UsageAnalytics } from './UsageAnalytics';
 import { SecurityDashboard } from './SecurityDashboard';
 import { SSOConfiguration } from './SSOConfiguration';
 import { ComplianceManager } from './ComplianceManager';
+import { AdvancedAnalyticsDashboard } from '../analytics/AdvancedAnalyticsDashboard';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,10 +111,11 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canViewAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
+          {canViewAnalytics && <TabsTrigger value="advanced-analytics">Advanced Analytics</TabsTrigger>}
           {canViewBilling && <TabsTrigger value="billing">Billing</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="compliance">Compliance</TabsTrigger>}
@@ -236,6 +238,12 @@ export function OrganizationDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        )}
+
+        {canViewAnalytics && (
+          <TabsContent value="advanced-analytics" className="space-y-4">
+            <AdvancedAnalyticsDashboard />
           </TabsContent>
         )}
 

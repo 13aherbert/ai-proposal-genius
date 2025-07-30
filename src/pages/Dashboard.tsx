@@ -11,7 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Database, Users, BarChart3, FolderOpen } from "lucide-react";
+import { FileText, Database, Users, BarChart3, FolderOpen, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
@@ -167,6 +167,11 @@ export default function Dashboard() {
                   <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
                 </div>
               </>}
+            {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
+              <div className="flex-1">
+                <QuickActionCard title="Manage Organization" description="Team, security & billing" icon={Building2} href="/organization" variant="secondary" />
+              </div>
+            )}
           </div>
 
           {/* Recent Activity */}

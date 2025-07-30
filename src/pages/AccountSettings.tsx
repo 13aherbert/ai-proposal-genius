@@ -128,6 +128,22 @@ export default function AccountSettings() {
                 />
 
                 <SubscriptionCard subscription={subscription ? toSubscriptionPlan(subscription) : null} />
+                
+                {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
+                  <div className="p-6 border rounded-lg bg-card">
+                    <h3 className="text-lg font-semibold mb-2">Organization Management</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Manage your organization settings, team members, security, and billing.
+                    </p>
+                    <Button
+                      onClick={() => navigate("/organization")}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Go to Organization Dashboard
+                    </Button>
+                  </div>
+                )}
 
                 <AccountActionButtons 
                   hasChanges={hasProfileChanges || hasCredentialChanges}

@@ -2,10 +2,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
+import { useProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const { session, signOut } = useAuth();
+  const { profileData } = useProfile();
   
   const handleSignOut = async () => {
     await signOut();
@@ -34,6 +36,11 @@ export function Navbar() {
                 <Link to="/knowledge-base" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                   Knowledge Base
                 </Link>
+                {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
+                  <Link to="/organization" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                    Organization
+                  </Link>
+                )}
               </nav>
             )}
           </div>

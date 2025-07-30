@@ -27,6 +27,7 @@ import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage"; // Changed to page component
 import BetaInvitationsPage from "@/pages/admin/BetaInvitationsPage"; // Changed to page component
 import BetaRequests from "@/pages/admin/BetaRequests";
+import Organization from "@/pages/Organization";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -127,6 +128,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/organization"
+        element={
+          <ProtectedRoute>
+            <Organization />
           </ProtectedRoute>
         }
       />

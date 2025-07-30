@@ -12,9 +12,9 @@ import { Palette, Key, Globe, Settings } from 'lucide-react';
 
 export function WhiteLabelDashboard() {
   const { session } = useAuth();
-  const { data: organizationId } = useCurrentOrganization(session?.user || null);
+  const { organization } = useCurrentOrganization();
 
-  if (!organizationId || !session?.user) {
+  if (!organization?.id || !session?.user) {
     return <div>Loading organization...</div>;
   }
 

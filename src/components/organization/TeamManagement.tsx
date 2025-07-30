@@ -14,9 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 
 export function TeamManagement() {
   const [user, setUser] = useState<any>(null);
-  const { data: currentOrgId } = useCurrentOrganization(user);
-  const { members, loading, updateMemberRole, removeMember } = useOrganizationMembers(currentOrgId);
-  const { hasPermission } = useOrganizationPermissions(currentOrgId);
+  const { organization } = useCurrentOrganization();
+  const { members, loading, updateMemberRole, removeMember } = useOrganizationMembers(organization?.id);
+  const { hasPermission } = useOrganizationPermissions(organization?.id);
   const { toast } = useToast();
   const [editingMember, setEditingMember] = useState<string | null>(null);
 

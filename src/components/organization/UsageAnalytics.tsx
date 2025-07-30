@@ -8,8 +8,8 @@ import { BarChart3, Users, FolderOpen, Database, Activity, Zap } from 'lucide-re
 
 export function UsageAnalytics() {
   const [user, setUser] = React.useState<any>(null);
-  const { data: currentOrgId } = useCurrentOrganization(user);
-  const { usage, loading } = useOrganizationUsage(currentOrgId);
+  const { organization } = useCurrentOrganization();
+  const { usage, loading } = useOrganizationUsage(organization?.id);
 
   React.useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));

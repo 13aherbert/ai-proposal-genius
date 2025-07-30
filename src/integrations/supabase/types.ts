@@ -196,6 +196,94 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_reports: {
+        Row: {
+          created_at: string | null
+          generated_by: string
+          id: string
+          organization_id: string | null
+          report_data: Json
+          report_type: string
+          report_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          generated_by: string
+          id?: string
+          organization_id?: string | null
+          report_data: Json
+          report_type: string
+          report_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          generated_by?: string
+          id?: string
+          organization_id?: string | null
+          report_data?: Json
+          report_type?: string
+          report_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          export_url: string | null
+          id: string
+          organization_id: string | null
+          processed_by: string | null
+          request_type: string
+          requested_by: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          export_url?: string | null
+          id?: string
+          organization_id?: string | null
+          processed_by?: string | null
+          request_type: string
+          requested_by: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          export_url?: string | null
+          id?: string
+          organization_id?: string | null
+          processed_by?: string | null
+          request_type?: string
+          requested_by?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_export_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_entries: {
         Row: {
           category: string
@@ -682,6 +770,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_sso_config: {
+        Row: {
+          configuration: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          organization_id: string | null
+          provider_name: string
+          provider_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          configuration: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          provider_name: string
+          provider_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string | null
+          provider_name?: string
+          provider_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_sso_config_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1203,6 +1332,53 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events_log: {
+        Row: {
+          created_at: string | null
+          event_details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          organization_id: string | null
+          risk_level: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          organization_id?: string | null
+          risk_level?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          organization_id?: string | null
+          risk_level?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_events_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -1583,11 +1759,22 @@ export type Database = {
         Returns: string
       }
       log_security_event: {
-        Args: {
-          event_type_param: string
-          target_user_id_param?: string
-          details_param?: Json
-        }
+        Args:
+          | {
+              event_type_param: string
+              target_user_id_param?: string
+              details_param?: Json
+            }
+          | {
+              org_id: string
+              user_id_param: string
+              event_type_param: string
+              event_details_param?: Json
+              ip_address_param?: unknown
+              user_agent_param?: string
+              session_id_param?: string
+              risk_level_param?: string
+            }
         Returns: string
       }
       migrate_user_subscriptions_to_organizations: {
@@ -1601,6 +1788,14 @@ export type Database = {
       remove_user_role: {
         Args: { _user_id: string; _role: string }
         Returns: boolean
+      }
+      request_data_export: {
+        Args: {
+          org_id: string
+          target_user_id: string
+          request_type_param?: string
+        }
+        Returns: string
       }
       switch_user_organization: {
         Args: { user_id_param: string; org_id_param: string }

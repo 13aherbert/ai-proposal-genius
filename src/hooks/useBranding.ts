@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from './use-current-organization';
-import { useProfile } from './use-profile';
+import { useAuth } from '@/components/AuthProvider';
 
 export interface BrandingConfig {
   id?: string;
@@ -26,8 +26,8 @@ export function useBranding() {
   const [branding, setBranding] = useState<BrandingConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { profile } = useProfile();
-  const { data: organization } = useCurrentOrganization(profile);
+  const { session } = useAuth();
+  const { data: organization } = useCurrentOrganization(session?.user || null);
 
   useEffect(() => {
     if (!organization) {

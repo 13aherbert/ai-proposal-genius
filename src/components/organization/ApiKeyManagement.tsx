@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
-import { useProfile } from '@/hooks/use-profile';
+import { useAuth } from '@/components/AuthProvider';
 import { Key, MoreHorizontal, Copy, Trash2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -30,8 +30,8 @@ export function ApiKeyManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [createdApiKey, setCreatedApiKey] = useState<string>('');
-  const { profile } = useProfile();
-  const { data: organization } = useCurrentOrganization(profile);
+  const { session } = useAuth();
+  const { data: organization } = useCurrentOrganization(session?.user || null);
   const { toast } = useToast();
 
   useEffect(() => {

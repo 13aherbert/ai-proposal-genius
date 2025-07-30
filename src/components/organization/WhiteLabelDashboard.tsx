@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
-import { useProfile } from '@/hooks/use-profile';
+import { useAuth } from '@/components/AuthProvider';
 import { Palette, Key, Globe, Settings } from 'lucide-react';
 
 export function WhiteLabelDashboard() {
-  const { profile } = useProfile();
-  const { data: organizationId } = useCurrentOrganization(profile);
+  const { session } = useAuth();
+  const { data: organizationId } = useCurrentOrganization(session?.user || null);
 
-  if (!organizationId || !profile) {
+  if (!organizationId || !session?.user) {
     return <div>Loading organization...</div>;
   }
 

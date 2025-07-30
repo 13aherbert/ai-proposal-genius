@@ -15,34 +15,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Building2, Settings, Users, BarChart3, Crown, CreditCard, Shield } from 'lucide-react';
 
 export function OrganizationDashboard() {
-  const [user, setUser] = useState<any>(null);
-  const { data: currentOrgId } = useCurrentOrganization(user);
-  const { hasPermission, loading: permissionsLoading } = useOrganizationPermissions(currentOrgId);
-  const [organization, setOrganization] = useState<any>(null);
+  const { organization, loading: orgLoading } = useCurrentOrganization();
+  const { hasPermission, loading: permissionsLoading } = useOrganizationPermissions(organization?.id);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-  }, []);
-
-  useEffect(() => {
-    if (currentOrgId) {
-      fetchOrganization();
-    }
-  }, [currentOrgId]);
-
-  const fetchOrganization = async () => {
-    if (!currentOrgId) return;
-    
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', currentOrgId)
-      .single();
-
-    if (!error && data) {
-      setOrganization(data);
-    }
-  };
 
   const getTierBadgeColor = (tier: string) => {
     switch (tier) {

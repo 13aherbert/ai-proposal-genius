@@ -1719,6 +1719,10 @@ export type Database = {
         Args: { org_id: string; user_id_param: string; date_param: string }
         Returns: number
       }
+      can_manage_organization: {
+        Args: { user_id_param: string; org_id_param: string }
+        Returns: boolean
+      }
       cascade_delete_user_data: {
         Args: { user_id_param: string }
         Returns: boolean
@@ -1738,6 +1742,10 @@ export type Database = {
       }
       check_existing_role: {
         Args: { _user_id: string; _role: string }
+        Returns: boolean
+      }
+      check_organization_limits: {
+        Args: { org_id_param: string; limit_type: string }
         Returns: boolean
       }
       check_organization_seat_limit: {
@@ -1883,6 +1891,10 @@ export type Database = {
           stripe_subscription_id: string
           cancel_at_period_end: boolean
         }[]
+      }
+      get_user_current_org: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_current_organization: {
         Args: { user_id_param: string }

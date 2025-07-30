@@ -61,7 +61,7 @@ const OUTPUT_FORMATS = [
 
 export function CustomReportBuilder() {
   const { session } = useAuth();
-  const { data: currentOrgId } = useCurrentOrganization(session?.user || null);
+  const { organization } = useCurrentOrganization();
   const [reports, setReports] = useState<Report[]>([]);
   const [reportOutputs, setReportOutputs] = useState<ReportOutput[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,20 +78,20 @@ export function CustomReportBuilder() {
   const [scheduleFrequency, setScheduleFrequency] = useState('weekly');
 
   useEffect(() => {
-    if (currentOrgId) {
+    if (organization?.id) {
       fetchReports();
       fetchReportOutputs();
     }
-  }, [currentOrgId]);
+  }, [organization?.id]);
 
   const fetchReports = async () => {
-    if (!currentOrgId) return;
+    if (!organization?.id) return;
     
     try {
       const { data, error } = await supabase
         .from('organization_reports')
         .select('*')
-        .eq('organization_id', currentOrgId)
+        .eq('organization_id', organization.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -102,13 +102,13 @@ export function CustomReportBuilder() {
   };
 
   const fetchReportOutputs = async () => {
-    if (!currentOrgId) return;
+    if (!organization?.id) return;
     
     try {
       const { data, error } = await supabase
         .from('organization_report_outputs')
         .select('*')
-        .eq('organization_id', currentOrgId)
+        .eq('organization_id', organization.id)
         .order('generated_at', { ascending: false })
         .limit(20);
 
@@ -121,7 +121,7 @@ export function CustomReportBuilder() {
   };
 
   const createReport = async () => {
-    if (!currentOrgId || !session?.user?.id) return;
+    if (!organization?.id || !session?.user?.id) return;
     
     try {
       const reportConfig = {
@@ -140,7 +140,7 @@ export function CustomReportBuilder() {
       const { data, error } = await supabase
         .from('organization_reports')
         .insert({
-          organization_id: currentOrgId,
+          organization_id: organization.id,
           report_name: reportName,
           report_type: reportType,
           report_config: reportConfig,
@@ -164,7 +164,7 @@ export function CustomReportBuilder() {
   };
 
   const generateReport = async (reportId: string, format: string = 'pdf') => {
-    if (!currentOrgId || !session?.user?.id) return;
+    if (!organization?.id || !session?.user?.id) return;
     
     setGenerating(true);
     try {
@@ -173,7 +173,7 @@ export function CustomReportBuilder() {
         body: {
           reportId,
           format,
-          organizationId: currentOrgId
+          organizationId: organization.id
         }
       });
 

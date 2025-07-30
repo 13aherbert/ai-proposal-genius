@@ -31,21 +31,21 @@ interface Insight {
 
 export function BusinessIntelligenceDashboard() {
   const { session } = useAuth();
-  const { data: currentOrgId } = useCurrentOrganization(session?.user || null);
+  const { organization } = useCurrentOrganization();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30d');
 
   useEffect(() => {
-    if (currentOrgId) {
+    if (organization?.id) {
       fetchAnalyticsData();
       fetchInsights();
     }
-  }, [currentOrgId, timeRange]);
+  }, [organization?.id, timeRange]);
 
   const fetchAnalyticsData = async () => {
-    if (!currentOrgId) return;
+    if (!organization?.id) return;
     
     try {
       const daysBack = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
@@ -55,7 +55,7 @@ export function BusinessIntelligenceDashboard() {
       const { data, error } = await supabase
         .from('organization_metrics_summary')
         .select('*')
-        .eq('organization_id', currentOrgId)
+        .eq('organization_id', organization.id)
         .gte('metric_date', startDate.toISOString().split('T')[0])
         .order('metric_date', { ascending: true });
 
@@ -67,13 +67,13 @@ export function BusinessIntelligenceDashboard() {
   };
 
   const fetchInsights = async () => {
-    if (!currentOrgId) return;
+    if (!organization?.id) return;
     
     try {
       const { data, error } = await supabase
         .from('organization_insights')
         .select('*')
-        .eq('organization_id', currentOrgId)
+        .eq('organization_id', organization.id)
         .eq('is_dismissed', false)
         .order('created_at', { ascending: false })
         .limit(10);

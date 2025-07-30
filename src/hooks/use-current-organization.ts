@@ -1,10 +1,26 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useState, useEffect } from "react";
 
-export function useCurrentOrganization(user: User | null) {
-  return useQuery({
+interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  subscription_tier: string;
+  is_white_label: boolean;
+  settings: any;
+}
+
+export function useCurrentOrganization() {
+  const [user, setUser] = useState<any>(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+  }, []);
+
+  const organizationQuery = useQuery({
     queryKey: ["current-organization", user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -29,11 +45,34 @@ export function useCurrentOrganization(user: User | null) {
         return null;
       }
 
-      console.log("User's current organization:", profile.current_organization_id);
-      return profile.current_organization_id;
+      // Fetch organization details
+      const { data: org, error: orgError } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("id", profile.current_organization_id)
+        .single();
+
+      if (orgError) {
+        console.error("Error fetching organization:", orgError);
+        throw orgError;
+      }
+
+      console.log("User's current organization:", org);
+      return org;
     },
     enabled: !!user?.id,
     staleTime: 300000, // 5 minutes
     gcTime: 600000, // 10 minutes
   });
+
+  const refreshOrganization = () => {
+    queryClient.invalidateQueries({ queryKey: ["current-organization", user?.id] });
+  };
+
+  return {
+    organization: organizationQuery.data,
+    loading: organizationQuery.isLoading,
+    error: organizationQuery.error,
+    refreshOrganization
+  };
 }

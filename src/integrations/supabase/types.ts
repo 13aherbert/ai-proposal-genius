@@ -821,13 +821,69 @@ export type Database = {
           },
         ]
       }
+      organization_member_invitations: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          invitation_token: string
+          invited_by: string | null
+          organization_id: string | null
+          permissions: Json | null
+          role: Database["public"]["Enums"]["organization_role_type"]
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          invitation_token: string
+          invited_by?: string | null
+          organization_id?: string | null
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["organization_role_type"]
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          invitation_token?: string
+          invited_by?: string | null
+          organization_id?: string | null
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["organization_role_type"]
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_member_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           department: string | null
           id: string
+          invitation_expires_at: string | null
+          invitation_token: string | null
           invited_at: string | null
           joined_at: string
           last_active_at: string | null
+          last_activity_at: string | null
           organization_id: string
           permissions: Json | null
           role: Database["public"]["Enums"]["organization_role_type"]
@@ -838,9 +894,12 @@ export type Database = {
         Insert: {
           department?: string | null
           id?: string
+          invitation_expires_at?: string | null
+          invitation_token?: string | null
           invited_at?: string | null
           joined_at?: string
           last_active_at?: string | null
+          last_activity_at?: string | null
           organization_id: string
           permissions?: Json | null
           role?: Database["public"]["Enums"]["organization_role_type"]
@@ -851,9 +910,12 @@ export type Database = {
         Update: {
           department?: string | null
           id?: string
+          invitation_expires_at?: string | null
+          invitation_token?: string | null
           invited_at?: string | null
           joined_at?: string
           last_active_at?: string | null
+          last_activity_at?: string | null
           organization_id?: string
           permissions?: Json | null
           role?: Database["public"]["Enums"]["organization_role_type"]
@@ -1570,6 +1632,108 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plan_templates: {
+        Row: {
+          base_price: number | null
+          billing_model: string
+          created_at: string | null
+          description: string | null
+          display_name: string
+          features: Json | null
+          id: string
+          is_enterprise: boolean | null
+          is_white_label: boolean | null
+          name: string
+          price_per_seat: number | null
+          project_limit: number | null
+          seat_limit: number | null
+          stripe_price_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          billing_model?: string
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          features?: Json | null
+          id?: string
+          is_enterprise?: boolean | null
+          is_white_label?: boolean | null
+          name: string
+          price_per_seat?: number | null
+          project_limit?: number | null
+          seat_limit?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          billing_model?: string
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          features?: Json | null
+          id?: string
+          is_enterprise?: boolean | null
+          is_white_label?: boolean | null
+          name?: string
+          price_per_seat?: number | null
+          project_limit?: number | null
+          seat_limit?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscription_usage_logs: {
+        Row: {
+          billing_period_end: string
+          billing_period_start: string
+          id: string
+          organization_id: string | null
+          recorded_at: string | null
+          subscription_id: string | null
+          usage_amount: number
+          usage_type: string
+        }
+        Insert: {
+          billing_period_end: string
+          billing_period_start: string
+          id?: string
+          organization_id?: string | null
+          recorded_at?: string | null
+          subscription_id?: string | null
+          usage_amount?: number
+          usage_type: string
+        }
+        Update: {
+          billing_period_end?: string
+          billing_period_start?: string
+          id?: string
+          organization_id?: string | null
+          recorded_at?: string | null
+          subscription_id?: string | null
+          usage_amount?: number
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_usage_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_usage_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "organization_subscriptions"
             referencedColumns: ["id"]
           },
         ]

@@ -8,6 +8,7 @@ import { UsageAnalytics } from './UsageAnalytics';
 import { SecurityDashboard } from './SecurityDashboard';
 import { SSOConfiguration } from './SSOConfiguration';
 import { ComplianceManager } from './ComplianceManager';
+import { SubscriptionManager } from './SubscriptionManager';
 import { AdvancedAnalyticsDashboard } from '../analytics/AdvancedAnalyticsDashboard';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
@@ -176,43 +177,7 @@ export function OrganizationDashboard() {
 
         {canViewBilling && (
           <TabsContent value="billing" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Billing & Subscription
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Current Plan</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {organization.subscription_tier} tier
-                      </p>
-                    </div>
-                    <Badge className={getTierBadgeColor(organization.subscription_tier)}>
-                      {organization.subscription_tier}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Billing Model</h3>
-                      <p className="text-sm text-muted-foreground">
-                        How you're charged for usage
-                      </p>
-                    </div>
-                    <span className="text-sm">Flat Rate</span>
-                  </div>
-
-                  <Button className="w-full">
-                    Manage Subscription
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <SubscriptionManager />
           </TabsContent>
         )}
 

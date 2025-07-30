@@ -287,6 +287,110 @@ export type Database = {
           },
         ]
       }
+      organization_api_keys: {
+        Row: {
+          api_key_hash: string
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_name: string
+          last_used_at: string | null
+          organization_id: string
+          permissions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key_hash: string
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name: string
+          last_used_at?: string | null
+          organization_id: string
+          permissions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key_hash?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name?: string
+          last_used_at?: string | null
+          organization_id?: string
+          permissions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_billing_history: {
+        Row: {
+          amount: number
+          billing_period_end: string | null
+          billing_period_start: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          organization_id: string
+          status: string
+          stripe_invoice_id: string | null
+          subscription_id: string
+        }
+        Insert: {
+          amount: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          organization_id: string
+          status: string
+          stripe_invoice_id?: string | null
+          subscription_id: string
+        }
+        Update: {
+          amount?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          organization_id?: string
+          status?: string
+          stripe_invoice_id?: string | null
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_billing_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_billing_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "organization_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_branding: {
         Row: {
           accent_color: string | null
@@ -484,26 +588,95 @@ export type Database = {
           },
         ]
       }
-      organization_members: {
+      organization_member_activity: {
         Row: {
+          activity_type: string
+          created_at: string | null
+          details: Json | null
           id: string
-          joined_at: string
+          ip_address: unknown | null
+          member_id: string
           organization_id: string
-          role: string
+          user_agent: string | null
           user_id: string
         }
         Insert: {
+          activity_type: string
+          created_at?: string | null
+          details?: Json | null
           id?: string
-          joined_at?: string
+          ip_address?: unknown | null
+          member_id: string
           organization_id: string
-          role?: string
+          user_agent?: string | null
           user_id: string
         }
         Update: {
+          activity_type?: string
+          created_at?: string | null
+          details?: Json | null
           id?: string
-          joined_at?: string
+          ip_address?: unknown | null
+          member_id?: string
           organization_id?: string
-          role?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_member_activity_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_member_activity_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          department: string | null
+          id: string
+          invited_at: string | null
+          joined_at: string
+          last_active_at: string | null
+          organization_id: string
+          permissions: Json | null
+          role: Database["public"]["Enums"]["organization_role_type"]
+          status: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          department?: string | null
+          id?: string
+          invited_at?: string | null
+          joined_at?: string
+          last_active_at?: string | null
+          organization_id: string
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["organization_role_type"]
+          status?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          department?: string | null
+          id?: string
+          invited_at?: string | null
+          joined_at?: string
+          last_active_at?: string | null
+          organization_id?: string
+          permissions?: Json | null
+          role?: Database["public"]["Enums"]["organization_role_type"]
+          status?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: [
@@ -518,11 +691,17 @@ export type Database = {
       }
       organization_subscriptions: {
         Row: {
+          billing_address: Json | null
+          billing_contact_email: string | null
+          billing_cycle: string | null
+          billing_model: string | null
           cancel_at_period_end: boolean | null
           created_at: string
           current_period_end: string | null
+          custom_pricing: Json | null
           features: Json | null
           id: string
+          max_seats: number | null
           member_limit: number
           organization_id: string
           plan_type: string
@@ -531,14 +710,22 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_id: string
+          trial_ends_at: string | null
           updated_at: string
+          used_seats: number | null
         }
         Insert: {
+          billing_address?: Json | null
+          billing_contact_email?: string | null
+          billing_cycle?: string | null
+          billing_model?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string
           current_period_end?: string | null
+          custom_pricing?: Json | null
           features?: Json | null
           id?: string
+          max_seats?: number | null
           member_limit?: number
           organization_id: string
           plan_type?: string
@@ -547,14 +734,22 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_id?: string
+          trial_ends_at?: string | null
           updated_at?: string
+          used_seats?: number | null
         }
         Update: {
+          billing_address?: Json | null
+          billing_contact_email?: string | null
+          billing_cycle?: string | null
+          billing_model?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string
           current_period_end?: string | null
+          custom_pricing?: Json | null
           features?: Json | null
           id?: string
+          max_seats?: number | null
           member_limit?: number
           organization_id?: string
           plan_type?: string
@@ -563,13 +758,50 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_id?: string
+          trial_ends_at?: string | null
           updated_at?: string
+          used_seats?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "organization_subscriptions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_usage_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_date: string
+          metric_type: string
+          metric_value: number
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_date: string
+          metric_type: string
+          metric_value: number
+          organization_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_date?: string
+          metric_type?: string
+          metric_value?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_usage_metrics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -1111,6 +1343,10 @@ export type Database = {
         Args: { _user_id: string; _role: string }
         Returns: boolean
       }
+      check_organization_seat_limit: {
+        Args: { org_id: string }
+        Returns: boolean
+      }
       check_password_reset_rate_limit: {
         Args: { email_param: string }
         Returns: boolean
@@ -1276,6 +1512,10 @@ export type Database = {
           last_sign_in: string
         }[]
       }
+      get_user_organization_permissions: {
+        Args: { user_id_param: string; org_id_param: string }
+        Returns: Json
+      }
       get_user_permissions: {
         Args: { user_id_param: string }
         Returns: {
@@ -1331,6 +1571,17 @@ export type Database = {
         }
         Returns: string
       }
+      log_organization_activity: {
+        Args: {
+          org_id: string
+          user_id_param: string
+          activity_type_param: string
+          details_param?: Json
+          ip_address_param?: unknown
+          user_agent_param?: string
+        }
+        Returns: string
+      }
       log_security_event: {
         Args: {
           event_type_param: string
@@ -1366,6 +1617,14 @@ export type Database = {
           accepted_at_param: string
         }
         Returns: boolean
+      }
+      update_organization_usage_metric: {
+        Args: {
+          org_id: string
+          metric_type_param: string
+          increment_value?: number
+        }
+        Returns: undefined
       }
       user_belongs_to_organization: {
         Args: { user_id_param: string; org_id_param: string }
@@ -1411,6 +1670,13 @@ export type Database = {
         | "government"
         | "non_profit"
         | "other"
+      organization_role_type:
+        | "owner"
+        | "admin"
+        | "manager"
+        | "editor"
+        | "viewer"
+        | "billing_admin"
       organization_size_type:
         | "solo"
         | "small_team"
@@ -1571,6 +1837,14 @@ export const Constants = {
         "government",
         "non_profit",
         "other",
+      ],
+      organization_role_type: [
+        "owner",
+        "admin",
+        "manager",
+        "editor",
+        "viewer",
+        "billing_admin",
       ],
       organization_size_type: [
         "solo",

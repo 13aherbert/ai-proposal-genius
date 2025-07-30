@@ -139,6 +139,14 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/white-label"
+        element={
+          <ProtectedRoute>
+            <WhiteLabel />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
       <Route path="/beta" element={<BetaProgram />} />

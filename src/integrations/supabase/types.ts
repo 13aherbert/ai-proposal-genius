@@ -287,6 +287,159 @@ export type Database = {
           },
         ]
       }
+      organization_branding: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          brand_name: string | null
+          created_at: string | null
+          custom_css: string | null
+          favicon_url: string | null
+          font_family: string | null
+          id: string
+          logo_url: string | null
+          organization_id: string
+          primary_color: string | null
+          privacy_policy_url: string | null
+          secondary_color: string | null
+          support_email: string | null
+          tagline: string | null
+          terms_of_service_url: string | null
+          text_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_name?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
+          id?: string
+          logo_url?: string | null
+          organization_id: string
+          primary_color?: string | null
+          privacy_policy_url?: string | null
+          secondary_color?: string | null
+          support_email?: string | null
+          tagline?: string | null
+          terms_of_service_url?: string | null
+          text_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_name?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
+          id?: string
+          logo_url?: string | null
+          organization_id?: string
+          primary_color?: string | null
+          privacy_policy_url?: string | null
+          secondary_color?: string | null
+          support_email?: string | null
+          tagline?: string | null
+          terms_of_service_url?: string | null
+          text_color?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_branding_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_domains: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          is_primary: boolean | null
+          is_verified: boolean | null
+          organization_id: string
+          ssl_certificate_status: string | null
+          updated_at: string | null
+          verification_token: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id?: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          organization_id: string
+          ssl_certificate_status?: string | null
+          updated_at?: string | null
+          verification_token?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          organization_id?: string
+          ssl_certificate_status?: string | null
+          updated_at?: string | null
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_features: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          feature_name: string
+          id: string
+          is_enabled: boolean | null
+          organization_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          feature_name: string
+          id?: string
+          is_enabled?: boolean | null
+          organization_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          feature_name?: string
+          id?: string
+          is_enabled?: boolean | null
+          organization_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_features_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null
@@ -425,26 +578,47 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          custom_domain_enabled: boolean | null
+          enterprise_features: Json | null
           id: string
+          is_white_label: boolean | null
+          max_projects: number | null
+          max_users: number | null
           name: string
           settings: Json | null
           slug: string
+          sso_enabled: boolean | null
+          subscription_tier: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          custom_domain_enabled?: boolean | null
+          enterprise_features?: Json | null
           id?: string
+          is_white_label?: boolean | null
+          max_projects?: number | null
+          max_users?: number | null
           name: string
           settings?: Json | null
           slug: string
+          sso_enabled?: boolean | null
+          subscription_tier?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          custom_domain_enabled?: boolean | null
+          enterprise_features?: Json | null
           id?: string
+          is_white_label?: boolean | null
+          max_projects?: number | null
+          max_users?: number | null
           name?: string
           settings?: Json | null
           slug?: string
+          sso_enabled?: boolean | null
+          subscription_tier?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1049,6 +1223,16 @@ export type Database = {
           invitation_email_sent: boolean
         }[]
       }
+      get_organization_by_domain: {
+        Args: { domain_param: string }
+        Returns: {
+          organization_id: string
+          organization_name: string
+          organization_slug: string
+          is_white_label: boolean
+          branding: Json
+        }[]
+      }
       get_plan_limits: {
         Args: { plan_type_param: string }
         Returns: number
@@ -1158,6 +1342,10 @@ export type Database = {
       migrate_user_subscriptions_to_organizations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      organization_has_feature: {
+        Args: { org_id: string; feature_name_param: string }
+        Returns: boolean
       }
       remove_user_role: {
         Args: { _user_id: string; _role: string }

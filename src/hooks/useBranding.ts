@@ -27,7 +27,8 @@ export function useBranding() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { session } = useAuth();
-  const { data: organization } = useCurrentOrganization(session?.user || null);
+  const { organization: orgData } = useCurrentOrganization();
+  const organization = orgData?.id;
 
   useEffect(() => {
     if (!organization) {

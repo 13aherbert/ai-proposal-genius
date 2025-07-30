@@ -54,7 +54,7 @@ interface SecurityMetrics {
 
 export function SecurityDashboard() {
   const { session } = useAuth();
-  const currentOrganizationQuery = useCurrentOrganization(session?.user || null);
+  const { organization: currentOrganization } = useCurrentOrganization();
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [metrics, setMetrics] = useState<SecurityMetrics>({
     totalEvents: 0,
@@ -68,13 +68,13 @@ export function SecurityDashboard() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
 
   useEffect(() => {
-    if (currentOrganizationQuery.data) {
+    if (currentOrganization) {
       fetchSecurityData();
     }
-  }, [currentOrganizationQuery.data, timeRange]);
+  }, [currentOrganization, timeRange]);
 
   const fetchSecurityData = async () => {
-    if (!currentOrganizationQuery.data) return;
+    if (!currentOrganization?.id) return;
 
     try {
       setIsLoading(true);
@@ -86,7 +86,7 @@ export function SecurityDashboard() {
       const { data: eventsData, error: eventsError } = await supabase
         .from('security_events_log')
         .select('*')
-        .eq('organization_id', currentOrganizationQuery.data)
+        .eq('organization_id', currentOrganization.id)
         .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: false })
         .limit(100);

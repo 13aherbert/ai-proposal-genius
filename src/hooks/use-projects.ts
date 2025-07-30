@@ -32,7 +32,8 @@ export function useProjects(user: User | null) {
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
   // Get user's current organization
-  const { data: organizationId, isLoading: orgLoading, error: orgError } = useCurrentOrganization(user);
+  const { organization, loading: orgLoading, error: orgError } = useCurrentOrganization();
+  const organizationId = organization?.id;
   
   useEffect(() => {
     const subscriptionData = getStoredSubscriptionData();

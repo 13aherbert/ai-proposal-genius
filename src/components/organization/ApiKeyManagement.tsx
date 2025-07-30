@@ -31,7 +31,7 @@ export function ApiKeyManagement() {
   const [newKeyName, setNewKeyName] = useState('');
   const [createdApiKey, setCreatedApiKey] = useState<string>('');
   const { session } = useAuth();
-  const { data: organization } = useCurrentOrganization(session?.user || null);
+  const { organization } = useCurrentOrganization();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function ApiKeyManagement() {
       const { data, error } = await supabase
         .from('organization_api_keys')
         .select('*')
-        .eq('organization_id', organization)
+        .eq('organization_id', organization?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -88,7 +88,7 @@ export function ApiKeyManagement() {
   };
 
   const createApiKey = async () => {
-    if (!organization || !newKeyName.trim()) return;
+    if (!organization?.id || !newKeyName.trim()) return;
 
     try {
       const apiKey = generateApiKey();
@@ -97,7 +97,7 @@ export function ApiKeyManagement() {
       const { error } = await supabase
         .from('organization_api_keys')
         .insert({
-          organization_id: organization,
+          organization_id: organization.id,
           key_name: newKeyName.trim(),
           api_key_hash: apiKeyHash,
           created_by: (await supabase.auth.getUser()).data.user?.id,

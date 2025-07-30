@@ -36,7 +36,7 @@ interface SSOConfig {
 
 export function SSOConfiguration() {
   const { session } = useAuth();
-  const currentOrganizationQuery = useCurrentOrganization(session?.user || null);
+  const { organization: currentOrganization } = useCurrentOrganization();
   const [ssoConfigs, setSsoConfigs] = useState<SSOConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,20 +57,20 @@ export function SSOConfiguration() {
   });
 
   useEffect(() => {
-    if (currentOrganizationQuery.data) {
+    if (currentOrganization) {
       fetchSSOConfigs();
     }
-  }, [currentOrganizationQuery.data]);
+  }, [currentOrganization]);
 
   const fetchSSOConfigs = async () => {
-    if (!currentOrganizationQuery.data) return;
+    if (!currentOrganization?.id) return;
 
     try {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('organization_sso_config')
         .select('*')
-        .eq('organization_id', currentOrganizationQuery.data)
+        .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -86,7 +86,7 @@ export function SSOConfiguration() {
   };
 
   const handleCreateConfig = async () => {
-    if (!currentOrganizationQuery.data || !newConfig.provider_name.trim()) {
+    if (!currentOrganization?.id || !newConfig.provider_name.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -96,7 +96,7 @@ export function SSOConfiguration() {
       const { error } = await supabase
         .from('organization_sso_config')
         .insert({
-          organization_id: currentOrganizationQuery.data,
+          organization_id: currentOrganization.id,
           provider_type: newConfig.provider_type,
           provider_name: newConfig.provider_name,
           configuration: newConfig.configuration,

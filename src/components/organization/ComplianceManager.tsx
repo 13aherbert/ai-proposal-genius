@@ -62,7 +62,7 @@ interface ComplianceReport {
 
 export function ComplianceManager() {
   const { session } = useAuth();
-  const currentOrganizationQuery = useCurrentOrganization(session?.user || null);
+  const { organization: currentOrganization } = useCurrentOrganization();
   const [exportRequests, setExportRequests] = useState<DataExportRequest[]>([]);
   const [complianceReports, setComplianceReports] = useState<ComplianceReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,13 +70,13 @@ export function ComplianceManager() {
   const [selectedReportType, setSelectedReportType] = useState<'gdpr' | 'security_audit' | 'user_activity'>('gdpr');
 
   useEffect(() => {
-    if (currentOrganizationQuery.data) {
+    if (currentOrganization) {
       fetchData();
     }
-  }, [currentOrganizationQuery.data]);
+  }, [currentOrganization]);
 
   const fetchData = async () => {
-    if (!currentOrganizationQuery.data) return;
+    if (!currentOrganization?.id) return;
 
     try {
       setIsLoading(true);
@@ -85,7 +85,7 @@ export function ComplianceManager() {
       const { data: exportData, error: exportError } = await supabase
         .from('data_export_requests')
         .select('*')
-        .eq('organization_id', currentOrganizationQuery.data)
+        .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
       if (exportError) throw exportError;
@@ -94,7 +94,7 @@ export function ComplianceManager() {
       const { data: reportsData, error: reportsError } = await supabase
         .from('compliance_reports')
         .select('*')
-        .eq('organization_id', currentOrganizationQuery.data)
+        .eq('organization_id', currentOrganization.id)
         .order('created_at', { ascending: false });
 
       if (reportsError) throw reportsError;
@@ -112,11 +112,11 @@ export function ComplianceManager() {
   };
 
   const handleRequestDataExport = async (exportType: 'export' | 'deletion' = 'export') => {
-    if (!currentOrganizationQuery.data) return;
+    if (!currentOrganization?.id) return;
 
     try {
       const { data, error } = await supabase.rpc('request_data_export', {
-        org_id: currentOrganizationQuery.data,
+        org_id: currentOrganization.id,
         target_user_id: (await supabase.auth.getUser()).data.user?.id,
         request_type_param: exportType
       });
@@ -138,7 +138,7 @@ export function ComplianceManager() {
   };
 
   const handleGenerateComplianceReport = async () => {
-    if (!currentOrganizationQuery.data) return;
+    if (!currentOrganization?.id) return;
 
     try {
       setIsGeneratingReport(true);
@@ -146,7 +146,7 @@ export function ComplianceManager() {
       // This would typically call an edge function to generate the report
       const reportData = {
         report_type: selectedReportType,
-        organization_id: currentOrganizationQuery.data,
+        organization_id: currentOrganization.id,
         generated_at: new Date().toISOString(),
         summary: getReportSummary(selectedReportType)
       };
@@ -154,7 +154,7 @@ export function ComplianceManager() {
       const { error } = await supabase
         .from('compliance_reports')
         .insert({
-          organization_id: currentOrganizationQuery.data,
+          organization_id: currentOrganization.id,
           report_type: selectedReportType,
           report_data: reportData,
           generated_by: (await supabase.auth.getUser()).data.user?.id || ''

@@ -8,6 +8,7 @@ import { UsageAnalytics } from './UsageAnalytics';
 import { SecurityDashboard } from './SecurityDashboard';
 import { SSOConfiguration } from './SSOConfiguration';
 import { ComplianceManager } from './ComplianceManager';
+import { ApiManagement } from './ApiManagement';
 import { SubscriptionManager } from './SubscriptionManager';
 import { AdvancedAnalyticsDashboard } from '../analytics/AdvancedAnalyticsDashboard';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
@@ -87,12 +88,13 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canViewAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          {canViewAnalytics && <TabsTrigger value="advanced-analytics">Advanced Analytics</TabsTrigger>}
+          {canViewAnalytics && <TabsTrigger value="advanced-analytics">Advanced</TabsTrigger>}
           {canViewBilling && <TabsTrigger value="billing">Billing</TabsTrigger>}
+          {canManageSettings && <TabsTrigger value="api">API</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="compliance">Compliance</TabsTrigger>}
         </TabsList>
@@ -193,6 +195,12 @@ export function OrganizationDashboard() {
               <SecurityDashboard />
               <SSOConfiguration />
             </div>
+          </TabsContent>
+        )}
+
+        {canManageSettings && (
+          <TabsContent value="api" className="space-y-4">
+            <ApiManagement />
           </TabsContent>
         )}
 

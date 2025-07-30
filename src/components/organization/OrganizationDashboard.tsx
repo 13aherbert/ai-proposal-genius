@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TeamManagement } from './TeamManagement';
 import { UsageAnalytics } from './UsageAnalytics';
+import { SecurityDashboard } from './SecurityDashboard';
+import { SSOConfiguration } from './SSOConfiguration';
+import { ComplianceManager } from './ComplianceManager';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,6 +69,7 @@ export function OrganizationDashboard() {
   const canViewBilling = hasPermission('billing', 'view');
   const canViewTeam = hasPermission('team_management', 'view_activity');
   const canViewAnalytics = hasPermission('analytics', 'view');
+  const canManageSettings = hasPermission('settings', 'manage');
 
   return (
     <div className="space-y-6">
@@ -106,11 +110,13 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canViewAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
           {canViewBilling && <TabsTrigger value="billing">Billing</TabsTrigger>}
+          {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
+          {canManageSettings && <TabsTrigger value="compliance">Compliance</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -230,6 +236,21 @@ export function OrganizationDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        )}
+
+        {canManageSettings && (
+          <TabsContent value="security" className="space-y-4">
+            <div className="grid gap-6">
+              <SecurityDashboard />
+              <SSOConfiguration />
+            </div>
+          </TabsContent>
+        )}
+
+        {canManageSettings && (
+          <TabsContent value="compliance" className="space-y-4">
+            <ComplianceManager />
           </TabsContent>
         )}
       </Tabs>

@@ -3,12 +3,15 @@ import { BrandedNavbar } from '@/components/branding/BrandedNavbar';
 import { BrandedFooter } from '@/components/branding/BrandedFooter';
 import { BrandingEditor } from '@/components/branding/BrandingEditor';
 import { ApiKeyManagement } from './ApiKeyManagement';
+import { DomainManager } from './DomainManager';
+import { AssetUploader } from './AssetUploader';
+import { EmailTemplateEditor } from '@/components/email/EmailTemplateEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { useAuth } from '@/components/AuthProvider';
-import { Palette, Key, Globe, Settings } from 'lucide-react';
+import { Palette, Key, Globe, Settings, Upload, Mail } from 'lucide-react';
 
 export function WhiteLabelDashboard() {
   const { session } = useAuth();
@@ -29,109 +32,89 @@ export function WhiteLabelDashboard() {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">White Label Configuration</h1>
                 <p className="text-muted-foreground">
-                  Customize your organization's branding and manage API integrations
+                  Customize your organization's branding, manage domains, templates, and API integrations
                 </p>
               </div>
               <Badge variant="secondary">
-                Organization Loaded
+                Organization: {organization.name}
               </Badge>
             </div>
 
             <Tabs defaultValue="branding" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="branding" className="flex items-center gap-2">
                   <Palette className="h-4 w-4" />
                   Branding
                 </TabsTrigger>
-                <TabsTrigger value="api" className="flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  API Management
+                <TabsTrigger value="assets" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Assets
                 </TabsTrigger>
                 <TabsTrigger value="domains" className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
                   Domains
                 </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Settings
+                <TabsTrigger value="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email Templates
+                </TabsTrigger>
+                <TabsTrigger value="api" className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  API
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="branding">
-                <BrandingEditor />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Brand Configuration</CardTitle>
+                    <CardDescription>
+                      Customize your organization's branding and appearance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BrandingEditor />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              <TabsContent value="api">
-                <ApiKeyManagement />
+              <TabsContent value="assets">
+                <AssetUploader 
+                  onAssetUploaded={(url, type) => {
+                    console.log(`${type} uploaded:`, url);
+                    // Handle asset upload and update branding
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="domains">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Globe className="h-5 w-5" />
-                      Custom Domains
-                    </CardTitle>
+                    <CardTitle>Custom Domains</CardTitle>
                     <CardDescription>
-                      Manage custom domains for your white label deployment
+                      Configure custom domains for your white-label application
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">
-                      Custom domain management will be available in the next update. 
-                      Contact support to configure custom domains for your organization.
-                    </p>
+                    <DomainManager />
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="settings">
+              <TabsContent value="email">
+                <EmailTemplateEditor />
+              </TabsContent>
+
+              <TabsContent value="api">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5" />
-                      White Label Settings
-                    </CardTitle>
+                    <CardTitle>API Management</CardTitle>
                     <CardDescription>
-                      Configure advanced white label options
+                      Manage API keys and integrations for your organization
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">White Label Mode</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Enable complete white labeling for your organization
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        Available
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">Custom Domain Support</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Allow custom domains for your organization
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        Available
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">SSO Integration</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Single Sign-On capabilities for your organization
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        Available
-                      </Badge>
-                    </div>
+                  <CardContent>
+                    <ApiKeyManagement />
                   </CardContent>
                 </Card>
               </TabsContent>

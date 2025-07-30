@@ -28,6 +28,7 @@ import UserManagementPage from "@/pages/admin/UserManagementPage"; // Changed to
 import BetaInvitationsPage from "@/pages/admin/BetaInvitationsPage"; // Changed to page component
 import BetaRequests from "@/pages/admin/BetaRequests";
 import Organization from "@/pages/Organization";
+import WhiteLabel from "@/pages/WhiteLabel";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

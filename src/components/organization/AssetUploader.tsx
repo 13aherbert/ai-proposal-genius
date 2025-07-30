@@ -45,7 +45,11 @@ export function AssetUploader({
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!organization) {
-      toast.error('No organization selected');
+      toast({
+        title: "Error",
+        description: "No organization selected",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -95,7 +99,10 @@ export function AssetUploader({
         const assetType = file.name.toLowerCase().includes('favicon') || file.size < 100000 ? 'favicon' : 'logo';
         onAssetUploaded(publicUrl, assetType);
 
-        toast.success(`${assetType === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully!`);
+        toast({
+          title: "Success",
+          description: `${assetType === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully!`
+        });
 
       } catch (error: any) {
         console.error('Upload error:', error);
@@ -104,7 +111,11 @@ export function AssetUploader({
             ? { ...f, status: 'error' as const, error: error.message }
             : f
         ));
-        toast.error(`Failed to upload ${file.name}: ${error.message}`);
+        toast({
+          title: "Error",
+          description: `Failed to upload ${file.name}: ${error.message}`,
+          variant: "destructive"
+        });
       }
     }
 

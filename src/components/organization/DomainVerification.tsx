@@ -64,7 +64,10 @@ export function DomainVerification({ domain, onVerificationComplete }: DomainVer
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
+    toast({
+      title: "Success",
+      description: "Copied to clipboard!"
+    });
   };
 
   const checkDNSRecords = async () => {
@@ -91,16 +94,27 @@ export function DomainVerification({ domain, onVerificationComplete }: DomainVer
         if (error) throw error;
 
         setVerificationStatus('verified');
-        toast.success('Domain verified successfully!');
+        toast({
+          title: "Success",
+          description: "Domain verified successfully!"
+        });
         onVerificationComplete();
       } else {
         setVerificationStatus('failed');
-        toast.error('Domain verification failed. Please check your DNS records.');
+        toast({
+          title: "Error",
+          description: "Domain verification failed. Please check your DNS records.",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
       console.error('Verification error:', error);
       setVerificationStatus('failed');
-      toast.error('Failed to verify domain');
+      toast({
+        title: "Error",
+        description: "Failed to verify domain",
+        variant: "destructive"
+      });
     } finally {
       setIsVerifying(false);
     }

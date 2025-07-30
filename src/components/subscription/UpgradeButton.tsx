@@ -8,13 +8,15 @@ import { createCheckoutSession } from "@/hooks/subscription/use-subscription-act
 const PRICE_IDS = {
   starterMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
   starterAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
+  basicMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE', // Basic plan (former starter)
+  basicAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',  // Basic plan (former starter)
   proMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
   proAnnual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa'
 };
 
 interface UpgradeButtonProps {
   currentPlan: SubscriptionPlan | null;
-  targetPlan: 'starter' | 'pro' | 'trial';
+  targetPlan: 'starter' | 'basic' | 'pro' | 'trial';
   variant?: 'monthly' | 'annual';
 }
 
@@ -24,6 +26,9 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const getPriceId = () => {
     if (targetPlan === 'starter') {
       return variant === 'monthly' ? PRICE_IDS.starterMonthly : PRICE_IDS.starterAnnual;
+    }
+    if (targetPlan === 'basic') {
+      return variant === 'monthly' ? PRICE_IDS.basicMonthly : PRICE_IDS.basicAnnual;
     }
     if (targetPlan === 'pro') {
       return variant === 'monthly' ? PRICE_IDS.proMonthly : PRICE_IDS.proAnnual;
@@ -91,7 +96,7 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
     if (isLoading) return "Processing...";
     if (isCurrentPlan) return "Current Plan";
     if (targetPlan === 'trial') return "Continue with Free Plan";
-    return `Upgrade to ${targetPlan}`;
+    return `Upgrade to ${targetPlan.charAt(0).toUpperCase() + targetPlan.slice(1)}`;
   };
 
   return (

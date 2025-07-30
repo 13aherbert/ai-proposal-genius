@@ -1,19 +1,53 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { UpgradeButton } from "./UpgradeButton";
-import { useSubscription } from "@/hooks/use-subscription";
+import { useSubscription } from "@/hooks/subscription";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { SUBSCRIPTION_PLAN_LIMITS, toSubscriptionPlan } from "@/types/subscription";
+import { createDefaultSubscription } from "@/hooks/subscription/utils/subscription-creation";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "sonner";
 
 export function SubscriptionPlans() {
   const subscription = useSubscription();
+  const { session } = useAuth();
+  const navigate = useNavigate();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  const [creatingFreeSubscription, setCreatingFreeSubscription] = useState(false);
+
+  const handleContinueFree = async () => {
+    if (!session?.user?.id) {
+      toast.error("Please sign in to continue");
+      return;
+    }
+
+    setCreatingFreeSubscription(true);
+    try {
+      await createDefaultSubscription(
+        session.user.id,
+        subscription.setSubscription,
+        () => {
+          toast.success("Welcome! Your free account is ready.");
+          navigate('/dashboard');
+        }
+      );
+    } catch (error) {
+      console.error('Error creating free subscription:', error);
+      toast.error("Failed to set up free account. Please try again.");
+    } finally {
+      setCreatingFreeSubscription(false);
+    }
+  };
   
   return <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold mb-4">Subscription Plans</h2>
+        <h2 className="text-3xl font-bold mb-4">Choose Your Plan</h2>
+        <p className="text-muted-foreground mb-6">Start free and upgrade when you're ready for more features</p>
         <div className="flex items-center justify-center space-x-2">
           <Label htmlFor="billing-interval">Monthly</Label>
           <Switch id="billing-interval" checked={billingInterval === 'annual'} onCheckedChange={checked => setBillingInterval(checked ? 'annual' : 'monthly')} />
@@ -21,21 +55,55 @@ export function SubscriptionPlans() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card>
+      <div className="grid md:grid-cols-3 gap-8">
+        {/* Free Starter Plan */}
+        <Card className="relative">
           <CardHeader>
-            <CardTitle>Starter</CardTitle>
-            <CardDescription>For small teams</CardDescription>
+            <div className="flex items-center gap-2">
+              <CardTitle>Starter</CardTitle>
+              <Badge variant="secondary">Free</Badge>
+            </div>
+            <CardDescription>Perfect for getting started</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold mb-4">
-              ${billingInterval === 'monthly' ? '49' : '499'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+              $0<span className="text-lg font-normal">/forever</span>
             </div>
             <ul className="space-y-2">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.starter} projects</li>
               <li>✓ AI RFP Summary</li>
               <li>✓ AI Proposal Outline</li>
-              <li>✓ AI Proposal Draft</li>
+              <li>✓ Basic AI Proposal Draft</li>
+              <li>✓ Community support</li>
+            </ul>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              className="w-full" 
+              variant="outline" 
+              onClick={handleContinueFree}
+              disabled={creatingFreeSubscription}
+            >
+              {creatingFreeSubscription ? "Setting up..." : "Continue Free"}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Basic Plan (formerly Starter) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic</CardTitle>
+            <CardDescription>For small teams</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold mb-4">
+              ${billingInterval === 'monthly' ? '49' : '470'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+            </div>
+            <ul className="space-y-2">
+              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.basic} projects</li>
+              <li>✓ Enhanced AI RFP Summary</li>
+              <li>✓ Advanced AI Proposal Outline</li>
+              <li>✓ Enhanced AI Proposal Draft</li>
               <li>✓ 24-hour support response time</li>
               <li>✓ Email support</li>
             </ul>
@@ -43,15 +111,19 @@ export function SubscriptionPlans() {
           <CardFooter>
             <UpgradeButton 
               currentPlan={subscription.subscription ? toSubscriptionPlan(subscription.subscription) : null} 
-              targetPlan="starter" 
+              targetPlan="basic" 
               variant={billingInterval} 
             />
           </CardFooter>
         </Card>
 
-        <Card className="border-brand-green">
+        {/* Pro Plan */}
+        <Card className="border-primary relative">
           <CardHeader>
-            <CardTitle>Pro</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>Pro</CardTitle>
+              <Badge>Most Popular</Badge>
+            </div>
             <CardDescription>For growing businesses</CardDescription>
           </CardHeader>
           <CardContent>
@@ -60,13 +132,13 @@ export function SubscriptionPlans() {
             </div>
             <ul className="space-y-2">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.pro} projects</li>
-              <li>✓ AI RFP Summary</li>
-              <li>✓ AI Proposal Outline</li>
-              <li>✓ AI Proposal Draft</li>
+              <li>✓ Advanced AI RFP Summary</li>
+              <li>✓ Enhanced AI Proposal Outline</li>
+              <li>✓ Advanced AI Proposal Draft</li>
               <li>✓ Compiled Draft Preview</li>
               <li>✓ AI Proposal Evaluation</li>
-              <li>✓ Priority support response time</li>
-              <li>✓ Email support</li>
+              <li>✓ Priority support</li>
+              <li>✓ Team collaboration</li>
             </ul>
           </CardContent>
           <CardFooter>

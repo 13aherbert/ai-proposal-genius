@@ -13,7 +13,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useSubscription } from "@/hooks/use-subscription";
+import { useSubscription } from "@/hooks/subscription";
 import { toast } from "sonner";
 import { LoadingState } from "@/components/subscription/LoadingState";
 import { RenewalPrompt } from "@/components/subscription/RenewalPrompt";
@@ -56,11 +56,13 @@ export default function Subscription() {
     if (!subscription.isLoading && subscription.subscription) {
       setInitialLoadComplete(true);
       
-      const hasActiveSubscription = subscription.subscription?.status === 'active' && subscription.subscription?.plan_type !== 'trial';
+      const hasActiveSubscription = subscription.subscription?.status === 'active';
+      const isTrialOrFreeStarter = subscription.subscription?.plan_type === 'trial' || subscription.subscription?.plan_type === 'starter';
       const hasFailedSubscriptionPayment = subscription.subscription?.status === 'past_due' || subscription.subscription?.status === 'unpaid';
       // Fix: Call isInGracePeriod as a function
       const needsRenewal = subscription.isInGracePeriod() || hasFailedSubscriptionPayment;
       
+      // If user has active subscription (including free starter), navigate to dashboard unless explicitly requested to stay
       if (hasActiveSubscription && !needsRenewal) {
         if (!location.state?.fromUpgradeButton) {
           navigate('/dashboard');

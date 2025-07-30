@@ -81,9 +81,9 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
         // If already in test mode, disable it
         toast.info("Test mode disabled");
       } else {
-        // Enable test mode with trial plan
-        enableTestMode('trial');
-        toast.info("Test mode enabled with trial plan");
+        // Enable test mode with starter plan
+        enableTestMode('starter');
+        toast.info("Test mode enabled with starter plan");
       }
     }
   };

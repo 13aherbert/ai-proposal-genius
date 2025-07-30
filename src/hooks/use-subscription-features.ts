@@ -187,10 +187,10 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       if (planType === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (planType === 'basic') {
+        return SUBSCRIPTION_PLAN_LIMITS.basic;
       } else if (planType === 'starter') {
         return SUBSCRIPTION_PLAN_LIMITS.starter;
-      } else if (planType === 'trial') {
-        return SUBSCRIPTION_PLAN_LIMITS.trial;
       }
     }
     
@@ -203,6 +203,8 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       if (normalizedPlan === 'starter') {
         return SUBSCRIPTION_PLAN_LIMITS.starter;
+      } else if (normalizedPlan === 'basic') {
+        return SUBSCRIPTION_PLAN_LIMITS.basic;
       } else if (normalizedPlan === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
       }
@@ -220,10 +222,10 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       
       if (normalizedPlan === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (normalizedPlan === 'basic') {
+        return SUBSCRIPTION_PLAN_LIMITS.basic;
       } else if (normalizedPlan === 'starter') {
         return SUBSCRIPTION_PLAN_LIMITS.starter;
-      } else if (normalizedPlan === 'trial') {
-        return SUBSCRIPTION_PLAN_LIMITS.trial;
       }
       
       const safeLimit = getSafeProjectLimit(normalizedPlan, subscription.project_limit);
@@ -249,7 +251,7 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     return getFeatureName(feature, currentPlan);
   }, [subscription, testMode, fallbackSubscription]);
   
-  const enableTestMode = useCallback((planType: 'trial' | 'starter' | 'pro' = 'trial') => {
+  const enableTestMode = useCallback((planType: 'starter' | 'basic' | 'pro' = 'starter') => {
     enableTestModeUtil(planType);
     setTestMode(true);
     clearFeatureCaches();

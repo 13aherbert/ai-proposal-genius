@@ -76,8 +76,8 @@ export function useProjectLimits(user: User | null) {
         return SUBSCRIPTION_PLAN_LIMITS.starter;
       } else if (normalizedPlan === 'pro') {
         return SUBSCRIPTION_PLAN_LIMITS.pro;
-      } else if (normalizedPlan === 'trial') {
-        return SUBSCRIPTION_PLAN_LIMITS.trial;
+      } else if (normalizedPlan === 'basic') {
+        return SUBSCRIPTION_PLAN_LIMITS.basic;
       }
       
       const safeLimit = getSafeProjectLimit(
@@ -123,7 +123,7 @@ export function useProjectLimits(user: User | null) {
       conditionalLog('error', 'Error checking localStorage:', e);
     }
     
-    return SUBSCRIPTION_PLAN_LIMITS.trial;
+    return SUBSCRIPTION_PLAN_LIMITS.starter;
   }, [subscriptionData, forceStarterPlan]);
   
   const determineDisplayLimit = useCallback((currentLimit: number | null) => {
@@ -150,7 +150,7 @@ export function useProjectLimits(user: User | null) {
       return currentLimit;
     }
     
-    return SUBSCRIPTION_PLAN_LIMITS.trial;
+    return SUBSCRIPTION_PLAN_LIMITS.starter;
   }, [subscriptionData, forceStarterPlan]);
   
   return {

@@ -171,14 +171,18 @@ export function OnboardingRouter() {
             </p>
           </div>
 
-          <div className="space-y-2 text-sm">
-            <p><strong>Organization:</strong> {profile.organization_size?.replace('_', ' ').toUpperCase()}</p>
-            {profile.industry && <p><strong>Industry:</strong> {profile.industry.toUpperCase()}</p>}
-            {profile.use_case && <p><strong>Use Case:</strong> {profile.use_case.replace('_', ' ').toUpperCase()}</p>}
+          <div className="space-y-2 text-sm bg-green-50 p-3 rounded-lg">
+            <p className="font-medium text-green-800">✨ Your Free Starter Plan includes:</p>
+            <ul className="text-green-700 space-y-1">
+              <li>• Up to 3 projects</li>
+              <li>• AI RFP Summary & Proposal Outline</li>
+              <li>• Basic AI Proposal Draft</li>
+              <li>• Community support</li>
+            </ul>
           </div>
 
           <Button onClick={handleContinueToDashboard} className="w-full" size="lg">
-            Continue to Dashboard
+            Start Creating Projects
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardContent>

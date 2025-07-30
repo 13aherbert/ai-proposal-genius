@@ -74,8 +74,8 @@ export function getProjectLimitForPlan(planType: string): number {
     return SUBSCRIPTION_PLAN_LIMITS.starter;
   }
   
-  console.log(`Returning trial limit: ${SUBSCRIPTION_PLAN_LIMITS.trial}`);
-  return SUBSCRIPTION_PLAN_LIMITS.trial;
+  console.log(`Returning starter limit: ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
+  return SUBSCRIPTION_PLAN_LIMITS.starter;
 }
 
 // Get a safe project limit that respects the plan type
@@ -84,8 +84,8 @@ export function getSafeProjectLimit(planType: string, storedLimit: number): numb
   
   // Override with correct limits
   if (normalizedPlanType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
+  if (normalizedPlanType === 'basic') return SUBSCRIPTION_PLAN_LIMITS.basic;
   if (normalizedPlanType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  if (normalizedPlanType === 'trial') return SUBSCRIPTION_PLAN_LIMITS.trial;
   
   // If plan type doesn't match known types, use provided limit with a fallback
   return storedLimit || 3;

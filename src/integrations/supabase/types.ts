@@ -1049,6 +1049,10 @@ export type Database = {
           invitation_email_sent: boolean
         }[]
       }
+      get_plan_limits: {
+        Args: { plan_type_param: string }
+        Returns: number
+      }
       get_subscription_details: {
         Args: { user_id_param: string }
         Returns: {

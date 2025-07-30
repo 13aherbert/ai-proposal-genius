@@ -44,14 +44,14 @@ export interface SubscriptionContextType {
 }
 
 /**
- * Default trial subscription data - now perpetual
+ * Default starter subscription data - free forever
  */
-export const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
-  status: 'active', // Changed from 'trialing' to 'active' for perpetual trial
-  plan_type: 'trial',
-  project_limit: 3,  // Trial users get 3 projects
+export const DEFAULT_STARTER_SUBSCRIPTION: Partial<SubscriptionPlan> = {
+  status: 'active',
+  plan_type: 'starter',
+  project_limit: 3,  // Free starter users get 3 projects
   features: {},
-  current_period_end: null, // No end date for perpetual trial
+  current_period_end: null, // No end date for free plan
   stripe_customer_id: null,
   stripe_subscription_id: null,
 };
@@ -60,9 +60,9 @@ export const DEFAULT_TRIAL_SUBSCRIPTION: Partial<SubscriptionPlan> = {
  * Project limits for each subscription plan
  */
 export const SUBSCRIPTION_PLAN_LIMITS = {
-  trial: 3,     // Trial users get 3 projects
-  starter: 10,  // Starter users get 10 projects 
-  pro: 30       // Pro users get 30 projects
+  starter: 3,   // Free starter plan - 3 projects
+  basic: 10,    // Basic paid plan - 10 projects 
+  pro: 30       // Pro paid plan - 30 projects
 };
 
 // Compatibility type to make Subscription from use-subscription.ts work with SubscriptionPlan

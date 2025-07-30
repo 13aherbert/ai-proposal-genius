@@ -22,7 +22,7 @@ export interface SubscriptionFeaturesResult {
   error: Error | null;
   plan: string;
   isTestMode: boolean;
-  enableTestMode: (planType?: 'trial' | 'starter' | 'pro') => void;
+  enableTestMode: (planType?: 'starter' | 'basic' | 'pro') => void;
   disableTestMode: () => void;
   refreshSubscription: () => void;
 }

@@ -1,9 +1,9 @@
 
 /**
- * Subscription plan limits
+ * Subscription plan limits for freemium model
  */
 export const SUBSCRIPTION_PLAN_LIMITS = {
-  trial: 3,     // Trial users get 3 projects
-  starter: 10,  // Starter users get 10 projects 
-  pro: 30       // Pro users get 30 projects
+  starter: 3,   // Free starter plan - 3 projects
+  basic: 10,    // Basic paid plan - 10 projects 
+  pro: 30       // Pro paid plan - 30 projects
 };

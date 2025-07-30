@@ -43,10 +43,12 @@ export function useProjects(user: User | null) {
       
       if (planType === 'pro') {
         limit = SUBSCRIPTION_PLAN_LIMITS.pro;
+      } else if (planType === 'basic') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.basic;
       } else if (planType === 'starter') {
         limit = SUBSCRIPTION_PLAN_LIMITS.starter;
       } else {
-        limit = SUBSCRIPTION_PLAN_LIMITS.trial;
+        limit = SUBSCRIPTION_PLAN_LIMITS.starter;
       }
       
       console.log(`useProjects: Current project limit (${planType.toUpperCase()}): ${limit}`);
@@ -78,8 +80,8 @@ export function useProjects(user: User | null) {
           console.log("STARTER USER authenticated (from subscription) - using starter limits:", limit);
           setCachedProjectLimit(limit);
         } else {
-          limit = SUBSCRIPTION_PLAN_LIMITS.trial;
-          console.log("TRIAL USER authenticated - using trial limits:", limit);
+          limit = SUBSCRIPTION_PLAN_LIMITS.starter;
+          console.log("DEFAULT STARTER USER authenticated - using starter limits:", limit);
           setCachedProjectLimit(limit);
         }
       }
@@ -343,10 +345,12 @@ export function useProjects(user: User | null) {
     
     if (planType === 'pro') {
       projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
+    } else if (planType === 'basic') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.basic;
     } else if (planType === 'starter') {
       projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
-    } else if (planType === 'trial') {
-      projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
+    } else {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
     }
   }
   

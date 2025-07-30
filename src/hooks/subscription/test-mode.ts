@@ -22,9 +22,9 @@ export function isTestModeEnabled(): boolean {
  */
 export function getTestPlan(): string {
   try {
-    return localStorage.getItem(TEST_PLAN_KEY) || 'trial';
+    return localStorage.getItem(TEST_PLAN_KEY) || 'starter';
   } catch (e) {
-    return 'trial';
+    return 'starter';
   }
 }
 
@@ -41,24 +41,24 @@ export function getTestProjectLimit(): number {
     // If no stored limit, return the default for the current test plan
     const testPlan = getTestPlan();
     if (testPlan === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-    if (testPlan === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
-    return SUBSCRIPTION_PLAN_LIMITS.trial;
+    if (testPlan === 'basic') return SUBSCRIPTION_PLAN_LIMITS.basic;
+    return SUBSCRIPTION_PLAN_LIMITS.starter;
   } catch (e) {
-    return 3; // Default to trial limit
+    return 3; // Default to starter limit
   }
 }
 
 /**
  * Enable test mode with a specific plan type
  */
-export function enableTestMode(planType: 'trial' | 'starter' | 'pro' = 'trial'): void {
+export function enableTestMode(planType: 'starter' | 'basic' | 'pro' = 'starter'): void {
   try {
     localStorage.setItem(TEST_MODE_KEY, 'true');
     localStorage.setItem(TEST_PLAN_KEY, planType);
     
     // Set the corresponding project limit
-    let projectLimit = SUBSCRIPTION_PLAN_LIMITS.trial;
-    if (planType === 'starter') projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+    let projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
+    if (planType === 'basic') projectLimit = SUBSCRIPTION_PLAN_LIMITS.basic;
     if (planType === 'pro') projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
     
     localStorage.setItem(TEST_PROJECT_LIMIT_KEY, String(projectLimit));

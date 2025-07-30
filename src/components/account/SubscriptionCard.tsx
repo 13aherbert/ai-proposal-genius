@@ -479,7 +479,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
    * Navigate to subscription page for more plan options
    */
   const handleViewSubscriptionPage = () => {
-    navigate('/subscription');
+    navigate('/subscription', { state: { fromUpgradeButton: true } });
   };
 
   return (

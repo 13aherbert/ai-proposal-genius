@@ -62,8 +62,12 @@ export default function Subscription() {
       // Fix: Call isInGracePeriod as a function
       const needsRenewal = subscription.isInGracePeriod() || hasFailedSubscriptionPayment;
       
-      // If user has active subscription (including free starter), navigate to dashboard unless explicitly requested to stay
-      if (hasActiveSubscription && !needsRenewal) {
+      // Check if this is an enterprise request
+      const isEnterpriseRequest = location.search.includes('enterprise=true') || location.state?.fromUpgradeButton;
+      
+      // Don't auto-redirect to dashboard if user explicitly wants to see subscription plans
+      // or if they're coming from enterprise onboarding
+      if (hasActiveSubscription && !needsRenewal && !isEnterpriseRequest) {
         if (!location.state?.fromUpgradeButton) {
           navigate('/dashboard');
         }
@@ -71,7 +75,7 @@ export default function Subscription() {
         setShowRenewalPrompt(true);
       }
     }
-  }, [subscription.subscription, subscription.isLoading, navigate, location.state, subscription.isInGracePeriod]);
+  }, [subscription.subscription, subscription.isLoading, navigate, location.state, location.search, subscription.isInGracePeriod]);
 
   // Render appropriate view based on state
   if (subscription.isLoading && !initialLoadComplete) {

@@ -143,6 +143,63 @@ export function OnboardingRouter() {
     );
   }
 
+  // Enterprise users get a specialized onboarding flow
+  if (profile.organization_size === 'enterprise') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <CardTitle className="text-2xl">Welcome to Enterprise!</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center space-y-2">
+              <p className="text-muted-foreground">
+                Welcome, {profile.first_name}! Your enterprise account is ready.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Choose how you'd like to get started with our enterprise platform.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
+                <Calendar className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="font-medium text-purple-900">Schedule Demo</p>
+                  <p className="text-sm text-purple-700">See all enterprise features</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                <Mail className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900">Custom Pricing</p>
+                  <p className="text-sm text-blue-700">Get a tailored enterprise quote</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button onClick={handleScheduleDemo} className="w-full" size="lg">
+                Schedule Enterprise Demo
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              
+              <Button onClick={() => navigate('/subscription?enterprise=true')} variant="outline" className="w-full">
+                View Enterprise Plans
+              </Button>
+              
+              <Button onClick={handleContinueToDashboard} variant="ghost" className="w-full">
+                Continue to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Regular users get a welcome message and go to dashboard
   const getWelcomeMessage = () => {
     switch (profile.organization_size) {

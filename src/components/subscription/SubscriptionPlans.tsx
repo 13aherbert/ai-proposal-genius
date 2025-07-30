@@ -149,6 +149,44 @@ export function SubscriptionPlans() {
             />
           </CardFooter>
         </Card>
+
+        {/* Enterprise Plan */}
+        <Card className="border-gradient-to-r from-purple-500 to-blue-500 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-50 to-blue-50 opacity-50"></div>
+          <CardHeader className="relative">
+            <div className="flex items-center gap-2">
+              <CardTitle>Enterprise</CardTitle>
+              <Badge variant="outline" className="border-purple-500 text-purple-700">Custom</Badge>
+            </div>
+            <CardDescription>For large organizations</CardDescription>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold mb-4">
+              Custom Pricing
+            </div>
+            <ul className="space-y-2">
+              <li>✓ Unlimited projects</li>
+              <li>✓ White-label branding</li>
+              <li>✓ Custom domain</li>
+              <li>✓ Advanced analytics</li>
+              <li>✓ SSO integration</li>
+              <li>✓ Priority support</li>
+              <li>✓ API access</li>
+              <li>✓ Custom integrations</li>
+              <li>✓ Dedicated account manager</li>
+            </ul>
+          </CardContent>
+          <CardFooter className="relative">
+            <Button 
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" 
+              onClick={() => {
+                toast.success("Enterprise inquiry sent! Our team will contact you within 24 hours.");
+              }}
+            >
+              Contact Sales
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>;
 }

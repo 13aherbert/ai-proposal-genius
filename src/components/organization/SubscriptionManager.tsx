@@ -1,278 +1,364 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useCurrentOrganization } from '@/hooks/use-current-organization';
+import { useOrganizationSubscription } from '@/hooks/useOrganizationSubscription';
+import { useOrganizationMembers } from '@/hooks/useOrganizationMembers';
+import { usePaymentUpdate } from '@/hooks/subscription/use-payment-update';
 import { 
-  Users, 
   CreditCard, 
+  Users, 
+  TrendingUp, 
   Calendar, 
   AlertTriangle,
-  CheckCircle,
-  Clock
-} from "lucide-react";
-import { useOrganizationSubscription, useSubscriptionPlans } from "@/hooks/useOrganizationSubscription";
-import { formatDistanceToNow } from "date-fns";
+  Check,
+  X,
+  Crown,
+  Zap
+} from 'lucide-react';
 
 export function SubscriptionManager() {
-  const { subscription, loading, error } = useOrganizationSubscription();
-  const { data: plans } = useSubscriptionPlans();
+  const { organization } = useCurrentOrganization();
+  const { subscription, loading } = useOrganizationSubscription();
+  const { members } = useOrganizationMembers(organization?.id);
+  const { handleUpdatePayment, isUpdatingPayment } = usePaymentUpdate();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  const currentUsage = {
+    seats: members?.length || 0,
+    projects: 12, // This would come from actual project count
+    storage: 2.4, // GB used
+    apiCalls: 15420 // Monthly API calls
+  };
+
+  const planLimits = {
+    seats: organization?.max_users || 5,
+    projects: organization?.max_projects || 10,
+    storage: 10, // GB limit
+    apiCalls: 50000 // Monthly limit
+  };
+
+  const billingHistory = [
+    {
+      id: '1',
+      date: '2024-01-01',
+      amount: 99,
+      status: 'paid',
+      invoice: 'INV-2024-001',
+      period: 'Dec 2023 - Jan 2024'
+    },
+    {
+      id: '2', 
+      date: '2023-12-01',
+      amount: 99,
+      status: 'paid',
+      invoice: 'INV-2023-012',
+      period: 'Nov 2023 - Dec 2023'
+    },
+    {
+      id: '3',
+      date: '2023-11-01', 
+      amount: 99,
+      status: 'paid',
+      invoice: 'INV-2023-011',
+      period: 'Oct 2023 - Nov 2023'
+    }
+  ];
+
+  const availablePlans = [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 49,
+      seats: 5,
+      projects: 10,
+      features: ['Email Support', 'Basic Analytics', 'Project Management']
+    },
+    {
+      id: 'pro',
+      name: 'Pro', 
+      price: 99,
+      seats: 20,
+      projects: 50,
+      features: ['Priority Support', 'Advanced Analytics', 'API Access', 'Custom Branding']
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 199,
+      seats: 100,
+      projects: 200,
+      features: ['24/7 Support', 'White Label', 'SSO', 'Advanced Security', 'Custom Integrations']
+    }
+  ];
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="h-4 bg-muted rounded animate-pulse" />
-            <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-            <div className="h-4 bg-muted rounded animate-pulse w-1/2" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-48 bg-muted rounded-lg" />
+          <div className="h-32 bg-muted rounded-lg" />
+        </div>
+      </div>
     );
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-            <p className="text-muted-foreground">Failed to load subscription details</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!subscription) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No subscription found</p>
-            <Button className="mt-4">Set up Subscription</Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'default';
-      case 'trial': return 'secondary';
-      case 'past_due': return 'destructive';
-      case 'canceled': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircle className="h-4 w-4" />;
-      case 'trial': return <Clock className="h-4 w-4" />;
-      case 'past_due': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const seatUsagePercentage = subscription.seat_limit ? 
-    (subscription.used_seats / subscription.seat_limit) * 100 : 0;
-
-  const currentPlan = plans?.find(plan => plan.name === subscription.plan_type);
+  const seatUsagePercentage = (currentUsage.seats / planLimits.seats) * 100;
+  const projectUsagePercentage = (currentUsage.projects / planLimits.projects) * 100;
 
   return (
     <div className="space-y-6">
-      {/* Current Subscription Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Current Subscription
-          </CardTitle>
-          <CardDescription>
-            Manage your organization's subscription and billing
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Plan Details */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">
-                {currentPlan?.display_name || subscription.plan_type}
-              </h3>
-              <p className="text-muted-foreground">
-                {currentPlan?.description || `${subscription.billing_model} billing`}
-              </p>
-            </div>
-            <Badge variant={getStatusColor(subscription.status)} className="flex items-center gap-1">
-              {getStatusIcon(subscription.status)}
-              {subscription.status}
-            </Badge>
-          </div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="usage">Usage & Limits</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="plans">Plans</TabsTrigger>
+        </TabsList>
 
-          <Separator />
-
-          {/* Usage Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Seat Usage */}
-            <div className="space-y-2">
+        <TabsContent value="overview" className="space-y-4">
+          {/* Current Subscription Card */}
+          <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Current Subscription
+                </CardTitle>
+                <Badge variant="outline" className="capitalize">
+                  {subscription?.plan_type || 'trial'}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
+                  <p className="text-2xl font-bold">${subscription?.plan_type === 'pro' ? '99' : subscription?.plan_type === 'enterprise' ? '199' : '49'}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Billing Cycle</p>
+                  <p className="text-lg font-medium">Monthly</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Next Billing</p>
+                  <p className="text-lg font-medium">Feb 1, 2024</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={subscription?.status === 'active' ? 'default' : 'destructive'}>
+                    {subscription?.status || 'trial'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleUpdatePayment} disabled={isUpdatingPayment}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {isUpdatingPayment ? 'Processing...' : 'Update Payment Method'}
+                </Button>
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Change Billing Cycle
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Usage Overview */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Team Members
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {subscription.used_seats} / {subscription.seat_limit || '∞'}
-                </span>
-              </div>
-              {subscription.seat_limit && (
-                <Progress value={seatUsagePercentage} className="h-2" />
-              )}
-              {seatUsagePercentage > 80 && subscription.seat_limit && (
-                <p className="text-xs text-warning">
-                  Approaching seat limit. Consider upgrading your plan.
-                </p>
-              )}
-            </div>
+                  Team Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Seats Used</span>
+                    <span>{currentUsage.seats} / {planLimits.seats}</span>
+                  </div>
+                  <Progress value={seatUsagePercentage} className="h-2" />
+                  {seatUsagePercentage > 80 && (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        You're approaching your seat limit. Consider upgrading your plan.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Project Limit */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Project Limit</span>
-                <span className="text-sm text-muted-foreground">
-                  {subscription.project_limit === -1 ? 'Unlimited' : subscription.project_limit}
-                </span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Project Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Projects Created</span>
+                    <span>{currentUsage.projects} / {planLimits.projects}</span>
+                  </div>
+                  <Progress value={projectUsagePercentage} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        </TabsContent>
 
-          <Separator />
-
-          {/* Billing Information */}
-          <div className="space-y-4">
-            <h4 className="font-medium">Billing Information</h4>
-            
-            {subscription.status === 'trial' && subscription.trial_ends_at && (
-              <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
-                <Clock className="h-4 w-4 text-warning" />
-                <span className="text-sm">
-                  Trial ends {formatDistanceToNow(new Date(subscription.trial_ends_at), { addSuffix: true })}
-                </span>
-              </div>
-            )}
-
-            {subscription.current_period_end && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Next billing date</span>
-                <span className="text-sm font-medium">
-                  {new Date(subscription.current_period_end).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-
-            {subscription.cancel_at_period_end && (
-              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <span className="text-sm text-destructive">
-                  Subscription will be canceled at the end of the current period
-                </span>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              View Billing History
-            </Button>
-            
-            {subscription.status === 'trial' && (
-              <Button>
-                Upgrade Plan
-              </Button>
-            )}
-            
-            {subscription.status === 'active' && (
-              <Button variant="outline">
-                Manage Payment Method
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Available Plans */}
-      {plans && plans.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Plans</CardTitle>
-            <CardDescription>
-              Choose the plan that best fits your organization's needs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {plans.map((plan) => (
-                <Card key={plan.id} className={`relative ${plan.name === subscription.plan_type ? 'ring-2 ring-primary' : ''}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{plan.display_name}</CardTitle>
-                      {plan.name === subscription.plan_type && (
-                        <Badge variant="default">Current</Badge>
-                      )}
+        <TabsContent value="usage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Usage Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Team Members</span>
+                      <span>{currentUsage.seats} / {planLimits.seats}</span>
                     </div>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-2xl font-bold">
-                          {plan.base_price === 0 ? 'Free' : `$${plan.base_price / 100}`}
-                        </span>
-                        {plan.base_price > 0 && (
-                          <span className="text-muted-foreground">/month</span>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span>Seats</span>
-                          <span>{plan.seat_limit || 'Unlimited'}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Projects</span>
-                          <span>{plan.project_limit === -1 ? 'Unlimited' : plan.project_limit}</span>
-                        </div>
-                      </div>
+                    <Progress value={seatUsagePercentage} />
+                  </div>
 
-                      {plan.name !== subscription.plan_type && (
-                        <Button className="w-full" variant="outline">
-                          {plan.base_price > (currentPlan?.base_price || 0) ? 'Upgrade' : 'Downgrade'}
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Projects</span>
+                      <span>{currentUsage.projects} / {planLimits.projects}</span>
+                    </div>
+                    <Progress value={projectUsagePercentage} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Storage</span>
+                      <span>{currentUsage.storage} GB / {planLimits.storage} GB</span>
+                    </div>
+                    <Progress value={(currentUsage.storage / planLimits.storage) * 100} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">API Calls (Monthly)</span>
+                      <span>{currentUsage.apiCalls.toLocaleString()} / {planLimits.apiCalls.toLocaleString()}</span>
+                    </div>
+                    <Progress value={(currentUsage.apiCalls / planLimits.apiCalls) * 100} />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Usage Tips</h4>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>• Monitor your seat usage to avoid unexpected charges</p>
+                    <p>• Archive completed projects to free up project slots</p>
+                    <p>• Use API rate limiting to manage API call usage</p>
+                    <p>• Consider upgrading if you frequently hit limits</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billingHistory.map((bill) => (
+                    <TableRow key={bill.id}>
+                      <TableCell>{new Date(bill.date).toLocaleDateString()}</TableCell>
+                      <TableCell>${bill.amount}</TableCell>
+                      <TableCell>
+                        <Badge variant={bill.status === 'paid' ? 'default' : 'destructive'}>
+                          {bill.status === 'paid' ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
+                          {bill.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{bill.period}</TableCell>
+                      <TableCell>{bill.invoice}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          Download
                         </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="plans" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {availablePlans.map((plan) => (
+              <Card key={plan.id} className={`relative ${selectedPlan === plan.id ? 'ring-2 ring-primary' : ''}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{plan.name}</CardTitle>
+                    {subscription?.plan_type === plan.id && (
+                      <Badge>Current</Badge>
+                    )}
+                  </div>
+                  <p className="text-3xl font-bold">${plan.price}<span className="text-sm font-normal">/month</span></p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Up to {plan.seats} team members</p>
+                    <p className="text-sm text-muted-foreground">Up to {plan.projects} projects</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-medium text-sm">Features:</p>
+                    <ul className="space-y-1">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-500" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <Button 
+                    className="w-full"
+                    variant={subscription?.plan_type === plan.id ? 'outline' : 'default'}
+                    disabled={subscription?.plan_type === plan.id}
+                    onClick={() => setSelectedPlan(plan.id)}
+                  >
+                    {subscription?.plan_type === plan.id ? 'Current Plan' : 'Upgrade'}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -53,12 +53,30 @@ export function OrganizationCreator() {
           name: formData.name,
           slug: formData.slug,
           subscription_tier: formData.subscription_tier,
+          is_white_label: formData.subscription_tier === 'enterprise',
+          custom_domain_enabled: formData.subscription_tier === 'enterprise',
+          sso_enabled: false,
+          max_users: formData.subscription_tier === 'starter' ? 5 : (formData.subscription_tier === 'enterprise' ? 9999 : 50),
+          max_projects: formData.subscription_tier === 'starter' ? 3 : (formData.subscription_tier === 'enterprise' ? 9999 : 30),
           settings: {
-            subscription_model: 'flat_rate',
-            max_seats: formData.subscription_tier === 'starter' ? 5 : 50,
-            white_label_enabled: false,
-            sso_enabled: false
-          }
+            subscription_model: formData.subscription_tier === 'enterprise' ? 'custom' : 'flat_rate',
+            max_seats: formData.subscription_tier === 'starter' ? 5 : (formData.subscription_tier === 'enterprise' ? 9999 : 50),
+            white_label_enabled: formData.subscription_tier === 'enterprise',
+            sso_enabled: false,
+            custom_pricing: formData.subscription_tier === 'enterprise' ? { enabled: true } : {},
+            billing_contact: formData.subscription_tier === 'enterprise' ? '' : null,
+            technical_contact: formData.subscription_tier === 'enterprise' ? '' : null
+          },
+          enterprise_features: formData.subscription_tier === 'enterprise' ? {
+            unlimited_projects: true,
+            advanced_analytics: true,
+            sso_integration: true,
+            white_labeling: true,
+            api_access: true,
+            priority_support: true,
+            custom_domains: true,
+            audit_logging: true
+          } : {}
         })
         .select()
         .single();
@@ -83,12 +101,52 @@ export function OrganizationCreator() {
         .insert({
           organization_id: org.id,
           plan_type: formData.subscription_tier,
-          status: 'active',
-          project_limit: formData.subscription_tier === 'starter' ? 3 : 30,
-          member_limit: formData.subscription_tier === 'starter' ? 5 : 50
+          status: formData.subscription_tier === 'enterprise' ? 'active' : 'trial',
+          project_limit: formData.subscription_tier === 'starter' ? 3 : (formData.subscription_tier === 'enterprise' ? 9999 : 30),
+          member_limit: formData.subscription_tier === 'starter' ? 5 : (formData.subscription_tier === 'enterprise' ? 9999 : 50),
+          max_seats: formData.subscription_tier === 'starter' ? 5 : (formData.subscription_tier === 'enterprise' ? 9999 : 50),
+          used_seats: 1,
+          billing_model: formData.subscription_tier === 'enterprise' ? 'custom' : 'flat_rate',
+          features: formData.subscription_tier === 'enterprise' ? {
+            unlimited_projects: true,
+            advanced_analytics: true,
+            api_access: true,
+            white_labeling: true,
+            priority_support: true,
+            sso_integration: true,
+            custom_domains: true,
+            audit_logging: true,
+            team_collaboration: true,
+            custom_templates: true
+          } : {}
         });
 
       if (subError) throw subError;
+
+      // Enable enterprise features if enterprise tier
+      if (formData.subscription_tier === 'enterprise') {
+        const enterpriseFeatures = [
+          { feature_name: 'unlimited_projects', is_enabled: true },
+          { feature_name: 'advanced_analytics', is_enabled: true },
+          { feature_name: 'sso_integration', is_enabled: true },
+          { feature_name: 'white_labeling', is_enabled: true },
+          { feature_name: 'api_access', is_enabled: true },
+          { feature_name: 'priority_support', is_enabled: true },
+          { feature_name: 'custom_domains', is_enabled: true },
+          { feature_name: 'audit_logging', is_enabled: true },
+          { feature_name: 'team_collaboration', is_enabled: true },
+          { feature_name: 'custom_templates', is_enabled: true }
+        ];
+
+        for (const feature of enterpriseFeatures) {
+          await supabase
+            .from('organization_features')
+            .insert({
+              organization_id: org.id,
+              ...feature
+            });
+        }
+      }
 
       // Update user's current organization
       const { error: profileError } = await supabase
@@ -98,7 +156,7 @@ export function OrganizationCreator() {
 
       if (profileError) throw profileError;
 
-      toast.success('Organization created successfully!');
+      toast.success(`${formData.subscription_tier === 'enterprise' ? 'Enterprise ' : ''}Organization created successfully!`);
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Error creating organization:', error);

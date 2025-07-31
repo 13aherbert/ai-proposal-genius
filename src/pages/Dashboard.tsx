@@ -15,6 +15,9 @@ import { FileText, Database, Users, BarChart3, FolderOpen, Building2 } from "luc
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
+import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
+import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
 
 export default function Dashboard() {
   const {
@@ -36,6 +39,7 @@ export default function Dashboard() {
     recentActivity,
     isLoading: activitiesLoading
   } = useRecentActivity(session?.user || null);
+  const { organization } = useCurrentOrganization();
   useEffect(() => {
     if (session?.user) {
       // Check if user is new (created within last 24 hours)
@@ -139,8 +143,18 @@ export default function Dashboard() {
   return <div className="space-y-6">
       <DashboardHeader />
       
+      {/* Enterprise Onboarding - Show for new enterprise users */}
+      {organization?.subscription_tier === 'enterprise' && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && (
+        <EnterpriseOnboarding />
+      )}
+      
+      {/* Enterprise Getting Started - Show for enterprise users */}
+      {organization?.subscription_tier === 'enterprise' && !isNewUser && (
+        <EnterpriseGettingStarted />
+      )}
+      
       {/* Show segmented welcome for new users or those with minimal activity */}
-      {(isNewUser || !dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries) && <SegmentedWelcome firstName={profileData.first_name} organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} industry={profileData.industry} />}
+      {(isNewUser || !dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries) && organization?.subscription_tier !== 'enterprise' && <SegmentedWelcome firstName={profileData.first_name} organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} industry={profileData.industry} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Main Content */}

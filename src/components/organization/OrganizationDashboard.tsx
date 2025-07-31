@@ -16,6 +16,9 @@ import { EnhancedAnalytics } from './EnhancedAnalytics';
 import { OrganizationSettings } from './OrganizationSettings';
 import { AuditLogger } from './AuditLogger';
 import { UserProvisioning } from './UserProvisioning';
+import { WebhookManager } from './WebhookManager';
+import { IntegrationManager } from './IntegrationManager';
+import { ApiDocumentation } from './ApiDocumentation';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -221,7 +224,26 @@ export function OrganizationDashboard() {
 
         {canManageSettings && (
           <TabsContent value="api" className="space-y-4">
-            <ApiManagement />
+            <Tabs defaultValue="keys" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="keys">API Keys</TabsTrigger>
+                <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
+                <TabsTrigger value="integrations">Integrations</TabsTrigger>
+                <TabsTrigger value="docs">Documentation</TabsTrigger>
+              </TabsList>
+              <TabsContent value="keys">
+                <ApiManagement />
+              </TabsContent>
+              <TabsContent value="webhooks">
+                <WebhookManager />
+              </TabsContent>
+              <TabsContent value="integrations">
+                <IntegrationManager />
+              </TabsContent>
+              <TabsContent value="docs">
+                <ApiDocumentation />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
 

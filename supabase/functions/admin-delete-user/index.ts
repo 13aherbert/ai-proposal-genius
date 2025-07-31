@@ -140,39 +140,92 @@ serve(async (req) => {
     try {
       console.log("Starting manual cascade deletion for user:", userId);
       
-      // 1. Delete user roles
+      // Delete all references to the user in proper order to avoid foreign key violations
+      
+      // 1. Delete security audit log entries (this was blocking deletion)
+      console.log("Deleting security audit log entries...");
+      await supabaseAdmin.from('security_audit_log').delete().eq('user_id', userId);
+      await supabaseAdmin.from('security_audit_log').delete().eq('target_user_id', userId);
+      
+      // 2. Delete activity feed entries
+      console.log("Deleting activity feed entries...");
+      await supabaseAdmin.from('activity_feed').delete().eq('user_id', userId);
+      
+      // 3. Delete notifications
+      console.log("Deleting notifications...");
+      await supabaseAdmin.from('notifications').delete().eq('user_id', userId);
+      
+      // 4. Delete organization member activity
+      console.log("Deleting organization member activity...");
+      await supabaseAdmin.from('organization_member_activity').delete().eq('user_id', userId);
+      
+      // 5. Delete organization members (remove from organizations)
+      console.log("Deleting organization memberships...");
+      await supabaseAdmin.from('organization_members').delete().eq('user_id', userId);
+      
+      // 6. Delete user roles
       console.log("Deleting user roles...");
       await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
       
-      // 2. Delete user status cache
+      // 7. Delete user status cache
       console.log("Deleting user status cache...");
       await supabaseAdmin.from('user_status_cache').delete().eq('user_id', userId);
       
-      // 3. Delete subscriptions
+      // 8. Delete subscriptions
       console.log("Deleting subscriptions...");
       await supabaseAdmin.from('subscriptions').delete().eq('user_id', userId);
       
-      // 4. Delete admin role checks
+      // 9. Delete admin role checks
       console.log("Deleting admin role checks...");
       await supabaseAdmin.from('admin_role_checks').delete().eq('user_id', userId);
       
-      // 5. Delete knowledge entries
+      // 10. Delete knowledge entries
       console.log("Deleting knowledge entries...");
       await supabaseAdmin.from('knowledge_entries').delete().eq('user_id', userId);
       
-      // 6. Delete project documents (need to delete these before projects)
+      // 11. Delete project documents (need to delete these before projects)
       console.log("Deleting project documents...");
       await supabaseAdmin.from('project_documents').delete().eq('user_id', userId);
       
-      // 7. Delete proposal sections (need to delete these before projects)
+      // 12. Delete proposal sections (need to delete these before projects)
       console.log("Deleting proposal sections...");
       await supabaseAdmin.from('proposal_sections').delete().eq('user_id', userId);
       
-      // 8. Delete projects
+      // 13. Delete project collaborators
+      console.log("Deleting project collaborators...");
+      await supabaseAdmin.from('project_collaborators').delete().eq('user_id', userId);
+      await supabaseAdmin.from('project_collaborators').delete().eq('invited_by', userId);
+      
+      // 14. Delete projects
       console.log("Deleting projects...");
       await supabaseAdmin.from('projects').delete().eq('user_id', userId);
       
-      // 9. Delete profile
+      // 15. Delete organization invitations
+      console.log("Deleting organization invitations...");
+      await supabaseAdmin.from('organization_invitations').delete().eq('invited_by', userId);
+      await supabaseAdmin.from('organization_member_invitations').delete().eq('invited_by', userId);
+      
+      // 16. Delete beta invitations
+      console.log("Deleting beta invitations...");
+      await supabaseAdmin.from('beta_invitations').delete().eq('invited_by', userId);
+      
+      // 17. Delete data export requests
+      console.log("Deleting data export requests...");
+      await supabaseAdmin.from('data_export_requests').delete().eq('user_id', userId);
+      await supabaseAdmin.from('data_export_requests').delete().eq('requested_by', userId);
+      
+      // 18. Delete admin rate limits
+      console.log("Deleting admin rate limits...");
+      await supabaseAdmin.from('admin_rate_limits').delete().eq('admin_user_id', userId);
+      
+      // 19. Delete password reset attempts
+      console.log("Deleting password reset attempts...");
+      const { data: userProfile } = await supabaseAdmin.from('profiles').select('username').eq('profile_id', userId).single();
+      if (userProfile?.username) {
+        await supabaseAdmin.from('password_reset_attempts').delete().eq('email', userProfile.username);
+      }
+      
+      // 20. Delete profile (last table reference)
       console.log("Deleting profile...");
       await supabaseAdmin.from('profiles').delete().eq('profile_id', userId);
       

@@ -11,6 +11,8 @@ import { ComplianceManager } from './ComplianceManager';
 import { ApiManagement } from './ApiManagement';
 import { SubscriptionManager } from './SubscriptionManager';
 import { AdvancedAnalyticsDashboard } from '../analytics/AdvancedAnalyticsDashboard';
+import { EnhancedAnalytics } from './EnhancedAnalytics';
+import { OrganizationSettings } from './OrganizationSettings';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,15 +90,16 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canViewAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          {canViewAnalytics && <TabsTrigger value="advanced-analytics">Advanced</TabsTrigger>}
+          {canViewAnalytics && <TabsTrigger value="advanced-analytics">Enhanced</TabsTrigger>}
           {canViewBilling && <TabsTrigger value="billing">Billing</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="api">API</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="compliance">Compliance</TabsTrigger>}
+          {canViewSettings && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -185,7 +188,7 @@ export function OrganizationDashboard() {
 
         {canViewAnalytics && (
           <TabsContent value="advanced-analytics" className="space-y-4">
-            <AdvancedAnalyticsDashboard />
+            <EnhancedAnalytics />
           </TabsContent>
         )}
 
@@ -207,6 +210,12 @@ export function OrganizationDashboard() {
         {canManageSettings && (
           <TabsContent value="compliance" className="space-y-4">
             <ComplianceManager />
+          </TabsContent>
+        )}
+
+        {canViewSettings && (
+          <TabsContent value="settings" className="space-y-4">
+            <OrganizationSettings />
           </TabsContent>
         )}
       </Tabs>

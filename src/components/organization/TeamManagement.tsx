@@ -8,14 +8,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useOrganizationMembers, type OrganizationMember } from '@/hooks/useOrganizationMembers';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
+import { MemberInvitation } from './MemberInvitation';
+import { PermissionEditor } from './PermissionEditor';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, UserPlus, MoreHorizontal, Shield, Trash2 } from 'lucide-react';
+import { Users, UserPlus, MoreHorizontal, Shield, Trash2, Building, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function TeamManagement() {
   const [user, setUser] = useState<any>(null);
   const { organization } = useCurrentOrganization();
-  const { members, loading, updateMemberRole, removeMember } = useOrganizationMembers(organization?.id);
+  const { members, loading, updateMemberRole, updateMemberPermissions, removeMember, fetchMembers } = useOrganizationMembers(organization?.id);
   const { hasPermission } = useOrganizationPermissions(organization?.id);
   const { toast } = useToast();
   const [editingMember, setEditingMember] = useState<string | null>(null);
@@ -106,11 +108,11 @@ export function TeamManagement() {
             <Users className="h-5 w-5" />
             Team Management
           </CardTitle>
-          {canManageTeam && (
-            <Button size="sm" className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Invite Member
-            </Button>
+          {canManageTeam && organization?.id && (
+            <MemberInvitation 
+              organizationId={organization.id} 
+              onInviteSent={fetchMembers}
+            />
           )}
         </div>
       </CardHeader>
@@ -135,6 +137,12 @@ export function TeamManagement() {
                   {member.title && (
                     <div className="text-xs text-muted-foreground">
                       {member.title}
+                    </div>
+                  )}
+                  {member.department && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Building className="h-3 w-3" />
+                      {member.department}
                     </div>
                   )}
                 </div>
@@ -175,6 +183,10 @@ export function TeamManagement() {
                     
                     {canManageTeam && member.role !== 'owner' && (
                       <div className="flex items-center space-x-1">
+                        <PermissionEditor 
+                          member={member} 
+                          onPermissionsUpdate={updateMemberPermissions}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"

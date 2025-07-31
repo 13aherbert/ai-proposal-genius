@@ -16,25 +16,45 @@ serve(async (req) => {
 
   try {
     console.log("Admin-delete-user function called");
+    console.log("Request method:", req.method);
+    console.log("Request URL:", req.url);
     
-    // Parse the request body
+    // Parse the request - supabase.functions.invoke() sends data differently
     let userId;
     let requestBody = null;
     
-    // First try to get userId from request body
+    // For Supabase Functions invoke, try to get data from request body
     try {
-      requestBody = await req.json();
-      console.log("Request body parsed:", requestBody);
-      userId = requestBody.userId;
+      const body = await req.text(); // Get as text first
+      console.log("Raw request body:", body);
+      
+      if (body && body.trim() !== '') {
+        requestBody = JSON.parse(body);
+        console.log("Parsed request body:", requestBody);
+        userId = requestBody.userId;
+      }
     } catch (parseError) {
-      console.error("Error parsing request body or empty body:", parseError);
+      console.log("Could not parse request body as JSON:", parseError);
     }
     
     // If userId not found in body, try URL params
     if (!userId) {
       const url = new URL(req.url);
       userId = url.searchParams.get('userId');
-      console.log("Falling back to URL parameter, userId:", userId);
+      console.log("Trying URL parameter, userId:", userId);
+    }
+    
+    // If still no userId, try different body parsing approaches
+    if (!userId) {
+      try {
+        // Reset request body stream and try different parsing
+        const clonedReq = req.clone();
+        const formData = await clonedReq.formData();
+        userId = formData.get('userId') as string;
+        console.log("Found userId in form data:", userId);
+      } catch (formError) {
+        console.log("Could not parse as form data:", formError);
+      }
     }
     
     if (!userId) {

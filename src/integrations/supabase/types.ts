@@ -1961,8 +1961,16 @@ export type Database = {
         Args: { _user_id: string; _role: string }
         Returns: boolean
       }
+      check_organization_admin: {
+        Args: { user_id_param: string; org_id_param: string }
+        Returns: boolean
+      }
       check_organization_limits: {
         Args: { org_id_param: string; limit_type: string }
+        Returns: boolean
+      }
+      check_organization_membership: {
+        Args: { user_id_param: string; org_id_param: string }
         Returns: boolean
       }
       check_organization_seat_limit: {

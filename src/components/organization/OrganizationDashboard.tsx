@@ -8,6 +8,7 @@ import { UsageAnalytics } from './UsageAnalytics';
 import { SecurityDashboard } from './SecurityDashboard';
 import { SSOConfiguration } from './SSOConfiguration';
 import { ComplianceManager } from './ComplianceManager';
+import { DomainManager } from './DomainManager';
 import { ApiManagement } from './ApiManagement';
 import { SubscriptionManager } from './SubscriptionManager';
 import { AdvancedAnalyticsDashboard } from '../analytics/AdvancedAnalyticsDashboard';
@@ -92,7 +93,7 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="provisioning">Provisioning</TabsTrigger>}
@@ -101,6 +102,7 @@ export function OrganizationDashboard() {
           {canViewBilling && <TabsTrigger value="billing">Billing</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="api">API</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
+          {canManageSettings && <TabsTrigger value="domains">Domains</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="audit">Audit</TabsTrigger>}
           {canViewSettings && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
@@ -206,7 +208,14 @@ export function OrganizationDashboard() {
             <div className="grid gap-6">
               <SecurityDashboard />
               <SSOConfiguration />
+              <ComplianceManager />
             </div>
+          </TabsContent>
+        )}
+
+        {canManageSettings && (
+          <TabsContent value="domains" className="space-y-4">
+            <DomainManager />
           </TabsContent>
         )}
 

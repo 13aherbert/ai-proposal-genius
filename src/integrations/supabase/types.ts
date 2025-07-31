@@ -2142,6 +2142,12 @@ export type Database = {
         Args: { user_id_param: string; org_id_param: string }
         Returns: Json
       }
+      get_user_organizations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          organization_id: string
+        }[]
+      }
       get_user_permissions: {
         Args: { user_id_param: string }
         Returns: {
@@ -2171,6 +2177,10 @@ export type Database = {
       }
       is_admin_for_delete: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_organization_member: {
+        Args: { org_id: string; user_id_param: string }
         Returns: boolean
       }
       is_system_admin: {

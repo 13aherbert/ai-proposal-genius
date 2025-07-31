@@ -202,7 +202,7 @@ export function OrganizationDashboard() {
 
         {canViewAnalytics && (
           <TabsContent value="advanced-analytics" className="space-y-4">
-            <EnhancedAnalytics />
+            <AdvancedAnalyticsDashboard />
           </TabsContent>
         )}
 

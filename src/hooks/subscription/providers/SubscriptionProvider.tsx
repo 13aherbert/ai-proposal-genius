@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { SubscriptionPlan } from '@/types/subscription';
 import { createDefaultSubscription, createStarterSubscription } from '../utils/subscription-creation';
 import { storeSubscriptionDataLocally, getStoredSubscriptionData } from '../feature-access';
+import { useCurrentOrganization } from '@/hooks/use-current-organization';
 
 // Context type definitions
 type SubscriptionContextType = {
@@ -50,6 +51,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { isOnline, withNetworkCheck } = useNetwork();
+  const { organization, loading: orgLoading } = useCurrentOrganization();
 
   // Clear subscription data
   const clearSubscription = useCallback(() => {
@@ -122,17 +124,35 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       const userId = session.user.id;
 
-      // Fetch subscription from database
+      // If no organization yet, wait for it to load
+      if (!organization?.id) {
+        console.log('No organization found, waiting for organization to load');
+        if (!orgLoading) {
+          // Organization loading is complete but no org found, create default subscription
+          const defaultSub = await createDefaultSubscription(
+            userId,
+            setSubscription,
+            undefined,
+            setIsLoading,
+            setHasCheckedSubscription
+          );
+          return defaultSub;
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch organization subscription from database
       const { data, error: fetchError } = await supabase
-        .from('subscriptions')
+        .from('organization_subscriptions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('organization_id', organization.id)
         .single();
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
           // No subscription found, create a default one
-          console.log('No subscription found, creating default');
+          console.log('No organization subscription found, creating default');
           const defaultSub = await createDefaultSubscription(
             userId,
             setSubscription,
@@ -142,15 +162,31 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           );
           return defaultSub;
         } else {
-          console.error('Error fetching subscription:', fetchError);
+          console.error('Error fetching organization subscription:', fetchError);
           throw new Error(`Failed to fetch subscription: ${fetchError.message}`);
         }
       }
 
       if (data) {
-        console.log('Subscription found:', data);
-        setSubscription(data as SubscriptionPlan);
-        storeSubscriptionDataLocally(data as SubscriptionPlan);
+        console.log('Organization subscription found:', data);
+        // Convert organization subscription to SubscriptionPlan format
+        const subscriptionPlan: SubscriptionPlan = {
+          subscription_id: data.subscription_id,
+          user_id: userId,
+          status: data.status as SubscriptionPlan['status'],
+          plan_type: data.plan_type,
+          current_period_end: data.current_period_end,
+          project_limit: data.project_limit,
+          features: (data.features as Record<string, any>) || {},
+          stripe_customer_id: data.stripe_customer_id,
+          stripe_subscription_id: data.stripe_subscription_id,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          cancel_at_period_end: data.cancel_at_period_end || false,
+        };
+        
+        setSubscription(subscriptionPlan);
+        storeSubscriptionDataLocally(subscriptionPlan);
       } else {
         console.log('No subscription data, creating default');
         const defaultSub = await createDefaultSubscription(
@@ -179,7 +215,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(false);
       setHasCheckedSubscription(true);
     }
-  }, [clearSubscription, isOnline]);
+  }, [clearSubscription, isOnline, organization?.id, orgLoading]);
 
   // Refresh subscription data
   const refreshSubscription = useCallback(async () => {
@@ -192,6 +228,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Initialize subscription on mount
   useEffect(() => {
     console.log('SubscriptionProvider initializing');
+    
+    // Wait for organization to load before fetching subscription
+    if (orgLoading) {
+      console.log('Waiting for organization to load...');
+      return;
+    }
     
     // If we're offline, try to load from cache first
     if (!isOnline) {
@@ -221,7 +263,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [clearSubscription, fetchSubscriptionData, isOnline]);
+  }, [clearSubscription, fetchSubscriptionData, isOnline, orgLoading, organization?.id]);
 
   // The context value
   const value = {

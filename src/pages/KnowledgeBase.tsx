@@ -10,6 +10,7 @@ import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigg
 import { TriggerBatchParsing } from "@/components/knowledge-base/TriggerBatchParsing";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
+import '@/utils/manualBatchParse'; // Auto-trigger batch parsing
 
 /**
  * KnowledgeBase page component

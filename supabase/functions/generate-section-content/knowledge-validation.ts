@@ -12,33 +12,74 @@ export function assessKnowledgeBaseCoverage(
   sectionTitle: string,
   knowledgeEntries: KnowledgeEntry[]
 ): KnowledgeBaseCoverage {
-  // Ultra-strict mode requires entries with actual content, not just titles
-  if (!knowledgeEntries || knowledgeEntries.length === 0) {
+  // ULTRA-STRICT: First filter entries that actually have meaningful content
+  const meaningfulEntries = knowledgeEntries.filter(entry => {
+    const totalContent = (entry.content || '') + ' ' + (entry.parsed_content || '');
+    const cleanContent = totalContent.trim();
+    
+    // Must have substantial content (not just placeholders)
+    if (cleanContent.length < 100) return false;
+    
+    // Reject common placeholder patterns
+    const placeholderPatterns = [
+      /placeholder/gi,
+      /lorem ipsum/gi,
+      /sample text/gi,
+      /example content/gi,
+      /todo/gi,
+      /tbd/gi,
+      /coming soon/gi,
+      /document content parsing will be implemented/gi,
+      /^(title|name|description):\s*$/gi,
+      /^\s*-\s*$/gm, // Just dashes
+      /^\s*\*\s*$/gm, // Just asterisks
+    ];
+    
+    const hasPlaceholders = placeholderPatterns.some(pattern => pattern.test(cleanContent));
+    if (hasPlaceholders) return false;
+    
+    // Must contain actual informational content (not just metadata)
+    const meaningfulWords = cleanContent.toLowerCase().split(/\s+/).filter(word => 
+      word.length > 3 && !['the', 'and', 'for', 'with', 'that', 'this', 'from', 'they', 'have', 'will'].includes(word)
+    );
+    
+    return meaningfulWords.length >= 20; // Require at least 20 meaningful words
+  });
+
+  if (meaningfulEntries.length === 0) {
     return {
       isAdequate: false,
       coverageScore: 0,
-      missingTopics: ['All content areas - no knowledge base entries with actual content found'],
+      missingTopics: ['All content areas - no meaningful knowledge base entries found'],
       relevantEntries: [],
-      recommendations: ['Add comprehensive knowledge base entries with detailed, specific content before using strict mode.']
+      recommendations: [
+        'CRITICAL: No meaningful knowledge base entries detected',
+        'All entries appear to be placeholders, empty, or have insufficient content',
+        'Add at least 3 detailed entries with 200+ characters of specific information',
+        'Strict mode requires factual, comprehensive content - not generic descriptions'
+      ]
     };
   }
 
   const sectionType = determineSectionType(sectionTitle);
   const semanticKeywords = getSemanticKeywords(sectionType);
   
-  // Enhanced semantic matching - check actual content, not just titles
-  const relevantEntries = knowledgeEntries.filter(entry => {
-    const titleMatch = semanticKeywords.some(keyword => 
-      isRelatedConcept(entry.title.toLowerCase(), keyword)
+  // ENHANCED: Section-specific relevance scoring with content requirements
+  const relevantEntries = meaningfulEntries.filter(entry => {
+    const allContent = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
+    
+    // Section-specific content requirements
+    const sectionSpecificCheck = checkSectionSpecificContent(sectionType, allContent);
+    if (!sectionSpecificCheck.isRelevant) return false;
+    
+    // Semantic keyword matching with higher threshold
+    const matchingKeywords = semanticKeywords.filter(keyword => 
+      isRelatedConcept(allContent, keyword) || allContent.includes(keyword)
     );
     
-    // Also check actual content for semantic matches
-    const contentText = ((entry.content || '') + ' ' + (entry.parsed_content || '')).toLowerCase();
-    const contentMatch = contentText.length > 50 && semanticKeywords.some(keyword => 
-      isRelatedConcept(contentText, keyword)
-    );
-    
-    return titleMatch || contentMatch;
+    // Require at least 30% keyword match for relevance
+    const keywordMatchRatio = matchingKeywords.length / semanticKeywords.length;
+    return keywordMatchRatio >= 0.3;
   });
   
   // Calculate total content volume for relevant entries
@@ -70,14 +111,19 @@ export function assessKnowledgeBaseCoverage(
     coverageScore = entryScore + contentScore + keywordScore;
   }
   
-  // Ultra-strict adequacy check for anti-hallucination
-  const minCoverageThreshold = 90; // 90% coverage required for strict mode
-  const minRelevantEntries = Math.max(2, Math.ceil(semanticKeywords.length * 0.6)); // At least 60% of expected topics
-  const minContentVolume = 500; // Minimum 500 characters of relevant content
+  // ULTRA-STRICT adequacy check - zero tolerance for insufficient coverage
+  const sectionComplexity = getSectionComplexityMultiplier(sectionType);
+  const minCoverageThreshold = 95; // 95% coverage required for strict mode
+  const minRelevantEntries = Math.max(3, Math.ceil(semanticKeywords.length * 0.8 * sectionComplexity)); 
+  const minContentVolume = Math.max(800, 300 * sectionComplexity); // Dynamic based on section complexity
+  
+  // Additional section-specific requirements
+  const sectionRequirements = getSectionSpecificRequirements(sectionType, relevantEntries);
   
   const isAdequate = coverageScore >= minCoverageThreshold && 
                     relevantEntries.length >= minRelevantEntries &&
-                    totalRelevantContent >= minContentVolume;
+                    totalRelevantContent >= minContentVolume &&
+                    sectionRequirements.areMet;
   
   // Generate missing topics and enhanced recommendations
   const missingTopics = semanticKeywords.filter(keyword => 
@@ -412,4 +458,93 @@ function extractSpecificClaims(content: string): string[] {
   }
   
   return claims;
+}
+
+// NEW: Section complexity multiplier for dynamic requirements
+function getSectionComplexityMultiplier(sectionType: string): number {
+  const complexityMap: { [key: string]: number } = {
+    'team': 2.5,        // Team sections need detailed member info
+    'pricing': 2.0,     // Pricing needs specific rates/models  
+    'technical': 1.8,   // Technical needs specific processes
+    'company': 1.5,     // Company needs comprehensive info
+    'executive': 1.3,   // Executive needs high-level overview
+    'timeline': 1.2,    // Timeline needs project phases
+    'case_study': 1.8,  // Case studies need specific examples
+    'general': 1.0      // General sections baseline
+  };
+  
+  return complexityMap[sectionType] || 1.0;
+}
+
+// NEW: Section-specific content validation
+function checkSectionSpecificContent(sectionType: string, content: string): { isRelevant: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  switch (sectionType) {
+    case 'team':
+      if (!content.match(/(name|experience|role|qualification|certificate|degree|years|background)/gi)) {
+        issues.push('Team section requires specific personnel information');
+      }
+      break;
+    case 'pricing':
+      if (!content.match(/(\$|price|cost|rate|fee|budget|investment|hourly|fixed)/gi)) {
+        issues.push('Pricing section requires specific cost information');
+      }
+      break;
+    case 'technical':
+      if (!content.match(/(process|method|technology|system|framework|implementation|procedure)/gi)) {
+        issues.push('Technical section requires specific methodology information');
+      }
+      break;
+    case 'company':
+      if (!content.match(/(founded|established|office|headquarters|client|customer|service|business)/gi)) {
+        issues.push('Company section requires specific organizational information');
+      }
+      break;
+  }
+  
+  return {
+    isRelevant: issues.length === 0,
+    issues
+  };
+}
+
+// NEW: Section-specific requirements validation
+function getSectionSpecificRequirements(sectionType: string, entries: KnowledgeEntry[]): { areMet: boolean; missing: string[] } {
+  const missing: string[] = [];
+  const allContent = entries.map(e => `${e.title} ${e.content || ''} ${e.parsed_content || ''}`).join(' ').toLowerCase();
+  
+  switch (sectionType) {
+    case 'team':
+      if (!allContent.includes('experience') && !allContent.includes('qualification')) {
+        missing.push('Team member experience/qualifications');
+      }
+      if (!allContent.match(/\d+\s*year/gi)) {
+        missing.push('Specific years of experience');
+      }
+      break;
+      
+    case 'pricing':
+      if (!allContent.match(/\$[\d,]+/g) && !allContent.match(/\d+\s*per\s*(hour|day|month)/gi)) {
+        missing.push('Specific pricing information with amounts');
+      }
+      break;
+      
+    case 'technical':
+      if (entries.length < 2) {
+        missing.push('At least 2 entries describing technical processes');
+      }
+      break;
+      
+    case 'company':
+      if (!allContent.includes('founded') && !allContent.includes('established') && !allContent.includes('since')) {
+        missing.push('Company history/founding information');
+      }
+      break;
+  }
+  
+  return {
+    areMet: missing.length === 0,
+    missing
+  };
 }

@@ -149,14 +149,39 @@ serve(async (req) => {
       throw new Error(`Failed to fetch knowledge entries: ${knowledgeError.message}`);
     }
 
-    // Filter out empty entries - critical for strict mode anti-hallucination
+    // ULTRA-STRICT filtering for meaningful entries only
     const knowledgeEntries = allKnowledgeEntries?.filter(entry => {
-      const hasContent = (entry.content && entry.content.trim().length > 0) ||
-                        (entry.parsed_content && 
-                         entry.parsed_content.trim().length > 0 && 
-                         !entry.parsed_content.includes('Document content parsing will be implemented') &&
-                         !entry.parsed_content.includes('placeholder'));
-      return hasContent;
+      const totalContent = (entry.content || '') + ' ' + (entry.parsed_content || '');
+      const cleanContent = totalContent.trim().toLowerCase();
+      
+      // Must have substantial content
+      if (cleanContent.length < 100) return false;
+      
+      // Comprehensive placeholder detection
+      const placeholderPatterns = [
+        /placeholder/gi, /lorem ipsum/gi, /sample text/gi, /example content/gi,
+        /todo/gi, /tbd/gi, /coming soon/gi, /add content here/gi,
+        /document content parsing will be implemented/gi,
+        /this is a test/gi, /test content/gi, /dummy content/gi,
+        /^(title|name|description):\s*$/gi,
+        /^\s*-\s*$/gm, /^\s*\*\s*$/gm, /^\s*\d+\.\s*$/gm,
+        /copy and paste/gi, /edit this/gi, /replace this/gi
+      ];
+      
+      const hasPlaceholders = placeholderPatterns.some(pattern => pattern.test(cleanContent));
+      if (hasPlaceholders) return false;
+      
+      // Content quality check - must have meaningful information
+      const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      if (sentences.length < 3) return false; // Need at least 3 sentences
+      
+      // Check for actual informational content (not just generic phrases)
+      const meaningfulWords = cleanContent.split(/\s+/).filter(word => 
+        word.length > 4 && 
+        !['about', 'company', 'business', 'service', 'provide', 'offer', 'deliver', 'ensure'].includes(word)
+      );
+      
+      return meaningfulWords.length >= 15; // Require substantial meaningful content
     }) || [];
 
     console.log(`Found ${allKnowledgeEntries?.length || 0} total entries, ${knowledgeEntries.length} with actual content`);
@@ -179,8 +204,19 @@ serve(async (req) => {
 
       console.log(`Total knowledge base content: ${totalContentLength} characters across ${knowledgeEntries.length} entries`);
 
-      // Require minimum content volume for strict mode
-      const minContentRequired = 1000; // Minimum 1000 characters of actual content
+      // ENHANCED: Dynamic content requirements based on section type
+      const sectionType = sectionTitle.toLowerCase();
+      let minContentRequired = 1000; // Base requirement
+      
+      // Section-specific content requirements
+      if (sectionType.includes('team') || sectionType.includes('personnel')) {
+        minContentRequired = 1500; // Team sections need more detailed info
+      } else if (sectionType.includes('pricing') || sectionType.includes('cost')) {
+        minContentRequired = 800; // Pricing needs specific but can be concise
+      } else if (sectionType.includes('technical') || sectionType.includes('methodology')) {
+        minContentRequired = 1200; // Technical sections need detailed processes
+      }
+      
       if (totalContentLength < minContentRequired) {
         return new Response(
           JSON.stringify({
@@ -244,7 +280,7 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
     
     console.log("Generated prompt length:", prompt.length, "characters");
 
-    const model = 'claude-3-5-sonnet-20241022';
+    const model = 'claude-opus-4-1-20250805'; // Use latest, most capable model for strict adherence
     console.log("Making API call to Anthropic with model:", model);
 
     let response;
@@ -320,17 +356,32 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
     let hallucinationCheck = { isValid: true, issues: [], confidenceScore: 100 };
     
     if (strictMode) {
-      console.log("Performing ultra-strict validation for strict mode...");
+      console.log("Performing ENHANCED ultra-strict validation for strict mode...");
+      
+      // PHASE 1: Pre-validation content analysis
+      const contentAnalysis = analyzeGeneratedContent(generatedContent, sectionTitle);
+      if (!contentAnalysis.isAcceptable) {
+        return new Response(JSON.stringify({ 
+          error: 'CONTENT_ANALYSIS_FAILED',
+          details: `Generated content failed pre-validation analysis: ${contentAnalysis.issues.join(', ')}`,
+          suggestions: ['Content appears to contain generic or potentially hallucinated information']
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // PHASE 2: Knowledge base validation
       hallucinationCheck = validateGeneratedContent(generatedContent, knowledgeEntries);
       
-      console.log("Hallucination check results:", {
+      console.log("Enhanced hallucination check results:", {
         isValid: hallucinationCheck.isValid,
         confidenceScore: hallucinationCheck.confidenceScore,
         issuesCount: hallucinationCheck.issues.length
       });
       
-      // Ultra-strict mode: Reject content with any validation issues
-      if (!hallucinationCheck.isValid) {
+      // PHASE 3: Ultra-strict threshold (99% confidence required)
+      if (!hallucinationCheck.isValid || hallucinationCheck.confidenceScore < 99) {
         const errorMessage = `Generated content failed ultra-strict validation (Confidence: ${hallucinationCheck.confidenceScore}%).
         
 Issues detected:
@@ -383,5 +434,53 @@ This indicates the content contains information not supported by your knowledge 
     });
   }
 });
+
+// NEW: Pre-validation content analysis function
+function analyzeGeneratedContent(content: string, sectionTitle: string): { isAcceptable: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check for generic business language that indicates AI fallback
+  const genericPhrases = [
+    'industry-leading', 'world-class', 'cutting-edge', 'state-of-the-art',
+    'proven track record', 'extensive experience', 'comprehensive solution',
+    'innovative approach', 'best practices', 'award-winning', 'market leader',
+    'committed to excellence', 'dedicated team', 'years of experience',
+    'tailored solutions', 'client-focused', 'results-driven'
+  ];
+  
+  const genericCount = genericPhrases.filter(phrase => 
+    content.toLowerCase().includes(phrase)
+  ).length;
+  
+  if (genericCount > 2) {
+    issues.push(`Contains ${genericCount} generic business phrases indicating potential AI fallback`);
+  }
+  
+  // Check for vague quantifiers that suggest hallucination
+  const vaguePhrases = [
+    'many years', 'numerous projects', 'extensive portfolio', 'wide range',
+    'various clients', 'multiple industries', 'several awards', 'countless',
+    'substantial experience', 'significant expertise', 'comprehensive knowledge'
+  ];
+  
+  const vagueCount = vaguePhrases.filter(phrase => 
+    content.toLowerCase().includes(phrase)
+  ).length;
+  
+  if (vagueCount > 1) {
+    issues.push(`Contains ${vagueCount} vague quantifiers suggesting lack of specific knowledge`);
+  }
+  
+  // Check for specific claims without support
+  const specificClaims = content.match(/\d{4}|since \d{4}|\d+ years|\d+% |over \$[\d,]+/gi);
+  if (specificClaims && specificClaims.length > 2) {
+    issues.push('Contains multiple specific claims that may not be supported by knowledge base');
+  }
+  
+  return {
+    isAcceptable: issues.length === 0,
+    issues
+  };
+}
 
 console.log("Function setup complete, listening for requests...");

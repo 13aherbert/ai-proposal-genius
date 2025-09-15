@@ -18,7 +18,7 @@ export class CircuitBreaker {
   private readonly maxFailures: number;
   private readonly timeout: number;
   
-  constructor(maxFailures = 3, timeout = 60000) {
+  constructor(maxFailures = 5, timeout = 30000) {
     this.maxFailures = maxFailures;
     this.timeout = timeout;
   }
@@ -57,6 +57,14 @@ export class CircuitBreaker {
   
   getState() {
     return { ...this.state };
+  }
+
+  reset() {
+    this.state = {
+      failures: 0,
+      lastFailureTime: 0,
+      state: 'CLOSED'
+    };
   }
 }
 

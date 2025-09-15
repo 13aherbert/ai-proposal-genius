@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { CircuitBreaker, enhancedRetry, RateLimiter, ApiHealthMonitor } from '@/utils/api-resilience';
 import type { ProposalSection } from '@/components/project/proposal-draft/useProposalSections';
+import * as React from 'react';
 
 interface GenerationProgress {
   currentSection: string;
@@ -41,9 +42,15 @@ export function useContentGeneration() {
   });
 
   // Initialize resilience components
-  const circuitBreaker = new CircuitBreaker(3, 60000); // 3 failures, 1 min timeout
+  const circuitBreaker = new CircuitBreaker(5, 30000); // 5 failures, 30s timeout (less strict)
   const rateLimiter = new RateLimiter(8, 60000, 2000); // 8 req/min, 2s min delay
   const healthMonitor = new ApiHealthMonitor();
+
+  // Reset circuit breaker when hook initializes to clear any previous failures
+  React.useEffect(() => {
+    circuitBreaker.reset();
+    console.log('Circuit breaker reset on hook initialization');
+  }, []);
 
   const generateSectionContent = useCallback(async (
     section: ProposalSection,

@@ -2258,6 +2258,14 @@ export type Database = {
             }
         Returns: string
       }
+      log_subscription_access: {
+        Args: {
+          action_type_param: string
+          subscription_id_param: string
+          user_id_param?: string
+        }
+        Returns: undefined
+      }
       migrate_user_subscriptions_to_organizations: {
         Args: Record<PropertyKey, never>
         Returns: undefined

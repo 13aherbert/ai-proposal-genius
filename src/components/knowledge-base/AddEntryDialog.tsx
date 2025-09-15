@@ -23,6 +23,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
     setCategory,
     setContent,
     setSelectedFile,
+    setUploadMode,
     isSubmitting,
     handleSubmit,
   } = useEntryForm(() => onOpenChange(false));
@@ -89,7 +90,10 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <Button
                 type="button"
                 variant={contentMode === 'manual' ? 'default' : 'outline'}
-                onClick={() => setContentMode('manual')}
+                onClick={() => {
+                  setContentMode('manual');
+                  setUploadMode('text');
+                }}
                 className="flex-1"
               >
                 <PenLine className="h-4 w-4 mr-2" />
@@ -98,7 +102,10 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <Button
                 type="button"
                 variant={contentMode === 'upload' ? 'default' : 'outline'}
-                onClick={() => setContentMode('upload')}
+                onClick={() => {
+                  setContentMode('upload');
+                  setUploadMode('file');
+                }}
                 className="flex-1"
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -107,7 +114,10 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
               <Button
                 type="button"
                 variant={contentMode === 'ai' ? 'default' : 'outline'}
-                onClick={() => setContentMode('ai')}
+                onClick={() => {
+                  setContentMode('ai');
+                  setUploadMode('text');
+                }}
                 className="flex-1"
               >
                 <Sparkles className="h-4 w-4 mr-2" />

@@ -8,6 +8,7 @@ import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
 import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigger";
 import { TriggerBatchParsing } from "@/components/knowledge-base/TriggerBatchParsing";
+import { OrphanedFileRecovery } from "@/components/knowledge-base/OrphanedFileRecovery";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 import '@/utils/manualBatchParse'; // Auto-trigger batch parsing
@@ -73,8 +74,9 @@ const KnowledgeBase = () => {
                     categories={categories}
                   />
                 </div>
-                <div className="xl:col-span-1">
+                <div className="xl:col-span-1 space-y-4">
                   <BulkParsingTrigger />
+                  <OrphanedFileRecovery />
                 </div>
               </div>
             </div>

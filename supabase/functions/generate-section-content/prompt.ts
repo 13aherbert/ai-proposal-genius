@@ -141,7 +141,7 @@ RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
 
   if (strictMode) {
     prompt += `
-🚫 ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED 🚫
+*** ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED ***
 
 MANDATORY REQUIREMENTS (VIOLATION = IMMEDIATE REFUSAL):
 1. ZERO TOLERANCE POLICY: Use ONLY information explicitly stated in the knowledge base above
@@ -161,11 +161,11 @@ RESPONSE PROTOCOL:
 - IF ADEQUATE DATA: Create section using ONLY verified knowledge base information with explicit citations
 
 ULTRA-STRICT VERIFICATION CHECKLIST:
-✓ Every sentence maps to specific knowledge base content?
-✓ All numbers/percentages/dates are from knowledge base verbatim?
-✓ Zero general industry knowledge or assumptions used?
-✓ No "reasonable" inferences or logical deductions made?  
-✓ Section is complete without any creative gap-filling?
+* Every sentence maps to specific knowledge base content?
+* All numbers/percentages/dates are from knowledge base verbatim?
+* Zero general industry knowledge or assumptions used?
+* No "reasonable" inferences or logical deductions made?  
+* Section is complete without any creative gap-filling?
 
 REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.`;
   }

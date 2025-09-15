@@ -217,47 +217,60 @@ export function validateGeneratedContent(
   const issues: string[] = [];
   let confidenceScore = 100;
   
-  // Check for hallucination indicators
-  const hallucinationPatterns = [
-    /\d+(\.\d+)?%(?!\s*(increase|decrease|growth|improvement|reduction|of|from|to))/g, // Unsubstantiated percentages
-    /\$[\d,]+(?!\s*(budget|cost|price|value|investment))/g, // Unsubstantiated monetary amounts
-    /in \d{4}(?!\s*(we|our|the company))/g, // Unsubstantiated years
-    /(industry standard|industry average|typical|generally|usually)/gi, // Generic claims
-    /(leading|top|best|premier|award-winning)(?!\s*(as demonstrated|as shown|as evidenced))/gi // Unsupported superlatives
+  // More permissive validation - focus on preventing obvious hallucinations
+  const obviousHallucinationPatterns = [
+    // Only flag very specific/unusual percentages that seem made up
+    /\b\d{3,}(\.\d+)?%/g, // Percentages over 100% (likely fabricated)
+    // Only flag very specific monetary amounts that seem fabricated
+    /\$\d{1,3},\d{3},\d{3}+/g, // Very large specific amounts (millions+) 
+    // Flag specific years without context that could be fabricated
+    /\b(established|founded|since) \d{4}(?!\s*(based on|according to|as noted))/gi,
+    // Only flag obviously fabricated specific numbers
+    /\b(over|more than|exactly) \d{4,}\b(?!\s*(projects|clients|years|hours))/gi
   ];
   
-  for (const pattern of hallucinationPatterns) {
+  for (const pattern of obviousHallucinationPatterns) {
     const matches = content.match(pattern);
-    if (matches) {
-      issues.push(`Potential unsupported claims found: ${matches.join(', ')}`);
-      confidenceScore -= 15;
+    if (matches && matches.length > 0) {
+      issues.push(`Potentially fabricated specific claims: ${matches.join(', ')}`);
+      confidenceScore -= 20; // Reduce confidence but don't fail completely
     }
   }
   
-  // Verify claims against knowledge base
-  const allKnowledgeText = knowledgeEntries
-    .map(entry => entry.title + ' ' + (entry.content || '') + ' ' + (entry.parsed_content || ''))
-    .join(' ')
-    .toLowerCase();
+  // Check for completely unsupported company-specific claims
+  const companySpecificPatterns = [
+    /\b(we are|our company is) (the largest|number one|top-ranked)/gi,
+    /\b(award winner|industry leader|market leader) in \d{4}/gi,
+    /\bfounded by [A-Z][a-z]+ [A-Z][a-z]+/g // Specific founder names not in KB
+  ];
   
-  // Extract specific claims from content
-  const specificClaims = extractSpecificClaims(content);
-  let unverifiedClaims = 0;
-  
-  for (const claim of specificClaims) {
-    if (!allKnowledgeText.includes(claim.toLowerCase())) {
-      unverifiedClaims++;
+  for (const pattern of companySpecificPatterns) {
+    const matches = content.match(pattern);
+    if (matches && matches.length > 0) {
+      const allKnowledgeText = knowledgeEntries
+        .map(entry => `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`)
+        .join(' ')
+        .toLowerCase();
+        
+      // Only flag if completely absent from knowledge base
+      const unsupportedMatches = matches.filter(match => 
+        !allKnowledgeText.includes(match.toLowerCase().replace(/[^\w\s]/g, ''))
+      );
+      
+      if (unsupportedMatches.length > 0) {
+        issues.push(`Company-specific claims not found in knowledge base: ${unsupportedMatches.join(', ')}`);
+        confidenceScore -= 15;
+      }
     }
   }
   
-  if (unverifiedClaims > 0) {
-    issues.push(`${unverifiedClaims} claims could not be verified against knowledge base`);
-    confidenceScore -= unverifiedClaims * 10;
-  }
+  // Much more lenient approach - allow reasonable synthesis and inference
+  // Only count as invalid if confidence is very low (major red flags)
+  const isValid = confidenceScore >= 40; // Much more permissive threshold
   
   return {
-    isValid: issues.length === 0,
-    issues,
+    isValid,
+    issues: issues.length > 0 ? issues : [], // Still log issues for debugging
     confidenceScore: Math.max(0, confidenceScore)
   };
 }

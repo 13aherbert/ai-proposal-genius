@@ -67,11 +67,36 @@ serve(async (req) => {
     
     console.log(`Verifying invitation code: ${code}`);
     
-    // Verify the invitation code using the SQL function
-    const { data: invitations, error: invitationError } = await supabase.rpc(
-      'verify_invitation_code',
+    // SECURITY: Use the secure verification function that only returns true/false
+    // This prevents any data exposure at the database level
+    
+    // First check if the invitation code is valid using the secure function
+    const { data: isValid, error: validationError } = await supabase.rpc(
+      'verify_invitation_code_secure',
       { code_param: code }
     );
+    
+    if (validationError) {
+      console.error("Error validating invitation:", validationError);
+      return new Response(
+        JSON.stringify({ error: "Failed to validate invitation", details: validationError }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired invitation code" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // If valid, get the full invitation details using service role (this is secure since it's server-side)
+    const { data: invitations, error: invitationError } = await supabase
+      .from('beta_invitations')
+      .select('*')
+      .eq('invite_code', code)
+      .eq('status', 'pending');
     
     console.log("Verification result:", invitations, "Error:", invitationError);
     

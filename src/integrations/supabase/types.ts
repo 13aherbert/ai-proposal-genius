@@ -2089,6 +2089,15 @@ export type Database = {
           status: string
         }[]
       }
+      get_invitation_for_email: {
+        Args: { code_param: string; email_param: string }
+        Returns: {
+          expires_at: string
+          id: string
+          invite_code: string
+          status: string
+        }[]
+      }
       get_organization_by_domain: {
         Args: { domain_param: string }
         Returns: {
@@ -2215,6 +2224,10 @@ export type Database = {
         }
         Returns: string
       }
+      log_invitation_verification: {
+        Args: { code_param: string; success: boolean }
+        Returns: undefined
+      }
       log_organization_activity: {
         Args: {
           activity_type_param: string
@@ -2317,6 +2330,10 @@ export type Database = {
           invited_by: string
           status: string
         }[]
+      }
+      verify_invitation_code_secure: {
+        Args: { code_param: string }
+        Returns: boolean
       }
     }
     Enums: {

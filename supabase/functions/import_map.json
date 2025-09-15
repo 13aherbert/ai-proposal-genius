@@ -1,4 +1,3 @@
-
 {
   "imports": {
     "pdf-parse": "npm:pdf-parse@1.1.1",
@@ -9,6 +8,8 @@
     "react": "npm:react@18.2.0",
     "@react-email/components": "npm:@react-email/components@0.0.12",
     "@react-email/render": "npm:@react-email/render@0.0.10",
-    "stripe": "npm:stripe@12.5.0"
+    "stripe": "npm:stripe@12.5.0",
+    "jszip": "https://esm.sh/jszip@3.10.1",
+    "mammoth": "https://esm.sh/mammoth@1.6.0"
   }
 }

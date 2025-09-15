@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import pdfParse from "pdf-parse";
+import JSZip from "jszip";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +23,7 @@ interface ParsedContent {
 // Enhanced document parsing with real content extraction
 async function parseDocument(fileData: Blob, fileName: string): Promise<ParsedContent> {
   const startTime = Date.now();
-  const fileType = fileData.type || 'unknown';
+  const fileType = fileData.type || getFileTypeFromName(fileName);
   const fileSize = fileData.size;
   
   console.log(`Starting parsing for ${fileName} (${fileType}, ${fileSize} bytes)`);
@@ -34,29 +36,32 @@ async function parseDocument(fileData: Blob, fileName: string): Promise<ParsedCo
   };
 
   try {
-    if (fileType.includes('text/')) {
+    if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.md')) {
       // Text files - direct reading
       content = await fileData.text();
       console.log('Successfully parsed text file');
-    } else if (fileType === 'application/pdf') {
-      // PDF parsing - use a real PDF parser
+    } else if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+      // PDF parsing using pdf-parse library
       content = await parsePDF(fileData);
       console.log('Successfully parsed PDF file');
-    } else if (fileType.includes('application/vnd.openxmlformats-officedocument')) {
+    } else if (fileType.includes('application/vnd.openxmlformats-officedocument') || 
+               fileName.endsWith('.docx') || fileName.endsWith('.xlsx') || fileName.endsWith('.pptx')) {
       // Modern Office documents (DOCX, XLSX, PPTX)
-      content = await parseModernOffice(fileData, fileType);
+      content = await parseModernOffice(fileData, fileType, fileName);
       console.log('Successfully parsed modern Office document');
     } else if (fileType.includes('application/msword') || 
-               fileType.includes('application/vnd.ms-')) {
+               fileType.includes('application/vnd.ms-') ||
+               fileName.endsWith('.doc') || fileName.endsWith('.xls') || fileName.endsWith('.ppt')) {
       // Legacy Office documents
       content = await parseLegacyOffice(fileData, fileType);
       console.log('Successfully parsed legacy Office document');
-    } else if (fileType.startsWith('image/')) {
+    } else if (fileType.startsWith('image/') || 
+               fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) {
       // Image files with OCR
       content = await parseImageWithOCR(fileData);
       console.log('Successfully parsed image with OCR');
     } else {
-      throw new Error(`Unsupported file type: ${fileType}`);
+      throw new Error(`Unsupported file type: ${fileType} for file: ${fileName}`);
     }
 
     // Validate and clean content
@@ -77,106 +82,209 @@ async function parseDocument(fileData: Blob, fileName: string): Promise<ParsedCo
   return { content, metadata };
 }
 
-// PDF parsing using a simulated parser (in real implementation, use PDF-lib or similar)
+// Get file type from filename extension
+function getFileTypeFromName(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  const typeMap: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'doc': 'application/msword',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xls': 'application/vnd.ms-excel',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'ppt': 'application/vnd.ms-powerpoint',
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+  };
+  return typeMap[ext || ''] || 'application/octet-stream';
+}
+
+// PDF parsing using pdf-parse library
 async function parsePDF(fileData: Blob): Promise<string> {
-  // For now, we'll simulate PDF parsing
-  // In a real implementation, you would use a library like PDF-lib
-  const arrayBuffer = await fileData.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  
-  // Look for text patterns in PDF binary
-  const text = new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
-  
-  // Extract readable text from PDF structure
-  const textMatches = text.match(/\((.*?)\)/g) || [];
-  const extractedText = textMatches
-    .map(match => match.slice(1, -1))
-    .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
-    .join(' ');
+  try {
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
     
-  if (extractedText.length < 20) {
-    throw new Error('Could not extract sufficient text from PDF');
-  }
-  
-  return extractedText;
-}
-
-// Modern Office document parsing
-async function parseModernOffice(fileData: Blob, fileType: string): Promise<string> {
-  // Modern Office documents are ZIP files containing XML
-  // This is a simplified approach - in production use a proper library
-  const arrayBuffer = await fileData.arrayBuffer();
-  
-  if (fileType.includes('wordprocessingml')) {
-    // DOCX parsing
-    return await parseDocxContent(arrayBuffer);
-  } else if (fileType.includes('spreadsheetml')) {
-    // XLSX parsing
-    return await parseXlsxContent(arrayBuffer);
-  } else if (fileType.includes('presentationml')) {
-    // PPTX parsing
-    return await parsePptxContent(arrayBuffer);
-  }
-  
-  throw new Error('Unsupported modern Office format');
-}
-
-async function parseDocxContent(arrayBuffer: ArrayBuffer): Promise<string> {
-  // Simulate DOCX parsing
-  const text = new TextDecoder().decode(arrayBuffer);
-  const xmlMatches = text.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-  const extractedText = xmlMatches
-    .map(match => match.replace(/<[^>]+>/g, ''))
-    .join(' ')
-    .trim();
+    // Use pdf-parse to extract text
+    const pdfData = await pdfParse(buffer);
     
-  if (extractedText.length < 10) {
-    // Fallback: extract any readable text
-    const readableText = text.match(/[A-Za-z][A-Za-z0-9\s.,!?;:'-]{10,}/g)?.join(' ') || '';
-    if (readableText.length < 10) {
-      throw new Error('Could not extract text from DOCX');
+    if (!pdfData.text || pdfData.text.trim().length < 10) {
+      throw new Error('Could not extract sufficient text from PDF');
     }
-    return readableText;
+    
+    console.log(`Extracted ${pdfData.text.length} characters from PDF with ${pdfData.numpages} pages`);
+    return pdfData.text;
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    throw new Error(`PDF parsing failed: ${error.message}`);
   }
-  
-  return extractedText;
 }
 
-async function parseXlsxContent(arrayBuffer: ArrayBuffer): Promise<string> {
-  // Simulate XLSX parsing - extract cell values
-  const text = new TextDecoder().decode(arrayBuffer);
-  const cellMatches = text.match(/<v>([^<]+)<\/v>/g) || [];
-  const cellValues = cellMatches
-    .map(match => match.replace(/<[^>]+>/g, ''))
-    .filter(value => value.trim().length > 0)
-    .join(', ');
+// Modern Office document parsing using JSZip
+async function parseModernOffice(fileData: Blob, fileType: string, fileName: string): Promise<string> {
+  try {
+    const arrayBuffer = await fileData.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
     
-  if (cellValues.length < 10) {
-    throw new Error('Could not extract sufficient data from XLSX');
+    if (fileType.includes('wordprocessingml') || fileName.endsWith('.docx')) {
+      return await parseDocxContent(zip);
+    } else if (fileType.includes('spreadsheetml') || fileName.endsWith('.xlsx')) {
+      return await parseXlsxContent(zip);
+    } else if (fileType.includes('presentationml') || fileName.endsWith('.pptx')) {
+      return await parsePptxContent(zip);
+    }
+    
+    throw new Error('Unsupported modern Office format');
+  } catch (error) {
+    console.error('Modern Office parsing error:', error);
+    throw new Error(`Modern Office parsing failed: ${error.message}`);
   }
-  
-  return `Spreadsheet data: ${cellValues}`;
 }
 
-async function parsePptxContent(arrayBuffer: ArrayBuffer): Promise<string> {
-  // Simulate PPTX parsing - extract slide text
-  const text = new TextDecoder().decode(arrayBuffer);
-  const textMatches = text.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
-  const slideText = textMatches
-    .map(match => match.replace(/<[^>]+>/g, ''))
-    .join(' ')
-    .trim();
+async function parseDocxContent(zip: JSZip): Promise<string> {
+  try {
+    // Extract the main document content from word/document.xml
+    const documentFile = zip.file('word/document.xml');
+    if (!documentFile) {
+      throw new Error('Could not find document.xml in DOCX file');
+    }
     
-  if (slideText.length < 10) {
-    throw new Error('Could not extract text from PPTX');
+    const documentXml = await documentFile.async('text');
+    
+    // Extract text from <w:t> elements
+    const textElements = documentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    const extractedText = textElements
+      .map(element => {
+        const match = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+        return match ? match[1] : '';
+      })
+      .join(' ')
+      .trim();
+    
+    if (extractedText.length < 10) {
+      // Fallback: try to extract any text content
+      const allTextMatches = documentXml.match(/>([^<]+)</g) || [];
+      const fallbackText = allTextMatches
+        .map(match => match.slice(1, -1))
+        .filter(text => text.trim().length > 0 && /[a-zA-Z]/.test(text))
+        .join(' ')
+        .trim();
+      
+      if (fallbackText.length < 10) {
+        throw new Error('Could not extract sufficient text from DOCX');
+      }
+      return fallbackText;
+    }
+    
+    return extractedText;
+  } catch (error) {
+    console.error('DOCX parsing error:', error);
+    throw new Error(`DOCX parsing failed: ${error.message}`);
   }
-  
-  return slideText;
+}
+
+async function parseXlsxContent(zip: JSZip): Promise<string> {
+  try {
+    // Extract shared strings for text values
+    const sharedStringsFile = zip.file('xl/sharedStrings.xml');
+    let sharedStrings: string[] = [];
+    
+    if (sharedStringsFile) {
+      const sharedStringsXml = await sharedStringsFile.async('text');
+      const stringMatches = sharedStringsXml.match(/<t[^>]*>([^<]*)<\/t>/g) || [];
+      sharedStrings = stringMatches.map(match => {
+        const textMatch = match.match(/<t[^>]*>([^<]*)<\/t>/);
+        return textMatch ? textMatch[1] : '';
+      });
+    }
+    
+    // Extract worksheet data
+    const worksheetFile = zip.file('xl/worksheets/sheet1.xml');
+    if (!worksheetFile) {
+      throw new Error('Could not find worksheet in XLSX file');
+    }
+    
+    const worksheetXml = await worksheetFile.async('text');
+    const cellMatches = worksheetXml.match(/<c[^>]*>.*?<\/c>/g) || [];
+    
+    const cellValues: string[] = [];
+    cellMatches.forEach(cell => {
+      // Check if cell contains shared string reference
+      if (cell.includes('t="s"')) {
+        const valueMatch = cell.match(/<v>(\d+)<\/v>/);
+        if (valueMatch) {
+          const stringIndex = parseInt(valueMatch[1]);
+          if (sharedStrings[stringIndex]) {
+            cellValues.push(sharedStrings[stringIndex]);
+          }
+        }
+      } else {
+        // Direct value
+        const valueMatch = cell.match(/<v>([^<]+)<\/v>/);
+        if (valueMatch) {
+          cellValues.push(valueMatch[1]);
+        }
+      }
+    });
+    
+    const extractedText = cellValues.filter(value => value.trim().length > 0).join(', ');
+    
+    if (extractedText.length < 10) {
+      throw new Error('Could not extract sufficient data from XLSX');
+    }
+    
+    return `Spreadsheet data: ${extractedText}`;
+  } catch (error) {
+    console.error('XLSX parsing error:', error);
+    throw new Error(`XLSX parsing failed: ${error.message}`);
+  }
+}
+
+async function parsePptxContent(zip: JSZip): Promise<string> {
+  try {
+    const slideTexts: string[] = [];
+    
+    // Find all slide files
+    const slideFiles = Object.keys(zip.files).filter(fileName => 
+      fileName.startsWith('ppt/slides/slide') && fileName.endsWith('.xml')
+    );
+    
+    for (const slideFileName of slideFiles) {
+      const slideFile = zip.file(slideFileName);
+      if (slideFile) {
+        const slideXml = await slideFile.async('text');
+        
+        // Extract text from <a:t> elements
+        const textElements = slideXml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || [];
+        const slideText = textElements
+          .map(element => {
+            const match = element.match(/<a:t[^>]*>([^<]*)<\/a:t>/);
+            return match ? match[1] : '';
+          })
+          .join(' ');
+        
+        if (slideText.trim()) {
+          slideTexts.push(slideText);
+        }
+      }
+    }
+    
+    const extractedText = slideTexts.join('\n\n').trim();
+    
+    if (extractedText.length < 10) {
+      throw new Error('Could not extract sufficient text from PPTX');
+    }
+    
+    return extractedText;
+  } catch (error) {
+    console.error('PPTX parsing error:', error);
+    throw new Error(`PPTX parsing failed: ${error.message}`);
+  }
 }
 
 // Legacy Office document parsing
 async function parseLegacyOffice(fileData: Blob, fileType: string): Promise<string> {
-  // Legacy formats are more complex - this is a basic approach
+  // Legacy formats are complex binary formats - this is a basic approach
   const arrayBuffer = await fileData.arrayBuffer();
   const text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
   
@@ -184,23 +292,16 @@ async function parseLegacyOffice(fileData: Blob, fileType: string): Promise<stri
   const readableText = text.match(/[A-Za-z][A-Za-z0-9\s.,!?;:'-]{10,}/g)?.join(' ') || '';
   
   if (readableText.length < 20) {
-    throw new Error('Could not extract sufficient text from legacy Office document');
+    throw new Error('Could not extract sufficient text from legacy Office document. Please convert to modern format (DOCX, XLSX, PPTX) for better parsing.');
   }
   
   return readableText;
 }
 
-// Image OCR parsing (simulated)
+// Image OCR parsing (placeholder)
 async function parseImageWithOCR(fileData: Blob): Promise<string> {
-  // In a real implementation, you'd use an OCR service like Tesseract.js
-  // For now, we'll return a placeholder indicating OCR capability
-  const arrayBuffer = await fileData.arrayBuffer();
-  
-  // Simulate OCR processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // This would be replaced with actual OCR results
-  throw new Error('OCR processing not yet implemented - please convert image to text manually');
+  // In a real implementation, you'd use an OCR service like Tesseract.js or cloud OCR
+  throw new Error('OCR processing not yet implemented. Please convert image content to text manually or use a document format.');
 }
 
 // Content cleaning and validation
@@ -216,7 +317,7 @@ function cleanAndValidateContent(content: string): string {
   
   // Ensure minimum quality
   const wordCount = content.split(/\s+/).length;
-  if (wordCount < 5) {
+  if (wordCount < 3) {
     throw new Error('Extracted content has too few words to be meaningful');
   }
   
@@ -263,8 +364,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestData: any = null;
+  
   try {
-    const { entryId, filePath } = await req.json();
+    requestData = await req.json();
+    const { entryId, filePath } = requestData;
     console.log(`Enhanced document parsing request for entry: ${entryId}, file: ${filePath}`);
 
     const supabase = createClient(
@@ -331,17 +435,16 @@ serve(async (req) => {
     console.error('Error in enhanced-document-parser function:', error);
     
     // Try to update status to failed if we have the entryId
-    try {
-      const { entryId } = await req.json();
-      if (entryId) {
+    if (requestData?.entryId) {
+      try {
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
-        await updateParsingStatus(supabase, entryId, 'failed', 0, error.message);
+        await updateParsingStatus(supabase, requestData.entryId, 'failed', 0, error.message);
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
     }
     
     return new Response(

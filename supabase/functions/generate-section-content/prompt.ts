@@ -79,7 +79,8 @@ export function generatePrompt(
   sectionTitle: string,
   project: Project,
   knowledgeBaseContext: string,
-  existingSections?: Array<{section_title: string, content: string}>
+  existingSections?: Array<{section_title: string, content: string}>,
+  strictMode = false
 ): string {
   const sectionType = getSectionType(sectionTitle);
   const sectionGuidelines = getSectionGuidelines(sectionType);
@@ -138,12 +139,19 @@ RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
 7. ACTIVE VOICE: Write with confidence and authority - avoid passive constructions
 8. CLIENT-FOCUSED: Every paragraph must answer "What's in it for them?"
 
-CONTENT SOURCING RULES:
+CONTENT SOURCING RULES - ${strictMode ? 'STRICT MODE ENABLED' : 'STANDARD MODE'}:
+${strictMode ? `
+- STRICT MODE: You MUST ONLY use information found in the knowledge base
+- If ANY required information is missing from knowledge base, respond EXACTLY: "INSUFFICIENT_KNOWLEDGE_BASE: This section requires specific [missing topic] information in the Knowledge Base. Please add relevant content to the Knowledge Base before generating this section."
+- Do NOT attempt to generate content with incomplete knowledge base information
+- Do NOT use general industry knowledge or assumptions
+- EVERY claim must have a direct source in the knowledge base entries provided
+- If knowledge base is empty or insufficient, REFUSE to generate content` : `
 - Mine ALL knowledge base entries for relevant information regardless of titles
 - Use exact text, numbers, and examples from knowledge base verbatim
 - For non-pricing sections: ONLY use information found in knowledge base
 - If critical information is missing from knowledge base, state: "This section requires specific [topic] information in the Knowledge Base for accurate content generation"
-- NEVER invent examples, statistics, or capabilities not documented in knowledge base
+- NEVER invent examples, statistics, or capabilities not documented in knowledge base`}
 
 ABSOLUTE CONSISTENCY:
 - Use identical pricing, timelines, and details from existing sections

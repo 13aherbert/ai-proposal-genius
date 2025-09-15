@@ -12,6 +12,11 @@ interface GenerationProgress {
   isGenerating: boolean;
   errors: string[];
   successes: string[];
+  knowledgeBaseWarnings: Array<{
+    sectionTitle: string;
+    coverageScore: number;
+    missingTopics: string[];
+  }>;
 }
 
 interface ContentGenerationOptions {
@@ -20,6 +25,7 @@ interface ContentGenerationOptions {
   maxDelay?: number;
   enableCircuitBreaker?: boolean;
   enableRateLimiting?: boolean;
+  strictMode?: boolean;
 }
 
 export function useContentGeneration() {
@@ -30,7 +36,8 @@ export function useContentGeneration() {
     total: 0,
     isGenerating: false,
     errors: [],
-    successes: []
+    successes: [],
+    knowledgeBaseWarnings: []
   });
 
   // Initialize resilience components
@@ -48,29 +55,31 @@ export function useContentGeneration() {
       baseDelay = 2000,
       maxDelay = 30000,
       enableCircuitBreaker = true,
-      enableRateLimiting = true
+      enableRateLimiting = true,
+      strictMode = false
     } = options;
 
     if (!session?.user?.id) {
-      return { success: false, error: 'Authentication required' };
+      return { success: false, error: 'User not authenticated' };
     }
 
     try {
-      // Rate limiting
-      if (enableRateLimiting) {
-        await rateLimiter.waitForSlot();
-      }
+      // Rate limiting (commented out - using circuit breaker and retry logic instead)
+      // if (enableRateLimiting) {
+      //   await rateLimiter.acquire();
+      // }
 
       const operation = async () => {
         const startTime = Date.now();
         
         try {
           const { data, error } = await supabase.functions.invoke('generate-section-content', {
-            body: {
-              sectionTitle: section.section_title,
-              projectId: projectId,
-              userId: session.user.id
-            },
+            body: { 
+              projectId, 
+              sectionTitle: section.section_title, 
+              userId: session.user.id,
+              strictMode: strictMode
+            }
           });
 
           if (error) {
@@ -78,6 +87,12 @@ export function useContentGeneration() {
             
             // Check for specific error types
             const errorMessage = error.message?.toLowerCase() || '';
+            if (errorMessage.includes('insufficient_knowledge_base')) {
+              throw new Error('INSUFFICIENT_KNOWLEDGE_BASE');
+            }
+            if (errorMessage.includes('content_validation_failed')) {
+              throw new Error('CONTENT_VALIDATION_FAILED');
+            }
             if (errorMessage.includes('overloaded') || errorMessage.includes('rate limit') || errorMessage.includes('429')) {
               throw new Error('RATE_LIMITED');
             }
@@ -153,14 +168,12 @@ export function useContentGeneration() {
       total: sections.length,
       isGenerating: true,
       errors: [],
-      successes: []
+      successes: [],
+      knowledgeBaseWarnings: []
     });
 
-    // Reset health monitor
-    healthMonitor.reset();
-
-    const toastId = toast.loading('Generating content for all sections...', {
-      description: 'This may take a few minutes. Please don\'t close the page.'
+    const toastId = toast.loading('Starting content generation...', {
+      description: `Generating content for ${sections.length} sections`
     });
 
     const results = {
@@ -170,6 +183,7 @@ export function useContentGeneration() {
     };
 
     try {
+      // Generate content for each section
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
         
@@ -181,44 +195,71 @@ export function useContentGeneration() {
 
         console.log(`Generating content for section: ${section.section_title}`);
 
-        const result = await generateSectionContent(section, projectId, options);
+        try {
+          const result = await generateSectionContent(section, projectId, options);
 
-        if (result.success && result.content) {
-          try {
-            await onUpdateSection(section.section_id, result.content, section.section_title);
-            
-            // Verify content was actually saved
+          if (result.success && result.content) {
+            try {
+              await onUpdateSection(section.section_id, result.content, section.section_title);
+              
+              // Verify content was actually saved
+              const contentSaved = await verifyContentSaved(section.section_id);
+              if (contentSaved) {
+                results.successes.push(section.section_title);
+              } else {
+                results.partialFailures.push(section.section_title);
+              }
+            } catch (updateError) {
+              console.error(`Failed to update section ${section.section_title}:`, updateError);
+              results.errors.push(section.section_title);
+            }
+          } else {
+            // Check if content was somehow generated despite the error
             const contentSaved = await verifyContentSaved(section.section_id);
             if (contentSaved) {
               results.successes.push(section.section_title);
             } else {
-              results.partialFailures.push(section.section_title);
+              results.errors.push(section.section_title);
             }
-          } catch (updateError) {
-            console.error(`Failed to update section ${section.section_title}:`, updateError);
-            results.errors.push(section.section_title);
           }
-        } else {
-          // Check if content was somehow generated despite the error
-          const contentSaved = await verifyContentSaved(section.section_id);
-          if (contentSaved) {
-            results.successes.push(section.section_title);
+
+          setProgress(prev => ({
+            ...prev,
+            completed: i + 1,
+            successes: results.successes,
+            errors: results.errors
+          }));
+
+          // Progressive delay - shorter delays for successful requests
+          if (i < sections.length - 1) {
+            const delayTime = result.success ? 1500 : 3000;
+            await new Promise(resolve => setTimeout(resolve, delayTime));
+          }
+        } catch (batchError) {
+          const errorMessage = batchError instanceof Error ? batchError.message : String(batchError);
+          
+          if (errorMessage.includes('INSUFFICIENT_KNOWLEDGE_BASE')) {
+            toast.error(`Knowledge Base Insufficient: ${section.section_title}`, {
+              description: 'Please add more relevant information to your knowledge base for this section.'
+            });
+          } else if (errorMessage.includes('CONTENT_VALIDATION_FAILED')) {
+            toast.error(`Content Validation Failed: ${section.section_title}`, {
+              description: 'Generated content contains unverified claims. Please enhance your knowledge base.'
+            });
           } else {
-            results.errors.push(section.section_title);
+            toast.error(`Failed to generate: ${section.section_title}`, {
+              description: errorMessage
+            });
           }
-        }
-
-        setProgress(prev => ({
-          ...prev,
-          completed: i + 1,
-          successes: results.successes,
-          errors: results.errors
-        }));
-
-        // Progressive delay - shorter delays for successful requests
-        if (i < sections.length - 1) {
-          const delayTime = result.success ? 1500 : 3000;
-          await new Promise(resolve => setTimeout(resolve, delayTime));
+          
+          results.errors.push(section.section_title);
+          
+          setProgress(prev => ({
+            ...prev,
+            completed: i + 1,
+            successes: results.successes,
+            errors: results.errors
+          }));
         }
       }
 
@@ -277,17 +318,16 @@ export function useContentGeneration() {
     }
 
     await generateAllContent(failedSections, projectId, onUpdateSection, {
-      maxRetries: 5, // More retries for manual retry
-      baseDelay: 3000, // Longer initial delay
-      enableCircuitBreaker: false // Disable circuit breaker for manual retries
+      maxRetries: 3,
+      baseDelay: 3000,
+      strictMode: false // Retry with less strict mode
     });
   }, [generateAllContent]);
 
   return {
     progress,
-    generateAllContent,
     generateSectionContent,
-    retryFailedSections,
-    healthMetrics: healthMonitor.getHealthMetrics()
+    generateAllContent,
+    retryFailedSections
   };
 }

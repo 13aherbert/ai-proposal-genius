@@ -5,6 +5,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { GenerateContentRequest, Project, KnowledgeEntry } from "./types.ts";
 import { generatePrompt } from "./prompt.ts";
 import { formatKnowledgeBaseContext } from "./knowledge-base.ts";
+import { assessKnowledgeBaseCoverage, validateGeneratedContent } from "./knowledge-validation.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -167,7 +168,7 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { projectId, sectionTitle, userId } = await req.json() as GenerateContentRequest;
+    const { projectId, sectionTitle, userId, strictMode = false } = await req.json() as GenerateContentRequest;
 
     console.log('Fetching project details for:', projectId);
     const { data: project, error: projectError } = await supabase
@@ -201,6 +202,32 @@ serve(async (req) => {
     
     console.log(`Found ${knowledgeEntries?.length || 0} knowledge base entries`);
     
+    // Assess knowledge base coverage for strict mode
+    if (strictMode) {
+      const coverage = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries as KnowledgeEntry[]);
+      
+      if (!coverage.isAdequate) {
+        console.log(`Insufficient knowledge base coverage: ${coverage.coverageScore}%`);
+        return new Response(
+          JSON.stringify({
+            error: 'INSUFFICIENT_KNOWLEDGE_BASE',
+            message: `Knowledge base coverage insufficient (${coverage.coverageScore}%). Missing: ${coverage.missingTopics.join(', ')}`,
+            missingTopics: coverage.missingTopics,
+            recommendations: coverage.recommendations,
+            coverageScore: coverage.coverageScore
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      console.log(`Knowledge base coverage adequate: ${coverage.coverageScore}%`);
+    }
+    
     // Format knowledge base context
     const knowledgeBaseContext = formatKnowledgeBaseContext(knowledgeEntries as KnowledgeEntry[]);
     console.log('Knowledge base context formatted');
@@ -210,7 +237,8 @@ serve(async (req) => {
       sectionTitle, 
       project as Project, 
       knowledgeBaseContext,
-      existingSections?.filter(section => section.content && section.content.trim().length > 0) || []
+      existingSections?.filter(section => section.content && section.content.trim().length > 0) || [],
+      strictMode
     );
     console.log('Prompt generated with consistency context, calling Claude API');
 
@@ -293,9 +321,55 @@ serve(async (req) => {
 
     // Get the generated content and clean it thoroughly
     let generatedContent = result.content[0].text;
+    
+    // Check for strict mode refusal
+    if (strictMode && generatedContent.includes('INSUFFICIENT_KNOWLEDGE_BASE')) {
+      return new Response(
+        JSON.stringify({
+          error: 'INSUFFICIENT_KNOWLEDGE_BASE',
+          message: generatedContent,
+          suggestions: ['Add more detailed information to your knowledge base', 'Include specific examples and data', 'Upload relevant documents with detailed content']
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+    
     const cleanedContent = cleanGeneratedContent(generatedContent, sectionTitle);
     
-    // Validate the cleaned content
+    // Enhanced validation for strict mode
+    if (strictMode) {
+      const knowledgeValidation = validateGeneratedContent(cleanedContent, knowledgeEntries as KnowledgeEntry[]);
+      
+      if (!knowledgeValidation.isValid) {
+        console.warn('Strict mode validation failed:', knowledgeValidation.issues);
+        return new Response(
+          JSON.stringify({
+            error: 'CONTENT_VALIDATION_FAILED',
+            message: 'Generated content contains unverified claims',
+            issues: knowledgeValidation.issues,
+            confidenceScore: knowledgeValidation.confidenceScore,
+            suggestions: ['Review and enhance your knowledge base with more specific information', 'Add supporting documentation with concrete data']
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      
+      console.log(`Strict mode validation passed with confidence score: ${knowledgeValidation.confidenceScore}%`);
+    }
+    
+    // Standard validation
     const validation = validateContent(cleanedContent);
     
     if (!validation.isValid) {

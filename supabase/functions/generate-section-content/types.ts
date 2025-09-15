@@ -18,6 +18,7 @@ export interface GenerateContentRequest {
   projectId: string;
   sectionTitle: string;
   userId: string;
+  strictMode?: boolean;
 }
 
 export interface ClaudeResponse {

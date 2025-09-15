@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1929,15 +1929,15 @@ export type Database = {
         Returns: undefined
       }
       assign_user_role: {
-        Args: { _user_id: string; _role: string; _created_by: string }
+        Args: { _created_by: string; _role: string; _user_id: string }
         Returns: string
       }
       calculate_user_engagement_score: {
-        Args: { org_id: string; user_id_param: string; date_param: string }
+        Args: { date_param: string; org_id: string; user_id_param: string }
         Returns: number
       }
       can_manage_organization: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       cascade_delete_user_data: {
@@ -1946,8 +1946,8 @@ export type Database = {
       }
       check_admin_rate_limit: {
         Args: {
-          admin_id: string
           action_type: string
+          admin_id: string
           max_actions?: number
           window_minutes?: number
         }
@@ -1958,19 +1958,19 @@ export type Database = {
         Returns: boolean
       }
       check_existing_role: {
-        Args: { _user_id: string; _role: string }
+        Args: { _role: string; _user_id: string }
         Returns: boolean
       }
       check_organization_admin: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       check_organization_limits: {
-        Args: { org_id_param: string; limit_type: string }
+        Args: { limit_type: string; org_id_param: string }
         Returns: boolean
       }
       check_organization_membership: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       check_organization_seat_limit: {
@@ -1984,15 +1984,15 @@ export type Database = {
       check_pending_invitation: {
         Args: { email_param: string }
         Returns: {
-          id: string
+          accepted_at: string
+          created_at: string
           email: string
+          expires_at: string
+          id: string
+          invitation_email_sent: boolean
           invite_code: string
           invited_by: string
           status: string
-          created_at: string
-          accepted_at: string
-          expires_at: string
-          invitation_email_sent: boolean
         }[]
       }
       check_project_limit: {
@@ -2004,18 +2004,18 @@ export type Database = {
         Returns: boolean
       }
       check_user_role: {
-        Args: { user_id_param: string; role_param: string }
+        Args: { role_param: string; user_id_param: string }
         Returns: boolean
       }
       check_user_status: {
         Args: { user_id_param: string }
         Returns: {
+          has_user_role: boolean
           is_admin: boolean
           is_beta_tester: boolean
-          has_user_role: boolean
-          subscription_status: string
-          subscription_plan: string
           project_limit: number
+          subscription_plan: string
+          subscription_status: string
         }[]
       }
       create_default_organization_for_user: {
@@ -2041,62 +2041,62 @@ export type Database = {
       get_all_user_roles: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          user_id: string
-          role: string
           created_at: string
           created_by: string
+          id: string
+          role: string
+          user_id: string
         }[]
       }
       get_all_user_roles_by_id: {
         Args: { user_id_param: string }
         Returns: {
-          id: string
-          user_id: string
-          role: string
           created_at: string
           created_by: string
+          id: string
+          role: string
+          user_id: string
         }[]
       }
       get_all_users_with_organizations: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
+          business_name: string
+          created_at: string
           email: string
           first_name: string
           last_name: string
-          business_name: string
-          roles: string[]
           organization_id: string
           organization_name: string
           organization_role: string
+          roles: string[]
           subscription_plan: string
           subscription_status: string
-          created_at: string
+          user_id: string
         }[]
       }
       get_beta_invitation_direct: {
         Args: { invitation_id_param: string }
         Returns: {
-          id: string
+          accepted_at: string
+          created_at: string
           email: string
+          expires_at: string
+          id: string
+          invitation_email_sent: boolean
           invite_code: string
           invited_by: string
           status: string
-          created_at: string
-          accepted_at: string
-          expires_at: string
-          invitation_email_sent: boolean
         }[]
       }
       get_organization_by_domain: {
         Args: { domain_param: string }
         Returns: {
+          branding: Json
+          is_white_label: boolean
           organization_id: string
           organization_name: string
           organization_slug: string
-          is_white_label: boolean
-          branding: Json
         }[]
       }
       get_plan_limits: {
@@ -2106,15 +2106,15 @@ export type Database = {
       get_subscription_details: {
         Args: { user_id_param: string }
         Returns: {
-          subscription_id: string
-          status: string
-          plan_type: string
+          cancel_at_period_end: boolean
           current_period_end: string
-          project_limit: number
           features: Json
+          plan_type: string
+          project_limit: number
+          status: string
           stripe_customer_id: string
           stripe_subscription_id: string
-          cancel_at_period_end: boolean
+          subscription_id: string
         }[]
       }
       get_user_current_org: {
@@ -2128,26 +2128,26 @@ export type Database = {
       get_user_details_for_admin: {
         Args: { target_user_id: string }
         Returns: {
-          user_id: string
+          business_name: string
+          created_at: string
           email: string
           first_name: string
-          last_name: string
-          business_name: string
           industry: string
-          organization_size: string
-          use_case: string
           job_title: string
-          roles: string[]
-          organizations: Json
-          subscription_info: Json
-          project_count: number
           knowledge_entries_count: number
-          created_at: string
+          last_name: string
           last_sign_in: string
+          organization_size: string
+          organizations: Json
+          project_count: number
+          roles: string[]
+          subscription_info: Json
+          use_case: string
+          user_id: string
         }[]
       }
       get_user_organization_permissions: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: Json
       }
       get_user_organizations: {
@@ -2159,16 +2159,16 @@ export type Database = {
       get_user_permissions: {
         Args: { user_id_param: string }
         Returns: {
+          features: Json
           is_admin: boolean
           is_beta_tester: boolean
+          project_limit: number
           subscription_plan: string
           subscription_status: string
-          features: Json
-          project_limit: number
         }[]
       }
       has_role: {
-        Args: { _user_id: string; _role: string }
+        Args: { _role: string; _user_id: string }
         Returns: boolean
       }
       invite_beta_tester: {
@@ -2197,51 +2197,51 @@ export type Database = {
       }
       log_activity: {
         Args: {
-          org_id: string
-          user_id_param: string
           action_type_param: string
-          resource_type_param: string
-          resource_id_param?: string
           details_param?: Json
+          org_id: string
+          resource_id_param?: string
+          resource_type_param: string
+          user_id_param: string
         }
         Returns: string
       }
       log_admin_action: {
         Args: {
-          admin_user_id: string
           action_type: string
-          target_user_id?: string
+          admin_user_id: string
           details?: Json
+          target_user_id?: string
         }
         Returns: string
       }
       log_organization_activity: {
         Args: {
-          org_id: string
-          user_id_param: string
           activity_type_param: string
           details_param?: Json
           ip_address_param?: unknown
+          org_id: string
           user_agent_param?: string
+          user_id_param: string
         }
         Returns: string
       }
       log_security_event: {
         Args:
           | {
+              details_param?: Json
               event_type_param: string
               target_user_id_param?: string
-              details_param?: Json
             }
           | {
-              org_id: string
-              user_id_param: string
-              event_type_param: string
               event_details_param?: Json
+              event_type_param: string
               ip_address_param?: unknown
-              user_agent_param?: string
-              session_id_param?: string
+              org_id: string
               risk_level_param?: string
+              session_id_param?: string
+              user_agent_param?: string
+              user_id_param: string
             }
         Returns: string
       }
@@ -2250,23 +2250,23 @@ export type Database = {
         Returns: undefined
       }
       organization_has_feature: {
-        Args: { org_id: string; feature_name_param: string }
+        Args: { feature_name_param: string; org_id: string }
         Returns: boolean
       }
       remove_user_role: {
-        Args: { _user_id: string; _role: string }
+        Args: { _role: string; _user_id: string }
         Returns: boolean
       }
       request_data_export: {
         Args: {
           org_id: string
-          target_user_id: string
           request_type_param?: string
+          target_user_id: string
         }
         Returns: string
       }
       switch_user_organization: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       update_beta_invitation_email_sent: {
@@ -2275,47 +2275,47 @@ export type Database = {
       }
       update_beta_invitation_status: {
         Args: {
+          accepted_at_param: string
           invitation_id_param: string
           status_param: string
-          accepted_at_param: string
         }
         Returns: boolean
       }
       update_organization_usage_metric: {
         Args: {
-          org_id: string
-          metric_type_param: string
           increment_value?: number
+          metric_type_param: string
+          org_id: string
         }
         Returns: undefined
       }
       user_belongs_to_organization: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       user_is_org_owner_or_admin: {
-        Args: { user_id_param: string; org_id_param: string }
+        Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
       validate_password_policy: {
         Args: { password: string }
         Returns: {
-          is_valid: boolean
           errors: string[]
+          is_valid: boolean
         }[]
       }
       verify_invitation_code: {
         Args: { code_param: string }
         Returns: {
-          id: string
+          accepted_at: string
+          created_at: string
           email: string
+          expires_at: string
+          id: string
+          invitation_email_sent: boolean
           invite_code: string
           invited_by: string
           status: string
-          created_at: string
-          accepted_at: string
-          expires_at: string
-          invitation_email_sent: boolean
         }[]
       }
     }

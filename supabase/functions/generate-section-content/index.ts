@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { generatePrompt } from "./prompt.ts";
+import { formatKnowledgeBaseContext } from "./knowledge-base.ts";
+import { assessKnowledgeBaseCoverage, validateGeneratedContent } from "./knowledge-validation.ts";
 
 console.log("Function starting up...");
 
@@ -40,11 +43,11 @@ interface Project {
 }
 
 interface KnowledgeEntry {
-  entry_id: string;
+  id: string;
   title: string; 
-  content: string;
+  content: string | null;
   category: string;
-  tags?: string[];
+  parsed_content: string | null;
 }
 
 // Simplified content cleaning function
@@ -148,27 +151,59 @@ serve(async (req) => {
 
     console.log(`Found ${knowledgeEntries?.length || 0} knowledge entries`);
 
-// Validate API key format
+    // Validate API key format
     if (!anthropicApiKey.startsWith('sk-ant-')) {
       console.error("Invalid Anthropic API key format");
       throw new Error('Invalid Anthropic API key format');
     }
 
-    // Generate simple prompt
-    const prompt = `You are an expert proposal writer. Generate content for the "${sectionTitle}" section of a proposal for the project "${project.title}".
+    // PHASE 1: PRE-GENERATION VALIDATION (Strict Mode Only)
+    if (strictMode) {
+      console.log("Strict mode enabled - performing knowledge base coverage assessment...");
+      
+      const coverage = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries || []);
+      
+      console.log("Knowledge base coverage assessment:", {
+        isAdequate: coverage.isAdequate,
+        coverageScore: coverage.coverageScore,
+        relevantEntries: coverage.relevantEntries.length,
+        missingTopics: coverage.missingTopics.length
+      });
+      
+      // Enforce strict thresholds in strict mode
+      if (!coverage.isAdequate) {
+        const errorMessage = `Insufficient knowledge base coverage for "${sectionTitle}" (Score: ${coverage.coverageScore}%). 
+        
+To enable content generation in strict mode, please:
+${coverage.recommendations.map(rec => `• ${rec}`).join('\n')}
 
-Project Details:
-- Title: ${project.title}
-- Client: ${project.client_name || 'Not specified'}
-- Business: ${project.business_name || 'Not specified'}
+Missing topics: ${coverage.missingTopics.join(', ')}`;
+        
+        console.error("Knowledge base coverage insufficient:", errorMessage);
+        return new Response(JSON.stringify({ 
+          error: 'INSUFFICIENT_KNOWLEDGE_BASE_COVERAGE',
+          details: errorMessage,
+          coverage: coverage
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
-Requirements:
-- Write professional, compelling content
-- Keep it concise and relevant
-- Do not include section headers
-- Focus on the specific section requested
-
-Generate content for: ${sectionTitle}`;
+    // Format knowledge base context
+    const knowledgeContext = formatKnowledgeBaseContext(knowledgeEntries || []);
+    
+    // Generate enhanced prompt using knowledge base and existing sections
+    const prompt = generatePrompt(
+      sectionTitle,
+      project,
+      knowledgeContext,
+      existingSections,
+      strictMode
+    );
+    
+    console.log("Generated prompt length:", prompt.length, "characters");
 
     const model = 'claude-3-5-sonnet-20241022';
     console.log("Making API call to Anthropic with model:", model);
@@ -225,22 +260,70 @@ Generate content for: ${sectionTitle}`;
     
     let generatedContent = result.content[0].text;
     
+    // Check for explicit refusal in strict mode
+    if (strictMode && generatedContent.includes('INSUFFICIENT_KNOWLEDGE_BASE_DATA')) {
+      console.log("AI refused to generate due to insufficient knowledge base data");
+      return new Response(JSON.stringify({ 
+        error: 'INSUFFICIENT_KNOWLEDGE_BASE_DATA',
+        details: 'The AI determined there is insufficient information in the knowledge base to generate accurate content for this section. Please add more relevant knowledge base entries.',
+        recommendations: ['Add specific information about your company, processes, or experience relevant to this section type']
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     // Clean the content
     generatedContent = cleanGeneratedContent(generatedContent, sectionTitle);
     
-    // Validate content
-    const validation = validateContent(generatedContent);
+    // PHASE 3: POST-GENERATION VALIDATION (Enhanced for Strict Mode)
+    let validation = validateContent(generatedContent);
+    let hallucinationCheck = { isValid: true, issues: [], confidenceScore: 100 };
     
+    if (strictMode) {
+      console.log("Performing enhanced validation for strict mode...");
+      hallucinationCheck = validateGeneratedContent(generatedContent, knowledgeEntries || []);
+      
+      console.log("Hallucination check results:", {
+        isValid: hallucinationCheck.isValid,
+        confidenceScore: hallucinationCheck.confidenceScore,
+        issuesCount: hallucinationCheck.issues.length
+      });
+      
+      // Strict mode: Reject content with low confidence or validation issues
+      if (!hallucinationCheck.isValid) {
+        const errorMessage = `Generated content failed strict validation (Confidence: ${hallucinationCheck.confidenceScore}%).
+        
+Issues detected:
+${hallucinationCheck.issues.map(issue => `• ${issue}`).join('\n')}
+
+This suggests the content may contain information not supported by your knowledge base. Please add more specific information to your knowledge base and try again.`;
+
+        console.error("Content failed strict validation:", errorMessage);
+        return new Response(JSON.stringify({ 
+          error: 'CONTENT_VALIDATION_FAILED',
+          details: errorMessage,
+          validation: hallucinationCheck
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    
+    // Basic validation (length, placeholders)
     if (!validation.isValid && strictMode) {
-      console.error("Content validation failed:", validation.issues);
-      throw new Error(`Generated content failed validation: ${validation.issues.join(', ')}`);
+      console.error("Basic content validation failed:", validation.issues);
+      throw new Error(`Generated content failed basic validation: ${validation.issues.join(', ')}`);
     }
 
-    console.log("Content generation successful");
+    console.log("Content generation successful with all validations passed");
 
     return new Response(JSON.stringify({ 
       content: generatedContent,
-      validation: validation
+      validation: validation,
+      hallucinationCheck: strictMode ? hallucinationCheck : null,
+      strictMode: strictMode
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -20,16 +20,16 @@ export function assessKnowledgeBaseCoverage(
   // Calculate coverage based on semantic relevance rather than strict keyword matching
   const coverageScore = calculateSemanticCoverage(sectionType, relevantEntries);
   
-  // More lenient thresholds based on section type and available content
+  // Strict thresholds for anti-hallucination mode
   const adequacyThresholds = {
-    'executive': 40,    // Executive summaries can be created from general company info
-    'company': 45,      // Company sections need basic company info
-    'general': 35,      // General sections are flexible
-    'technical': 55,    // Technical sections need more specific info
-    'team': 50,         // Team sections need some specific info
-    'timeline': 40,     // Timelines can be estimated from process info
-    'pricing': 60,      // Pricing needs more specific information
-    'case_study': 50    // Case studies need examples
+    'executive': 60,    // Executive summaries need substantial company info
+    'company': 65,      // Company sections need comprehensive company info
+    'general': 50,      // General sections need solid foundation
+    'technical': 70,    // Technical sections need detailed specific info
+    'team': 65,         // Team sections need specific team info
+    'timeline': 55,     // Timelines need documented process info
+    'pricing': 75,      // Pricing needs explicit pricing information
+    'case_study': 70    // Case studies need specific documented examples
   };
   
   const threshold = adequacyThresholds[sectionType as keyof typeof adequacyThresholds] || 40;

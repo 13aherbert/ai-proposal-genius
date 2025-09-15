@@ -148,6 +148,12 @@ serve(async (req) => {
 
     console.log(`Found ${knowledgeEntries?.length || 0} knowledge entries`);
 
+// Validate API key format
+    if (!anthropicApiKey.startsWith('sk-ant-')) {
+      console.error("Invalid Anthropic API key format");
+      throw new Error('Invalid Anthropic API key format');
+    }
+
     // Generate simple prompt
     const prompt = `You are an expert proposal writer. Generate content for the "${sectionTitle}" section of a proposal for the project "${project.title}".
 
@@ -164,34 +170,54 @@ Requirements:
 
 Generate content for: ${sectionTitle}`;
 
-    console.log("Making API call to Anthropic...");
+    const model = 'claude-3-5-sonnet-20241022';
+    console.log("Making API call to Anthropic with model:", model);
 
-    // Call Anthropic API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
-    });
+    let response;
+    try {
+      // Call Anthropic API
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 2000,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        })
+      });
 
-    console.log("Anthropic API response status:", response.status);
+      console.log("Anthropic API response status:", response.status);
+    } catch (fetchError) {
+      console.error("Network error calling Anthropic API:", fetchError);
+      throw new Error(`Network error: ${fetchError.message}`);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Anthropic API error:", errorText);
-      throw new Error(`Anthropic API error: ${response.status} ${errorText}`);
+      console.error("Anthropic API error response:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
+      if (response.status === 401) {
+        throw new Error('Invalid Anthropic API key');
+      } else if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later');
+      } else if (response.status >= 500) {
+        throw new Error('Anthropic API server error. Please try again later');
+      } else {
+        throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+      }
     }
 
     const result = await response.json();

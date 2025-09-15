@@ -139,8 +139,7 @@ RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
 7. ACTIVE VOICE: Write with confidence and authority - avoid passive constructions
 8. CLIENT-FOCUSED: Every paragraph must answer "What's in it for them?"
 
-  if (strictMode) {
-    prompt += `
+${strictMode ? `
 *** ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED ***
 
 MANDATORY REQUIREMENTS (VIOLATION = IMMEDIATE REFUSAL):
@@ -167,8 +166,7 @@ ULTRA-STRICT VERIFICATION CHECKLIST:
 * No "reasonable" inferences or logical deductions made?  
 * Section is complete without any creative gap-filling?
 
-REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.`;
-  }
+REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.` : ''}
 
 ABSOLUTE CONSISTENCY:
 - Use identical pricing, timelines, and details from existing sections

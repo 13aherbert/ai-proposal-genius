@@ -222,7 +222,7 @@ export function validateGeneratedContent(
     // Only flag very specific/unusual percentages that seem made up
     /\b\d{3,}(\.\d+)?%/g, // Percentages over 100% (likely fabricated)
     // Only flag very specific monetary amounts that seem fabricated
-    /\$\d{1,3},\d{3},\d{3}+/g, // Very large specific amounts (millions+) 
+    /\$\d{1,3}(?:,\d{3}){2,}/g, // Very large specific amounts (millions+) 
     // Flag specific years without context that could be fabricated
     /\b(established|founded|since) \d{4}(?!\s*(based on|according to|as noted))/gi,
     // Only flag obviously fabricated specific numbers

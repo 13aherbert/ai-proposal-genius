@@ -12,37 +12,95 @@ export function assessKnowledgeBaseCoverage(
   sectionTitle: string,
   knowledgeEntries: KnowledgeEntry[]
 ): KnowledgeBaseCoverage {
+  // Ultra-strict mode requires entries with actual content, not just titles
+  if (!knowledgeEntries || knowledgeEntries.length === 0) {
+    return {
+      isAdequate: false,
+      coverageScore: 0,
+      missingTopics: ['All content areas - no knowledge base entries with actual content found'],
+      relevantEntries: [],
+      recommendations: ['Add comprehensive knowledge base entries with detailed, specific content before using strict mode.']
+    };
+  }
+
   const sectionType = determineSectionType(sectionTitle);
+  const semanticKeywords = getSemanticKeywords(sectionType);
   
-  // Use semantic matching to find relevant entries
-  const relevantEntries = findSemanticMatches(sectionTitle, sectionType, knowledgeEntries);
+  // Enhanced semantic matching - check actual content, not just titles
+  const relevantEntries = knowledgeEntries.filter(entry => {
+    const titleMatch = semanticKeywords.some(keyword => 
+      isRelatedConcept(entry.title.toLowerCase(), keyword)
+    );
+    
+    // Also check actual content for semantic matches
+    const contentText = ((entry.content || '') + ' ' + (entry.parsed_content || '')).toLowerCase();
+    const contentMatch = contentText.length > 50 && semanticKeywords.some(keyword => 
+      isRelatedConcept(contentText, keyword)
+    );
+    
+    return titleMatch || contentMatch;
+  });
   
-  // Calculate coverage based on semantic relevance rather than strict keyword matching
-  const coverageScore = calculateSemanticCoverage(sectionType, relevantEntries);
+  // Calculate total content volume for relevant entries
+  const totalRelevantContent = relevantEntries.reduce((total, entry) => {
+    return total + (entry.content?.trim().length || 0) + (entry.parsed_content?.trim().length || 0);
+  }, 0);
+
+  // Ultra-strict coverage calculation for anti-hallucination
+  let coverageScore = 0;
   
-  // Strict thresholds for anti-hallucination mode
-  const adequacyThresholds = {
-    'executive': 60,    // Executive summaries need substantial company info
-    'company': 65,      // Company sections need comprehensive company info
-    'general': 50,      // General sections need solid foundation
-    'technical': 70,    // Technical sections need detailed specific info
-    'team': 65,         // Team sections need specific team info
-    'timeline': 55,     // Timelines need documented process info
-    'pricing': 75,      // Pricing needs explicit pricing information
-    'case_study': 70    // Case studies need specific documented examples
-  };
+  if (relevantEntries.length > 0) {
+    // Base score from relevant entries (max 40%)
+    const entryScore = Math.min((relevantEntries.length / Math.max(semanticKeywords.length * 0.4, 2)) * 40, 40);
+    
+    // Content volume score (max 40%) - need substantial content
+    const minContentPerEntry = 200; // Minimum 200 chars per relevant entry
+    const expectedContent = relevantEntries.length * minContentPerEntry;
+    const contentScore = Math.min((totalRelevantContent / expectedContent) * 40, 40);
+    
+    // Keyword coverage score (max 20%)
+    const keywordsCovered = semanticKeywords.filter(keyword => 
+      relevantEntries.some(entry => {
+        const allText = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
+        return isRelatedConcept(allText, keyword);
+      })
+    ).length;
+    const keywordScore = (keywordsCovered / semanticKeywords.length) * 20;
+    
+    coverageScore = entryScore + contentScore + keywordScore;
+  }
   
-  const threshold = adequacyThresholds[sectionType as keyof typeof adequacyThresholds] || 40;
-  const isAdequate = coverageScore >= threshold && relevantEntries.length > 0;
+  // Ultra-strict adequacy check for anti-hallucination
+  const minCoverageThreshold = 90; // 90% coverage required for strict mode
+  const minRelevantEntries = Math.max(2, Math.ceil(semanticKeywords.length * 0.6)); // At least 60% of expected topics
+  const minContentVolume = 500; // Minimum 500 characters of relevant content
   
-  const missingTopics = identifyMissingTopics(sectionType, relevantEntries);
+  const isAdequate = coverageScore >= minCoverageThreshold && 
+                    relevantEntries.length >= minRelevantEntries &&
+                    totalRelevantContent >= minContentVolume;
+  
+  // Generate missing topics and enhanced recommendations
+  const missingTopics = semanticKeywords.filter(keyword => 
+    !relevantEntries.some(entry => {
+      const allText = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
+      return isRelatedConcept(allText, keyword);
+    })
+  );
+  
+  const recommendations = generateStrictModeRecommendations(
+    sectionType, 
+    missingTopics, 
+    relevantEntries.length, 
+    totalRelevantContent,
+    semanticKeywords.length
+  );
   
   return {
     isAdequate,
     missingTopics,
-    coverageScore,
+    coverageScore: Math.round(coverageScore),
     relevantEntries,
-    recommendations: generateSmartRecommendations(missingTopics, sectionType, relevantEntries)
+    recommendations
   };
 }
 
@@ -177,37 +235,49 @@ function identifyMissingTopics(sectionType: string, relevantEntries: KnowledgeEn
   ).slice(0, 5); // Limit to top 5 missing topics
 }
 
-function generateSmartRecommendations(missingTopics: string[], sectionType: string, relevantEntries: KnowledgeEntry[]): string[] {
-  if (missingTopics.length === 0 && relevantEntries.length > 0) {
-    return ["Knowledge base coverage is adequate. AI can synthesize available information for this section."];
-  }
-  
+function generateStrictModeRecommendations(
+  sectionType: string, 
+  missingTopics: string[], 
+  relevantEntriesCount: number,
+  totalContentVolume: number,
+  expectedTopics: number
+): string[] {
   const recommendations = [];
   
-  if (relevantEntries.length === 0) {
-    recommendations.push(`No relevant knowledge base entries found. Add entries with information about your ${sectionType === 'executive' ? 'company overview and capabilities' : `${sectionType} approach and experience`}.`);
-  } else if (missingTopics.length > 0) {
-    const priorityTopics = missingTopics.slice(0, 3);
-    recommendations.push(`To enhance content quality, consider adding: ${priorityTopics.join(', ')}`);
+  if (missingTopics.length > 0) {
+    recommendations.push(`Critical: Add detailed knowledge entries covering: ${missingTopics.slice(0, 3).join(', ')}`);
   }
   
-  // Section-specific recommendations based on what's typically needed
-  const specificRecs: { [key: string]: string } = {
-    'executive': 'Include company history, mission, key differentiators, and success stories.',
-    'technical': 'Document your methodologies, tools, technologies, and implementation approaches.',
-    'team': 'Add team member profiles, qualifications, certifications, and relevant experience.',
-    'timeline': 'Include typical project phases, standard timelines, and milestone examples.',
-    'pricing': 'Add your pricing models, rate structures, and cost breakdown approaches.',
-    'company': 'Include company background, services offered, client testimonials, and achievements.',
-    'case_study': 'Upload specific project examples with outcomes, metrics, and client feedback.'
-  };
-  
-  const specific = specificRecs[sectionType];
-  if (specific && relevantEntries.length < 2) {
-    recommendations.push(specific);
+  if (relevantEntriesCount < expectedTopics * 0.6) {
+    recommendations.push(`Add at least ${Math.ceil(expectedTopics * 0.6) - relevantEntriesCount} more relevant entries for ${sectionType} sections`);
+  }
+
+  if (totalContentVolume < 500) {
+    recommendations.push(`Add more detailed content to existing entries. Current: ${totalContentVolume} characters. Required: 500+ characters.`);
   }
   
-  return recommendations.length > 0 ? recommendations : ["Knowledge base appears adequate for content generation using available information."];
+  // Ultra-specific recommendations for strict mode
+  switch (sectionType) {
+    case 'executive':
+      recommendations.push('Required: Specific value propositions, measurable benefits, client success stories with data');
+      break;
+    case 'technical':
+      recommendations.push('Required: Detailed technical specifications, proven methodologies, implementation processes');
+      break;
+    case 'team':
+      recommendations.push('Required: Complete team profiles with specific qualifications, certifications, and project experience');
+      break;
+    case 'pricing':
+      recommendations.push('Required: Specific pricing models, cost breakdowns, ROI calculations, and value justifications');
+      break;
+    case 'timeline':
+      recommendations.push('Required: Detailed project phases, specific milestones, delivery schedules, and timeline justifications');
+      break;
+  }
+
+  recommendations.push('Strict mode requires comprehensive, factual content. Generic or placeholder entries will cause generation to fail.');
+  
+  return recommendations;
 }
 
 export function validateGeneratedContent(
@@ -216,61 +286,112 @@ export function validateGeneratedContent(
 ): { isValid: boolean; issues: string[]; confidenceScore: number } {
   const issues: string[] = [];
   let confidenceScore = 100;
+
+  // Ultra-strict validation for anti-hallucination
+  const specificClaims = extractSpecificClaims(content);
   
-  // More permissive validation - focus on preventing obvious hallucinations
-  const obviousHallucinationPatterns = [
-    // Only flag very specific/unusual percentages that seem made up
-    /\b\d{3,}(\.\d+)?%/g, // Percentages over 100% (likely fabricated)
-    // Only flag very specific monetary amounts that seem fabricated
-    /\$\d{1,3}(?:,\d{3}){2,}/g, // Very large specific amounts (millions+) 
-    // Flag specific years without context that could be fabricated
-    /\b(established|founded|since) \d{4}(?!\s*(based on|according to|as noted))/gi,
-    // Only flag obviously fabricated specific numbers
-    /\b(over|more than|exactly) \d{4,}\b(?!\s*(projects|clients|years|hours))/gi
-  ];
-  
-  for (const pattern of obviousHallucinationPatterns) {
-    const matches = content.match(pattern);
-    if (matches && matches.length > 0) {
-      issues.push(`Potentially fabricated specific claims: ${matches.join(', ')}`);
-      confidenceScore -= 20; // Reduce confidence but don't fail completely
+  // Build comprehensive knowledge base text for cross-referencing
+  const knowledgeText = knowledgeEntries.map(entry => 
+    `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`
+  ).join(' ').toLowerCase();
+
+  // Strict claim verification - no synthesis allowed in strict mode
+  for (const claim of specificClaims) {
+    const claimLower = claim.toLowerCase();
+    
+    // Check for exact or very close matches in knowledge base
+    const isDirectlySupported = knowledgeEntries.some(entry => {
+      const entryText = `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+      return entryText.includes(claimLower) || 
+             // Allow minor variations in wording but require substantial overlap
+             claim.split(' ').filter(word => word.length > 3).length > 0 &&
+             claim.split(' ').filter(word => word.length > 3).every(word => 
+               entryText.includes(word.toLowerCase())
+             );
+    });
+    
+    if (!isDirectlySupported) {
+      issues.push(`Unsupported specific claim (not found in knowledge base): "${claim}"`);
+      confidenceScore -= 20; // Harsh penalties for unsupported claims
     }
   }
-  
-  // Check for completely unsupported company-specific claims
-  const companySpecificPatterns = [
-    /\b(we are|our company is) (the largest|number one|top-ranked)/gi,
-    /\b(award winner|industry leader|market leader) in \d{4}/gi,
-    /\bfounded by [A-Z][a-z]+ [A-Z][a-z]+/g // Specific founder names not in KB
+
+  // Ultra-strict check for ANY specific data not in knowledge base
+  const strictPatterns = [
+    /\$[\d,]+(?:\.\d{2})?/g, // Specific dollar amounts
+    /\d+(?:\.\d+)?%/g, // Specific percentages  
+    /\d+ (?:years?|months?|weeks?|days?)/g, // Specific time periods
+    /founded in \d{4}/gi, // Founding years
+    /established in \d{4}/gi,
+    /since \d{4}/gi,
+    /\d{4}-\d{4}/g, // Date ranges
+    /\d+(?:,\d+)* (?:clients?|projects?|employees?|staff)/gi, // Specific numbers
+    /over \d+/gi, // "Over X" claims
+    /more than \d+/gi, // "More than X" claims
+    /up to \d+/gi, // "Up to X" claims
+    /\b\d+(?:th|st|nd|rd)? (?:largest|biggest|leading)/gi // Ranking claims
   ];
-  
-  for (const pattern of companySpecificPatterns) {
+
+  for (const pattern of strictPatterns) {
     const matches = content.match(pattern);
-    if (matches && matches.length > 0) {
-      const allKnowledgeText = knowledgeEntries
-        .map(entry => `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`)
-        .join(' ')
-        .toLowerCase();
+    if (matches) {
+      for (const match of matches) {
+        // Ultra-strict validation - must be exactly in knowledge base
+        const matchFound = knowledgeText.includes(match.toLowerCase()) || 
+                          knowledgeEntries.some(entry => {
+                            const entryText = `${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+                            return entryText.includes(match.toLowerCase());
+                          });
         
-      // Only flag if completely absent from knowledge base
-      const unsupportedMatches = matches.filter(match => 
-        !allKnowledgeText.includes(match.toLowerCase().replace(/[^\w\s]/g, ''))
-      );
-      
-      if (unsupportedMatches.length > 0) {
-        issues.push(`Company-specific claims not found in knowledge base: ${unsupportedMatches.join(', ')}`);
-        confidenceScore -= 15;
+        if (!matchFound) {
+          issues.push(`Specific data not verified in knowledge base: "${match}"`);
+          confidenceScore -= 25; // Heavy penalty for unverified specific data
+        }
       }
     }
   }
-  
-  // Much more lenient approach - allow reasonable synthesis and inference
-  // Only count as invalid if confidence is very low (major red flags)
-  const isValid = confidenceScore >= 40; // Much more permissive threshold
+
+  // Check for generic business language that often indicates hallucination
+  const genericPhrases = [
+    'industry-leading', 'cutting-edge', 'state-of-the-art', 'world-class',
+    'proven track record', 'extensive experience', 'comprehensive solution',
+    'innovative approach', 'market leader', 'best practices', 'award-winning'
+  ];
+
+  const genericCount = genericPhrases.filter(phrase => 
+    content.toLowerCase().includes(phrase)
+  ).length;
+
+  if (genericCount > 2) {
+    issues.push(`Content contains ${genericCount} generic business phrases that may indicate AI hallucination rather than knowledge base content`);
+    confidenceScore -= genericCount * 5;
+  }
+
+  // Check for company-specific claims without verification
+  const companySpecificPatterns = [
+    /we (?:are|have been) (?:the|a) leading/gi,
+    /our (?:award-winning|industry-leading|proven)/gi,
+    /we (?:pioneered|developed|created) the/gi
+  ];
+
+  for (const pattern of companySpecificPatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        if (!knowledgeText.includes(match.toLowerCase())) {
+          issues.push(`Unverified company claim: "${match}"`);
+          confidenceScore -= 15;
+        }
+      }
+    }
+  }
+
+  // Ultra-strict threshold for anti-hallucination mode
+  const isValid = confidenceScore >= 80 && issues.length <= 1; // Much stricter validation
   
   return {
     isValid,
-    issues: issues.length > 0 ? issues : [], // Still log issues for debugging
+    issues,
     confidenceScore: Math.max(0, confidenceScore)
   };
 }

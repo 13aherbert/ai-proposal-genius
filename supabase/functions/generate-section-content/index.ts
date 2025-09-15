@@ -139,7 +139,7 @@ serve(async (req) => {
 
     // Fetch knowledge base entries
     console.log("Fetching knowledge base entries...");
-    const { data: knowledgeEntries, error: knowledgeError } = await supabase
+    const { data: allKnowledgeEntries, error: knowledgeError } = await supabase
       .from('knowledge_entries')
       .select('*')
       .eq('user_id', userId);
@@ -149,7 +149,17 @@ serve(async (req) => {
       throw new Error(`Failed to fetch knowledge entries: ${knowledgeError.message}`);
     }
 
-    console.log(`Found ${knowledgeEntries?.length || 0} knowledge entries`);
+    // Filter out empty entries - critical for strict mode anti-hallucination
+    const knowledgeEntries = allKnowledgeEntries?.filter(entry => {
+      const hasContent = (entry.content && entry.content.trim().length > 0) ||
+                        (entry.parsed_content && 
+                         entry.parsed_content.trim().length > 0 && 
+                         !entry.parsed_content.includes('Document content parsing will be implemented') &&
+                         !entry.parsed_content.includes('placeholder'));
+      return hasContent;
+    }) || [];
+
+    console.log(`Found ${allKnowledgeEntries?.length || 0} total entries, ${knowledgeEntries.length} with actual content`);
 
     // Validate API key format
     if (!anthropicApiKey.startsWith('sk-ant-')) {
@@ -157,22 +167,49 @@ serve(async (req) => {
       throw new Error('Invalid Anthropic API key format');
     }
 
-    // PHASE 1: PRE-GENERATION VALIDATION (Strict Mode Only)
+    // PHASE 1: PRE-GENERATION VALIDATION (Enhanced for Strict Mode)
     if (strictMode) {
-      console.log("Strict mode enabled - performing knowledge base coverage assessment...");
+      console.log("Strict mode enabled - performing enhanced knowledge base coverage assessment...");
       
-      const coverage = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries || []);
+      // Calculate total content volume
+      const totalContentLength = knowledgeEntries.reduce((total, entry) => {
+        const contentLength = (entry.content?.trim().length || 0) + (entry.parsed_content?.trim().length || 0);
+        return total + contentLength;
+      }, 0);
+
+      console.log(`Total knowledge base content: ${totalContentLength} characters across ${knowledgeEntries.length} entries`);
+
+      // Require minimum content volume for strict mode
+      const minContentRequired = 1000; // Minimum 1000 characters of actual content
+      if (totalContentLength < minContentRequired) {
+        return new Response(
+          JSON.stringify({
+            error: 'Insufficient knowledge base content for strict mode',
+            message: `Only ${totalContentLength} characters of content available. Strict mode requires at least ${minContentRequired} characters of actual knowledge base content.`,
+            suggestion: 'Add more detailed content to your knowledge base entries before using strict mode.',
+            entriesWithContent: knowledgeEntries.length,
+            totalEntries: allKnowledgeEntries?.length || 0
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      const coverage = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries);
       
       console.log("Knowledge base coverage assessment:", {
         isAdequate: coverage.isAdequate,
         coverageScore: coverage.coverageScore,
         relevantEntries: coverage.relevantEntries.length,
-        missingTopics: coverage.missingTopics.length
+        missingTopics: coverage.missingTopics.length,
+        contentVolume: totalContentLength
       });
       
-      // Enforce strict thresholds in strict mode
+      // Enforce ultra-strict thresholds in strict mode
       if (!coverage.isAdequate) {
-        const errorMessage = `Insufficient knowledge base coverage for "${sectionTitle}" (Score: ${coverage.coverageScore}%). 
+        const errorMessage = `Insufficient knowledge base coverage for "${sectionTitle}" (Score: ${coverage.coverageScore}%, Content: ${totalContentLength} chars). 
         
 To enable content generation in strict mode, please:
 ${coverage.recommendations.map(rec => `• ${rec}`).join('\n')}
@@ -183,7 +220,9 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
         return new Response(JSON.stringify({ 
           error: 'INSUFFICIENT_KNOWLEDGE_BASE_COVERAGE',
           details: errorMessage,
-          coverage: coverage
+          coverage: coverage,
+          contentVolume: totalContentLength,
+          entriesWithContent: knowledgeEntries.length
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -192,7 +231,7 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
     }
 
     // Format knowledge base context
-    const knowledgeContext = formatKnowledgeBaseContext(knowledgeEntries || []);
+    const knowledgeContext = formatKnowledgeBaseContext(knowledgeEntries);
     
     // Generate enhanced prompt using knowledge base and existing sections
     const prompt = generatePrompt(
@@ -281,8 +320,8 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
     let hallucinationCheck = { isValid: true, issues: [], confidenceScore: 100 };
     
     if (strictMode) {
-      console.log("Performing enhanced validation for strict mode...");
-      hallucinationCheck = validateGeneratedContent(generatedContent, knowledgeEntries || []);
+      console.log("Performing ultra-strict validation for strict mode...");
+      hallucinationCheck = validateGeneratedContent(generatedContent, knowledgeEntries);
       
       console.log("Hallucination check results:", {
         isValid: hallucinationCheck.isValid,
@@ -290,20 +329,25 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
         issuesCount: hallucinationCheck.issues.length
       });
       
-      // Strict mode: Reject content with low confidence or validation issues
+      // Ultra-strict mode: Reject content with any validation issues
       if (!hallucinationCheck.isValid) {
-        const errorMessage = `Generated content failed strict validation (Confidence: ${hallucinationCheck.confidenceScore}%).
+        const errorMessage = `Generated content failed ultra-strict validation (Confidence: ${hallucinationCheck.confidenceScore}%).
         
 Issues detected:
 ${hallucinationCheck.issues.map(issue => `• ${issue}`).join('\n')}
 
-This suggests the content may contain information not supported by your knowledge base. Please add more specific information to your knowledge base and try again.`;
+This indicates the content contains information not supported by your knowledge base. Please add more specific, detailed information to your knowledge base and try again.`;
 
-        console.error("Content failed strict validation:", errorMessage);
+        console.error("Content failed ultra-strict validation:", errorMessage);
         return new Response(JSON.stringify({ 
           error: 'CONTENT_VALIDATION_FAILED',
           details: errorMessage,
-          validation: hallucinationCheck
+          validation: hallucinationCheck,
+          suggestions: [
+            'Add more detailed, specific content to your knowledge base',
+            'Ensure all company information, processes, and capabilities are documented',
+            'Include specific examples, metrics, and data points in your knowledge entries'
+          ]
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

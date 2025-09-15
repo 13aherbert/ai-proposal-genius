@@ -139,14 +139,17 @@ RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
 7. ACTIVE VOICE: Write with confidence and authority - avoid passive constructions
 8. CLIENT-FOCUSED: Every paragraph must answer "What's in it for them?"
 
-CONTENT SOURCING RULES - ${strictMode ? 'STRICT MODE ENABLED' : 'STANDARD MODE'}:
+CONTENT SOURCING RULES - ${strictMode ? 'SMART STRICT MODE ENABLED' : 'STANDARD MODE'}:
 ${strictMode ? `
-- STRICT MODE: You MUST ONLY use information found in the knowledge base
-- If ANY required information is missing from knowledge base, respond EXACTLY: "INSUFFICIENT_KNOWLEDGE_BASE: This section requires specific [missing topic] information in the Knowledge Base. Please add relevant content to the Knowledge Base before generating this section."
-- Do NOT attempt to generate content with incomplete knowledge base information
-- Do NOT use general industry knowledge or assumptions
-- EVERY claim must have a direct source in the knowledge base entries provided
-- If knowledge base is empty or insufficient, REFUSE to generate content` : `
+- SMART STRICT MODE: Base all content on knowledge base information but synthesize intelligently
+- You MAY combine and synthesize information from multiple knowledge base entries to create comprehensive content
+- You MAY draw logical conclusions from documented processes, capabilities, and experience
+- You MUST NOT invent specific facts (dates, numbers, names, locations) not found in the knowledge base
+- You MUST NOT make unsupported claims about capabilities or experience not documented in the knowledge base
+- If the knowledge base contains relevant company information but not in exact section format, adapt and synthesize it appropriately
+- For example: Company overview information can be used for executive summaries, process documentation can inform technical approaches
+- Only respond with "INSUFFICIENT_KNOWLEDGE_BASE_DATA" if there is genuinely no relevant information in the knowledge base for this section type
+- Use the knowledge base as your authoritative source while creating compelling, well-structured proposal content` : `
 - Mine ALL knowledge base entries for relevant information regardless of titles
 - Use exact text, numbers, and examples from knowledge base verbatim
 - For non-pricing sections: ONLY use information found in knowledge base

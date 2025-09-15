@@ -202,30 +202,49 @@ serve(async (req) => {
     
     console.log(`Found ${knowledgeEntries?.length || 0} knowledge base entries`);
     
-    // Assess knowledge base coverage for strict mode
+    // In strict mode, assess knowledge base coverage with intelligent semantic matching
     if (strictMode) {
+      console.log('Smart strict mode enabled, assessing knowledge base coverage');
       const coverage = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries as KnowledgeEntry[]);
+      
+      console.log(`Knowledge base coverage: ${coverage.coverageScore}% (${coverage.relevantEntries.length} relevant entries)`);
+      console.log(`Section type: ${getSectionType(sectionTitle)}, Adequate: ${coverage.isAdequate}`);
       
       if (!coverage.isAdequate) {
         console.log(`Insufficient knowledge base coverage: ${coverage.coverageScore}%`);
+        console.log(`Missing topics: ${coverage.missingTopics.slice(0, 3).join(', ')}`);
+        console.log(`Relevant entries found: ${coverage.relevantEntries.map(e => e.title).join(', ')}`);
         return new Response(
-          JSON.stringify({
-            error: 'INSUFFICIENT_KNOWLEDGE_BASE',
-            message: `Knowledge base coverage insufficient (${coverage.coverageScore}%). Missing: ${coverage.missingTopics.join(', ')}`,
-            missingTopics: coverage.missingTopics,
-            recommendations: coverage.recommendations,
-            coverageScore: coverage.coverageScore
+          JSON.stringify({ 
+            error: 'Insufficient knowledge base coverage',
+            details: {
+              coverageScore: coverage.coverageScore,
+              missingTopics: coverage.missingTopics.slice(0, 5),
+              recommendations: coverage.recommendations,
+              relevantEntries: coverage.relevantEntries.length,
+              sectionType: getSectionType(sectionTitle),
+              availableEntries: coverage.relevantEntries.map(e => ({ title: e.title, category: e.category }))
+            }
           }),
-          {
-            status: 400,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
       }
-      console.log(`Knowledge base coverage adequate: ${coverage.coverageScore}%`);
+      
+      console.log(`Knowledge base coverage adequate: ${coverage.coverageScore}% - proceeding with generation`);
+    }
+    
+    // Helper function for section type (used in logging)
+    function getSectionType(title: string): string {
+      const t = title.toLowerCase();
+      if (t.includes('executive') || t.includes('summary') || t.includes('overview')) return 'executive';
+      if (t.includes('technical') || t.includes('approach') || t.includes('methodology')) return 'technical';
+      if (t.includes('team') || t.includes('staff') || t.includes('personnel')) return 'team';
+      if (t.includes('timeline') || t.includes('schedule') || t.includes('milestones')) return 'timeline';
+      if (t.includes('pricing') || t.includes('cost') || t.includes('budget')) return 'pricing';
+      return 'general';
     }
     
     // Format knowledge base context

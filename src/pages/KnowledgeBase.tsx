@@ -7,6 +7,7 @@ import { SearchBar } from "@/components/knowledge-base/SearchBar";
 import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
 import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigger";
+import { TriggerBatchParsing } from "@/components/knowledge-base/TriggerBatchParsing";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 
@@ -32,6 +33,7 @@ const KnowledgeBase = () => {
 
   return (
     <div className="min-h-screen w-full bg-background">
+      <TriggerBatchParsing />
       <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)]">
         <div className="flex flex-col gap-8 h-full">
           <header className="flex items-center justify-between">

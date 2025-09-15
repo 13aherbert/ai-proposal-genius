@@ -66,7 +66,7 @@ export const FileUpload = ({ onFileSelect, selectedFile }: FileUploadProps) => {
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.txt"
+          accept=".pdf,.doc,.docx,.txt,.rtf,.csv,.md,.pptx,.xlsx,.xls,.ppt,.odt,.ods,.odp"
         />
         <label
           htmlFor="file"
@@ -77,7 +77,7 @@ export const FileUpload = ({ onFileSelect, selectedFile }: FileUploadProps) => {
             {selectedFile ? selectedFile.name : "Click to upload or drag and drop"}
           </span>
           <span className="text-xs text-muted-foreground">
-            PDF, DOC, DOCX, TXT (max 20MB)
+            PDF, DOC, DOCX, TXT, RTF, CSV, MD, PPTX, XLSX, PPT, ODT (max 20MB)
           </span>
         </label>
       </div>

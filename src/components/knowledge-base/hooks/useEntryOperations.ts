@@ -12,6 +12,9 @@ export const useEntryOperations = (
   const [filePath, setFilePath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [entryId, setEntryId] = useState<string | null>(null);
+  const [parsingStatus, setParsingStatus] = useState<string | null>(null);
+  const [parsingProgress, setParsingProgress] = useState<number>(0);
+  const [parsingError, setParsingError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchEntryContent = async () => {
@@ -19,7 +22,7 @@ export const useEntryOperations = (
       console.log('Fetching entry content for title:', initialTitle);
       const { data, error } = await supabase
         .from('knowledge_entries')
-        .select('content, file_path, entry_id, user_id, parsed_content')
+        .select('content, file_path, entry_id, user_id, parsed_content, parsing_status, parsing_progress, parsing_error')
         .eq('title', initialTitle)
         .single();
 
@@ -32,6 +35,9 @@ export const useEntryOperations = (
       setContent(data.content || data.parsed_content);
       setFilePath(data.file_path);
       setEntryId(data.entry_id);
+      setParsingStatus(data.parsing_status);
+      setParsingProgress(data.parsing_progress || 0);
+      setParsingError(data.parsing_error);
     } catch (error) {
       console.error('Error fetching entry content:', error);
       toast({
@@ -191,6 +197,10 @@ export const useEntryOperations = (
     content,
     filePath,
     isLoading,
+    entryId,
+    parsingStatus,
+    parsingProgress,
+    parsingError,
     fetchEntryContent,
     handleSave,
     handleDelete,

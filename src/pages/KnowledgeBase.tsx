@@ -6,6 +6,7 @@ import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
 import { SearchBar } from "@/components/knowledge-base/SearchBar";
 import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
+import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigger";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 
@@ -62,10 +63,17 @@ const KnowledgeBase = () => {
             />
             <div className="lg:col-span-3 space-y-6">
               <SearchBar />
-              <RecentEntries 
-                selectedCategory={selectedCategory} 
-                categories={categories}
-              />
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                <div className="xl:col-span-3">
+                  <RecentEntries 
+                    selectedCategory={selectedCategory} 
+                    categories={categories}
+                  />
+                </div>
+                <div className="xl:col-span-1">
+                  <BulkParsingTrigger />
+                </div>
+              </div>
             </div>
           </div>
         </div>

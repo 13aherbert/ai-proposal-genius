@@ -46,6 +46,25 @@ export const useEntryForm = (onSuccess: () => void) => {
     return filePath;
   };
 
+  const triggerDocumentParsing = async (entryId: string, filePath: string) => {
+    console.log('Triggering document parsing for entry:', entryId);
+    try {
+      const { error } = await supabase.functions.invoke('enhanced-document-parser', {
+        body: { entryId, filePath }
+      });
+
+      if (error) {
+        console.error('Error triggering document parsing:', error);
+        throw error;
+      }
+      
+      console.log('Document parsing triggered successfully');
+    } catch (error) {
+      console.error('Failed to trigger document parsing:', error);
+      throw new Error('Failed to start document parsing');
+    }
+  };
+
   const createKnowledgeEntry = async (
     userId: string,
     data: EntryFormData,
@@ -62,6 +81,10 @@ export const useEntryForm = (onSuccess: () => void) => {
       throw new Error('User organization not found');
     }
 
+    // Determine initial parsing status
+    const initialStatus = filePath ? 'pending' : 'completed';
+    const initialProgress = filePath ? 0 : 100;
+
     const { error: insertError, data: insertData } = await supabase
       .from('knowledge_entries')
       .insert({
@@ -71,6 +94,8 @@ export const useEntryForm = (onSuccess: () => void) => {
         file_path: filePath || null,
         user_id: userId,
         organization_id: profile.current_organization_id,
+        parsing_status: initialStatus,
+        parsing_progress: initialProgress,
       })
       .select('entry_id')
       .single();
@@ -78,6 +103,17 @@ export const useEntryForm = (onSuccess: () => void) => {
     if (insertError || !insertData) {
       console.error('Database insert error:', insertError);
       throw new Error('Failed to create entry');
+    }
+
+    // Trigger document parsing if file was uploaded
+    if (filePath) {
+      try {
+        await triggerDocumentParsing(insertData.entry_id, filePath);
+      } catch (error) {
+        console.error('Document parsing trigger failed:', error);
+        // Don't fail the entire operation, just log the error
+        toast.error("Entry created but document parsing failed. You can retry later.");
+      }
     }
 
     return insertData.entry_id;

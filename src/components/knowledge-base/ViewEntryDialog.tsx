@@ -8,6 +8,7 @@ import { EntryHeader } from "./dialog/EntryHeader";
 import { EntryContent } from "./dialog/EntryContent";
 import { EntryCategory } from "./dialog/EntryCategory";
 import { DeleteEntryAlert } from "./dialog/DeleteEntryAlert";
+import { ParsingStatusIndicator } from "./ParsingStatusIndicator";
 import { useEntryOperations } from "./hooks/useEntryOperations";
 import { KnowledgeCategory } from "./types";
 
@@ -38,6 +39,10 @@ export const ViewEntryDialog = ({
     content,
     filePath,
     isLoading,
+    entryId,
+    parsingStatus,
+    parsingProgress,
+    parsingError,
     fetchEntryContent,
     handleSave,
     handleDelete,
@@ -101,6 +106,19 @@ export const ViewEntryDialog = ({
             categories={categories}
             onEditedCategoryChange={setEditedCategory}
           />
+
+          {filePath && entryId && (
+            <div className="px-6 py-3 border-b">
+              <ParsingStatusIndicator
+                status={parsingStatus as 'pending' | 'processing' | 'completed' | 'failed' || 'completed'}
+                progress={parsingProgress}
+                error={parsingError || undefined}
+                entryId={entryId}
+                filePath={filePath}
+                onStatusUpdate={fetchEntryContent}
+              />
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto max-h-[55vh]">
             <EntryContent

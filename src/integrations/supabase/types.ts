@@ -343,9 +343,13 @@ export type Database = {
           content: string | null
           created_at: string
           entry_id: string
+          file_metadata: Json | null
           file_path: string | null
           organization_id: string
           parsed_content: string | null
+          parsing_error: string | null
+          parsing_progress: number | null
+          parsing_status: string | null
           title: string
           updated_at: string
           user_id: string
@@ -355,9 +359,13 @@ export type Database = {
           content?: string | null
           created_at?: string
           entry_id?: string
+          file_metadata?: Json | null
           file_path?: string | null
           organization_id: string
           parsed_content?: string | null
+          parsing_error?: string | null
+          parsing_progress?: number | null
+          parsing_status?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -367,9 +375,13 @@ export type Database = {
           content?: string | null
           created_at?: string
           entry_id?: string
+          file_metadata?: Json | null
           file_path?: string | null
           organization_id?: string
           parsed_content?: string | null
+          parsing_error?: string | null
+          parsing_progress?: number | null
+          parsing_status?: string | null
           title?: string
           updated_at?: string
           user_id?: string

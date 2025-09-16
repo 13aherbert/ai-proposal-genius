@@ -3,7 +3,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { generatePrompt } from "./prompt.ts";
 import { formatKnowledgeBaseContext } from "./knowledge-base.ts";
+import { formatEnhancedKnowledgeBaseContext } from "./enhanced-knowledge-base.ts";
 import { assessKnowledgeBaseCoverage, validateGeneratedContent } from "./knowledge-validation.ts";
+
+// Helper function to determine section type (moved from prompt.ts for reuse)
+function getSectionType(sectionTitle: string): string {
+  const title = sectionTitle.toLowerCase();
+  
+  if (title.includes('executive') || title.includes('summary') || title.includes('overview')) {
+    return 'executive';
+  }
+  if (title.includes('technical') || title.includes('approach') || title.includes('methodology') || title.includes('solution')) {
+    return 'technical';
+  }
+  if (title.includes('team') || title.includes('personnel') || title.includes('staff') || title.includes('experience')) {
+    return 'team';
+  }
+  if (title.includes('timeline') || title.includes('schedule') || title.includes('milestone') || title.includes('delivery')) {
+    return 'timeline';
+  }
+  if (title.includes('cost') || title.includes('price') || title.includes('budget') || title.includes('financial')) {
+    return 'pricing';
+  }
+  if (title.includes('company') || title.includes('about') || title.includes('profile') || title.includes('organization')) {
+    return 'company';
+  }
+  return 'general';
+}
 
 console.log("Function starting up...");
 
@@ -276,8 +302,13 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
       }
     }
 
-    // Format knowledge base context
-    const knowledgeContext = formatKnowledgeBaseContext(knowledgeEntries);
+    // Format knowledge base context with enhanced analysis
+    const sectionType = getSectionType(sectionTitle);
+    const knowledgeContext = formatEnhancedKnowledgeBaseContext(
+      knowledgeEntries, 
+      sectionType, 
+      sectionTitle
+    );
     
     // Generate enhanced prompt using knowledge base and existing sections
     const prompt = generatePrompt(

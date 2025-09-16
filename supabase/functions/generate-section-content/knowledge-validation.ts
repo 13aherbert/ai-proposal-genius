@@ -1,4 +1,13 @@
 import { KnowledgeEntry } from "./types.ts";
+import { 
+  analyzeContentIntelligently, 
+  calculateIntelligentCoverage, 
+  assessSectionRequirementsIntelligently,
+  identifyMissingTopicsIntelligently,
+  generateIntelligentRecommendations,
+  ExtractedConcepts,
+  ContextualContent
+} from "./intelligent-analysis.ts";
 
 export interface KnowledgeBaseCoverage {
   isAdequate: boolean;
@@ -12,25 +21,22 @@ export function assessKnowledgeBaseCoverage(
   sectionTitle: string,
   knowledgeEntries: KnowledgeEntry[]
 ): KnowledgeBaseCoverage {
-  // ULTRA-STRICT: First filter entries that actually have meaningful content
+  // Enhanced: Filter entries with meaningful content using intelligent analysis
   const meaningfulEntries = knowledgeEntries.filter(entry => {
     const totalContent = (entry.content || '') + ' ' + (entry.parsed_content || '');
     const cleanContent = totalContent.trim();
     
-    // Must have substantial content (not just placeholders)
-    if (cleanContent.length < 100) return false;
+    // Require substantial content but be more flexible
+    if (cleanContent.length < 50) return false;
     
-    // Reject common placeholder patterns
+    // Enhanced placeholder detection - less restrictive
     const placeholderPatterns = [
-      /placeholder/gi,
-      /lorem ipsum/gi,
-      /sample text/gi,
-      /example content/gi,
-      /todo/gi,
-      /tbd/gi,
-      /coming soon/gi,
-      /document content parsing will be implemented/gi,
-      /^(title|name|description):\s*$/gi,
+      /^placeholder$/gi,
+      /^lorem ipsum/gi,
+      /^sample text$/gi,
+      /^todo$/gi,
+      /^tbd$/gi,
+      /^coming soon$/gi,
       /^\s*-\s*$/gm, // Just dashes
       /^\s*\*\s*$/gm, // Just asterisks
     ];
@@ -38,12 +44,7 @@ export function assessKnowledgeBaseCoverage(
     const hasPlaceholders = placeholderPatterns.some(pattern => pattern.test(cleanContent));
     if (hasPlaceholders) return false;
     
-    // Must contain actual informational content (not just metadata)
-    const meaningfulWords = cleanContent.toLowerCase().split(/\s+/).filter(word => 
-      word.length > 3 && !['the', 'and', 'for', 'with', 'that', 'this', 'from', 'they', 'have', 'will'].includes(word)
-    );
-    
-    return meaningfulWords.length >= 20; // Require at least 20 meaningful words
+    return true; // Much more permissive - let content analysis determine relevance
   });
 
   if (meaningfulEntries.length === 0) {
@@ -54,91 +55,60 @@ export function assessKnowledgeBaseCoverage(
       relevantEntries: [],
       recommendations: [
         'CRITICAL: No meaningful knowledge base entries detected',
-        'All entries appear to be placeholders, empty, or have insufficient content',
-        'Add at least 3 detailed entries with 200+ characters of specific information',
-        'Strict mode requires factual, comprehensive content - not generic descriptions'
+        'Add at least 1 detailed entry with relevant project information',
+        'Existing entries appear to be empty or placeholder content'
       ]
     };
   }
 
   const sectionType = determineSectionType(sectionTitle);
-  const semanticKeywords = getSemanticKeywords(sectionType);
   
-  // ENHANCED: Section-specific relevance scoring with content requirements
-  const relevantEntries = meaningfulEntries.filter(entry => {
-    const allContent = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
-    
-    // Section-specific content requirements
-    const sectionSpecificCheck = checkSectionSpecificContent(sectionType, allContent);
-    if (!sectionSpecificCheck.isRelevant) return false;
-    
-    // Semantic keyword matching with higher threshold
-    const matchingKeywords = semanticKeywords.filter(keyword => 
-      isRelatedConcept(allContent, keyword) || allContent.includes(keyword)
-    );
-    
-    // Require at least 30% keyword match for relevance
-    const keywordMatchRatio = matchingKeywords.length / semanticKeywords.length;
-    return keywordMatchRatio >= 0.3;
-  });
+  // ENHANCED: Intelligent content analysis and extraction
+  const relevantEntries = analyzeContentIntelligently(meaningfulEntries, sectionType, sectionTitle);
   
   // Calculate total content volume for relevant entries
   const totalRelevantContent = relevantEntries.reduce((total, entry) => {
     return total + (entry.content?.trim().length || 0) + (entry.parsed_content?.trim().length || 0);
   }, 0);
 
-  // Ultra-strict coverage calculation for anti-hallucination
-  let coverageScore = 0;
-  
-  if (relevantEntries.length > 0) {
-    // Base score from relevant entries (max 40%)
-    const entryScore = Math.min((relevantEntries.length / Math.max(semanticKeywords.length * 0.4, 2)) * 40, 40);
-    
-    // Content volume score (max 40%) - need substantial content
-    const minContentPerEntry = 200; // Minimum 200 chars per relevant entry
-    const expectedContent = relevantEntries.length * minContentPerEntry;
-    const contentScore = Math.min((totalRelevantContent / expectedContent) * 40, 40);
-    
-    // Keyword coverage score (max 20%)
-    const keywordsCovered = semanticKeywords.filter(keyword => 
-      relevantEntries.some(entry => {
-        const allText = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
-        return isRelatedConcept(allText, keyword);
-      })
-    ).length;
-    const keywordScore = (keywordsCovered / semanticKeywords.length) * 20;
-    
-    coverageScore = entryScore + contentScore + keywordScore;
-  }
-  
-  // ULTRA-STRICT adequacy check - zero tolerance for insufficient coverage
-  const sectionComplexity = getSectionComplexityMultiplier(sectionType);
-  const minCoverageThreshold = 95; // 95% coverage required for strict mode
-  const minRelevantEntries = Math.max(3, Math.ceil(semanticKeywords.length * 0.8 * sectionComplexity)); 
-  const minContentVolume = Math.max(800, 300 * sectionComplexity); // Dynamic based on section complexity
-  
-  // Additional section-specific requirements
-  const sectionRequirements = getSectionSpecificRequirements(sectionType, relevantEntries);
-  
-  const isAdequate = coverageScore >= minCoverageThreshold && 
-                    relevantEntries.length >= minRelevantEntries &&
-                    totalRelevantContent >= minContentVolume &&
-                    sectionRequirements.areMet;
-  
-  // Generate missing topics and enhanced recommendations
-  const missingTopics = semanticKeywords.filter(keyword => 
-    !relevantEntries.some(entry => {
-      const allText = ((entry.content || '') + ' ' + (entry.parsed_content || '') + ' ' + entry.title).toLowerCase();
-      return isRelatedConcept(allText, keyword);
-    })
+  // Enhanced coverage calculation using intelligent analysis
+  const { coverageScore, contextualContent, extractedConcepts } = calculateIntelligentCoverage(
+    relevantEntries, 
+    sectionType, 
+    sectionTitle,
+    totalRelevantContent
   );
   
-  const recommendations = generateStrictModeRecommendations(
+  // More reasonable adequacy check - focus on content quality over rigid metrics
+  const minCoverageThreshold = 70; // Reduced from 95% to 70%
+  const hasSubstantialContent = totalRelevantContent >= 1000; // Lower threshold
+  const hasRelevantEntries = relevantEntries.length >= 1; // Much more reasonable
+  
+  // Enhanced section requirements using intelligent analysis  
+  const sectionRequirements = assessSectionRequirementsIntelligently(
+    sectionType, 
+    relevantEntries, 
+    extractedConcepts
+  );
+  
+  const isAdequate = coverageScore >= minCoverageThreshold && 
+                    hasSubstantialContent &&
+                    hasRelevantEntries &&
+                    sectionRequirements.areMet;
+  
+  // Generate intelligent recommendations based on content analysis
+  const missingTopics = identifyMissingTopicsIntelligently(
+    sectionType, 
+    extractedConcepts,
+    contextualContent
+  );
+  
+  const recommendations = generateIntelligentRecommendations(
     sectionType, 
     missingTopics, 
     relevantEntries.length, 
     totalRelevantContent,
-    semanticKeywords.length
+    extractedConcepts
   );
   
   return {

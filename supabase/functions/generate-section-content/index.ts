@@ -103,9 +103,56 @@ serve(async (req) => {
 
   try {
     console.log("Processing request body...");
-    const { projectId, sectionTitle, userId, strictMode = false }: GenerateContentRequest = await req.json();
     
-    console.log("Request parameters:", { projectId, sectionTitle, userId, strictMode });
+    // Defensive JSON parsing with detailed error handling
+    let requestBody;
+    try {
+      const rawBody = await req.text();
+      console.log("Raw request body received, length:", rawBody.length);
+      
+      if (!rawBody || rawBody.trim() === '') {
+        throw new Error("Empty request body");
+      }
+      
+      requestBody = JSON.parse(rawBody);
+      console.log("JSON parsed successfully");
+    } catch (jsonError) {
+      console.error("JSON parsing failed:", jsonError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid JSON in request body", 
+          details: jsonError.message 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Simplified destructuring without interface type annotation
+    const projectId = requestBody.projectId;
+    const sectionTitle = requestBody.sectionTitle;
+    const userId = requestBody.userId;
+    const strictMode = requestBody.strictMode || false;
+    
+    // Validate required fields
+    if (!projectId || !sectionTitle || !userId) {
+      console.error("Missing required fields:", { projectId, sectionTitle, userId });
+      return new Response(
+        JSON.stringify({ 
+          error: "Missing required fields", 
+          required: ["projectId", "sectionTitle", "userId"],
+          received: { projectId: !!projectId, sectionTitle: !!sectionTitle, userId: !!userId }
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    console.log("Request parameters validated:", { projectId, sectionTitle, userId, strictMode });
 
     // Fetch project details
     console.log("Fetching project details...");
@@ -496,12 +543,34 @@ This indicates the content contains information not supported by your knowledge 
     });
 
   } catch (error) {
-    console.error('Error in generate-section-content function:', error);
+    console.error('Error in generate-section-content function:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      type: typeof error
+    });
+    
+    // Provide different error messages based on error type
+    let errorMessage = error.message;
+    let statusCode = 500;
+    
+    if (error.message.includes('JSON')) {
+      statusCode = 400;
+      errorMessage = 'Invalid request format';
+    } else if (error.message.includes('authorization') || error.message.includes('Permission')) {
+      statusCode = 401;
+      errorMessage = 'Authentication required';
+    } else if (error.message.includes('not found') || error.message.includes('Missing')) {
+      statusCode = 404;
+      errorMessage = 'Resource not found';
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'Check function logs for more information'
+      error: errorMessage,
+      details: 'Check function logs for more information',
+      timestamp: new Date().toISOString()
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

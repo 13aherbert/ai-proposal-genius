@@ -92,22 +92,45 @@ export function useContentGeneration() {
           if (error) {
             healthMonitor.recordError();
             
+            // For 400 errors (Bad Request), the actual error details are in the response
+            // Check if it's a FunctionsHttpError with details
+            let errorDetails = null;
+            if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+              // For 400 errors, we need to handle them differently as they contain structured error info
+              // but the Supabase client doesn't parse them automatically
+              throw new Error('KNOWLEDGE_BASE_ERROR: Insufficient knowledge base coverage for this section in strict mode. Please add more relevant entries or disable strict mode.');
+            }
+            
             // Check for specific error types
             const errorMessage = error.message?.toLowerCase() || '';
-            if (errorMessage.includes('insufficient_knowledge_base')) {
-              throw new Error('INSUFFICIENT_KNOWLEDGE_BASE');
+            
+            if (errorMessage.includes('knowledge base coverage insufficient') || 
+                errorMessage.includes('insufficient knowledge base coverage') ||
+                errorMessage.includes('insufficient_knowledge_base_coverage')) {
+              throw new Error('INSUFFICIENT_KNOWLEDGE_BASE: The knowledge base doesn\'t contain enough relevant information for this section. Please add more detailed entries covering the required topics.');
             }
-            if (errorMessage.includes('content_validation_failed')) {
-              throw new Error('CONTENT_VALIDATION_FAILED');
+            if (errorMessage.includes('content_validation_failed') || 
+                errorMessage.includes('content failed basic validation')) {
+              throw new Error('CONTENT_VALIDATION_FAILED: Generated content did not meet quality standards.');
             }
             if (errorMessage.includes('overloaded') || errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-              throw new Error('RATE_LIMITED');
+              throw new Error('RATE_LIMITED: Service is temporarily overloaded. Please try again in a moment.');
             }
+            
             throw error;
           }
 
           if (!data?.content) {
             healthMonitor.recordError();
+            
+            // Check if there's an error in the data response (for 400 status responses)
+            if (data?.error) {
+              if (data.error.includes('Knowledge base coverage insufficient')) {
+                throw new Error('INSUFFICIENT_KNOWLEDGE_BASE: The knowledge base doesn\'t contain enough relevant information for this section. Please add more detailed entries covering the required topics.');
+              }
+              throw new Error(data.error);
+            }
+            
             throw new Error('No content generated');
           }
 
@@ -245,17 +268,27 @@ export function useContentGeneration() {
         } catch (batchError) {
           const errorMessage = batchError instanceof Error ? batchError.message : String(batchError);
           
-          if (errorMessage.includes('INSUFFICIENT_KNOWLEDGE_BASE')) {
-            toast.error(`Knowledge Base Insufficient: ${section.section_title}`, {
-              description: 'Please add more relevant information to your knowledge base for this section.'
+          if (errorMessage.includes('INSUFFICIENT_KNOWLEDGE_BASE') || errorMessage.includes('KNOWLEDGE_BASE_ERROR')) {
+            toast.error(`Knowledge Base Coverage Insufficient: ${section.section_title}`, {
+              description: 'In strict mode, this section requires more detailed knowledge base entries. Add specific information about your company, processes, team, or capabilities.',
+              duration: 8000
             });
           } else if (errorMessage.includes('CONTENT_VALIDATION_FAILED')) {
             toast.error(`Content Validation Failed: ${section.section_title}`, {
-              description: 'Generated content contains unverified claims. Please enhance your knowledge base.'
+              description: 'Generated content contains unverified claims. Please enhance your knowledge base with more specific details.',
+              duration: 6000
+            });
+          } else if (errorMessage.includes('RATE_LIMITED')) {
+            toast.error(`Service Temporarily Overloaded: ${section.section_title}`, {
+              description: 'Please wait a moment and try again.',
+              duration: 4000
             });
           } else {
             toast.error(`Failed to generate: ${section.section_title}`, {
-              description: errorMessage
+              description: errorMessage.includes('Edge Function returned a non-2xx status code') 
+                ? 'Generation failed. Try disabling strict mode or add more knowledge base entries.'
+                : errorMessage,
+              duration: 5000
             });
           }
           

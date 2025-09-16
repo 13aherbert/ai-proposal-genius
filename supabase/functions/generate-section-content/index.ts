@@ -255,10 +255,20 @@ Missing topics: ${coverage.missingTopics.join(', ')}`;
         console.error("Knowledge base coverage insufficient:", errorMessage);
         return new Response(JSON.stringify({ 
           error: 'INSUFFICIENT_KNOWLEDGE_BASE_COVERAGE',
+          message: `Knowledge base coverage insufficient for "${sectionTitle}" in strict mode`,
           details: errorMessage,
-          coverage: coverage,
-          contentVolume: totalContentLength,
-          entriesWithContent: knowledgeEntries.length
+          coverageScore: coverage.coverageScore,
+          requiredScore: 85,
+          sectionTitle: sectionTitle,
+          recommendations: coverage.recommendations || [],
+          missingTopics: coverage.missingTopics?.slice(0, 10) || [], // Limit to first 10 topics
+          suggestions: [
+            'Add more detailed knowledge entries related to this section type',
+            'Include specific company information, processes, and capabilities', 
+            'Add team profiles, qualifications, and project examples',
+            'Consider disabling strict mode to generate basic content',
+            'Ensure entries contain specific examples and metrics rather than generic descriptions'
+          ]
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

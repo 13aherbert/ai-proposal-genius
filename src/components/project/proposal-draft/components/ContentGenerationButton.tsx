@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, RefreshCcw, Shield, AlertTriangle } from "lucide-react";
+import { Loader2, Sparkles, RefreshCcw, Shield, AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -97,6 +97,19 @@ export function ContentGenerationButton({
             />
           ))}
         </div>
+      )}
+
+      {/* Strict Mode Information Alert */}
+      {strictMode && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800 text-sm">
+            <strong>Strict Mode Enabled:</strong> Content generation requires comprehensive knowledge base coverage. 
+            Each section needs specific, detailed information about your company, processes, team, and capabilities. 
+            <br className="hidden sm:block" />
+            <span className="text-blue-600 font-medium">If generation fails, add more relevant knowledge entries or disable strict mode.</span>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Generation Controls */}

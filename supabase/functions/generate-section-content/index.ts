@@ -54,21 +54,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 console.log("Supabase client created successfully");
 
-interface GenerateContentRequest {
-  projectId: string;
-  sectionTitle: string;
-  userId: string;
-  strictMode?: boolean;
-}
-
-interface Project {
-  project_id: string;
-  title: string;
-  client_name?: string;
-  business_name?: string;
-  analysis?: any;
-  proposal_outline?: any;
-}
 
 
 // Simplified content cleaning function

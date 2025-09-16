@@ -80,12 +80,15 @@ export function useContentGeneration() {
         const startTime = Date.now();
         
         try {
-          const { data, error } = await supabase.functions.invoke('generate-section-content', {
+        const { data, error } = await supabase.functions.invoke('generate-section-content', {
             body: { 
               projectId, 
               sectionTitle: section.section_title, 
               userId: session.user.id,
               strictMode: strictMode
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
             }
           });
 
@@ -93,15 +96,17 @@ export function useContentGeneration() {
             healthMonitor.recordError();
             
             console.error('Content generation error:', error);
+            console.log('Edge function error details:', error);
             
             // For edge function errors, try to parse the actual response
             let actualError = null;
             if (error.message?.includes('Edge Function returned a non-2xx status code')) {
               try {
-                // Try to extract JSON response from the error
-                if (error.details || error.context) {
-                  console.log('Edge function error details:', error.details || error.context);
-                  actualError = error.details || error.context;
+                // Edge function errors may contain the actual response in context
+                if (error.context && typeof error.context === 'object') {
+                  actualError = error.context;
+                } else if (error.details && typeof error.details === 'object') {
+                  actualError = error.details;
                 }
               } catch (parseError) {
                 console.error('Could not parse edge function error:', parseError);
@@ -110,7 +115,7 @@ export function useContentGeneration() {
             
             // Use actual server error if available, otherwise fall back to original error
             const errorToCheck = actualError || error;
-            const errorMessage = (actualError?.message || error.message || '').toLowerCase();
+            const errorMessage = (actualError?.error || actualError?.message || error.message || '').toLowerCase();
             
             if (errorMessage.includes('knowledge base coverage insufficient') || 
                 errorMessage.includes('insufficient knowledge base coverage') ||

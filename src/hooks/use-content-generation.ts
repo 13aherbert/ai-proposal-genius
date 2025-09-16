@@ -92,17 +92,25 @@ export function useContentGeneration() {
           if (error) {
             healthMonitor.recordError();
             
-            // For 400 errors (Bad Request), the actual error details are in the response
-            // Check if it's a FunctionsHttpError with details
-            let errorDetails = null;
+            console.error('Content generation error:', error);
+            
+            // For edge function errors, try to parse the actual response
+            let actualError = null;
             if (error.message?.includes('Edge Function returned a non-2xx status code')) {
-              // For 400 errors, we need to handle them differently as they contain structured error info
-              // but the Supabase client doesn't parse them automatically
-              throw new Error('KNOWLEDGE_BASE_ERROR: Insufficient knowledge base coverage for this section in strict mode. Please add more relevant entries or disable strict mode.');
+              try {
+                // Try to extract JSON response from the error
+                if (error.details || error.context) {
+                  console.log('Edge function error details:', error.details || error.context);
+                  actualError = error.details || error.context;
+                }
+              } catch (parseError) {
+                console.error('Could not parse edge function error:', parseError);
+              }
             }
             
-            // Check for specific error types
-            const errorMessage = error.message?.toLowerCase() || '';
+            // Use actual server error if available, otherwise fall back to original error
+            const errorToCheck = actualError || error;
+            const errorMessage = (actualError?.message || error.message || '').toLowerCase();
             
             if (errorMessage.includes('knowledge base coverage insufficient') || 
                 errorMessage.includes('insufficient knowledge base coverage') ||

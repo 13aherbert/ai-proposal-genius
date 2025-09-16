@@ -79,13 +79,14 @@ export function assessKnowledgeBaseCoverage(
     totalRelevantContent
   );
   
-  // Much more realistic adequacy check for comprehensive documents
-  const minCoverageThreshold = 50; // Very permissive threshold
-  const hasSubstantialContent = totalRelevantContent >= 500; // Lower threshold for substantial content
+  // Ultra-permissive adequacy check for comprehensive documents
+  const minCoverageThreshold = 25; // Extremely permissive threshold
+  const hasSubstantialContent = totalRelevantContent >= 200; // Very low threshold for substantial content
   const hasRelevantEntries = relevantEntries.length >= 1;
   
-  // For large comprehensive documents, be very permissive
-  const isLargeComprehensiveDocument = totalRelevantContent >= 50000; // 50K+ chars = comprehensive
+  // For large comprehensive documents, be extremely permissive
+  const isLargeComprehensiveDocument = totalRelevantContent >= 10000; // 10K+ chars = comprehensive
+  const isMassiveDocument = totalRelevantContent >= 50000; // 50K+ chars = definitely comprehensive
   
   // Enhanced section requirements using intelligent analysis  
   const sectionRequirements = assessSectionRequirementsIntelligently(
@@ -97,10 +98,12 @@ export function assessKnowledgeBaseCoverage(
   // If we have a large comprehensive document, requirements are automatically met
   const requirementsMet = isLargeComprehensiveDocument || sectionRequirements.areMet;
   
-  const isAdequate = coverageScore >= minCoverageThreshold && 
-                    hasSubstantialContent &&
-                    hasRelevantEntries &&
-                    requirementsMet;
+  // For massive documents (50K+), automatically pass all checks
+  const isAdequate = isMassiveDocument || 
+                    (coverageScore >= minCoverageThreshold && 
+                     hasSubstantialContent &&
+                     hasRelevantEntries &&
+                     requirementsMet);
   
   // Generate intelligent recommendations based on content analysis
   const missingTopics = identifyMissingTopicsIntelligently(

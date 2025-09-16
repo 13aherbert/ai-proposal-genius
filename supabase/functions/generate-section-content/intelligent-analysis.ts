@@ -31,15 +31,27 @@ export function analyzeContentIntelligently(
   sectionType: string, 
   sectionTitle: string
 ): KnowledgeEntry[] {
-  // Instead of rigid keyword matching, analyze content semantically
-  const sectionIntents = getSectionIntents(sectionType);
-  
+  // For comprehensive documents, be much more permissive
   return entries.filter(entry => {
-    const content = `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+    const content = `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`;
+    const contentLength = content.trim().length;
     
-    // Check if this entry contains information relevant to the section intent
+    // Auto-include large comprehensive documents (likely RFP responses or proposals)
+    if (contentLength >= 10000) {
+      return true; // Any document over 10K chars is likely comprehensive and relevant
+    }
+    
+    // Auto-include documents that appear to be RFP responses or technical proposals
+    if (isComprehensiveDocument(content)) {
+      return true;
+    }
+    
+    // For smaller documents, use semantic analysis
+    const sectionIntents = getSectionIntents(sectionType);
+    const contentLower = content.toLowerCase();
+    
     return sectionIntents.some(intent => {
-      return assessContentRelevance(content, intent, sectionTitle);
+      return assessContentRelevance(contentLower, intent, sectionTitle);
     });
   });
 }
@@ -56,6 +68,22 @@ function getSectionIntents(sectionType: string): string[] {
   };
   
   return intentMap[sectionType] || intentMap.general;
+}
+
+function isComprehensiveDocument(content: string): boolean {
+  const comprehensiveIndicators = [
+    'proposal', 'rfp', 'request for proposal', 'statement of work', 'sow',
+    'technical approach', 'project methodology', 'deliverables', 'scope of work',
+    'team composition', 'project plan', 'implementation plan', 'executive summary'
+  ];
+  
+  const contentLower = content.toLowerCase();
+  const indicatorCount = comprehensiveIndicators.filter(indicator => 
+    contentLower.includes(indicator)
+  ).length;
+  
+  // If document contains multiple comprehensive indicators, it's likely a full proposal/response
+  return indicatorCount >= 2;
 }
 
 function assessContentRelevance(content: string, intent: string, sectionTitle: string): boolean {
@@ -93,8 +121,8 @@ function assessContentRelevance(content: string, intent: string, sectionTitle: s
   const patterns = relevancePatterns[intent] || [];
   const matchCount = patterns.filter(pattern => content.includes(pattern)).length;
   
-  // More flexible matching - even a few matches indicate relevance
-  return matchCount >= 2 || content.length > 5000; // Large documents likely contain relevant info
+  // Much more permissive matching for comprehensive documents
+  return matchCount >= 1 || content.length > 2000; // Very permissive - single match or 2K+ chars
 }
 
 export function calculateIntelligentCoverage(

@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import pdfParse from "pdf-parse";
 import JSZip from "jszip";
+import mammoth from "mammoth";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,18 +121,17 @@ async function parsePDF(fileData: Blob): Promise<string> {
   }
 }
 
-// Modern Office document parsing using JSZip
+// Modern Office document parsing using specialized libraries
 async function parseModernOffice(fileData: Blob, fileType: string, fileName: string): Promise<string> {
   try {
-    const arrayBuffer = await fileData.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    console.log(`Parsing modern Office document: ${fileName} (${fileType})`);
     
     if (fileType.includes('wordprocessingml') || fileName.endsWith('.docx')) {
-      return await parseDocxContent(zip);
+      return await parseDocxWithMammoth(fileData);
     } else if (fileType.includes('spreadsheetml') || fileName.endsWith('.xlsx')) {
-      return await parseXlsxContent(zip);
+      return await parseXlsxContent(fileData);
     } else if (fileType.includes('presentationml') || fileName.endsWith('.pptx')) {
-      return await parsePptxContent(zip);
+      return await parsePptxContent(fileData);
     }
     
     throw new Error('Unsupported modern Office format');
@@ -141,8 +141,42 @@ async function parseModernOffice(fileData: Blob, fileType: string, fileName: str
   }
 }
 
-async function parseDocxContent(zip: JSZip): Promise<string> {
+// DOCX parsing using mammoth library for reliable text extraction
+async function parseDocxWithMammoth(fileData: Blob): Promise<string> {
   try {
+    console.log('Parsing DOCX with mammoth library');
+    const arrayBuffer = await fileData.arrayBuffer();
+    
+    // Use mammoth to extract text from DOCX
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    if (!result.value || result.value.trim().length < 10) {
+      console.warn('Mammoth extraction produced minimal content, trying fallback method');
+      return await parseDocxContentFallback(fileData);
+    }
+    
+    console.log(`Successfully extracted ${result.value.length} characters from DOCX`);
+    
+    // Log any warnings from mammoth
+    if (result.messages && result.messages.length > 0) {
+      console.log('Mammoth warnings:', result.messages);
+    }
+    
+    return result.value.trim();
+  } catch (error) {
+    console.error('Mammoth DOCX parsing error:', error);
+    console.log('Falling back to manual XML parsing');
+    return await parseDocxContentFallback(fileData);
+  }
+}
+
+// Fallback DOCX parsing using manual XML extraction
+async function parseDocxContentFallback(fileData: Blob): Promise<string> {
+  try {
+    console.log('Using fallback DOCX parsing method');
+    const arrayBuffer = await fileData.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    
     // Extract the main document content from word/document.xml
     const documentFile = zip.file('word/document.xml');
     if (!documentFile) {
@@ -150,98 +184,149 @@ async function parseDocxContent(zip: JSZip): Promise<string> {
     }
     
     const documentXml = await documentFile.async('text');
+    console.log('Successfully loaded document.xml');
     
-    // Extract text from <w:t> elements
-    const textElements = documentXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-    const extractedText = textElements
-      .map(element => {
-        const match = element.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
-        return match ? match[1] : '';
-      })
-      .join(' ')
-      .trim();
+    // More comprehensive text extraction patterns
+    const textPatterns = [
+      /<w:t[^>]*>([^<]*)<\/w:t>/g,  // Standard word text elements
+      /<w:r[^>]*><w:t[^>]*>([^<]*)<\/w:t><\/w:r>/g,  // Text runs
+      /<t[^>]*>([^<]*)<\/t>/g  // Alternative text elements
+    ];
     
-    if (extractedText.length < 10) {
-      // Fallback: try to extract any text content
-      const allTextMatches = documentXml.match(/>([^<]+)</g) || [];
-      const fallbackText = allTextMatches
-        .map(match => match.slice(1, -1))
-        .filter(text => text.trim().length > 0 && /[a-zA-Z]/.test(text))
-        .join(' ')
-        .trim();
-      
-      if (fallbackText.length < 10) {
-        throw new Error('Could not extract sufficient text from DOCX');
+    let extractedText = '';
+    for (const pattern of textPatterns) {
+      const matches = documentXml.match(pattern) || [];
+      if (matches.length > 0) {
+        const text = matches
+          .map(element => {
+            const match = element.match(/>([^<]*)</);
+            return match ? match[1] : '';
+          })
+          .filter(text => text.trim().length > 0)
+          .join(' ');
+        
+        if (text.length > extractedText.length) {
+          extractedText = text;
+        }
       }
-      return fallbackText;
     }
     
-    return extractedText;
+    if (extractedText.length < 10) {
+      // Final fallback: extract any readable text
+      console.log('Using final fallback text extraction');
+      const allTextMatches = documentXml.match(/>([^<]{3,})</g) || [];
+      extractedText = allTextMatches
+        .map(match => match.slice(1, -1))
+        .filter(text => {
+          const cleaned = text.trim();
+          return cleaned.length > 2 && /[a-zA-Z]/.test(cleaned) && !/^[\d\s.,;:!?-]*$/.test(cleaned);
+        })
+        .join(' ')
+        .trim();
+    }
+    
+    if (extractedText.length < 10) {
+      throw new Error('Could not extract sufficient text from DOCX file');
+    }
+    
+    console.log(`Fallback extraction successful: ${extractedText.length} characters`);
+    return extractedText.trim();
   } catch (error) {
-    console.error('DOCX parsing error:', error);
-    throw new Error(`DOCX parsing failed: ${error.message}`);
+    console.error('Fallback DOCX parsing error:', error);
+    throw new Error(`DOCX fallback parsing failed: ${error.message}`);
   }
 }
 
-async function parseXlsxContent(zip: JSZip): Promise<string> {
+async function parseXlsxContent(fileData: Blob): Promise<string> {
   try {
+    console.log('Parsing XLSX content');
+    const arrayBuffer = await fileData.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    
     // Extract shared strings for text values
     const sharedStringsFile = zip.file('xl/sharedStrings.xml');
     let sharedStrings: string[] = [];
     
     if (sharedStringsFile) {
+      console.log('Loading shared strings');
       const sharedStringsXml = await sharedStringsFile.async('text');
       const stringMatches = sharedStringsXml.match(/<t[^>]*>([^<]*)<\/t>/g) || [];
       sharedStrings = stringMatches.map(match => {
         const textMatch = match.match(/<t[^>]*>([^<]*)<\/t>/);
         return textMatch ? textMatch[1] : '';
       });
+      console.log(`Found ${sharedStrings.length} shared strings`);
     }
     
-    // Extract worksheet data
-    const worksheetFile = zip.file('xl/worksheets/sheet1.xml');
-    if (!worksheetFile) {
-      throw new Error('Could not find worksheet in XLSX file');
-    }
+    // Try to extract data from multiple worksheets
+    const worksheetFiles = Object.keys(zip.files).filter(fileName => 
+      fileName.startsWith('xl/worksheets/') && fileName.endsWith('.xml')
+    );
     
-    const worksheetXml = await worksheetFile.async('text');
-    const cellMatches = worksheetXml.match(/<c[^>]*>.*?<\/c>/g) || [];
+    console.log(`Found ${worksheetFiles.length} worksheet(s)`);
     
-    const cellValues: string[] = [];
-    cellMatches.forEach(cell => {
-      // Check if cell contains shared string reference
-      if (cell.includes('t="s"')) {
-        const valueMatch = cell.match(/<v>(\d+)<\/v>/);
-        if (valueMatch) {
-          const stringIndex = parseInt(valueMatch[1]);
-          if (sharedStrings[stringIndex]) {
-            cellValues.push(sharedStrings[stringIndex]);
+    const allCellValues: string[] = [];
+    
+    for (const worksheetFileName of worksheetFiles) {
+      const worksheetFile = zip.file(worksheetFileName);
+      if (!worksheetFile) continue;
+      
+      console.log(`Processing ${worksheetFileName}`);
+      const worksheetXml = await worksheetFile.async('text');
+      const cellMatches = worksheetXml.match(/<c[^>]*>.*?<\/c>/g) || [];
+      
+      cellMatches.forEach(cell => {
+        // Check if cell contains shared string reference
+        if (cell.includes('t="s"')) {
+          const valueMatch = cell.match(/<v>(\d+)<\/v>/);
+          if (valueMatch) {
+            const stringIndex = parseInt(valueMatch[1]);
+            if (sharedStrings[stringIndex]) {
+              allCellValues.push(sharedStrings[stringIndex]);
+            }
+          }
+        } else if (cell.includes('<v>')) {
+          // Direct value (number or inline string)
+          const valueMatch = cell.match(/<v>([^<]+)<\/v>/);
+          if (valueMatch) {
+            const value = valueMatch[1];
+            // Only include if it contains text or is a meaningful number
+            if (isNaN(Number(value)) || value.length > 3) {
+              allCellValues.push(value);
+            }
           }
         }
-      } else {
-        // Direct value
-        const valueMatch = cell.match(/<v>([^<]+)<\/v>/);
-        if (valueMatch) {
-          cellValues.push(valueMatch[1]);
+        
+        // Also check for inline strings
+        const inlineStringMatch = cell.match(/<is><t[^>]*>([^<]*)<\/t><\/is>/);
+        if (inlineStringMatch) {
+          allCellValues.push(inlineStringMatch[1]);
         }
-      }
-    });
-    
-    const extractedText = cellValues.filter(value => value.trim().length > 0).join(', ');
-    
-    if (extractedText.length < 10) {
-      throw new Error('Could not extract sufficient data from XLSX');
+      });
     }
     
-    return `Spreadsheet data: ${extractedText}`;
+    const extractedText = allCellValues
+      .filter(value => value && value.trim().length > 0)
+      .join(', ');
+    
+    if (extractedText.length < 10) {
+      throw new Error('Could not extract sufficient data from XLSX file');
+    }
+    
+    console.log(`Successfully extracted ${extractedText.length} characters from XLSX`);
+    return `Spreadsheet content: ${extractedText}`;
   } catch (error) {
     console.error('XLSX parsing error:', error);
     throw new Error(`XLSX parsing failed: ${error.message}`);
   }
 }
 
-async function parsePptxContent(zip: JSZip): Promise<string> {
+async function parsePptxContent(fileData: Blob): Promise<string> {
   try {
+    console.log('Parsing PPTX content');
+    const arrayBuffer = await fileData.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    
     const slideTexts: string[] = [];
     
     // Find all slide files
@@ -249,22 +334,38 @@ async function parsePptxContent(zip: JSZip): Promise<string> {
       fileName.startsWith('ppt/slides/slide') && fileName.endsWith('.xml')
     );
     
+    console.log(`Found ${slideFiles.length} slide(s)`);
+    
     for (const slideFileName of slideFiles) {
       const slideFile = zip.file(slideFileName);
       if (slideFile) {
+        console.log(`Processing ${slideFileName}`);
         const slideXml = await slideFile.async('text');
         
-        // Extract text from <a:t> elements
-        const textElements = slideXml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || [];
-        const slideText = textElements
-          .map(element => {
-            const match = element.match(/<a:t[^>]*>([^<]*)<\/a:t>/);
-            return match ? match[1] : '';
-          })
-          .join(' ');
+        // Extract text from multiple PowerPoint text element patterns
+        const textPatterns = [
+          /<a:t[^>]*>([^<]*)<\/a:t>/g,  // Standard text elements
+          /<p:txBody[^>]*>.*?<a:t[^>]*>([^<]*)<\/a:t>.*?<\/p:txBody>/gs,  // Text bodies
+          /<p:ph[^>]*>.*?<a:t[^>]*>([^<]*)<\/a:t>.*?<\/p:ph>/gs  // Placeholders
+        ];
         
-        if (slideText.trim()) {
-          slideTexts.push(slideText);
+        const slideTextParts: string[] = [];
+        
+        for (const pattern of textPatterns) {
+          const matches = slideXml.match(pattern) || [];
+          matches.forEach(element => {
+            const match = element.match(/<a:t[^>]*>([^<]*)<\/a:t>/);
+            if (match && match[1].trim()) {
+              slideTextParts.push(match[1].trim());
+            }
+          });
+        }
+        
+        if (slideTextParts.length > 0) {
+          const slideText = slideTextParts.join(' ').trim();
+          if (slideText) {
+            slideTexts.push(`Slide ${slideTexts.length + 1}: ${slideText}`);
+          }
         }
       }
     }
@@ -272,9 +373,10 @@ async function parsePptxContent(zip: JSZip): Promise<string> {
     const extractedText = slideTexts.join('\n\n').trim();
     
     if (extractedText.length < 10) {
-      throw new Error('Could not extract sufficient text from PPTX');
+      throw new Error('Could not extract sufficient text from PPTX file');
     }
     
+    console.log(`Successfully extracted ${extractedText.length} characters from PPTX`);
     return extractedText;
   } catch (error) {
     console.error('PPTX parsing error:', error);

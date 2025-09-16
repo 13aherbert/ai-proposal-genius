@@ -4,6 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { generateOptimizedPrompt } from "./optimized-prompt.ts";
 import { filterAndOptimizeKnowledgeBase, formatOptimizedKnowledgeContext } from "./smart-knowledge-filter.ts";
 import { selectOptimalModel, getModelDisplayName, estimateCostReduction } from "./model-selector.ts";
+import { KnowledgeEntry, Project, GenerateContentRequest, ClaudeResponse } from "./types.ts";
 
 // Helper function to determine section type (moved from prompt.ts for reuse)
 function getSectionType(sectionTitle: string): string {
@@ -69,13 +70,6 @@ interface Project {
   proposal_outline?: any;
 }
 
-interface KnowledgeEntry {
-  id: string;
-  title: string; 
-  content: string | null;
-  category: string;
-  parsed_content: string | null;
-}
 
 // Simplified content cleaning function
 function cleanGeneratedContent(content: string, sectionTitle: string): string {

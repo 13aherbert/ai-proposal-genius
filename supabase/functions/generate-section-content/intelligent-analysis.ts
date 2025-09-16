@@ -347,33 +347,6 @@ export function identifyMissingTopicsIntelligently(
   
   return missing;
 }
-        missing.push('company overview');
-      }
-      break;
-    case 'technical':
-      if (concepts.processes.length === 0 && contextual.methodologies.length < 50) {
-        missing.push('methodology');
-      }
-      break;
-    case 'team':
-      if (concepts.qualifications.length === 0 && contextual.teamCapabilities.length < 50) {
-        missing.push('team qualifications');
-      }
-      break;
-    case 'pricing':
-      if (concepts.costs.length === 0) {
-        missing.push('cost information');
-      }
-      break;
-    case 'timeline':
-      if (concepts.timelines.length === 0) {
-        missing.push('timeline information');
-      }
-      break;
-  }
-  
-  return missing;
-}
 
 export function generateIntelligentRecommendations(
   sectionType: string, 

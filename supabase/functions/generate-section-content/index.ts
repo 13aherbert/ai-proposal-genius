@@ -35,15 +35,17 @@ console.log("Function starting up...");
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
 console.log("Environment variables loaded:", {
   supabaseUrl: supabaseUrl ? "✓" : "✗",
-  supabaseServiceKey: supabaseServiceKey ? "✓" : "✗", 
+  supabaseServiceKey: supabaseServiceKey ? "✓" : "✗",
+  supabaseAnonKey: supabaseAnonKey ? "✓" : "✗",
   anthropicApiKey: anthropicApiKey ? "✓" : "✗"
 });
 
-if (!supabaseUrl || !supabaseServiceKey || !anthropicApiKey) {
+if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey || !anthropicApiKey) {
   console.error("Missing required environment variables");
   throw new Error("Missing required environment variables");
 }
@@ -163,9 +165,23 @@ serve(async (req) => {
 
     console.log(`Found ${existingSections?.length || 0} existing sections`);
 
-    // Fetch knowledge base entries
+    // Create user-authenticated client for knowledge entries (to respect RLS)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+    
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    });
+
+    // Fetch knowledge base entries with user auth
     console.log("Fetching knowledge base entries...");
-    const { data: allKnowledgeEntries, error: knowledgeError } = await supabase
+    const { data: allKnowledgeEntries, error: knowledgeError } = await userSupabase
       .from('knowledge_entries')
       .select('*')
       .eq('user_id', userId);

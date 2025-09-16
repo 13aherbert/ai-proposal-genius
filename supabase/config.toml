@@ -1,6 +1,7 @@
 project_id = "bmopbbkfxkgzlbmhhgox"
 
 [global.env_variables]
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtb3BiYmtmeGtnemxibWhoZ294Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczMzAwMzYsImV4cCI6MjA1MjkwNjAzNn0.eFgn0DIR5LgS53r8r4-zb2vonhOpTFyXF3tJgtsuvhM"
 
 [[functions]]
 name = "generate-section-content"

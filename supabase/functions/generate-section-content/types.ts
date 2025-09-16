@@ -1,5 +1,5 @@
 export interface Project {
-  id: string;
+  project_id: string;
   title: string;
   analysis: string | null;
   client_name: string | null;

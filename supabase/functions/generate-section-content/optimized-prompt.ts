@@ -1,4 +1,5 @@
 import { Project } from './types.ts';
+import { getSectionKeywords } from './smart-knowledge-filter.ts';
 
 // Streamlined prompt generation for token optimization
 export function generateOptimizedPrompt(

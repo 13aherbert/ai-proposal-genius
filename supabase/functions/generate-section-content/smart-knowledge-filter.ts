@@ -58,7 +58,7 @@ function selectRelevantEntries(
   return scoredEntries.slice(0, maxEntries).map(item => item.entry);
 }
 
-function getSectionKeywords(sectionType: string): string[] {
+export function getSectionKeywords(sectionType: string): string[] {
   const keywordMap: { [key: string]: string[] } = {
     executive: ['company', 'business', 'overview', 'value', 'benefits', 'experience', 'capabilities'],
     company: ['company', 'business', 'organization', 'about', 'history', 'mission', 'values', 'profile'],

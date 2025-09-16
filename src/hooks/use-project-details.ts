@@ -31,7 +31,7 @@ const fetchProjectWithRetry = async (projectId: string, userId: string, attempt 
       .select("*")
       .eq("project_id", projectId)
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Supabase error:", error);

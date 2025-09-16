@@ -21,10 +21,10 @@ export function formatKnowledgeBaseContext(entries: KnowledgeEntry[]): string {
     formattedContext += `${category}:\n\n`;
     categoryEntries.forEach(entry => {
       formattedContext += `=== ${entry.title} ===\n`;
-      if (entry.content) {
+      if (entry.content && entry.content.trim()) {
         formattedContext += `${entry.content}\n`;
       }
-      if (entry.parsed_content) {
+      if (entry.parsed_content && entry.parsed_content.trim()) {
         formattedContext += `${entry.parsed_content}\n`;
       }
       formattedContext += '\n';

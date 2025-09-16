@@ -7,7 +7,7 @@ export interface Project {
 }
 
 export interface KnowledgeEntry {
-  id: string;
+  entry_id: string;
   title: string;
   content: string | null;
   category: string;

@@ -16,11 +16,13 @@ export function generateOptimizedPrompt(
   let consistencyContext = '';
   if (existingSections && existingSections.length > 0) {
     consistencyContext = `\nEXISTING SECTIONS - MAINTAIN CONSISTENCY:\n`;
-    existingSections.forEach(section => {
-      // Only include key information, not full content
+  existingSections.forEach(section => {
+    // Only include key information, not full content
+    if (section.content) {
       const keyInfo = extractKeyInfo(section.content);
       consistencyContext += `${section.section_title}: ${keyInfo}\n`;
-    });
+    }
+  });
   }
 
   // Streamlined strict mode (much shorter)
@@ -75,7 +77,7 @@ function getSectionGuidelines(sectionType: string): string {
 }
 
 function extractKeyAnalysisPoints(analysis: any): string {
-  if (typeof analysis === 'string') {
+  if (typeof analysis === 'string' && analysis) {
     // Extract first 2 sentences as key points
     const sentences = analysis.split(/[.!?]+/).filter(s => s.trim().length > 10);
     return sentences.slice(0, 2).join('. ') + '.';
@@ -99,8 +101,12 @@ function extractKeyAnalysisPoints(analysis: any): string {
   return 'RFP analysis available';
 }
 
-function extractKeyInfo(content: string): string {
+function extractKeyInfo(content: string | null): string {
   // Extract key information from existing sections (pricing, dates, capabilities)
+  if (!content || typeof content !== 'string') {
+    return 'Content available';
+  }
+  
   const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
   
   // Look for quantifiable information

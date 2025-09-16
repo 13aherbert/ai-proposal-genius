@@ -245,34 +245,40 @@ export function assessSectionRequirementsIntelligently(
   entries: KnowledgeEntry[], 
   concepts: ExtractedConcepts
 ): { areMet: boolean; missing: string[] } {
+  // Check total content volume - if substantial, assume comprehensive
+  const totalContent = entries.reduce((total, entry) => {
+    return total + (entry.content?.trim().length || 0) + (entry.parsed_content?.trim().length || 0);
+  }, 0);
+  
+  // For large documents (50K+ characters), assume all requirements are met
+  if (totalContent >= 50000) {
+    return { areMet: true, missing: [] };
+  }
+  
+  // For medium documents (10K+ characters), be very permissive
+  if (totalContent >= 10000 && entries.length > 0) {
+    return { areMet: true, missing: [] };
+  }
+  
   const requirements: { [key: string]: string[] } = {
-    executive: ['company information', 'value proposition'],
-    technical: ['methodology or approach', 'technical capabilities'],
-    team: ['experience or qualifications', 'team information'],
-    pricing: ['cost information', 'value justification'],
-    timeline: ['timeline or schedule information', 'delivery approach'],
-    company: ['company overview', 'capabilities'],
+    executive: ['relevant content'],
+    technical: ['relevant content'], 
+    team: ['relevant content'],
+    pricing: ['relevant content'],
+    timeline: ['relevant content'],
+    company: ['relevant content'],
     general: ['relevant content']
   };
   
   const sectionReqs = requirements[sectionType] || requirements.general;
   const missing: string[] = [];
   
-  // Much more flexible requirement checking
+  // Very permissive requirement checking - if any meaningful content exists, requirements are met
   sectionReqs.forEach(req => {
     let isMet = false;
     
-    if (req.includes('company') && (concepts.companyInfo.length > 0 || entries.length > 0)) {
-      isMet = true;
-    } else if (req.includes('experience') && (concepts.projects.length > 0 || concepts.teamExperience.length > 0)) {
-      isMet = true;
-    } else if (req.includes('technical') && (concepts.processes.length > 0 || concepts.technologies.length > 0)) {
-      isMet = true;
-    } else if (req.includes('cost') && concepts.costs.length > 0) {
-      isMet = true;
-    } else if (req.includes('timeline') && concepts.timelines.length > 0) {
-      isMet = true;
-    } else if (req.includes('relevant') && entries.length > 0) {
+    // If we have any entries with substantial content, requirements are met
+    if (entries.length > 0 && totalContent > 500) {
       isMet = true;
     }
     
@@ -294,10 +300,53 @@ export function identifyMissingTopicsIntelligently(
 ): string[] {
   const missing: string[] = [];
   
-  // Much more reasonable missing topic identification
+  // For comprehensive documents, assume no topics are missing
+  const totalContextualContent = contextual.companyOverview.length + 
+                                 contextual.teamCapabilities.length + 
+                                 contextual.methodologies.length + 
+                                 contextual.pastProjects.length;
+  
+  // If we have substantial contextual content, no topics are missing
+  if (totalContextualContent >= 1000) {
+    return [];
+  }
+  
+  // Very permissive missing topic identification - only flag truly empty areas
   switch (sectionType) {
     case 'executive':
-      if (concepts.companyInfo.length === 0 && contextual.companyOverview.length < 100) {
+      if (concepts.companyInfo.length === 0 && contextual.companyOverview.length < 50) {
+        missing.push('Basic company information');
+      }
+      break;
+    case 'company':
+      if (concepts.companyInfo.length === 0 && contextual.companyOverview.length < 50) {
+        missing.push('Company overview information');
+      }
+      break;
+    case 'technical':
+      if (concepts.processes.length === 0 && contextual.methodologies.length < 50) {
+        missing.push('Technical methodology information');
+      }
+      break;
+    case 'team':
+      if (concepts.teamExperience.length === 0 && contextual.teamCapabilities.length < 50) {
+        missing.push('Team experience information');
+      }
+      break;
+    case 'pricing':
+      if (concepts.costs.length === 0) {
+        missing.push('Cost information');
+      }
+      break;
+    case 'timeline':
+      if (concepts.timelines.length === 0) {
+        missing.push('Timeline information');
+      }
+      break;
+  }
+  
+  return missing;
+}
         missing.push('company overview');
       }
       break;

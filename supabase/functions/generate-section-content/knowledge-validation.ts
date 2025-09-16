@@ -79,10 +79,13 @@ export function assessKnowledgeBaseCoverage(
     totalRelevantContent
   );
   
-  // More reasonable adequacy check - focus on content quality over rigid metrics
-  const minCoverageThreshold = 70; // Reduced from 95% to 70%
-  const hasSubstantialContent = totalRelevantContent >= 1000; // Lower threshold
-  const hasRelevantEntries = relevantEntries.length >= 1; // Much more reasonable
+  // Much more realistic adequacy check for comprehensive documents
+  const minCoverageThreshold = 50; // Very permissive threshold
+  const hasSubstantialContent = totalRelevantContent >= 500; // Lower threshold for substantial content
+  const hasRelevantEntries = relevantEntries.length >= 1;
+  
+  // For large comprehensive documents, be very permissive
+  const isLargeComprehensiveDocument = totalRelevantContent >= 50000; // 50K+ chars = comprehensive
   
   // Enhanced section requirements using intelligent analysis  
   const sectionRequirements = assessSectionRequirementsIntelligently(
@@ -91,10 +94,13 @@ export function assessKnowledgeBaseCoverage(
     extractedConcepts
   );
   
+  // If we have a large comprehensive document, requirements are automatically met
+  const requirementsMet = isLargeComprehensiveDocument || sectionRequirements.areMet;
+  
   const isAdequate = coverageScore >= minCoverageThreshold && 
                     hasSubstantialContent &&
                     hasRelevantEntries &&
-                    sectionRequirements.areMet;
+                    requirementsMet;
   
   // Generate intelligent recommendations based on content analysis
   const missingTopics = identifyMissingTopicsIntelligently(

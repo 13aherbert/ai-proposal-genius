@@ -17,7 +17,20 @@ export const useEntryForm = (onSuccess: () => void) => {
   const setTitle = (title: string) => setFormData(prev => ({ ...prev, title }));
   const setCategory = (category: string) => setFormData(prev => ({ ...prev, category }));
   const setContent = (content: string) => setFormData(prev => ({ ...prev, content }));
-  const setSelectedFile = (file: File | null) => setFormData(prev => ({ ...prev, selectedFile: file }));
+  const setSelectedFile = (file: File | null) => {
+    setFormData(prev => {
+      const newData = { ...prev, selectedFile: file };
+      
+      // Auto-populate title with filename if title is empty and file is selected
+      if (file && !prev.title.trim()) {
+        const filename = file.name;
+        const nameWithoutExtension = filename.substring(0, filename.lastIndexOf('.')) || filename;
+        newData.title = nameWithoutExtension;
+      }
+      
+      return newData;
+    });
+  };
   const setUploadMode = (mode: UploadMode) => setFormData(prev => ({ ...prev, uploadMode: mode }));
 
   const createSanitizedFilename = (title: string, extension: string): string => {

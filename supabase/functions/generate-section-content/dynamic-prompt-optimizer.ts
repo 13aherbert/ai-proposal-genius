@@ -58,11 +58,23 @@ export class DynamicPromptOptimizer {
     // Apply section-specific optimizations
     let optimizedPrompt = this.enhancePromptStructure(basePrompt, optimization);
     
+    // Add anti-repetition measures
+    const antiRepetitionEnhancements = this.addAntiRepetitionMeasures(
+      optimizedPrompt, existingSections, sectionTitle
+    );
+    optimizedPrompt = antiRepetitionEnhancements.prompt;
+    
     // Add context-aware enhancements
     const contextEnhancements = this.addContextualEnhancements(
       optimizedPrompt, sectionType, project, existingSections
     );
     optimizedPrompt = contextEnhancements.prompt;
+    
+    // Apply RFP-focused enhancements
+    const rfpFocusedEnhancements = this.addRFPFocusedGuidance(
+      optimizedPrompt, sectionType, project.analysis
+    );
+    optimizedPrompt = rfpFocusedEnhancements.prompt;
     
     // Apply advanced prompt engineering techniques
     const advancedEnhancements = this.applyAdvancedTechniques(optimizedPrompt, sectionType);
@@ -75,14 +87,20 @@ export class DynamicPromptOptimizer {
 
     return {
       optimized_prompt: optimizedPrompt,
-      optimization_strategy: `${sectionType}_optimized`,
+      optimization_strategy: `${sectionType}_optimized_v2`,
       confidence_boost: confidenceBoost,
       applied_techniques: [
         ...advancedEnhancements.techniques,
+        'anti_repetition_measures',
+        'rfp_focused_guidance',
         'section_specific_keywords',
         'context_aware_enhancement'
       ],
-      context_enhancements: contextEnhancements.enhancements
+      context_enhancements: [
+        ...contextEnhancements.enhancements,
+        ...antiRepetitionEnhancements.enhancements,
+        ...rfpFocusedEnhancements.enhancements
+      ]
     };
   }
 
@@ -90,8 +108,8 @@ export class DynamicPromptOptimizer {
     prompt: string,
     optimization: any
   ): string {
-    // Add section-specific guidance
-    const enhancedPrompt = `${prompt}\n\nSECTION-SPECIFIC OPTIMIZATION:\n- Focus Areas: ${optimization.keywords.join(', ')}\n- Structure Guidance: ${optimization.structure}\n- Tone: ${optimization.tone}\n\nQUALITY REQUIREMENTS:\n- Provide specific, detailed, and actionable content\n- Use concrete examples and evidence from the knowledge base\n- Maintain professional tone while being engaging\n- Ensure content directly addresses RFP requirements\n- Include quantifiable benefits and outcomes where applicable`;
+    // Add section-specific guidance with anti-repetition focus
+    const enhancedPrompt = `${prompt}\n\nSECTION-SPECIFIC OPTIMIZATION:\n- Focus Areas: ${optimization.keywords.join(', ')}\n- Structure Guidance: ${optimization.structure}\n- Tone: ${optimization.tone}\n\nQUALITY REQUIREMENTS:\n- Provide specific, detailed, and actionable content that is UNIQUE to this section\n- Use concrete examples and evidence from the knowledge base\n- Maintain professional tone while being persuasive and client-focused\n- Ensure content directly addresses specific RFP requirements for this section only\n- Use statistics sparingly - focus on persuasive benefits rather than overwhelming with numbers\n- Address client concerns and demonstrate clear value proposition\n\nCONTENT GUIDELINES:\n- Each paragraph should serve a distinct purpose in addressing RFP requirements\n- Avoid generic statements that could apply to any company\n- Focus on specific capabilities that differentiate your approach\n- Emphasize outcomes and results rather than just processes`;
 
     return enhancedPrompt;
   }
@@ -241,6 +259,135 @@ export class DynamicPromptOptimizer {
     if (optimizedPrompt.includes('CONSTRAINTS:')) boost += 0.03;
 
     return Math.min(boost, 0.4); // Cap at 40% boost
+  }
+
+  private static addAntiRepetitionMeasures(
+    prompt: string,
+    existingSections: any[],
+    currentSectionTitle: string
+  ): { prompt: string; enhancements: string[] } {
+    const enhancements: string[] = [];
+    let enhancedPrompt = prompt;
+
+    if (existingSections.length > 0) {
+      const existingContent = existingSections.map(s => s.content).join('\n\n');
+      const keyPoints = this.extractKeyPoints(existingContent);
+      
+      if (keyPoints.length > 0) {
+        enhancedPrompt += `\n\nANTI-REPETITION MEASURES:\n- AVOID repeating these key points already covered in other sections: ${keyPoints.join(', ')}\n- Focus on NEW and UNIQUE aspects for the ${currentSectionTitle} section\n- If referencing previous sections, add new depth or perspective rather than repeating\n- Ensure this section provides distinct value that complements but doesn't duplicate other sections`;
+        enhancements.push('anti_repetition_guidance');
+      }
+    }
+
+    return { prompt: enhancedPrompt, enhancements };
+  }
+
+  private static addRFPFocusedGuidance(
+    prompt: string,
+    sectionType: string,
+    projectAnalysis: string
+  ): { prompt: string; enhancements: string[] } {
+    const enhancements: string[] = [];
+    let enhancedPrompt = prompt;
+
+    if (projectAnalysis) {
+      // Extract key RFP requirements and concerns from the analysis
+      const concerns = this.extractRFPConcerns(projectAnalysis);
+      const requirements = this.extractRFPRequirements(projectAnalysis, sectionType);
+      
+      if (concerns.length > 0 || requirements.length > 0) {
+        enhancedPrompt += `\n\nRFP-FOCUSED GUIDANCE:\n`;
+        
+        if (requirements.length > 0) {
+          enhancedPrompt += `- Address these specific RFP requirements: ${requirements.join(', ')}\n`;
+        }
+        
+        if (concerns.length > 0) {
+          enhancedPrompt += `- Address these client concerns: ${concerns.join(', ')}\n`;
+        }
+        
+        enhancedPrompt += `- Demonstrate clear understanding of client's business challenges\n- Position solutions as direct responses to stated needs\n- Use persuasive language that builds confidence in your capabilities`;
+        
+        enhancements.push('rfp_requirements_mapping', 'client_concern_addressing');
+      }
+    }
+
+    return { prompt: enhancedPrompt, enhancements };
+  }
+
+  private static extractKeyPoints(content: string): string[] {
+    const keyPoints: string[] = [];
+    
+    // Extract frequently mentioned concepts
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const wordFreq: { [key: string]: number } = {};
+    
+    sentences.forEach(sentence => {
+      const words = sentence.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+      words.forEach(word => {
+        if (!this.isStopWord(word)) {
+          wordFreq[word] = (wordFreq[word] || 0) + 1;
+        }
+      });
+    });
+    
+    // Get top 5 most frequent meaningful terms
+    const sortedWords = Object.entries(wordFreq)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([word]) => word);
+    
+    return sortedWords;
+  }
+
+  private static extractRFPConcerns(analysis: string): string[] {
+    const concerns: string[] = [];
+    const concernPatterns = [
+      /concern[s]?\s+about\s+([^.]+)/gi,
+      /worried\s+about\s+([^.]+)/gi,
+      /challenge[s]?\s+with\s+([^.]+)/gi,
+      /problem[s]?\s+with\s+([^.]+)/gi,
+      /risk[s]?\s+of\s+([^.]+)/gi
+    ];
+    
+    concernPatterns.forEach(pattern => {
+      const matches = analysis.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          concerns.push(match[1].trim());
+        }
+      }
+    });
+    
+    return concerns.slice(0, 3); // Top 3 concerns
+  }
+
+  private static extractRFPRequirements(analysis: string, sectionType: string): string[] {
+    const requirements: string[] = [];
+    
+    // Section-specific requirement extraction
+    const sectionKeywords = {
+      'executive': ['objective', 'goal', 'outcome', 'result'],
+      'technical': ['requirement', 'specification', 'standard', 'compliance'],
+      'team': ['experience', 'qualification', 'expertise', 'personnel'],
+      'timeline': ['deadline', 'milestone', 'schedule', 'delivery'],
+      'pricing': ['budget', 'cost', 'pricing', 'value']
+    };
+    
+    const keywords = sectionKeywords[sectionType] || ['requirement'];
+    
+    keywords.forEach(keyword => {
+      const pattern = new RegExp(`${keyword}[s]?[^.]{20,80}`, 'gi');
+      const matches = analysis.match(pattern) || [];
+      requirements.push(...matches.slice(0, 2));
+    });
+    
+    return requirements;
+  }
+
+  private static isStopWord(word: string): boolean {
+    const stopWords = ['will', 'with', 'this', 'that', 'they', 'them', 'their', 'been', 'have', 'has', 'had', 'were', 'was', 'are', 'and', 'the', 'for', 'our', 'can', 'may'];
+    return stopWords.includes(word.toLowerCase());
   }
 
   // Future: Learn from performance metrics

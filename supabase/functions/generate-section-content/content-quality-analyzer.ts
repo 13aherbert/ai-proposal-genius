@@ -111,20 +111,24 @@ export class ContentQualityAnalyzer {
   private static analyzePersuasiveness(content: string, issues: string[], recommendations: string[]): number {
     let score = 100;
     
-    // Check for quantitative evidence
+    // Check for balanced quantitative evidence (not excessive)
     const numberPattern = /\d+(\.\d+)?%?/g;
     const numbers = content.match(numberPattern) || [];
     
-    if (numbers.length < 2) {
-      score -= 25;
-      issues.push("Lacks quantitative evidence (numbers, percentages, metrics)");
-      recommendations.push("Add specific numbers, percentages, or measurable outcomes");
+    if (numbers.length === 0) {
+      score -= 15;
+      issues.push("Lacks supporting quantitative evidence");
+      recommendations.push("Add 1-2 key metrics or measurable outcomes for credibility");
+    } else if (numbers.length > 5) {
+      score -= 20;
+      issues.push("Excessive statistics may overwhelm the message");
+      recommendations.push("Focus on 2-3 most compelling metrics rather than overwhelming with numbers");
     }
     
-    // Check for benefit statements
+    // Check for benefit statements and value propositions
     const benefitPatterns = [
-      /\b(save|reduce|increase|improve|enhance|deliver|achieve)\b/gi,
-      /\b(ROI|return on investment|cost savings|efficiency|performance)\b/gi
+      /\b(save|reduce|increase|improve|enhance|deliver|achieve|enable|optimize)\b/gi,
+      /\b(ROI|return on investment|cost savings|efficiency|performance|value|benefit)\b/gi
     ];
     
     const benefitCount = benefitPatterns.reduce((count, pattern) => {
@@ -135,6 +139,22 @@ export class ContentQualityAnalyzer {
       score -= 20;
       issues.push("Insufficient benefit-focused language");
       recommendations.push("Emphasize client benefits and value propositions more strongly");
+    }
+
+    // Check for client-centric persuasive elements
+    const persuasiveElements = [
+      /\b(guarantee|ensure|proven|demonstrated|validated)\b/gi,
+      /\b(success|results|outcomes|solution|expertise)\b/gi
+    ];
+    
+    const persuasiveCount = persuasiveElements.reduce((count, pattern) => {
+      return count + (content.match(pattern) || []).length;
+    }, 0);
+    
+    if (persuasiveCount < 2) {
+      score -= 15;
+      issues.push("Lacks persuasive confidence indicators");
+      recommendations.push("Use more confident language that demonstrates proven expertise");
     }
     
     // Check for weak language
@@ -147,18 +167,41 @@ export class ContentQualityAnalyzer {
       recommendations.push("Use confident, definitive language to project expertise");
     }
     
-    // Check for compelling opening
+    // Check for compelling opening that addresses RFP
     const firstSentence = content.split(/[.!?]/)[0];
-    const hasStrongOpening = /\b(deliver|achieve|guarantee|ensure|provide)\b/i.test(firstSentence) ||
-                           /\d+%/.test(firstSentence);
+    const hasStrongOpening = /\b(deliver|achieve|guarantee|ensure|provide|address|solve)\b/i.test(firstSentence) ||
+                           /\b(understanding|requirements|challenges|needs)\b/i.test(firstSentence);
     
     if (!hasStrongOpening) {
-      score -= 10;
-      issues.push("Opening lacks impact and immediate value proposition");
-      recommendations.push("Start with a compelling benefit or quantifiable outcome");
+      score -= 15;
+      issues.push("Opening lacks impact and direct response to RFP needs");
+      recommendations.push("Start by directly addressing the RFP requirement or client challenge");
+    }
+
+    // Penalize repetitive language patterns
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const repetitiveStarts = this.detectRepetitivePatterns(sentences);
+    
+    if (repetitiveStarts > 0) {
+      score -= repetitiveStarts * 5;
+      issues.push("Content contains repetitive sentence patterns");
+      recommendations.push("Vary sentence structures and openings for better engagement");
     }
     
     return Math.max(0, score);
+  }
+
+  private static detectRepetitivePatterns(sentences: string[]): number {
+    const startPatterns: { [key: string]: number } = {};
+    
+    sentences.forEach(sentence => {
+      const firstTwoWords = sentence.trim().split(/\s+/).slice(0, 2).join(' ').toLowerCase();
+      if (firstTwoWords.length > 3) {
+        startPatterns[firstTwoWords] = (startPatterns[firstTwoWords] || 0) + 1;
+      }
+    });
+    
+    return Object.values(startPatterns).filter(count => count > 1).length;
   }
   
   private static analyzeTechnicalDepth(content: string, sectionType: string, issues: string[], recommendations: string[]): number {

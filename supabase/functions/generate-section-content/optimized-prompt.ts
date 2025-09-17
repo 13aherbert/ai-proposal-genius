@@ -1,7 +1,7 @@
 import { Project } from './types.ts';
 import { getSectionKeywords } from './smart-knowledge-filter.ts';
 
-// Streamlined prompt generation for token optimization
+// Enhanced prompt generation with outline-driven content requirements
 export function generateOptimizedPrompt(
   sectionTitle: string,
   project: Project,
@@ -10,7 +10,10 @@ export function generateOptimizedPrompt(
   strictMode = false
 ): string {
   const sectionType = getSectionType(sectionTitle);
-  const guidelines = getSectionGuidelines(sectionType);
+  
+  // Extract outline requirements for this specific section
+  const outlineRequirements = extractOutlineRequirements(project.proposal_outline, sectionTitle);
+  const guidelines = getSectionGuidelines(sectionType, outlineRequirements);
   
   // Condensed consistency context
   let consistencyContext = '';
@@ -57,14 +60,22 @@ ${project.analysis ? `RFP SUMMARY: ${extractKeyAnalysisPoints(project.analysis)}
 
 ${knowledgeContext}${consistencyContext}
 
-${guidelines}
+${outlineRequirements ? `OUTLINE REQUIREMENTS FOR THIS SECTION:
+${outlineRequirements}
+YOU MUST ADDRESS EACH POINT ABOVE IN YOUR RESPONSE.
 
-${strictModeInstructions}REQUIREMENTS:
-• 200-500 words unless section requires more detail
-• Start with specific client benefit
-• Include quantifiable results and differentiators  
-• Use confident, active voice
-• No section headers, meta-commentary, or filler phrases
+` : ''}${guidelines}
+
+${strictModeInstructions}WRITING REQUIREMENTS:
+• DETAILED AND THOROUGH: Provide comprehensive coverage without repetition or verbosity
+• FORMAL TONE: Use professional, business-appropriate language throughout
+• ACTIVE VOICE: Write using active voice constructions (e.g., "We deliver" not "Solutions are delivered")
+• CLEAR AND DETAILED: Present information in a structured, easy-to-follow manner
+• OUTLINE COMPLIANCE: Address every requirement specified in the outline section above
+• CLIENT-FOCUSED: Start with specific client benefits and value propositions
+• EVIDENCE-BASED: Include quantifiable results and unique differentiators from knowledge base
+• NO FLUFF: Avoid section headers, meta-commentary, or unnecessary filler phrases
+• LENGTH: Provide appropriate detail to thoroughly address all outline requirements (typically 300-800 words)
 
 Generate the section content:`;
 }
@@ -82,18 +93,31 @@ function getSectionType(sectionTitle: string): string {
   return 'general';
 }
 
-function getSectionGuidelines(sectionType: string): string {
-  const guidelines: { [key: string]: string } = {
-    executive: 'EXECUTIVE: Lead with value proposition, quantify benefits, end with call to action.',
-    technical: 'TECHNICAL: Problem → Solution → Benefit → Proof. Include specific methodologies.',
-    team: 'TEAM: Highlight relevant achievements with quantified results and unique qualifications.',
-    timeline: 'TIMELINE: Show final delivery date, parallel workflows, and risk mitigation.',
-    pricing: 'PRICING: Lead with value delivered, transparent breakdown, ROI justification.',
-    company: 'COMPANY: Focus on relevant capabilities, experience, and client success stories.',
-    general: 'GENERAL: Start with client benefit, support with evidence, end with commitment.'
+function getSectionGuidelines(sectionType: string, outlineRequirements?: string): string {
+  const baseGuidelines: { [key: string]: string } = {
+    executive: 'EXECUTIVE SUMMARY APPROACH: Lead with compelling value proposition addressing client\'s specific needs. Quantify anticipated benefits and outcomes. Present a clear narrative that demonstrates understanding of client requirements. Conclude with confident commitment to deliverables.',
+    
+    technical: 'TECHNICAL APPROACH: Begin by restating the client\'s technical challenge. Present your methodology in logical sequence with specific techniques and tools. Explain how each component addresses client requirements. Provide evidence of technical capability and proven results.',
+    
+    team: 'TEAM QUALIFICATIONS: Highlight team members\' directly relevant experience and achievements. Quantify results from similar projects. Demonstrate unique qualifications that differentiate your team. Show clear alignment between team capabilities and project requirements.',
+    
+    timeline: 'TIMELINE AND SCHEDULE: Present realistic delivery dates with detailed milestone breakdown. Show parallel work streams and dependencies. Include risk mitigation strategies and contingency plans. Demonstrate understanding of client\'s urgency and constraints.',
+    
+    pricing: 'PRICING STRATEGY: Lead with value delivered before presenting costs. Provide transparent, detailed cost breakdown. Justify pricing with ROI analysis and comparative value. Address budget considerations proactively.',
+    
+    company: 'COMPANY OVERVIEW: Focus on organizational capabilities directly relevant to this project. Present track record with similar clients and projects. Demonstrate stability, resources, and commitment. Include relevant certifications and industry recognition.',
+    
+    general: 'SECTION APPROACH: Begin with client-focused benefit statement. Support claims with specific evidence from knowledge base. Maintain logical flow addressing all outlined requirements. End with clear commitment or next step.'
   };
   
-  return guidelines[sectionType] || guidelines.general;
+  let guidelines = baseGuidelines[sectionType] || baseGuidelines.general;
+  
+  // If we have specific outline requirements, emphasize following them
+  if (outlineRequirements && outlineRequirements.trim().length > 0) {
+    guidelines += '\n\nCRITICAL: You must address EVERY point listed in the outline requirements above. Structure your response to cover each requirement comprehensively while maintaining logical flow and readability.';
+  }
+  
+  return guidelines;
 }
 
 function extractKeyAnalysisPoints(analysis: any): string {
@@ -119,6 +143,83 @@ function extractKeyAnalysisPoints(analysis: any): string {
   }
   
   return 'RFP analysis available';
+}
+
+// Extract outline requirements for a specific section
+function extractOutlineRequirements(proposalOutline: string | null, sectionTitle: string): string {
+  if (!proposalOutline || !sectionTitle) return '';
+  
+  const lines = proposalOutline.split('\n');
+  let sectionFound = false;
+  let requirements: string[] = [];
+  let sectionDepth = 0;
+  
+  // Clean the section title for matching
+  const cleanSectionTitle = sectionTitle
+    .toLowerCase()
+    .replace(/^(i{1,3}v?x?|v?i{0,3}|\d+)\.\s*/i, '') // Remove roman numerals and numbers
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    if (!trimmed) continue;
+    
+    // Check if this line matches our section title
+    const cleanLine = trimmed
+      .toLowerCase()
+      .replace(/^(#{1,6}|\d+\.|[ivxlc]+\.|\*|-)\s*/i, '') // Remove headers, numbers, bullets
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // If we find a matching section
+    if (cleanLine.includes(cleanSectionTitle) || cleanSectionTitle.includes(cleanLine)) {
+      sectionFound = true;
+      sectionDepth = getLineDepth(trimmed);
+      continue;
+    }
+    
+    // If we found our section, collect requirements until we hit the next section at the same depth
+    if (sectionFound) {
+      const currentDepth = getLineDepth(trimmed);
+      
+      // If we hit another section at the same or higher level, we're done
+      if (currentDepth <= sectionDepth && (
+        trimmed.match(/^#{1,6}\s/) || 
+        trimmed.match(/^\d+\.\s/) || 
+        trimmed.match(/^[ivxlc]+\.\s/i)
+      )) {
+        break;
+      }
+      
+      // Collect sub-requirements and bullet points
+      if (trimmed.match(/^[-*•]\s/) || 
+          trimmed.match(/^#{4,6}\s/) || 
+          trimmed.match(/^\d+\.\d+/) ||
+          (currentDepth > sectionDepth && trimmed.length > 10)) {
+        requirements.push(trimmed.replace(/^[-*•#]+\s*/, '').replace(/^\d+\.\d*\s*/, ''));
+      }
+    }
+  }
+  
+  return requirements.length > 0 ? requirements.join('\n• ') : '';
+}
+
+// Get the hierarchical depth of a line based on its formatting
+function getLineDepth(line: string): number {
+  if (line.match(/^#{1,6}\s/)) {
+    const matches = line.match(/^(#{1,6})/);
+    return matches ? matches[1].length : 0;
+  }
+  if (line.match(/^\d+\.\s/)) return 1;
+  if (line.match(/^[ivxlc]+\.\s/i)) return 1;
+  if (line.match(/^\d+\.\d+/)) return 2;
+  if (line.match(/^[-*•]\s/)) return 2;
+  return 3;
 }
 
 function extractKeyInfo(content: string | null): string {

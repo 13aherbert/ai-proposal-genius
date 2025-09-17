@@ -90,7 +90,122 @@ function validateContent(content: string): { isValid: boolean; issues: string[] 
   return {
     isValid: issues.length === 0,
     issues
-  };
+    // Validate content for outline compliance if outline requirements exist
+    const validateOutlineCompliance = (content: string, outlineReqs: string): { isValid: boolean; issues: string[] } => {
+      const issues: string[] = [];
+      
+      if (!outlineReqs || outlineReqs.trim().length === 0) {
+        return { isValid: true, issues: [] };
+      }
+      
+      const requirements = outlineReqs.split('\n•').map(req => req.trim()).filter(req => req.length > 0);
+      const contentLower = content.toLowerCase();
+      
+      // Check if major requirements are addressed
+      let addressedCount = 0;
+      for (const requirement of requirements) {
+        const reqWords = requirement.toLowerCase().split(/\s+/).filter(word => 
+          word.length > 3 && !['the', 'and', 'for', 'with', 'this', 'that', 'will', 'have', 'been', 'from'].includes(word)
+        );
+        
+        // Check if key words from requirement appear in content
+        const wordsFound = reqWords.filter(word => contentLower.includes(word));
+        if (wordsFound.length >= Math.min(2, reqWords.length)) {
+          addressedCount++;
+        } else {
+          issues.push(`Missing coverage for: "${requirement.substring(0, 60)}..."`);
+        }
+      }
+      
+      const coverageRatio = requirements.length > 0 ? addressedCount / requirements.length : 1;
+      const isValid = coverageRatio >= 0.7; // Must address at least 70% of requirements
+      
+      if (!isValid && issues.length === 0) {
+        issues.push(`Only ${Math.round(coverageRatio * 100)}% of outline requirements addressed`);
+      }
+      
+      return { isValid, issues };
+    };
+
+    // Extract outline requirements for a specific section
+    const extractOutlineRequirements = (proposalOutline: string | null, sectionTitle: string): string => {
+      if (!proposalOutline || !sectionTitle) return '';
+      
+      const lines = proposalOutline.split('\n');
+      let sectionFound = false;
+      let requirements: string[] = [];
+      let sectionDepth = 0;
+      
+      // Clean the section title for matching
+      const cleanSectionTitle = sectionTitle
+        .toLowerCase()
+        .replace(/^(i{1,3}v?x?|v?i{0,3}|\d+)\.\s*/i, '') // Remove roman numerals and numbers
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        
+        if (!trimmed) continue;
+        
+        // Check if this line matches our section title
+        const cleanLine = trimmed
+          .toLowerCase()
+          .replace(/^(#{1,6}|\d+\.|[ivxlc]+\.|\*|-)\s*/i, '') // Remove headers, numbers, bullets
+          .replace(/[^\w\s]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // If we find a matching section
+        if (cleanLine.includes(cleanSectionTitle) || cleanSectionTitle.includes(cleanLine)) {
+          sectionFound = true;
+          sectionDepth = getLineDepth(trimmed);
+          continue;
+        }
+        
+        // If we found our section, collect requirements until we hit the next section at the same depth
+        if (sectionFound) {
+          const currentDepth = getLineDepth(trimmed);
+          
+          // If we hit another section at the same or higher level, we're done
+          if (currentDepth <= sectionDepth && (
+            trimmed.match(/^#{1,6}\s/) || 
+            trimmed.match(/^\d+\.\s/) || 
+            trimmed.match(/^[ivxlc]+\.\s/i)
+          )) {
+            break;
+          }
+          
+          // Collect sub-requirements and bullet points
+          if (trimmed.match(/^[-*•]\s/) || 
+              trimmed.match(/^#{4,6}\s/) || 
+              trimmed.match(/^\d+\.\d+/) ||
+              (currentDepth > sectionDepth && trimmed.length > 10)) {
+            requirements.push(trimmed.replace(/^[-*•#]+\s*/, '').replace(/^\d+\.\d*\s*/, ''));
+          }
+        }
+      }
+      
+      return requirements.length > 0 ? requirements.join('\n• ') : '';
+    };
+
+    // Get the hierarchical depth of a line based on its formatting
+    const getLineDepth = (line: string): number => {
+      if (line.match(/^#{1,6}\s/)) {
+        const matches = line.match(/^(#{1,6})/);
+        return matches ? matches[1].length : 0;
+      }
+      if (line.match(/^\d+\.\s/)) return 1;
+      if (line.match(/^[ivxlc]+\.\s/i)) return 1;
+      if (line.match(/^\d+\.\d+/)) return 2;
+      if (line.match(/^[-*•]\s/)) return 2;
+      return 3;
+    };
+
+    // Validate content for hallucinations and fabrications
+    const validateContent = (content: string): { isValid: boolean; issues: string[] } => {
 }
 
 serve(async (req) => {
@@ -528,6 +643,32 @@ This indicates the content contains information not supported by your knowledge 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+    }
+    
+    // PHASE 4: OUTLINE COMPLIANCE VALIDATION
+    if (projectResult.proposal_outline) {
+      const outlineRequirements = extractOutlineRequirements(projectResult.proposal_outline, sectionTitle);
+      if (outlineRequirements && outlineRequirements.trim().length > 0) {
+        console.log("Performing outline compliance validation...");
+        const outlineCompliance = validateOutlineCompliance(generatedContent, outlineRequirements);
+        
+        if (!outlineCompliance.isValid) {
+          console.error("Content failed outline compliance:", outlineCompliance.issues);
+          return new Response(JSON.stringify({ 
+            error: 'OUTLINE_COMPLIANCE_FAILED',
+            details: `Generated content does not adequately address the outline requirements for this section.`,
+            outlineIssues: outlineCompliance.issues,
+            suggestions: [
+              'Ensure content directly addresses each bullet point in the outline',
+              'Add more specific information to address missing requirements',
+              'Structure the content to follow the outline flow'
+            ]
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
     }
     

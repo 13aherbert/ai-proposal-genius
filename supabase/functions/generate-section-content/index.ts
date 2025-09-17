@@ -8,6 +8,11 @@ import { KnowledgeGapDetector } from './knowledge-gap-detector.ts';
 import { CompetitiveAnalyzer } from './competitive-analyzer.ts';
 import { WinProbabilityCalculator } from './win-probability-calculator.ts';
 import { EnhancedValidator } from './enhanced-validator.ts';
+// Phase 3: Advanced Intelligence Imports
+import { MultiModelOrchestrator } from './multi-model-orchestrator.ts';
+import { DynamicPromptOptimizer } from './dynamic-prompt-optimizer.ts';
+import { PredictiveSuccessAnalyzer } from './predictive-success-analyzer.ts';
+import { SemanticContentEnhancer } from './semantic-content-enhancer.ts';
 
 // CORS headers
 const corsHeaders = {
@@ -224,19 +229,33 @@ serve(async (req) => {
       return `**${entry.title}** (${entry.category})\n${content}`;
     }).join('\n\n---\n\n');
 
-    // Generate enhanced prompt with full context including RFP analysis
-    const prompt = generatePrompt(
-      sectionTitle, 
-      project, 
-      allKnowledgeContent, 
-      sections, 
-      false // Keep it simple for now
+    // PHASE 3: Advanced Intelligence - Dynamic Prompt Optimization
+    console.log("Running Phase 3 advanced intelligence...");
+    
+    const sectionType = getSectionType(sectionTitle);
+    const promptOptimization = DynamicPromptOptimizer.optimizePrompt(
+      generatePrompt(sectionTitle, project, allKnowledgeContent, sections, false),
+      sectionType,
+      sectionTitle,
+      project,
+      allKnowledgeContent,
+      sections
     );
 
-    console.log("Generating content with Anthropic API...");
+    console.log("Generating content with Multi-Model Orchestration...");
     
-    // Use consistent high-quality model
-    const response = await generateWithClaude(prompt, anthropicApiKey);
+    // PHASE 3: Multi-Model Content Generation
+    const complexity = sectionType === 'technical' ? 'complex' : 
+                      sectionType === 'executive' ? 'moderate' : 'simple';
+    
+    const orchestrationResult = await MultiModelOrchestrator.orchestrateGeneration(
+      promptOptimization.optimized_prompt,
+      anthropicApiKey,
+      sectionType,
+      complexity
+    );
+    
+    const response = orchestrationResult.final_content;
     
     console.log("Anthropic API response received");
 
@@ -250,8 +269,6 @@ serve(async (req) => {
     }
 
     // PHASE 2: Advanced Quality Analysis & Optimization
-    const sectionType = getSectionType(sectionTitle);
-    
     console.log("Running Phase 2 optimization analysis...");
     
     // 1. Enhanced Content Quality Analysis
@@ -291,6 +308,31 @@ serve(async (req) => {
       project.analysis
     );
 
+    // PHASE 3: Advanced Intelligence Enhancement
+    console.log("Running Phase 3 advanced intelligence enhancement...");
+    
+    // 6. Semantic Content Enhancement
+    const semanticEnhancement = SemanticContentEnhancer.enhanceContent(
+      cleanedContent,
+      sectionType,
+      entriesWithContent,
+      project.analysis
+    );
+    
+    // 7. Predictive Success Analysis
+    const predictiveAnalysis = PredictiveSuccessAnalyzer.analyzePredictiveSuccess(
+      qualityAnalysis,
+      competitiveAnalysis,
+      entriesWithContent,
+      project.analysis,
+      sectionType,
+      winProbability
+    );
+    
+    // Use enhanced content if it's significantly better
+    const finalContent = semanticEnhancement.semantic_score > 0.8 ? 
+      semanticEnhancement.enhanced_content : cleanedContent;
+
     // Check if content meets quality thresholds
     const qualityThreshold = ContentQualityAnalyzer.getQualityThreshold();
     const meetsQualityStandards = qualityAnalysis.passes_threshold && 
@@ -309,13 +351,15 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      content: cleanedContent,
+      content: finalContent,
       sectionTitle,
       processing: {
-        modelUsed: 'claude-opus-4-1-20250805',
+        modelUsed: orchestrationResult.best_performing_model,
+        multiModelApproach: orchestrationResult.synthesis_approach,
+        modelAgreement: orchestrationResult.model_agreement,
         knowledgeEntriesUsed: entriesWithContent.length,
         totalKnowledgeEntries: entries.length,
-        contentLength: cleanedContent.length,
+        contentLength: finalContent.length,
         processingTimeMs: processingTime
       },
       // PHASE 2: Optimization Analytics
@@ -327,6 +371,20 @@ serve(async (req) => {
         enhanced_validation: enhancedValidation,
         meets_quality_standards: meetsQualityStandards,
         phase: 'Phase 2: Optimize for Success'
+      },
+      // PHASE 3: Advanced Intelligence Analytics
+      advanced_intelligence: {
+        prompt_optimization: promptOptimization,
+        multi_model_orchestration: {
+          model_agreement: orchestrationResult.model_agreement,
+          best_model: orchestrationResult.best_performing_model,
+          synthesis_approach: orchestrationResult.synthesis_approach,
+          quality_improvements: orchestrationResult.quality_improvements
+        },
+        semantic_enhancement: semanticEnhancement,
+        predictive_analysis: predictiveAnalysis,
+        intelligence_level: 'Phase 3: Advanced Intelligence',
+        confidence_boost: promptOptimization.confidence_boost + (orchestrationResult.confidence_score * 0.2)
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -90,8 +90,11 @@ function validateContent(content: string): { isValid: boolean; issues: string[] 
   return {
     isValid: issues.length === 0,
     issues
-    // Validate content for outline compliance if outline requirements exist
-    const validateOutlineCompliance = (content: string, outlineReqs: string): { isValid: boolean; issues: string[] } => {
+  };
+}
+
+// Validate content for outline compliance if outline requirements exist
+const validateOutlineCompliance = (content: string, outlineReqs: string): { isValid: boolean; issues: string[] } => {
       const issues: string[] = [];
       
       if (!outlineReqs || outlineReqs.trim().length === 0) {
@@ -203,10 +206,6 @@ function validateContent(content: string): { isValid: boolean; issues: string[] 
       if (line.match(/^[-*•]\s/)) return 2;
       return 3;
     };
-
-    // Validate content for hallucinations and fabrications
-    const validateContent = (content: string): { isValid: boolean; issues: string[] } => {
-}
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url);

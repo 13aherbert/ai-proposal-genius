@@ -491,7 +491,7 @@ serve(async (req) => {
     }, 2, 500, { ...context, step: 'fetch-knowledge' });
 
     // Enhanced knowledge base assessment
-    const knowledgeBaseStats = assessKnowledgeBaseCoverage(knowledgeEntries);
+    const knowledgeBaseStats = assessKnowledgeBaseCoverage(sectionTitle, knowledgeEntries);
     console.log("Knowledge base coverage assessment:", knowledgeBaseStats);
     
     if (strictMode) {

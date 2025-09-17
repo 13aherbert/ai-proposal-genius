@@ -79,10 +79,10 @@ export function assessKnowledgeBaseCoverage(
     totalRelevantContent
   );
   
-  // ULTRA-STRICT adequacy check for anti-hallucination
-  const minCoverageThreshold = 80; // High threshold for strict validation
-  const hasSubstantialContent = totalRelevantContent >= 2000; // Require significant content
-  const hasRelevantEntries = relevantEntries.length >= 2; // Require multiple sources
+  // Balanced adequacy check - more permissive for knowledge base only mode
+  const minCoverageThreshold = 40; // More reasonable threshold for knowledge base generation
+  const hasSubstantialContent = totalRelevantContent >= 500; // Allow generation with moderate content
+  const hasRelevantEntries = relevantEntries.length >= 1; // Single source can be sufficient
   
   // No auto-pass for large documents - all must meet strict criteria
   const sectionRequirements = assessSectionRequirementsIntelligently(

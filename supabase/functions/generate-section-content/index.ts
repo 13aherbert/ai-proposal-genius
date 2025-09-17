@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { generateWithClaude } from './claude-client.ts';
 import { generatePrompt } from './prompt.ts';
-import { ProposalGenerationError, createErrorResponse, createSuccessResponse } from './error-handling.ts';
 import { KnowledgeEntry, Project } from './types.ts';
 
 // CORS headers
@@ -10,6 +9,22 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Simple error handling
+class ProposalGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProposalGenerationError';
+  }
+}
+
+function createErrorResponse(error: any, context: any, fallbackMessage: string) {
+  return {
+    success: false,
+    error: error.message || fallbackMessage,
+    details: error.name || 'Error'
+  };
+}
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

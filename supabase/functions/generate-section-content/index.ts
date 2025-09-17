@@ -207,6 +207,150 @@ const validateOutlineCompliance = (content: string, outlineReqs: string): { isVa
       return 3;
     };
 
+// Ultra-strict fabrication detection for strict mode
+function detectContentFabrication(
+  content: string,
+  knowledgeEntries: KnowledgeEntry[]
+): { isValid: boolean; issues: string[]; confidenceScore: number } {
+  const issues: string[] = [];
+  let confidenceScore = 100;
+
+  // Build comprehensive knowledge base text for exact matching
+  const knowledgeText = knowledgeEntries.map(entry => 
+    `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`
+  ).join(' ').toLowerCase();
+
+  // Extract all quantitative claims (numbers, percentages, statistics)
+  const quantitativePatterns = [
+    /\b\d+(?:,\d+)*\s*(?:years?|months?|weeks?|days?)\b/gi,
+    /\b\d+(?:,\d+)*\s*(?:clients?|customers?|projects?|employees?|staff|videos?|hours?)\b/gi,
+    /\b\d+(?:\.\d+)?%\b/g,
+    /\$\d+(?:,\d+)*(?:\.\d+)?(?:\s*(?:million|billion|thousand|k|m|b))?/gi,
+    /\bover\s+\d+/gi,
+    /\bmore\s+than\s+\d+/gi,
+    /\bup\s+to\s+\d+/gi,
+    /\b\d+(?:st|nd|rd|th)?\s+(?:largest|biggest|leading|top)/gi,
+    /\b(?:founded|established|since)\s+\d{4}/gi,
+    /\b\d+(?:\.\d+)?\s*(?:first-pass|acceptance|success|completion)\s*rate/gi
+  ];
+
+  // Check each quantitative claim against knowledge base
+  for (const pattern of quantitativePatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        const matchFound = knowledgeText.includes(match.toLowerCase());
+        if (!matchFound) {
+          issues.push(`Quantitative claim not found in knowledge base: "${match}"`);
+          confidenceScore -= 30; // Heavy penalty for fabricated numbers
+        }
+      }
+    }
+  }
+
+  // Extract and verify specific achievement claims
+  const achievementPatterns = [
+    /we\s+(?:have\s+)?(?:produced|completed|delivered|created)\s+[^.!?]*\d+[^.!?]*/gi,
+    /our\s+[^.!?]*\d+[^.!?]*(?:rate|record|experience|track record)/gi,
+    /maintaining\s+(?:a\s+)?\d+[^.!?]*/gi
+  ];
+
+  for (const pattern of achievementPatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        // Check if this exact achievement claim exists in knowledge base
+        const normalizedMatch = match.toLowerCase().replace(/\s+/g, ' ').trim();
+        const foundInKB = knowledgeEntries.some(entry => {
+          const entryText = `${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+          return entryText.includes(normalizedMatch) || 
+                 // Check for substantial phrase overlap (at least 5 consecutive words)
+                 normalizedMatch.split(' ').length >= 5 &&
+                 entryText.includes(normalizedMatch.split(' ').slice(0, 5).join(' '));
+        });
+        
+        if (!foundInKB) {
+          issues.push(`Achievement claim not verified in knowledge base: "${match.trim()}"`);
+          confidenceScore -= 25;
+        }
+      }
+    }
+  }
+
+  // Check for generic superlatives that often indicate hallucination
+  const suspiciousSuperlatives = [
+    /\b(?:industry-leading|world-class|cutting-edge|state-of-the-art|award-winning|premier|leading)\b/gi
+  ];
+
+  for (const pattern of suspiciousSuperlatives) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        if (!knowledgeText.includes(match.toLowerCase())) {
+          issues.push(`Unverified superlative claim: "${match}"`);
+          confidenceScore -= 15;
+        }
+      }
+    }
+  }
+
+  // Ultra-strict threshold for fabrication detection
+  const isValid = confidenceScore >= 85 && issues.length === 0;
+  
+  return {
+    isValid,
+    issues,
+    confidenceScore: Math.max(0, confidenceScore)
+  };
+}
+
+function analyzeGeneratedContent(content: string, sectionTitle: string): { isAcceptable: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check for generic business language that indicates AI fallback
+  const genericPhrases = [
+    'industry-leading', 'world-class', 'cutting-edge', 'state-of-the-art',
+    'proven track record', 'extensive experience', 'comprehensive solution',
+    'innovative approach', 'best practices', 'award-winning', 'market leader',
+    'committed to excellence', 'dedicated team', 'years of experience',
+    'tailored solutions', 'client-focused', 'results-driven'
+  ];
+  
+  const genericCount = genericPhrases.filter(phrase => 
+    content.toLowerCase().includes(phrase)
+  ).length;
+  
+  if (genericCount > 2) {
+    issues.push(`Contains ${genericCount} generic business phrases indicating potential AI fallback`);
+  }
+  
+  // Check for vague quantifiers that suggest hallucination
+  const vaguePhrases = [
+    'many years', 'numerous projects', 'extensive portfolio', 'wide range',
+    'various clients', 'multiple industries', 'several awards', 'countless',
+    'substantial experience', 'significant expertise', 'comprehensive knowledge'
+  ];
+  
+  const vagueCount = vaguePhrases.filter(phrase => 
+    content.toLowerCase().includes(phrase)
+  ).length;
+  
+  if (vagueCount > 1) {
+    issues.push(`Contains ${vagueCount} vague quantifiers suggesting lack of specific knowledge`);
+  }
+  
+  // Check for specific claims without support
+  const specificClaims = content.match(/\d{4}|since \d{4}|\d+ years|\d+% |over \$[\d,]+/gi);
+  if (specificClaims && specificClaims.length > 2) {
+    issues.push('Contains multiple specific claims that may not be supported by knowledge base');
+  }
+  
+  return {
+    isAcceptable: issues.length === 0,
+    issues
+  };
+}
+
 serve(async (req) => {
   console.log("Request received:", req.method, req.url);
   
@@ -736,150 +880,5 @@ This indicates the content contains information not supported by your knowledge 
     });
   }
 });
-
-// NEW: Pre-validation content analysis function
-// Ultra-strict fabrication detection for strict mode
-function detectContentFabrication(
-  content: string,
-  knowledgeEntries: KnowledgeEntry[]
-): { isValid: boolean; issues: string[]; confidenceScore: number } {
-  const issues: string[] = [];
-  let confidenceScore = 100;
-
-  // Build comprehensive knowledge base text for exact matching
-  const knowledgeText = knowledgeEntries.map(entry => 
-    `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`
-  ).join(' ').toLowerCase();
-
-  // Extract all quantitative claims (numbers, percentages, statistics)
-  const quantitativePatterns = [
-    /\b\d+(?:,\d+)*\s*(?:years?|months?|weeks?|days?)\b/gi,
-    /\b\d+(?:,\d+)*\s*(?:clients?|customers?|projects?|employees?|staff|videos?|hours?)\b/gi,
-    /\b\d+(?:\.\d+)?%\b/g,
-    /\$\d+(?:,\d+)*(?:\.\d+)?(?:\s*(?:million|billion|thousand|k|m|b))?/gi,
-    /\bover\s+\d+/gi,
-    /\bmore\s+than\s+\d+/gi,
-    /\bup\s+to\s+\d+/gi,
-    /\b\d+(?:st|nd|rd|th)?\s+(?:largest|biggest|leading|top)/gi,
-    /\b(?:founded|established|since)\s+\d{4}/gi,
-    /\b\d+(?:\.\d+)?\s*(?:first-pass|acceptance|success|completion)\s*rate/gi
-  ];
-
-  // Check each quantitative claim against knowledge base
-  for (const pattern of quantitativePatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      for (const match of matches) {
-        const matchFound = knowledgeText.includes(match.toLowerCase());
-        if (!matchFound) {
-          issues.push(`Quantitative claim not found in knowledge base: "${match}"`);
-          confidenceScore -= 30; // Heavy penalty for fabricated numbers
-        }
-      }
-    }
-  }
-
-  // Extract and verify specific achievement claims
-  const achievementPatterns = [
-    /we\s+(?:have\s+)?(?:produced|completed|delivered|created)\s+[^.!?]*\d+[^.!?]*/gi,
-    /our\s+[^.!?]*\d+[^.!?]*(?:rate|record|experience|track record)/gi,
-    /maintaining\s+(?:a\s+)?\d+[^.!?]*/gi
-  ];
-
-  for (const pattern of achievementPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      for (const match of matches) {
-        // Check if this exact achievement claim exists in knowledge base
-        const normalizedMatch = match.toLowerCase().replace(/\s+/g, ' ').trim();
-        const foundInKB = knowledgeEntries.some(entry => {
-          const entryText = `${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
-          return entryText.includes(normalizedMatch) || 
-                 // Check for substantial phrase overlap (at least 5 consecutive words)
-                 normalizedMatch.split(' ').length >= 5 &&
-                 entryText.includes(normalizedMatch.split(' ').slice(0, 5).join(' '));
-        });
-        
-        if (!foundInKB) {
-          issues.push(`Achievement claim not verified in knowledge base: "${match.trim()}"`);
-          confidenceScore -= 25;
-        }
-      }
-    }
-  }
-
-  // Check for generic superlatives that often indicate hallucination
-  const suspiciousSuperlatives = [
-    /\b(?:industry-leading|world-class|cutting-edge|state-of-the-art|award-winning|premier|leading)\b/gi
-  ];
-
-  for (const pattern of suspiciousSuperlatives) {
-    const matches = content.match(pattern);
-    if (matches) {
-      for (const match of matches) {
-        if (!knowledgeText.includes(match.toLowerCase())) {
-          issues.push(`Unverified superlative claim: "${match}"`);
-          confidenceScore -= 15;
-        }
-      }
-    }
-  }
-
-  // Ultra-strict threshold for fabrication detection
-  const isValid = confidenceScore >= 85 && issues.length === 0;
-  
-  return {
-    isValid,
-    issues,
-    confidenceScore: Math.max(0, confidenceScore)
-  };
-}
-
-function analyzeGeneratedContent(content: string, sectionTitle: string): { isAcceptable: boolean; issues: string[] } {
-  const issues: string[] = [];
-  
-  // Check for generic business language that indicates AI fallback
-  const genericPhrases = [
-    'industry-leading', 'world-class', 'cutting-edge', 'state-of-the-art',
-    'proven track record', 'extensive experience', 'comprehensive solution',
-    'innovative approach', 'best practices', 'award-winning', 'market leader',
-    'committed to excellence', 'dedicated team', 'years of experience',
-    'tailored solutions', 'client-focused', 'results-driven'
-  ];
-  
-  const genericCount = genericPhrases.filter(phrase => 
-    content.toLowerCase().includes(phrase)
-  ).length;
-  
-  if (genericCount > 2) {
-    issues.push(`Contains ${genericCount} generic business phrases indicating potential AI fallback`);
-  }
-  
-  // Check for vague quantifiers that suggest hallucination
-  const vaguePhrases = [
-    'many years', 'numerous projects', 'extensive portfolio', 'wide range',
-    'various clients', 'multiple industries', 'several awards', 'countless',
-    'substantial experience', 'significant expertise', 'comprehensive knowledge'
-  ];
-  
-  const vagueCount = vaguePhrases.filter(phrase => 
-    content.toLowerCase().includes(phrase)
-  ).length;
-  
-  if (vagueCount > 1) {
-    issues.push(`Contains ${vagueCount} vague quantifiers suggesting lack of specific knowledge`);
-  }
-  
-  // Check for specific claims without support
-  const specificClaims = content.match(/\d{4}|since \d{4}|\d+ years|\d+% |over \$[\d,]+/gi);
-  if (specificClaims && specificClaims.length > 2) {
-    issues.push('Contains multiple specific claims that may not be supported by knowledge base');
-  }
-  
-  return {
-    isAcceptable: issues.length === 0,
-    issues
-  };
-}
 
 console.log("Function setup complete, listening for requests...");

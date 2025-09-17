@@ -79,31 +79,26 @@ export function assessKnowledgeBaseCoverage(
     totalRelevantContent
   );
   
-  // Ultra-permissive adequacy check for comprehensive documents
-  const minCoverageThreshold = 25; // Extremely permissive threshold
-  const hasSubstantialContent = totalRelevantContent >= 200; // Very low threshold for substantial content
-  const hasRelevantEntries = relevantEntries.length >= 1;
+  // ULTRA-STRICT adequacy check for anti-hallucination
+  const minCoverageThreshold = 80; // High threshold for strict validation
+  const hasSubstantialContent = totalRelevantContent >= 2000; // Require significant content
+  const hasRelevantEntries = relevantEntries.length >= 2; // Require multiple sources
   
-  // For large comprehensive documents, be extremely permissive
-  const isLargeComprehensiveDocument = totalRelevantContent >= 10000; // 10K+ chars = comprehensive
-  const isMassiveDocument = totalRelevantContent >= 50000; // 50K+ chars = definitely comprehensive
-  
-  // Enhanced section requirements using intelligent analysis  
+  // No auto-pass for large documents - all must meet strict criteria
   const sectionRequirements = assessSectionRequirementsIntelligently(
     sectionType, 
     relevantEntries, 
     extractedConcepts
   );
   
-  // If we have a large comprehensive document, requirements are automatically met
-  const requirementsMet = isLargeComprehensiveDocument || sectionRequirements.areMet;
+  // STRICT: All requirements must be explicitly met
+  const requirementsMet = sectionRequirements.areMet;
   
-  // For massive documents (50K+), automatically pass all checks
-  const isAdequate = isMassiveDocument || 
-                    (coverageScore >= minCoverageThreshold && 
-                     hasSubstantialContent &&
-                     hasRelevantEntries &&
-                     requirementsMet);
+  // Ultra-strict validation - no exceptions
+  const isAdequate = coverageScore >= minCoverageThreshold && 
+                    hasSubstantialContent &&
+                    hasRelevantEntries &&
+                    requirementsMet;
   
   // Generate intelligent recommendations based on content analysis
   const missingTopics = identifyMissingTopicsIntelligently(
@@ -324,15 +319,30 @@ export function validateGeneratedContent(
   for (const claim of specificClaims) {
     const claimLower = claim.toLowerCase();
     
-    // Check for exact or very close matches in knowledge base
+    // ULTRA-STRICT: Require exact phrase matches for quantitative claims
     const isDirectlySupported = knowledgeEntries.some(entry => {
       const entryText = `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
-      return entryText.includes(claimLower) || 
-             // Allow minor variations in wording but require substantial overlap
-             claim.split(' ').filter(word => word.length > 3).length > 0 &&
-             claim.split(' ').filter(word => word.length > 3).every(word => 
-               entryText.includes(word.toLowerCase())
-             );
+      
+      // For quantitative claims (numbers, percentages), require exact match
+      if (/\d/.test(claim)) {
+        return entryText.includes(claimLower);
+      }
+      
+      // For qualitative claims, require at least 3 consecutive words to match
+      const claimWords = claim.split(' ').filter(word => word.length > 2);
+      if (claimWords.length >= 3) {
+        // Check for consecutive 3-word sequences
+        for (let i = 0; i <= claimWords.length - 3; i++) {
+          const sequence = claimWords.slice(i, i + 3).join(' ').toLowerCase();
+          if (entryText.includes(sequence)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      
+      // Single/two word claims require exact match
+      return entryText.includes(claimLower);
     });
     
     if (!isDirectlySupported) {

@@ -4,6 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { generateOptimizedPrompt } from "./optimized-prompt.ts";
 import { filterAndOptimizeKnowledgeBase, formatOptimizedKnowledgeContext } from "./smart-knowledge-filter.ts";
 import { selectOptimalModel, getModelDisplayName, estimateCostReduction } from "./model-selector.ts";
+import { assessKnowledgeBaseCoverage } from "./knowledge-validation.ts";
 import { KnowledgeEntry, Project, GenerateContentRequest, ClaudeResponse } from "./types.ts";
 
 // Helper function to determine section type (moved from prompt.ts for reuse)
@@ -424,6 +425,26 @@ serve(async (req) => {
     
     let generatedContent = result.content[0].text;
     
+    // PHASE 4: POST-GENERATION FABRICATION DETECTION
+    if (strictMode) {
+      console.log("Performing ULTRA-STRICT post-generation fabrication detection...");
+      const fabricationCheck = detectContentFabrication(generatedContent, knowledgeEntries);
+      
+      if (!fabricationCheck.isValid) {
+        console.error("Content failed fabrication detection:", fabricationCheck.issues);
+        return new Response(JSON.stringify({
+          error: "Generated content failed ultra-strict validation",
+          message: `Generated content contains information not supported by your knowledge base (Confidence: ${fabricationCheck.confidenceScore}%).`,
+          issues: fabricationCheck.issues,
+          recommendation: "Please add more specific, detailed information to your knowledge base and try again.",
+          knowledgeGaps: fabricationCheck.issues.slice(0, 3)
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    
     // Check for explicit refusal in strict mode
     if (strictMode && generatedContent.includes('INSUFFICIENT_KNOWLEDGE_BASE_DATA')) {
       console.log("AI refused to generate due to insufficient knowledge base data");
@@ -577,6 +598,103 @@ This indicates the content contains information not supported by your knowledge 
 });
 
 // NEW: Pre-validation content analysis function
+// Ultra-strict fabrication detection for strict mode
+function detectContentFabrication(
+  content: string,
+  knowledgeEntries: KnowledgeEntry[]
+): { isValid: boolean; issues: string[]; confidenceScore: number } {
+  const issues: string[] = [];
+  let confidenceScore = 100;
+
+  // Build comprehensive knowledge base text for exact matching
+  const knowledgeText = knowledgeEntries.map(entry => 
+    `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`
+  ).join(' ').toLowerCase();
+
+  // Extract all quantitative claims (numbers, percentages, statistics)
+  const quantitativePatterns = [
+    /\b\d+(?:,\d+)*\s*(?:years?|months?|weeks?|days?)\b/gi,
+    /\b\d+(?:,\d+)*\s*(?:clients?|customers?|projects?|employees?|staff|videos?|hours?)\b/gi,
+    /\b\d+(?:\.\d+)?%\b/g,
+    /\$\d+(?:,\d+)*(?:\.\d+)?(?:\s*(?:million|billion|thousand|k|m|b))?/gi,
+    /\bover\s+\d+/gi,
+    /\bmore\s+than\s+\d+/gi,
+    /\bup\s+to\s+\d+/gi,
+    /\b\d+(?:st|nd|rd|th)?\s+(?:largest|biggest|leading|top)/gi,
+    /\b(?:founded|established|since)\s+\d{4}/gi,
+    /\b\d+(?:\.\d+)?\s*(?:first-pass|acceptance|success|completion)\s*rate/gi
+  ];
+
+  // Check each quantitative claim against knowledge base
+  for (const pattern of quantitativePatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        const matchFound = knowledgeText.includes(match.toLowerCase());
+        if (!matchFound) {
+          issues.push(`Quantitative claim not found in knowledge base: "${match}"`);
+          confidenceScore -= 30; // Heavy penalty for fabricated numbers
+        }
+      }
+    }
+  }
+
+  // Extract and verify specific achievement claims
+  const achievementPatterns = [
+    /we\s+(?:have\s+)?(?:produced|completed|delivered|created)\s+[^.!?]*\d+[^.!?]*/gi,
+    /our\s+[^.!?]*\d+[^.!?]*(?:rate|record|experience|track record)/gi,
+    /maintaining\s+(?:a\s+)?\d+[^.!?]*/gi
+  ];
+
+  for (const pattern of achievementPatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        // Check if this exact achievement claim exists in knowledge base
+        const normalizedMatch = match.toLowerCase().replace(/\s+/g, ' ').trim();
+        const foundInKB = knowledgeEntries.some(entry => {
+          const entryText = `${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+          return entryText.includes(normalizedMatch) || 
+                 // Check for substantial phrase overlap (at least 5 consecutive words)
+                 normalizedMatch.split(' ').length >= 5 &&
+                 entryText.includes(normalizedMatch.split(' ').slice(0, 5).join(' '));
+        });
+        
+        if (!foundInKB) {
+          issues.push(`Achievement claim not verified in knowledge base: "${match.trim()}"`);
+          confidenceScore -= 25;
+        }
+      }
+    }
+  }
+
+  // Check for generic superlatives that often indicate hallucination
+  const suspiciousSuperlatives = [
+    /\b(?:industry-leading|world-class|cutting-edge|state-of-the-art|award-winning|premier|leading)\b/gi
+  ];
+
+  for (const pattern of suspiciousSuperlatives) {
+    const matches = content.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        if (!knowledgeText.includes(match.toLowerCase())) {
+          issues.push(`Unverified superlative claim: "${match}"`);
+          confidenceScore -= 15;
+        }
+      }
+    }
+  }
+
+  // Ultra-strict threshold for fabrication detection
+  const isValid = confidenceScore >= 85 && issues.length === 0;
+  
+  return {
+    isValid,
+    issues,
+    confidenceScore: Math.max(0, confidenceScore)
+  };
+}
+
 function analyzeGeneratedContent(content: string, sectionTitle: string): { isAcceptable: boolean; issues: string[] } {
   const issues: string[] = [];
   

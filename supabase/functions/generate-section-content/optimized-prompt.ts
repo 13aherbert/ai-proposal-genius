@@ -25,9 +25,29 @@ export function generateOptimizedPrompt(
   });
   }
 
-  // Streamlined strict mode (much shorter)
+  // ULTRA-STRICT mode instructions
   const strictModeInstructions = strictMode ? `
-STRICT MODE: Use ONLY verified knowledge base information. If insufficient data, respond with "INSUFFICIENT_KNOWLEDGE_BASE_DATA".
+🚫 ULTRA-STRICT MODE - ANTI-HALLUCINATION PROTOCOL:
+• Use ONLY information that appears EXACTLY in the knowledge base
+• NEVER create, estimate, or infer numbers, percentages, or statistics
+• NEVER combine separate facts to create new claims
+• NEVER use words like "approximately," "around," "over," "more than" with numbers
+• If ANY required information is missing, respond ONLY with "INSUFFICIENT_KNOWLEDGE_BASE_DATA"
+• Every sentence must be verifiable against the provided knowledge base
+• When in doubt, respond with "INSUFFICIENT_KNOWLEDGE_BASE_DATA"
+
+FORBIDDEN ACTIONS:
+❌ Creating specific numbers (years of experience, client counts, percentages)
+❌ Combining facts from different knowledge entries  
+❌ Making assumptions about company capabilities
+❌ Using superlatives without exact knowledge base support
+❌ Estimating timeframes, costs, or quantities
+
+VERIFICATION CHECKLIST - Ask yourself for EVERY sentence:
+✅ Does this exact information appear in the knowledge base?
+✅ Am I combining facts that weren't already connected?
+✅ Am I creating any new numbers or statistics?
+If ANY answer is "yes" or "maybe" → Use "INSUFFICIENT_KNOWLEDGE_BASE_DATA"
 ` : '';
 
   return `Write the "${sectionTitle}" section for this RFP proposal:

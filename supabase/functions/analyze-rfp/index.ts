@@ -265,7 +265,51 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing RFP (Request for Proposal) documents. Analyze the following RFP text and provide a structured analysis with these sections:\n1. Key Requirements\n2. Timeline and Deadlines\n3. Evaluation Criteria\n4. Required Response Format\n5. Potential Risks\n\nFor each section, provide bullet points of the most important information. Be specific and detailed based on the actual content provided.'
+            content: `You are an expert RFP analyst with deep experience in competitive proposal strategy. Analyze the following RFP and provide a comprehensive strategic analysis with these sections:
+
+1. **EXECUTIVE SUMMARY** (2-3 sentences)
+   - Core opportunity and strategic value
+
+2. **KEY REQUIREMENTS ANALYSIS**
+   - Must-have requirements (mandatory)
+   - Nice-to-have requirements (competitive advantage)
+   - Technical specifications and deliverables
+   - Compliance and regulatory requirements
+
+3. **WIN PROBABILITY ASSESSMENT**
+   - Estimated win probability (High/Medium/Low) with reasoning
+   - Key competitive factors
+   - Our likely competitive position
+   - Critical success factors for winning
+
+4. **TIMELINE & CRITICAL DEADLINES**
+   - Proposal submission deadline
+   - Project timeline and milestones
+   - Risk factors in timing
+
+5. **EVALUATION CRITERIA & SCORING**
+   - How proposals will be evaluated
+   - Scoring weights and criteria
+   - Decision-making process
+
+6. **COMPETITIVE LANDSCAPE ANALYSIS**
+   - Likely competitors and their strengths
+   - Differentiation opportunities
+   - Competitive positioning strategy
+
+7. **STRATEGIC RECOMMENDATIONS**
+   - Key messages to emphasize in proposal
+   - Areas requiring capability development
+   - Risk mitigation strategies
+   - Go/No-Go recommendation with reasoning
+
+8. **POTENTIAL RISKS & MITIGATION**
+   - Business risks
+   - Technical risks
+   - Competitive risks
+   - Recommended mitigation approaches
+
+Be specific, strategic, and actionable. Focus on intelligence that will help win this opportunity.`
           },
           {
             role: 'user',

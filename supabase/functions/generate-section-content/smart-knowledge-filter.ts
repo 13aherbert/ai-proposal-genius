@@ -85,35 +85,109 @@ function calculateRelevanceScore(
   keywords: string[], 
   sectionType: string
 ): number {
-  const content = `${entry.title} ${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+  const title = entry.title.toLowerCase();
+  const content = `${entry.content || ''} ${entry.parsed_content || ''}`.toLowerCase();
+  const fullText = `${title} ${content}`;
   let score = 0;
   
-  // Keyword matching with weighted scoring
+  // Enhanced semantic keyword matching
   keywords.forEach(keyword => {
-    const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'gi');
-    const matches = content.match(keywordRegex);
-    if (matches) {
-      score += matches.length * 0.1; // Each match adds 0.1 to score
+    const keywordLower = keyword.toLowerCase();
+    
+    // Exact keyword matches (highest weight)
+    const exactMatches = fullText.match(new RegExp(`\\b${keywordLower}\\b`, 'g'));
+    if (exactMatches) {
+      score += exactMatches.length * 0.2;
     }
+    
+    // Partial matches and related terms
+    const partialMatches = fullText.match(new RegExp(keywordLower, 'g'));
+    if (partialMatches) {
+      score += partialMatches.length * 0.1;
+    }
+    
+    // Title matches get extra weight
+    if (title.includes(keywordLower)) {
+      score += 0.3;
+    }
+    
+    // Semantic similarity for related terms
+    const synonymMap: { [key: string]: string[] } = {
+      'technical': ['technology', 'system', 'solution', 'approach', 'methodology'],
+      'team': ['staff', 'personnel', 'experts', 'professionals', 'workforce'],
+      'experience': ['expertise', 'background', 'history', 'track record', 'portfolio'],
+      'company': ['organization', 'business', 'firm', 'corporation'],
+      'project': ['initiative', 'engagement', 'work', 'contract', 'assignment']
+    };
+    
+    const synonyms = synonymMap[keywordLower] || [];
+    synonyms.forEach(synonym => {
+      if (fullText.includes(synonym)) {
+        score += 0.15; // Synonym matches
+      }
+    });
   });
   
-  // Category relevance boost
-  if (entry.category.toLowerCase().includes(sectionType)) {
-    score += 0.3;
+  // Section-specific category matching
+  const categoryMatch = getCategoryRelevance(entry.category, sectionType);
+  score += categoryMatch;
+  
+  // Content quality and freshness scoring
+  const contentLength = content.length;
+  if (contentLength > 2000) {
+    score += 0.3; // Comprehensive content
+  } else if (contentLength > 500) {
+    score += 0.2; // Good content
+  } else if (contentLength > 100) {
+    score += 0.1; // Basic content
+  } else if (contentLength < 50) {
+    score *= 0.2; // Penalize very thin content
   }
   
-  // Content quality boost for substantial entries
-  const contentLength = (entry.content?.length || 0) + (entry.parsed_content?.length || 0);
-  if (contentLength > 500) {
-    score += 0.2;
+  // Boost for structured content (lists, headers, etc.)
+  if (content.match(/^\s*[-•*]\s/m) || content.match(/^\s*\d+\.\s/m)) {
+    score += 0.15; // Structured content bonus
   }
   
-  // Penalize very short or placeholder content
-  if (contentLength < 100) {
-    score *= 0.1;
+  // Boost for data-rich content (numbers, dates, specifics)
+  const dataMatches = content.match(/\b\d{4}\b|\d+%|\$[\d,]+|\b\d+\s+(?:years?|projects?|clients?)/g);
+  if (dataMatches && dataMatches.length > 2) {
+    score += 0.2; // Rich data content
   }
   
-  return Math.min(score, 1.0); // Cap at 1.0
+  return Math.min(score, 2.0); // Increased cap for better discrimination
+}
+
+function getCategoryRelevance(category: string, sectionType: string): number {
+  const categoryLower = category.toLowerCase();
+  
+  const relevanceMap: { [key: string]: { [key: string]: number } } = {
+    'executive': {
+      'company': 0.8, 'overview': 0.8, 'business': 0.7, 'services': 0.6, 'capabilities': 0.7
+    },
+    'technical': {
+      'technical': 0.9, 'methodology': 0.8, 'approach': 0.8, 'process': 0.7, 'system': 0.7, 'solution': 0.8
+    },
+    'team': {
+      'team': 0.9, 'staff': 0.8, 'personnel': 0.8, 'experience': 0.7, 'qualifications': 0.8, 'expertise': 0.7
+    },
+    'company': {
+      'company': 0.9, 'about': 0.8, 'history': 0.7, 'profile': 0.8, 'overview': 0.7, 'business': 0.8
+    },
+    'pricing': {
+      'pricing': 0.9, 'cost': 0.8, 'budget': 0.7, 'financial': 0.7, 'rates': 0.8
+    }
+  };
+  
+  const sectionRelevance = relevanceMap[sectionType] || {};
+  
+  for (const [catKey, relevance] of Object.entries(sectionRelevance)) {
+    if (categoryLower.includes(catKey)) {
+      return relevance;
+    }
+  }
+  
+  return 0.1; // Default low relevance for unmatched categories
 }
 
 function getMaxEntriesForSection(sectionType: string): number {

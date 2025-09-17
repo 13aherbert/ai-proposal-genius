@@ -3,6 +3,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { generateWithClaude } from './claude-client.ts';
 import { generatePrompt } from './prompt.ts';
 import { KnowledgeEntry, Project } from './types.ts';
+import { ContentQualityAnalyzer } from './content-quality-analyzer.ts';
+import { KnowledgeGapDetector } from './knowledge-gap-detector.ts';
+import { CompetitiveAnalyzer } from './competitive-analyzer.ts';
+import { WinProbabilityCalculator } from './win-probability-calculator.ts';
+import { EnhancedValidator } from './enhanced-validator.ts';
 
 // CORS headers
 const corsHeaders = {
@@ -62,6 +67,28 @@ function validateContent(content: string): { isValid: boolean; issues: string[] 
     isValid: issues.length === 0,
     issues
   };
+}
+
+// Helper function to determine section type (used by optimization modules)
+function getSectionType(sectionTitle: string): string {
+  const title = sectionTitle.toLowerCase();
+  
+  if (title.includes('executive') || title.includes('summary') || title.includes('overview')) {
+    return 'executive';
+  }
+  if (title.includes('technical') || title.includes('approach') || title.includes('methodology') || title.includes('solution')) {
+    return 'technical';
+  }
+  if (title.includes('team') || title.includes('personnel') || title.includes('staff') || title.includes('experience')) {
+    return 'team';
+  }
+  if (title.includes('timeline') || title.includes('schedule') || title.includes('milestone') || title.includes('delivery')) {
+    return 'timeline';
+  }
+  if (title.includes('cost') || title.includes('price') || title.includes('budget') || title.includes('financial')) {
+    return 'pricing';
+  }
+  return 'general';
 }
 
 // Clean up AI-generated content
@@ -215,11 +242,66 @@ serve(async (req) => {
 
     // Clean and validate content
     const cleanedContent = cleanGeneratedContent(response, sectionTitle);
-    const validation = validateContent(cleanedContent);
+    const basicValidation = validateContent(cleanedContent);
 
-    if (!validation.isValid) {
-      console.error("Content validation failed:", validation.issues);
-      throw new ProposalGenerationError(`Content validation failed: ${validation.issues.join(', ')}`);
+    if (!basicValidation.isValid) {
+      console.error("Basic validation failed:", basicValidation.issues);
+      throw new ProposalGenerationError(`Content validation failed: ${basicValidation.issues.join(', ')}`);
+    }
+
+    // PHASE 2: Advanced Quality Analysis & Optimization
+    const sectionType = getSectionType(sectionTitle);
+    
+    console.log("Running Phase 2 optimization analysis...");
+    
+    // 1. Enhanced Content Quality Analysis
+    const qualityAnalysis = ContentQualityAnalyzer.analyzeContent(
+      cleanedContent, 
+      sectionType, 
+      project.analysis
+    );
+    
+    // 2. Knowledge Gap Detection
+    const knowledgeGapAnalysis = KnowledgeGapDetector.analyzeKnowledgeGaps(
+      entriesWithContent,
+      sectionType,
+      project.analysis
+    );
+    
+    // 3. Competitive Analysis
+    const competitiveAnalysis = CompetitiveAnalyzer.analyzeCompetitivePosition(
+      entriesWithContent,
+      project.analysis,
+      sectionType
+    );
+    
+    // 4. Win Probability Calculation
+    const winProbability = WinProbabilityCalculator.calculateWinProbability(
+      entriesWithContent,
+      project.analysis,
+      competitiveAnalysis,
+      qualityAnalysis.metrics
+    );
+    
+    // 5. Enhanced Validation
+    const enhancedValidation = EnhancedValidator.validateContent(
+      cleanedContent,
+      sectionTitle,
+      sectionType,
+      project.analysis
+    );
+
+    // Check if content meets quality thresholds
+    const qualityThreshold = ContentQualityAnalyzer.getQualityThreshold();
+    const meetsQualityStandards = qualityAnalysis.passes_threshold && 
+                                  enhancedValidation.confidence_score >= 70;
+
+    if (!meetsQualityStandards) {
+      console.warn("Content quality below optimal threshold:", {
+        qualityScore: qualityAnalysis.metrics.overall_score,
+        validationScore: enhancedValidation.confidence_score,
+        issues: enhancedValidation.issues.filter(i => i.type === 'critical')
+      });
     }
 
     const processingTime = Date.now() - startTime;
@@ -230,11 +312,21 @@ serve(async (req) => {
       content: cleanedContent,
       sectionTitle,
       processing: {
-        modelUsed: 'claude-sonnet-4-20250514',
+        modelUsed: 'claude-opus-4-1-20250805',
         knowledgeEntriesUsed: entriesWithContent.length,
         totalKnowledgeEntries: entries.length,
         contentLength: cleanedContent.length,
         processingTimeMs: processingTime
+      },
+      // PHASE 2: Optimization Analytics
+      optimization: {
+        quality_analysis: qualityAnalysis,
+        knowledge_gaps: knowledgeGapAnalysis,
+        competitive_analysis: competitiveAnalysis,
+        win_probability: winProbability,
+        enhanced_validation: enhancedValidation,
+        meets_quality_standards: meetsQualityStandards,
+        phase: 'Phase 2: Optimize for Success'
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

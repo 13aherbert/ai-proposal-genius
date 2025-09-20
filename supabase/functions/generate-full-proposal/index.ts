@@ -269,6 +269,9 @@ interface GenerateFullProposalRequest {
   projectId: string;
   userId: string;
   strictMode?: boolean;
+  sections?: string[]; // Specific sections to generate (for chunking)
+  chunkIndex?: number; // Chunk identifier for progress tracking
+  totalChunks?: number; // Total number of chunks
 }
 
 const corsHeaders = {
@@ -430,7 +433,7 @@ serve(async (req) => {
 
     // Parse request
     requestData = await req.json();
-    const { projectId, userId, strictMode = false } = requestData;
+    const { projectId, userId, strictMode = false, sections: requestedSections, chunkIndex = 0, totalChunks = 1 } = requestData;
 
     if (!projectId || !userId) {
       throw new ProposalGenerationError('Missing required parameters: projectId and userId', 400);
@@ -493,9 +496,10 @@ serve(async (req) => {
 
     console.log(`Knowledge context length: ${knowledgeContext.length} characters`);
 
-    // Extract sections from proposal outline
-    const sections = extractSections(project.proposal_outline || '');
-    console.log(`Extracted ${sections.length} sections:`, sections);
+    // Extract sections from proposal outline or use requested sections
+    const allSections = requestedSections || extractSections(project.proposal_outline || '');
+    const sections = requestedSections || allSections;
+    console.log(`Processing ${sections.length} sections (chunk ${chunkIndex + 1}/${totalChunks}):`, sections);
 
     // Generate sections sequentially with rate limiting
     console.log(`Starting sequential generation of ${sections.length} sections...`);
@@ -517,9 +521,12 @@ serve(async (req) => {
               startedAt: new Date().toISOString(),
               userId: userId,
               currentSection: sectionTitle,
+              chunkIndex: chunkIndex + 1,
+              totalChunks,
               progress: Math.round((completedSections / sections.length) * 100),
               completedSections,
-              totalSections: sections.length
+              totalSections: sections.length,
+              allSections: allSections.length
             }
           })
           .eq('project_id', projectId);
@@ -529,7 +536,7 @@ serve(async (req) => {
           sectionTitle,
           project,
           knowledgeContext,
-          sections,
+          allSections, // Use all sections for context
           anthropicApiKey
         );
         
@@ -653,11 +660,15 @@ Please review and complete these sections manually or try regenerating them indi
         success: true,
         proposal: fullProposal,
         metadata: generationMetadata,
+        chunkIndex,
+        totalChunks,
+        isPartial: totalChunks > 1, // Indicates this is part of a larger generation
         sections: sectionResults.map(result => ({
           title: result.sectionTitle,
           content: result.content.substring(0, 200) + '...', // Preview only
           quality: result.quality
-        }))
+        })),
+        sectionsData: sectionResults // Full section data for chunked assembly
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

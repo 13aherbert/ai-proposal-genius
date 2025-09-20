@@ -24,7 +24,7 @@ async function generateWithClaude(prompt: string, apiKey: string, retryCount = 0
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_completion_tokens: 4096, // Updated for newer models
+        max_tokens: 4096, // Claude API uses max_tokens, not max_completion_tokens
         messages: [
           {
             role: 'user',
@@ -42,6 +42,10 @@ async function generateWithClaude(prompt: string, apiKey: string, retryCount = 0
         await delay(delayMs);
         return generateWithClaude(prompt, apiKey, retryCount + 1);
       }
+      
+      // Log detailed error information for debugging
+      const errorText = await response.text();
+      console.error(`Claude API error: ${response.status} ${response.statusText}`, errorText);
       throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
     }
 

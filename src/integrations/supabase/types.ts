@@ -1508,6 +1508,9 @@ export type Database = {
       projects: {
         Row: {
           analysis: string | null
+          auto_generated_proposal: string | null
+          auto_generation_metadata: Json | null
+          auto_generation_status: string | null
           business_name: string | null
           client_name: string | null
           created_at: string
@@ -1527,6 +1530,9 @@ export type Database = {
         }
         Insert: {
           analysis?: string | null
+          auto_generated_proposal?: string | null
+          auto_generation_metadata?: Json | null
+          auto_generation_status?: string | null
           business_name?: string | null
           client_name?: string | null
           created_at?: string
@@ -1546,6 +1552,9 @@ export type Database = {
         }
         Update: {
           analysis?: string | null
+          auto_generated_proposal?: string | null
+          auto_generation_metadata?: Json | null
+          auto_generation_status?: string | null
           business_name?: string | null
           client_name?: string | null
           created_at?: string

@@ -109,14 +109,7 @@ export function IntegrationManager() {
     if (!organization?.id) return;
 
     try {
-      // Temporarily use organization_branding as placeholder until migration completes
-      const { data, error } = await supabase
-        .from('organization_branding')
-        .select('*')
-        .eq('organization_id', organization.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // TODO: Replace with actual organization_integrations table once types are updated
       setIntegrations([]); // Temporary empty array until tables exist
     } catch (error) {
       console.error('Failed to load integrations:', error);
@@ -139,21 +132,10 @@ export function IntegrationManager() {
     if (!editingIntegration) return;
 
     try {
-      const { data, error } = await supabase
-        .from('organization_integrations')
-        .update({
-          configuration: formData,
-        })
-        .eq('id', editingIntegration.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setIntegrations(prev => prev.map(i => i.id === editingIntegration.id ? data : i));
+      // TODO: Replace with actual database update once types are available
+      toast.info('Integration updates will be available after database migration completes');
       setEditingIntegration(null);
       resetForm();
-      toast.success('Integration updated successfully');
     } catch (error) {
       console.error('Failed to update integration:', error);
       toast.error('Failed to update integration');
@@ -162,18 +144,8 @@ export function IntegrationManager() {
 
   const handleToggleIntegration = async (integrationId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from('organization_integrations')
-        .update({ is_active: !isActive })
-        .eq('id', integrationId);
-
-      if (error) throw error;
-
-      setIntegrations(prev => prev.map(i => 
-        i.id === integrationId ? { ...i, is_active: !isActive } : i
-      ));
-      
-      toast.success(`Integration ${isActive ? 'disabled' : 'enabled'}`);
+      // TODO: Replace with actual database update once types are available
+      toast.info('Integration toggle will be available after database migration completes');
     } catch (error) {
       console.error('Failed to toggle integration:', error);
       toast.error('Failed to toggle integration');
@@ -182,16 +154,9 @@ export function IntegrationManager() {
 
   const handleDeleteIntegration = async (integrationId: string) => {
     try {
-      const { error } = await supabase
-        .from('organization_integrations')
-        .delete()
-        .eq('id', integrationId);
-
-      if (error) throw error;
-
-      setIntegrations(prev => prev.filter(i => i.id !== integrationId));
+      // TODO: Replace with actual database delete once types are available
+      toast.info('Integration deletion will be available after database migration completes');
       setShowDeleteDialog(null);
-      toast.success('Integration deleted successfully');
     } catch (error) {
       console.error('Failed to delete integration:', error);
       toast.error('Failed to delete integration');

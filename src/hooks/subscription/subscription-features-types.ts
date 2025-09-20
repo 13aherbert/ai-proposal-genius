@@ -5,6 +5,7 @@ export type FeatureName =
   | 'proposal_draft'
   | 'compiled_draft'  // Adding missing feature
   | 'evaluation'      // Adding missing feature
+  | 'auto_proposal_generation' // New auto-generated proposal feature
   | 'data_export'     // Adding missing feature
   | 'ai_editor'
   | 'team_collaboration'

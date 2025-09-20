@@ -156,6 +156,7 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   proposal_draft: ['trial', 'starter', 'pro'],  // All plans have access
   compiled_draft: ['pro'],  // Only pro has access
   evaluation: ['pro'],  // Only pro has access
+  auto_proposal_generation: ['pro'],  // Only pro has access - advanced feature
   data_export: ['pro'],  // Only pro has access
   ai_editor: ['starter', 'pro'],  // Only starter and pro have access
   team_collaboration: ['pro'],  // Only pro has access

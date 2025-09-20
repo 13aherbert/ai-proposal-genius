@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen } from "lucide-react";
+import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen, Wand } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -46,6 +46,12 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       label: "Compiled Draft",
       icon: BookOpen,
       feature: "compiled_draft" as FeatureName,
+    },
+    {
+      id: "auto-proposal",
+      label: "Auto-Generated Proposal",
+      icon: Wand,
+      feature: "auto_proposal_generation" as FeatureName,
     },
     {
       id: "evaluation",

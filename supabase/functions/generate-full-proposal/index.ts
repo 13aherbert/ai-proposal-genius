@@ -1,36 +1,61 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// === CLAUDE CLIENT FUNCTIONALITY ===
+// === CLAUDE CLIENT FUNCTIONALITY WITH RETRY LOGIC ===
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-opus-4-1-20250805';
+const MAX_RETRIES = 3;
+const BASE_DELAY = 1000; // 1 second base delay
+const REQUEST_DELAY = 2500; // 2.5 second delay between requests
 
-async function generateWithClaude(prompt: string, apiKey: string): Promise<string> {
-  const response = await fetch(CLAUDE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    })
-  });
+// Rate limiting and retry utility
+async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${response.statusText}`);
+async function generateWithClaude(prompt: string, apiKey: string, retryCount = 0): Promise<string> {
+  try {
+    const response = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_completion_tokens: 4096, // Updated for newer models
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      // Handle rate limiting with exponential backoff
+      if (response.status === 429 && retryCount < MAX_RETRIES) {
+        const delayMs = BASE_DELAY * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`Rate limited. Retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await delay(delayMs);
+        return generateWithClaude(prompt, apiKey, retryCount + 1);
+      }
+      throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.content[0].text;
+  } catch (error) {
+    if (retryCount < MAX_RETRIES && (error.message.includes('network') || error.message.includes('timeout'))) {
+      const delayMs = BASE_DELAY * Math.pow(2, retryCount);
+      console.log(`Network error. Retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await delay(delayMs);
+      return generateWithClaude(prompt, apiKey, retryCount + 1);
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.content[0].text;
 }
 
 // === MULTI-MODEL ORCHESTRATOR FUNCTIONALITY ===
@@ -392,12 +417,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Parse request body once at the start
+  let requestData: GenerateFullProposalRequest | null = null;
+  
   try {
     const startTime = Date.now();
     console.log('Starting full proposal generation...');
 
     // Parse request
-    const { projectId, userId, strictMode = false }: GenerateFullProposalRequest = await req.json();
+    requestData = await req.json();
+    const { projectId, userId, strictMode = false } = requestData;
 
     if (!projectId || !userId) {
       throw new ProposalGenerationError('Missing required parameters: projectId and userId', 400);
@@ -464,24 +493,116 @@ serve(async (req) => {
     const sections = extractSections(project.proposal_outline || '');
     console.log(`Extracted ${sections.length} sections:`, sections);
 
-    // Generate all sections in parallel
-    const sectionPromises = sections.map(sectionTitle => 
-      generateSectionContent(
-        sectionTitle,
-        project,
-        knowledgeContext,
-        sections,
-        anthropicApiKey
-      )
-    );
-
-    console.log(`Starting parallel generation of ${sections.length} sections...`);
-    const sectionResults = await Promise.all(sectionPromises);
+    // Generate sections sequentially with rate limiting
+    console.log(`Starting sequential generation of ${sections.length} sections...`);
+    const sectionResults: SectionResult[] = [];
+    const failedSections: Array<{ title: string; error: string }> = [];
+    
+    // Update progress tracking
+    let completedSections = 0;
+    
+    for (const sectionTitle of sections) {
+      try {
+        console.log(`Processing section ${completedSections + 1}/${sections.length}: ${sectionTitle}`);
+        
+        // Update progress in database
+        await supabase
+          .from('projects')
+          .update({ 
+            auto_generation_metadata: { 
+              startedAt: new Date().toISOString(),
+              userId: userId,
+              currentSection: sectionTitle,
+              progress: Math.round((completedSections / sections.length) * 100),
+              completedSections,
+              totalSections: sections.length
+            }
+          })
+          .eq('project_id', projectId);
+        
+        // Generate section content
+        const sectionResult = await generateSectionContent(
+          sectionTitle,
+          project,
+          knowledgeContext,
+          sections,
+          anthropicApiKey
+        );
+        
+        sectionResults.push(sectionResult);
+        completedSections++;
+        
+        console.log(`Completed section: ${sectionTitle} (${completedSections}/${sections.length})`);
+        
+        // Rate limiting: wait between requests (except for the last one)
+        if (completedSections < sections.length) {
+          console.log(`Waiting ${REQUEST_DELAY}ms before next section...`);
+          await delay(REQUEST_DELAY);
+        }
+        
+      } catch (error) {
+        console.error(`Failed to generate section "${sectionTitle}":`, error.message);
+        
+        // Track failed sections but continue with others
+        failedSections.push({
+          title: sectionTitle,
+          error: error.message
+        });
+        
+        // Add placeholder content for failed sections
+        sectionResults.push({
+          sectionTitle: sectionTitle,
+          content: `[Content for "${sectionTitle}" could not be generated due to: ${error.message}. Please review and complete this section manually.]`,
+          quality: {
+            overallScore: 0,
+            readabilityScore: 0,
+            persuasivenessScore: 0,
+            clientFocusScore: 0,
+            technicalAccuracyScore: 0,
+            completenessScore: 0,
+            issuesFound: [`Generation failed: ${error.message}`],
+            suggestions: ['Please regenerate this section individually or complete manually'],
+            modelConfidence: 0,
+            modelAgreement: 0
+          },
+          processingTime: 0
+        });
+        
+        completedSections++;
+        
+        // Still wait between requests to avoid compounding rate limit issues
+        if (completedSections < sections.length) {
+          await delay(REQUEST_DELAY);
+        }
+      }
+    }
 
     // Combine sections into full proposal
-    const fullProposal = sectionResults
+    const successfulSections = sectionResults.filter(result => 
+      !result.content.startsWith('[Content for "') || 
+      result.quality.overallScore > 0
+    );
+    
+    let fullProposal = sectionResults
       .map(result => `# ${result.sectionTitle}\n\n${result.content}`)
       .join('\n\n---\n\n');
+    
+    // Add summary of generation results if there were any failures
+    if (failedSections.length > 0) {
+      const summarySection = `
+# Generation Summary
+
+This proposal was generated successfully with ${successfulSections.length} out of ${sections.length} sections completed automatically.
+
+## Sections Requiring Attention
+${failedSections.map(failed => `- **${failed.title}**: ${failed.error}`).join('\n')}
+
+Please review and complete these sections manually or try regenerating them individually.
+
+---
+      `;
+      fullProposal = summarySection + fullProposal;
+    }
 
     // Calculate overall metrics
     const totalProcessingTime = Date.now() - startTime;
@@ -492,14 +613,19 @@ serve(async (req) => {
       generatedAt: new Date().toISOString(),
       totalProcessingTime,
       sectionsGenerated: sections.length,
-      averageQuality: avgQuality,
-      averageConfidence: avgConfidence,
+      sectionsSuccessful: successfulSections.length,
+      sectionsFailed: failedSections.length,
+      averageQuality: successfulSections.length > 0 ? 
+        successfulSections.reduce((sum, result) => sum + result.quality.overallScore, 0) / successfulSections.length : 0,
+      averageConfidence: successfulSections.length > 0 ? 
+        successfulSections.reduce((sum, result) => sum + result.quality.modelConfidence, 0) / successfulSections.length : 0,
       sectionMetrics: sectionResults.map(result => ({
         section: result.sectionTitle,
         quality: result.quality.overallScore,
         confidence: result.quality.modelConfidence,
         processingTime: result.processingTime
-      }))
+      })),
+      failedSections: failedSections
     };
 
     // Save the generated proposal
@@ -535,10 +661,11 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    // Update status to failed
-    try {
-      const { projectId } = await req.json();
-      if (projectId) {
+    console.error('Full proposal generation error:', error);
+    
+    // Update status to failed using stored request data
+    if (requestData?.projectId) {
+      try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL');
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
         if (supabaseUrl && supabaseServiceKey) {
@@ -549,14 +676,14 @@ serve(async (req) => {
               auto_generation_status: 'failed',
               auto_generation_metadata: { 
                 failedAt: new Date().toISOString(),
-                error: error.message 
+                error: error.message || 'Unknown error occurred'
               }
             })
-            .eq('project_id', projectId);
+            .eq('project_id', requestData.projectId);
         }
+      } catch (updateError) {
+        console.error('Failed to update error status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update error status:', updateError);
     }
 
     if (error instanceof ProposalGenerationError) {

@@ -19,9 +19,9 @@ export interface ConsensusResult {
 
 export class MultiModelOrchestrator {
   private static readonly MODELS = [
-    { name: 'claude-opus-4-1-20250805', weight: 0.4, strength: 'reasoning' },
-    { name: 'claude-sonnet-4-20250514', weight: 0.35, strength: 'efficiency' },
-    { name: 'claude-3-5-haiku-20241022', weight: 0.25, strength: 'speed' }
+    { name: 'claude-opus-4-5-20250929', weight: 0.4, strength: 'reasoning' },
+    { name: 'claude-sonnet-4-5-20250929', weight: 0.35, strength: 'efficiency' },
+    { name: 'claude-haiku-4-5-20251001', weight: 0.25, strength: 'speed' }
   ];
 
   static async orchestrateGeneration(

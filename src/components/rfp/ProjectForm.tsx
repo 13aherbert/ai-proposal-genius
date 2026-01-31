@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, ClipboardEdit } from "lucide-react";
+import { CalendarIcon, ClipboardEdit, Zap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProjectFormProps {
   projectTitle: string;
@@ -23,6 +25,8 @@ interface ProjectFormProps {
   onSubmit: () => void;
   isProcessing: boolean;
   disabled?: boolean;
+  autoGenerate?: boolean;
+  setAutoGenerate?: (value: boolean) => void;
 }
 
 export const ProjectForm = ({
@@ -36,7 +40,9 @@ export const ProjectForm = ({
   setBusinessName,
   onSubmit,
   isProcessing,
-  disabled = false
+  disabled = false,
+  autoGenerate,
+  setAutoGenerate
 }: ProjectFormProps) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -118,8 +124,45 @@ export const ProjectForm = ({
             />
           </div>
 
+          {/* Auto-Generate Toggle */}
+          {setAutoGenerate && (
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
+                  <Zap className="h-4 w-4 text-white" />
+                </div>
+                <div className="space-y-0.5">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label 
+                          htmlFor="auto-generate" 
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Auto-generate proposal
+                        </Label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Automatically analyze RFP and generate a complete proposal using AI. This will run through all steps automatically after upload.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <p className="text-xs text-muted-foreground">
+                    Run full automation after upload
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="auto-generate"
+                checked={autoGenerate}
+                onCheckedChange={setAutoGenerate}
+                disabled={disabled || isProcessing}
+              />
+            </div>
+          )}
+
           <Button 
-            type="submit" 
+            type="submit"
             className="w-full mt-4" 
             disabled={disabled || isProcessing || !projectTitle.trim()}
           >

@@ -243,25 +243,25 @@ serve(async (req) => {
 
     console.log('Text extracted successfully, length:', extractedText.length);
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('Lovable API key is not configured');
     }
 
     // Intelligently process the extracted text
     console.log('Processing extracted text for analysis');
     const processedContent = await processRFPContent(extractedText);
     
-    // Call OpenAI API for analysis
-    console.log('Calling OpenAI API for analysis');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI Gateway for analysis
+    console.log('Calling Lovable AI Gateway for analysis');
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           {
             role: 'system',
@@ -321,8 +321,17 @@ Be specific, strategic, and actionable. Focus on intelligence that will help win
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+      console.error('Lovable AI Gateway error:', error);
+      
+      // Handle rate limiting
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a few moments.');
+      }
+      if (response.status === 402) {
+        throw new Error('AI credits exhausted. Please add credits to your workspace.');
+      }
+      
+      throw new Error(`AI Gateway error: ${error}`);
     }
 
     const analysisData = await response.json();

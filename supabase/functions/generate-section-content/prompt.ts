@@ -22,56 +22,92 @@ function getSectionType(sectionTitle: string): 'executive' | 'technical' | 'team
   return 'general';
 }
 
-// Get section-specific writing guidelines
+// Get section-specific writing guidelines with anti-pattern warnings
 function getSectionGuidelines(sectionType: string): string {
   switch (sectionType) {
     case 'executive':
       return `EXECUTIVE SUMMARY GUIDELINES:
-- Lead with the most compelling value proposition and key differentiator
-- Include quantifiable ROI or business impact (percentages, timeframes, savings)
-- State the specific client benefit in the first sentence
-- Keep paragraphs to 2-3 sentences maximum
-- End with a strong call to action or next step`;
+- Lead with the client's specific problem, not your capabilities
+- State the concrete outcome and measurable benefit in the first sentence
+- Keep under 400 words - executives skim, not read
+- MUST include at least one verifiable reference to past work
+- AVOID generic superlatives - use specific outcomes instead
+- End with a clear commitment and next step
+
+ANTI-PATTERNS TO AVOID:
+- "World-class", "cutting-edge", "industry-leading" (empty claims)
+- Vague benefits without numbers: "significant improvement" 
+- Capability lists without relevance to client's actual problem`;
       
     case 'technical':
       return `TECHNICAL APPROACH GUIDELINES:
-- Start with the specific outcome this approach will achieve for the client
-- Structure as: Problem → Solution → Benefit → Proof
-- Include specific methodologies, tools, or frameworks with proven results
-- Quantify technical benefits (performance improvements, efficiency gains)
-- Address potential risks and mitigation strategies`;
+- Start with the specific client outcome this approach achieves
+- Provide actual tool/framework names, not "best-in-class tools"
+- Structure: Problem → Methodology → Implementation → Evidence → Outcome
+- Include specific dates/durations for each phase
+- Every capability claim needs a "proven by [project name]" reference
+- Write as if explaining to a smart non-expert - avoid unnecessary jargon
+
+ANTI-PATTERNS TO AVOID:
+- Vague methodology: "industry best practices" (name the actual practice)
+- Unsubstantiated claims: "proven methodology" without project evidence
+- Tech buzzwords without explanation of client benefit`;
       
     case 'team':
       return `TEAM/EXPERIENCE GUIDELINES:
-- Lead with most relevant and impressive project achievements
-- Include specific results and outcomes (not just activities)
-- Quantify success metrics from past projects
-- Focus on team members directly relevant to this project
-- Highlight unique qualifications that differentiate from competitors`;
+- Lead with directly relevant project achievements (name, client, outcome)
+- Include verifiable credentials: actual certifications, years of experience
+- If no specific team members in knowledge base, use role-based descriptions
+- Link each team capability to a specific deliverable in this proposal
+- Quantify success: "completed 12 projects" not "extensive experience"
+- NEVER mention awards without direct relevance to this project
+
+ANTI-PATTERNS TO AVOID:
+- Adjective-heavy descriptions: "highly qualified, experienced team"
+- Generic qualifications not tied to project needs
+- Unverifiable claims about team size or capabilities`;
       
     case 'timeline':
       return `TIMELINE/DELIVERY GUIDELINES:
-- Start with the final delivery date and work backwards
-- Include buffer time for risk mitigation
-- Highlight accelerated delivery capabilities if applicable
-- Show parallel work streams to optimize timing
-- Include key client decision points and dependencies`;
+- Start with final delivery date, then work backwards
+- Include specific calendar dates, not "Week 1-2" ranges
+- Show parallel work streams and dependencies
+- Include buffer time and risk mitigation built-in
+- Highlight accelerated delivery if applicable
+- Keep under 350 words - timelines should be clear, not verbose
+
+ANTI-PATTERNS TO AVOID:
+- Vague milestones: "initial phase completion"
+- Missing dependencies between deliverables
+- Unrealistic timelines that undermine credibility`;
       
     case 'pricing':
       return `PRICING GUIDELINES:
-- Lead with total value delivered, not just cost
-- Structure pricing to show clear value at each tier
-- Include payment terms that benefit the client's cash flow
-- Highlight cost savings or ROI compared to alternatives
-- Show pricing transparency with detailed breakdowns`;
+- Lead with total value delivered, then present investment
+- Line items MUST mathematically add up to the total
+- Include what's NOT included to set clear expectations
+- Justify each line item with deliverable or outcome
+- Show payment terms that benefit client cash flow
+- State price confidently - no defensive language
+
+ANTI-PATTERNS TO AVOID:
+- Line items that don't sum correctly
+- Competitor comparisons without verifiable market research
+- Defensive justifications: "While this may seem low..."
+- Hidden costs or ambiguous scope`;
       
     default:
       return `GENERAL SECTION GUIDELINES:
-- Start with the most important client benefit
-- Support claims with specific evidence and examples
-- Include quantifiable results where possible
+- Start with the specific client benefit or outcome
+- Support every claim with evidence from knowledge base
+- Include quantifiable results where available, with source
 - Address potential client concerns proactively
-- End with clear next steps or commitments`;
+- End with clear commitment or next step
+
+ANTI-PATTERNS TO AVOID:
+- Generic statements applicable to any company
+- Unattributed statistics or percentages
+- Repetition of points from other sections`;
   }
 }
 
@@ -129,15 +165,34 @@ ${sectionGuidelines}
 
 ${costSpecificInstructions}
 
-RFP WINNING STRATEGY - CRITICAL REQUIREMENTS:
-1. LENGTH: Keep content between 200-500 words unless the section specifically requires more detail
-2. LEAD WITH IMPACT: First sentence must state the specific client benefit or value
-3. QUANTIFY EVERYTHING: Include specific percentages, timeframes, cost savings, or performance improvements
-4. COMPETITIVE EDGE: Highlight unique differentiators that competitors cannot match
-5. RISK MITIGATION: Address potential concerns and show how you minimize client risk
-6. PROOF POINTS: Use specific examples and results from knowledge base (never invent)
-7. ACTIVE VOICE: Write with confidence and authority - avoid passive constructions
-8. CLIENT-FOCUSED: Every paragraph must answer "What's in it for them?"
+ANTI-HALLUCINATION PROTOCOL (MANDATORY):
+• Statistics require format: "[Number] (Source: [Knowledge Base Entry Title])"
+• If no source exists in knowledge base, rewrite as qualitative: "significant improvement" not "45% increase"
+• NEVER create specific percentages, dollar amounts, or timeframes not in knowledge base
+• When describing team: use actual titles/credentials from knowledge base only
+• For vendor partnerships: only name partners explicitly listed in knowledge base
+• If information is missing, write around it - don't invent details
+
+ANTI-VERBOSITY PROTOCOL:
+• Maximum words by section: Executive (400), Technical (600), Team (400), Timeline (350), Pricing (500), Other (500)
+• If a point was made in another section, reference don't repeat: "As noted in [Section Name]..."
+• Eliminate: "In order to" → "To", "At this point in time" → "Now", "Due to the fact that" → "Because"
+• Remove all instances of: "It is important to note that", "It should be noted that", "As mentioned previously"
+• One adjective per noun maximum (not "comprehensive, robust, industry-leading solution")
+• Average sentence length: 15-20 words, maximum 30 words per sentence
+
+BANNED VOCABULARY (Using these undermines credibility):
+Hyperbolic: catastrophic, bulletproof, ruthless, weaponize, mesmerizing, unparalleled, unprecedented
+Vague: various, multiple, numerous, several, extensive, significant (without number attached)
+Jargon: synergy, paradigm, leverage (as verb), cutting-edge, state-of-the-art, world-class, best-in-class
+Weak: believe, think, feel, hope, try, would be able to, might, perhaps, possibly, arguably
+
+SPECIFICITY REQUIREMENTS:
+• Bad: "extensive industry experience" → Good: "8 years delivering video production for state agencies"
+• Bad: "Texas vendor partnerships" → Good: "partnership with [Vendor Name] in Austin since 2021" OR omit entirely
+• Bad: "proven methodology" → Good: "[Methodology Name] used on 12 government projects since 2019"
+• Bad: "competitive pricing" → Good: "$34,500 total investment including all deliverables"
+• Bad: "our team of experts" → Good: "[Name], [Title] with [X] years in [Specific Field]"
 
 ${strictMode ? `
 *** ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED ***
@@ -159,27 +214,7 @@ RESPONSE PROTOCOL:
 - IF INSUFFICIENT DATA: Respond exactly with "INSUFFICIENT_KNOWLEDGE_BASE_DATA - [specific missing information]"
 - IF ADEQUATE DATA: Create section using ONLY verified knowledge base information with explicit citations
 
-ULTRA-STRICT VERIFICATION CHECKLIST:
-* Every sentence maps to specific knowledge base content?
-* All numbers/percentages/dates are from knowledge base verbatim?
-* Zero general industry knowledge or assumptions used?
-* No "reasonable" inferences or logical deductions made?  
-* Section is complete without any creative gap-filling?
-
 REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.` : ''}
-
-ABSOLUTE CONSISTENCY:
-- Use identical pricing, timelines, and details from existing sections
-- Never contradict previously established information
-- Maintain consistent company capabilities and team qualifications
-
-FORBIDDEN CONTENT:
-- NO meta-commentary about writing process
-- NO generic business language or filler phrases  
-- NO invented examples or capabilities
-- NO section headers or titles in response
-- NO references to "knowledge base," "existing sections," or consistency requirements
-- NO weak language like "we believe," "we think," "would be able to"
 
 WRITING STYLE:
 - Use persuasive, confident language that demonstrates expertise
@@ -189,5 +224,12 @@ WRITING STYLE:
 - Use strong action verbs and specific commitments
 - End with clear value proposition or next step
 
-Generate ONLY the body content for "${sectionTitle}" - be the winning proposal section that beats the competition:`;
+FORBIDDEN CONTENT:
+- NO meta-commentary about writing process
+- NO generic business language or filler phrases  
+- NO invented examples or capabilities
+- NO section headers or titles in response
+- NO references to "knowledge base," "existing sections," or consistency requirements
+
+Generate ONLY the body content for "${sectionTitle}" - concise, evidence-based, and credibility-focused:`;
 }

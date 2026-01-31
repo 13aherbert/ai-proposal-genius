@@ -66,16 +66,34 @@ YOU MUST ADDRESS EACH POINT ABOVE IN YOUR RESPONSE.
 
 ` : ''}${guidelines}
 
-${strictModeInstructions}WRITING REQUIREMENTS:
-• DETAILED AND THOROUGH: Provide comprehensive coverage without repetition or verbosity
-• FORMAL TONE: Use professional, business-appropriate language throughout
-• ACTIVE VOICE: Write using active voice constructions (e.g., "We deliver" not "Solutions are delivered")
-• CLEAR AND DETAILED: Present information in a structured, easy-to-follow manner
-• OUTLINE COMPLIANCE: Address every requirement specified in the outline section above
-• CLIENT-FOCUSED: Start with specific client benefits and value propositions
-• EVIDENCE-BASED: Include quantifiable results and unique differentiators from knowledge base
-• NO FLUFF: Avoid section headers, meta-commentary, or unnecessary filler phrases
-• LENGTH: Provide appropriate detail to thoroughly address all outline requirements (typically 300-800 words)
+${strictModeInstructions}MANDATORY QUALITY STANDARDS:
+1. WORD COUNT: Stay within section limit - being concise is a strength
+   - Executive Summary: 300-400 words
+   - Technical Approach: 400-600 words
+   - Team Qualifications: 250-400 words
+   - Timeline: 200-350 words
+   - Pricing: 300-500 words
+   - Other sections: 300-500 words
+2. SENTENCE LENGTH: Average 15-20 words, maximum 30 words per sentence
+3. EVIDENCE: Every claim needs backing - no floating statistics or unverifiable capabilities
+4. TONE: Government-appropriate - professional, factual, confident without hyperbole
+5. STRUCTURE: Each paragraph serves ONE purpose, then moves on
+6. UNIQUENESS: This section must add NEW value - never repeat other sections' content
+
+QUALITY GATES (Content fails if any violated):
+✓ Every statistic has knowledge base source OR is removed
+✓ Total word count under section limit
+✓ No hyperbolic language (catastrophic, bulletproof, unparalleled, etc.)
+✓ No repeated information from other sections
+✓ Every claim about capability has verifiable backing
+✓ Sentence average under 25 words
+
+TONE CALIBRATION:
+• Government evaluators prefer: clear, direct, factual language
+• Avoid: marketing language, superlatives, defensive justifications
+• Confidence comes from specifics, not adjectives
+• When uncertain, be conservative - understate rather than overstate
+• Never negatively reference competitors
 
 Generate the section content:`;
 }

@@ -17,31 +17,49 @@ export interface PromptPerformanceMetrics {
 }
 
 export class DynamicPromptOptimizer {
-  private static readonly OPTIMIZATION_TECHNIQUES = {
+  private static readonly OPTIMIZATION_TECHNIQUES: {
+    [key: string]: {
+      keywords: string[];
+      structure: string;
+      tone: string;
+      avoid: string[];
+      maxWords: number;
+    };
+  } = {
     'executive': {
       keywords: ['strategic', 'value proposition', 'business impact', 'ROI', 'competitive advantage'],
-      structure: 'Start with strategic overview, highlight key benefits, demonstrate business value',
-      tone: 'executive, confident, results-focused'
+      structure: 'Problem → Solution → Evidence → Outcome. Lead with client problem, not capabilities.',
+      tone: 'confident, factual, concise',
+      avoid: ['world-class', 'unparalleled', 'cutting-edge', 'extensive experience', 'industry-leading'],
+      maxWords: 400
     },
     'technical': {
       keywords: ['methodology', 'architecture', 'best practices', 'implementation', 'scalability'],
-      structure: 'Technical approach, detailed methodology, implementation plan, quality assurance',
-      tone: 'technical, detailed, systematic'
+      structure: 'Technical approach, specific methodology names, implementation plan, evidence from past projects',
+      tone: 'technical, detailed, systematic',
+      avoid: ['best-in-class', 'state-of-the-art', 'proven methodology', 'innovative solutions'],
+      maxWords: 600
     },
     'team': {
       keywords: ['expertise', 'experience', 'qualifications', 'track record', 'leadership'],
-      structure: 'Team overview, key personnel, relevant experience, success stories',
-      tone: 'professional, credible, experienced'
+      structure: 'Specific credentials, named projects with outcomes, relevant certifications',
+      tone: 'professional, credible, specific',
+      avoid: ['highly qualified', 'extensive experience', 'talented team', 'industry experts'],
+      maxWords: 400
     },
     'timeline': {
       keywords: ['milestones', 'deliverables', 'schedule', 'critical path', 'risk mitigation'],
-      structure: 'Project phases, key milestones, timeline with dependencies, risk considerations',
-      tone: 'structured, realistic, organized'
+      structure: 'Specific dates, phase breakdown, dependencies, buffer time',
+      tone: 'structured, realistic, organized',
+      avoid: ['aggressive timeline', 'efficient delivery', 'streamlined process'],
+      maxWords: 350
     },
     'pricing': {
       keywords: ['value', 'cost-effective', 'investment', 'budget', 'pricing model'],
-      structure: 'Pricing breakdown, value justification, cost-benefit analysis, payment terms',
-      tone: 'transparent, value-focused, justified'
+      structure: 'Total value → detailed breakdown → line items that sum correctly → payment terms',
+      tone: 'transparent, value-focused, confident',
+      avoid: ['competitive pricing', 'cost-effective solution', 'best value', 'affordable'],
+      maxWords: 500
     }
   };
 
@@ -106,10 +124,42 @@ export class DynamicPromptOptimizer {
 
   private static enhancePromptStructure(
     prompt: string,
-    optimization: any
+    optimization: {
+      keywords: string[];
+      structure: string;
+      tone: string;
+      avoid: string[];
+      maxWords: number;
+    }
   ): string {
-    // Add section-specific guidance with anti-repetition focus
-    const enhancedPrompt = `${prompt}\n\nSECTION-SPECIFIC OPTIMIZATION:\n- Focus Areas: ${optimization.keywords.join(', ')}\n- Structure Guidance: ${optimization.structure}\n- Tone: ${optimization.tone}\n\nQUALITY REQUIREMENTS:\n- Provide specific, detailed, and actionable content that is UNIQUE to this section\n- Use concrete examples and evidence from the knowledge base\n- Maintain professional tone while being persuasive and client-focused\n- Ensure content directly addresses specific RFP requirements for this section only\n- Use statistics sparingly - focus on persuasive benefits rather than overwhelming with numbers\n- Address client concerns and demonstrate clear value proposition\n\nCONTENT GUIDELINES:\n- Each paragraph should serve a distinct purpose in addressing RFP requirements\n- Avoid generic statements that could apply to any company\n- Focus on specific capabilities that differentiate your approach\n- Emphasize outcomes and results rather than just processes`;
+    // Add section-specific guidance with anti-repetition and anti-hallucination focus
+    const avoidList = optimization.avoid?.join(', ') || 'generic superlatives';
+    const maxWords = optimization.maxWords || 500;
+    
+    const enhancedPrompt = `${prompt}
+
+SECTION-SPECIFIC OPTIMIZATION:
+- Focus Areas: ${optimization.keywords.join(', ')}
+- Structure Guidance: ${optimization.structure}
+- Tone: ${optimization.tone}
+- MAXIMUM WORDS: ${maxWords} (exceeding this indicates verbosity)
+
+PHRASES TO AVOID IN THIS SECTION:
+${avoidList}
+
+QUALITY REQUIREMENTS:
+- Provide specific, actionable content UNIQUE to this section (no overlap with others)
+- Every statistic must cite knowledge base source or be removed
+- Maximum ${maxWords} words - conciseness demonstrates competence
+- Each paragraph serves exactly ONE purpose
+- No sentence over 30 words
+- No more than one adjective per noun
+
+EVIDENCE REQUIREMENTS:
+- Claims about capabilities must reference specific past projects
+- Team qualifications must include verifiable credentials
+- Timelines must use specific dates, not ranges
+- Costs must sum correctly with clear line item breakdown`;
 
     return enhancedPrompt;
   }

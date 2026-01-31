@@ -13,6 +13,8 @@ import { MultiModelOrchestrator } from './multi-model-orchestrator.ts';
 import { DynamicPromptOptimizer } from './dynamic-prompt-optimizer.ts';
 import { PredictiveSuccessAnalyzer } from './predictive-success-analyzer.ts';
 import { SemanticContentEnhancer } from './semantic-content-enhancer.ts';
+// Phase 4: Content Validation
+import { validateGeneratedContent, quickValidate, getWordLimit } from './content-validator.ts';
 
 // CORS headers
 const corsHeaders = {
@@ -268,6 +270,23 @@ serve(async (req) => {
       throw new ProposalGenerationError(`Content validation failed: ${basicValidation.issues.join(', ')}`);
     }
 
+    // PHASE 4: Enhanced Content Validation
+    console.log("Running Phase 4 content validation...");
+    const contentValidation = validateGeneratedContent(cleanedContent, sectionType, allKnowledgeContent);
+    
+    if (!contentValidation.passed) {
+      console.warn("Content validation found critical issues:", contentValidation.issues.filter(i => i.type === 'critical'));
+    }
+    
+    console.log("Content validation metrics:", {
+      wordCount: contentValidation.metrics.wordCount,
+      maxWords: getWordLimit(sectionType),
+      avgSentenceLength: contentValidation.metrics.avgSentenceLength.toFixed(1),
+      bannedPhrasesFound: contentValidation.metrics.bannedPhrasesFound.length,
+      unattributedStats: contentValidation.metrics.unattributedStats.length,
+      passed: contentValidation.passed
+    });
+
     // PHASE 2: Advanced Quality Analysis & Optimization
     console.log("Running Phase 2 optimization analysis...");
     
@@ -385,6 +404,14 @@ serve(async (req) => {
         predictive_analysis: predictiveAnalysis,
         intelligence_level: 'Phase 3: Advanced Intelligence',
         confidence_boost: promptOptimization.confidence_boost + (orchestrationResult.confidence_score * 0.2)
+      },
+      // PHASE 4: Content Validation Analytics
+      content_validation: {
+        passed: contentValidation.passed,
+        issues: contentValidation.issues,
+        suggestions: contentValidation.suggestions,
+        metrics: contentValidation.metrics,
+        phase: 'Phase 4: Quality Enforcement'
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

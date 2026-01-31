@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, BookOpen, Wand } from "lucide-react";
+import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, Wand } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -16,48 +16,35 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
   const { hasFeature, plan, isLoading, enableTestMode, isTestMode } = useSubscriptionFeatures();
   const { subscription, loading: subscriptionLoading } = useSubscription();
 
+  // Consolidated sidebar sections: 4 main tabs instead of 7
   const sections = [
     {
-      id: "info",
-      label: "Project Info",
+      id: "overview",
+      label: "Overview",
       icon: FileText,
       feature: null,
+      description: "Project details and prerequisites",
     },
     {
       id: "analysis",
-      label: "RFP Summary",
+      label: "Analysis",
       icon: ScrollText,
       feature: "rfp_summary" as FeatureName,
+      description: "RFP summary and proposal outline",
     },
     {
-      id: "outline",
-      label: "Proposal Outline",
-      icon: LayoutTemplate,
-      feature: "proposal_outline" as FeatureName,
-    },
-    {
-      id: "draft",
-      label: "Proposal Draft",
+      id: "proposal",
+      label: "Proposal",
       icon: FileEdit,
       feature: "proposal_draft" as FeatureName,
+      description: "Draft, compiled, and auto-generated content",
     },
     {
-      id: "compiled",
-      label: "Compiled Draft",
-      icon: BookOpen,
-      feature: "compiled_draft" as FeatureName,
-    },
-    {
-      id: "auto-proposal",
-      label: "Auto-Generated Proposal",
-      icon: Wand,
-      feature: "auto_proposal_generation" as FeatureName,
-    },
-    {
-      id: "evaluation",
-      label: "Evaluation",
+      id: "review",
+      label: "Review",
       icon: CheckSquare,
       feature: "evaluation" as FeatureName,
+      description: "Evaluation and scoring",
     },
   ] as const;
 

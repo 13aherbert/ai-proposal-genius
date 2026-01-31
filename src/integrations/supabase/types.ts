@@ -1511,6 +1511,12 @@ export type Database = {
           auto_generated_proposal: string | null
           auto_generation_metadata: Json | null
           auto_generation_status: string | null
+          automation_completed_at: string | null
+          automation_error: string | null
+          automation_progress: number | null
+          automation_started_at: string | null
+          automation_status: string | null
+          automation_step: string | null
           business_name: string | null
           client_name: string | null
           created_at: string
@@ -1533,6 +1539,12 @@ export type Database = {
           auto_generated_proposal?: string | null
           auto_generation_metadata?: Json | null
           auto_generation_status?: string | null
+          automation_completed_at?: string | null
+          automation_error?: string | null
+          automation_progress?: number | null
+          automation_started_at?: string | null
+          automation_status?: string | null
+          automation_step?: string | null
           business_name?: string | null
           client_name?: string | null
           created_at?: string
@@ -1555,6 +1567,12 @@ export type Database = {
           auto_generated_proposal?: string | null
           auto_generation_metadata?: Json | null
           auto_generation_status?: string | null
+          automation_completed_at?: string | null
+          automation_error?: string | null
+          automation_progress?: number | null
+          automation_started_at?: string | null
+          automation_status?: string | null
+          automation_step?: string | null
           business_name?: string | null
           client_name?: string | null
           created_at?: string

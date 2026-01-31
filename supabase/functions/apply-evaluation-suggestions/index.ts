@@ -133,7 +133,7 @@ OUTPUT: Return ONLY the improved section content. No commentary, no headers, no 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash-preview-05-20',
+      model: 'google/gemini-2.5-flash',
       max_tokens: 2000,
       messages: [
         { role: 'system', content: systemPrompt },

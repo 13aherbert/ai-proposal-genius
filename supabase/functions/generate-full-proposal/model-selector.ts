@@ -17,31 +17,30 @@ export interface CostMetrics {
 // Model tiers with their configurations
 const MODELS = {
   HIGH: {
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     maxTokens: 2500,
     costTier: 'high' as const,
-    displayName: 'Claude Sonnet 4 (High Quality)'
+    displayName: 'Claude Sonnet 4.5 (High Quality)'
   },
   MEDIUM: {
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     maxTokens: 1500,
     costTier: 'medium' as const,
-    displayName: 'Claude 3.5 Sonnet (Balanced)'
+    displayName: 'Claude Sonnet 4.5 (Balanced)'
   },
   LOW: {
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-haiku-4-5-20251001',
     maxTokens: 1200,
     costTier: 'low' as const,
-    displayName: 'Claude 3.5 Haiku (Fast & Efficient)'
+    displayName: 'Claude Haiku 4.5 (Fast & Efficient)'
   }
 };
 
 // Relative cost of each model vs Opus (1.0 baseline)
 const MODEL_COSTS: { [key: string]: number } = {
-  'claude-opus-4-1-20250805': 1.0,
-  'claude-sonnet-4-20250514': 0.40,
-  'claude-3-5-sonnet-20241022': 0.30,
-  'claude-3-5-haiku-20241022': 0.10
+  'claude-opus-4-5-20250929': 1.0,
+  'claude-sonnet-4-5-20250929': 0.60,
+  'claude-haiku-4-5-20251001': 0.20
 };
 
 // Section type keywords for classification

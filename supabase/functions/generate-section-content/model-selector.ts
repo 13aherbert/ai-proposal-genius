@@ -17,21 +17,21 @@ export function selectOptimalModel(sectionType: string, sectionTitle: string, co
   if (overallComplexity >= 0.8) {
     // High complexity: Use most capable model
     return {
-      model: 'claude-sonnet-4-20250514',  // High-performance, lower cost than Opus
+      model: 'claude-sonnet-4-5-20250929',  // High-performance Claude Sonnet 4.5
       maxTokens: 2000,
       costTier: 'high'
     };
   } else if (overallComplexity >= 0.5) {
     // Medium complexity: Use balanced model  
     return {
-      model: 'claude-3-5-sonnet-20241022', // Good balance of quality and cost
+      model: 'claude-sonnet-4-5-20250929', // Good balance of quality and cost
       maxTokens: 1500,
       costTier: 'medium'
     };
   } else {
     // Low complexity: Use fastest, cheapest model
     return {
-      model: 'claude-3-5-haiku-20241022',  // Fast and cost-effective
+      model: 'claude-haiku-4-5-20251001',  // Fast and cost-effective Claude Haiku 4.5
       maxTokens: 1200,
       costTier: 'low'
     };
@@ -90,9 +90,8 @@ function calculateContentComplexity(contentLength: number): number {
 
 export function getModelDisplayName(model: string): string {
   const modelNames: { [key: string]: string } = {
-    'claude-sonnet-4-20250514': 'Claude Sonnet 4 (High Quality)',
-    'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet (Balanced)',
-    'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku (Fast & Efficient)'
+    'claude-sonnet-4-5-20250929': 'Claude Sonnet 4.5 (High Quality)',
+    'claude-haiku-4-5-20251001': 'Claude Haiku 4.5 (Fast & Efficient)'
   };
   
   return modelNames[model] || model;
@@ -101,10 +100,9 @@ export function getModelDisplayName(model: string): string {
 export function estimateCostReduction(oldModel: string, newModel: string): number {
   // Rough cost estimates (relative to Claude Opus = 1.0)
   const modelCosts: { [key: string]: number } = {
-    'claude-opus-4-1-20250805': 1.0,      // Most expensive
-    'claude-sonnet-4-20250514': 0.4,      // 60% cheaper
-    'claude-3-5-sonnet-20241022': 0.3,    // 70% cheaper
-    'claude-3-5-haiku-20241022': 0.1      // 90% cheaper
+    'claude-opus-4-5-20250929': 1.0,      // Most expensive
+    'claude-sonnet-4-5-20250929': 0.6,    // 40% cheaper
+    'claude-haiku-4-5-20251001': 0.2      // 80% cheaper
   };
   
   const oldCost = modelCosts[oldModel] || 1.0;

@@ -23,21 +23,21 @@ serve(async (req) => {
       throw new Error('Missing required fields: projectId and analysis');
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      console.error('OpenAI API key not configured');
-      throw new Error('OpenAI API key is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('Lovable API key not configured');
+      throw new Error('Lovable API key is not configured');
     }
 
-    console.log('Calling OpenAI API for outline generation');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('Calling Lovable AI Gateway for outline generation');
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           {
             role: 'system',
@@ -57,16 +57,24 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${errorText}`);
+      console.error('Lovable AI Gateway error:', errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a few moments.');
+      }
+      if (response.status === 402) {
+        throw new Error('AI credits exhausted. Please add credits to your workspace.');
+      }
+      
+      throw new Error(`AI Gateway error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI API response received');
+    console.log('Lovable AI Gateway response received');
 
     if (!data.choices?.[0]?.message?.content) {
-      console.error('Invalid response format from OpenAI:', data);
-      throw new Error('Invalid response from OpenAI API');
+      console.error('Invalid response format from AI Gateway:', data);
+      throw new Error('Invalid response from AI Gateway');
     }
 
     const outline = data.choices[0].message.content;

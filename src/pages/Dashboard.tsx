@@ -7,11 +7,14 @@ import { BetaProgramCard } from "@/components/dashboard/BetaProgramCard";
 import { SegmentedWelcome } from "@/components/dashboard/SegmentedWelcome";
 import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
 import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
+import { QuickUploadZone } from "@/components/dashboard/QuickUploadZone";
+import { QuickUploadModal } from "@/components/rfp/QuickUploadModal";
+import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Database, Users, BarChart3, FolderOpen, Building2 } from "lucide-react";
+import { Database, Users, BarChart3, FolderOpen, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
@@ -40,6 +43,9 @@ export default function Dashboard() {
     isLoading: activitiesLoading
   } = useRecentActivity(session?.user || null);
   const { organization } = useCurrentOrganization();
+  
+  // Quick upload functionality
+  const quickUpload = useQuickUpload();
   useEffect(() => {
     if (session?.user) {
       // Check if user is new (created within last 24 hours)
@@ -99,6 +105,20 @@ export default function Dashboard() {
     return <div className="space-y-6">
         <DashboardHeader />
         
+        {/* Quick Upload Modal */}
+        <QuickUploadModal
+          isOpen={quickUpload.isModalOpen}
+          onClose={quickUpload.closeModal}
+          step={quickUpload.step}
+          progress={quickUpload.progress}
+          projectTitle={quickUpload.projectTitle}
+          error={quickUpload.error}
+          autoGenerate={quickUpload.autoGenerate}
+          setAutoGenerate={quickUpload.setAutoGenerate}
+          onUpload={quickUpload.uploadAndCreate}
+          onViewProject={quickUpload.viewProject}
+        />
+        
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Solo User Dashboard */}
           <div className="lg:col-span-3">
@@ -107,8 +127,14 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {/* Quick Actions with tour targets - Full width with padding */}
                 <div className="w-screen flex gap-4 justify-between px-4">
-                  <div className="flex-1">
-                    <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" data-tour="upload-rfp" />
+                  <div className="flex-1" data-tour="upload-rfp">
+                    <QuickUploadZone onFileSelect={(file) => {
+                      quickUpload.openModal();
+                      // The modal will handle the rest
+                      setTimeout(() => {
+                        quickUpload.uploadAndCreate(file);
+                      }, 100);
+                    }} />
                   </div>
                   <div className="flex-1">
                     <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
@@ -156,6 +182,20 @@ export default function Dashboard() {
       {/* Show segmented welcome for new users or those with minimal activity */}
       {(isNewUser || !dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries) && organization?.subscription_tier !== 'enterprise' && <SegmentedWelcome firstName={profileData.first_name} organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} industry={profileData.industry} />}
 
+      {/* Quick Upload Modal */}
+      <QuickUploadModal
+        isOpen={quickUpload.isModalOpen}
+        onClose={quickUpload.closeModal}
+        step={quickUpload.step}
+        progress={quickUpload.progress}
+        projectTitle={quickUpload.projectTitle}
+        error={quickUpload.error}
+        autoGenerate={quickUpload.autoGenerate}
+        setAutoGenerate={quickUpload.setAutoGenerate}
+        onUpload={quickUpload.uploadAndCreate}
+        onViewProject={quickUpload.viewProject}
+      />
+      
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Main Content */}
         <div className="lg:col-span-3 space-y-6">
@@ -165,7 +205,12 @@ export default function Dashboard() {
           {/* Quick Actions - Full width with padding */}
           <div className="w-screen flex gap-4 justify-between px-4">
             <div className="flex-1">
-              <QuickActionCard title="Upload New RFP" description="Start a new proposal project" icon={FileText} href="/upload-rfp" variant="primary" />
+              <QuickUploadZone onFileSelect={(file) => {
+                quickUpload.openModal();
+                setTimeout(() => {
+                  quickUpload.uploadAndCreate(file);
+                }, 100);
+              }} />
             </div>
             <div className="flex-1">
               <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />

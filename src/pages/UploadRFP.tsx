@@ -22,6 +22,11 @@ const UploadRFP = () => {
   const [deadline, setDeadline] = useState<Date>();
   const [clientName, setClientName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [autoGenerate, setAutoGenerate] = useState(() => {
+    // Default to true unless explicitly set to false
+    return localStorage.getItem('auto-generate-preference') !== 'false';
+  });
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const automationRef = useRef<HTMLDivElement>(null);
   const automationComponentRef = useRef<AutomatedProposalCreationRef>(null);
   
@@ -51,6 +56,14 @@ const UploadRFP = () => {
   const planType = normalizePlanType(subscription?.plan_type);
   const isUserTrialExpired = planType === 'trial' && session?.user ? isTrialExpired(session.user) : false;
   
+  // Calculate limits early so they can be used in effects
+  const hasReachedLimit = 
+    projectLimit !== null && 
+    currentProjectCount !== null && 
+    currentProjectCount >= projectLimit;
+
+  const isLoading = currentProjectCount === null || subscriptionLoading;
+  
   useEffect(() => {
     if (!session?.user) return;
     
@@ -60,6 +73,44 @@ const UploadRFP = () => {
     
     return () => clearInterval(interval);
   }, [fetchProjectCount, session]);
+
+  // Save auto-generate preference to localStorage
+  const handleAutoGenerateChange = useCallback((value: boolean) => {
+    setAutoGenerate(value);
+    localStorage.setItem('auto-generate-preference', value.toString());
+  }, []);
+
+  // Auto-start automation when project is created and autoGenerate is enabled
+  useEffect(() => {
+    if (
+      projectId && 
+      rfpFilePath && 
+      autoGenerate && 
+      !hasAutoStarted &&
+      !hasReachedLimit && 
+      !isUserTrialExpired
+    ) {
+      // Mark as started to prevent multiple triggers
+      setHasAutoStarted(true);
+      
+      // Small delay to ensure component is mounted
+      const timer = setTimeout(() => {
+        if (automationComponentRef.current) {
+          automationComponentRef.current.startAutomation();
+        }
+        
+        // Scroll to the automation section
+        if (automationRef.current) {
+          automationRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [projectId, rfpFilePath, autoGenerate, hasAutoStarted, hasReachedLimit, isUserTrialExpired]);
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -106,13 +157,6 @@ const UploadRFP = () => {
       });
     }
   }, []);
-
-  const hasReachedLimit = 
-    projectLimit !== null && 
-    currentProjectCount !== null && 
-    currentProjectCount >= projectLimit;
-
-  const isLoading = currentProjectCount === null || subscriptionLoading;
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -231,6 +275,8 @@ const UploadRFP = () => {
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
                 disabled={hasReachedLimit || isUserTrialExpired}
+                autoGenerate={autoGenerate}
+                setAutoGenerate={handleAutoGenerateChange}
               />
               
               {projectId && (

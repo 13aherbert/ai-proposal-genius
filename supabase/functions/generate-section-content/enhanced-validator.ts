@@ -32,7 +32,7 @@ export class EnhancedValidator {
     // Run all validation checks
     confidenceScore -= this.validateLength(content, sectionType, issues);
     confidenceScore -= this.validateStructure(content, sectionType, issues);
-    confidenceScore -= this.validateContent(content, sectionType, issues);
+    confidenceScore -= this.validateContentQuality(content, sectionType, issues);
     confidenceScore -= this.validateTone(content, issues);
     confidenceScore -= this.validateEvidence(content, issues);
     confidenceScore -= this.validateRequirements(content, requirements, issues);
@@ -139,7 +139,7 @@ export class EnhancedValidator {
     return penalty;
   }
   
-  private static validateContent(content: string, sectionType: string, issues: ValidationIssue[]): number {
+  private static validateContentQuality(content: string, sectionType: string, issues: ValidationIssue[]): number {
     let penalty = 0;
     
     // Check for placeholders or incomplete content

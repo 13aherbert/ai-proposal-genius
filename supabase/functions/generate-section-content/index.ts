@@ -335,14 +335,14 @@ serve(async (req) => {
 
     // Check if content meets quality thresholds
     const qualityThreshold = ContentQualityAnalyzer.getQualityThreshold();
-    const meetsQualityStandards = qualityAnalysis.passes_threshold && 
-                                  enhancedValidation.confidence_score >= 70;
+    const meetsQualityStandards = qualityAnalysis?.passes_threshold && 
+                                  (enhancedValidation?.confidence_score ?? 0) >= 70;
 
     if (!meetsQualityStandards) {
       console.warn("Content quality below optimal threshold:", {
         qualityScore: qualityAnalysis.metrics.overall_score,
         validationScore: enhancedValidation.confidence_score,
-        issues: enhancedValidation.issues.filter(i => i.type === 'critical')
+        issues: enhancedValidation?.issues?.filter(i => i.type === 'critical') || []
       });
     }
 

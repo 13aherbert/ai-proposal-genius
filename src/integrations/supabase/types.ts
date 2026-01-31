@@ -841,7 +841,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           member_id: string
           organization_id: string
           user_agent: string | null
@@ -852,7 +852,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           member_id: string
           organization_id: string
           user_agent?: string | null
@@ -863,7 +863,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           member_id?: string
           organization_id?: string
           user_agent?: string | null
@@ -1338,21 +1338,21 @@ export type Database = {
           attempt_time: string | null
           email: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           success: boolean | null
         }
         Insert: {
           attempt_time?: string | null
           email: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
         }
         Update: {
           attempt_time?: string | null
           email?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean | null
         }
         Relationships: []
@@ -1636,7 +1636,7 @@ export type Database = {
           details: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           target_user_id: string | null
           user_agent: string | null
           user_id: string | null
@@ -1646,7 +1646,7 @@ export type Database = {
           details?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_user_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -1656,7 +1656,7 @@ export type Database = {
           details?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_user_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -1669,7 +1669,7 @@ export type Database = {
           event_details: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           organization_id: string | null
           risk_level: string | null
           session_id: string | null
@@ -1681,7 +1681,7 @@ export type Database = {
           event_details?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           organization_id?: string | null
           risk_level?: string | null
           session_id?: string | null
@@ -1693,7 +1693,7 @@ export type Database = {
           event_details?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           organization_id?: string | null
           risk_level?: string | null
           session_id?: string | null
@@ -2016,10 +2016,7 @@ export type Database = {
           status: string
         }[]
       }
-      check_project_limit: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      check_project_limit: { Args: { user_id: string }; Returns: boolean }
       check_system_admin_role: {
         Args: { user_id_param: string }
         Returns: boolean
@@ -2051,16 +2048,13 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
-      direct_admin_check: {
-        Args: { user_id_param: string }
-        Returns: boolean
-      }
+      direct_admin_check: { Args: { user_id_param: string }; Returns: boolean }
       generate_organization_slug: {
         Args: { org_name: string }
         Returns: string
       }
       get_all_user_roles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           created_by: string
@@ -2080,7 +2074,7 @@ export type Database = {
         }[]
       }
       get_all_users_with_organizations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           business_name: string
           created_at: string
@@ -2129,10 +2123,7 @@ export type Database = {
           organization_slug: string
         }[]
       }
-      get_plan_limits: {
-        Args: { plan_type_param: string }
-        Returns: number
-      }
+      get_plan_limits: { Args: { plan_type_param: string }; Returns: number }
       get_subscription_details: {
         Args: { user_id_param: string }
         Returns: {
@@ -2147,10 +2138,7 @@ export type Database = {
           subscription_id: string
         }[]
       }
-      get_user_current_org: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_user_current_org: { Args: never; Returns: string }
       get_user_current_organization: {
         Args: { user_id_param: string }
         Returns: string
@@ -2181,7 +2169,7 @@ export type Database = {
         Returns: Json
       }
       get_user_organizations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           organization_id: string
         }[]
@@ -2197,34 +2185,19 @@ export type Database = {
           subscription_status: string
         }[]
       }
-      has_role: {
-        Args: { _role: string; _user_id: string }
-        Returns: boolean
-      }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       invite_beta_tester: {
         Args: { email_param: string; inviter_id: string }
         Returns: string
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_direct: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_for_delete: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_direct: { Args: never; Returns: boolean }
+      is_admin_for_delete: { Args: never; Returns: boolean }
       is_organization_member: {
         Args: { org_id: string; user_id_param: string }
         Returns: boolean
       }
-      is_system_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_system_admin: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
           action_type_param: string
@@ -2260,14 +2233,17 @@ export type Database = {
         }
         Returns: string
       }
-      log_security_event: {
-        Args:
-          | {
+      log_security_event:
+        | {
+            Args: {
               details_param?: Json
               event_type_param: string
               target_user_id_param?: string
             }
-          | {
+            Returns: string
+          }
+        | {
+            Args: {
               event_details_param?: Json
               event_type_param: string
               ip_address_param?: unknown
@@ -2277,8 +2253,8 @@ export type Database = {
               user_agent_param?: string
               user_id_param: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
       log_subscription_access: {
         Args: {
           action_type_param: string
@@ -2288,7 +2264,7 @@ export type Database = {
         Returns: undefined
       }
       migrate_user_subscriptions_to_organizations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: undefined
       }
       organization_has_feature: {

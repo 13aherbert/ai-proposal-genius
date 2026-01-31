@@ -6,13 +6,15 @@ import { useProposalEvaluation } from "./useProposalEvaluation";
 import { Separator } from "@/components/ui/separator";
 import { EvaluationProgress } from "./components/EvaluationProgress";
 import { EvaluationContent } from "./components/EvaluationContent";
+import { ApplySuggestionsButton } from "./components/ApplySuggestionsButton";
 
 interface ProposalEvaluationProps {
   projectId: string;
   analysis: string | null;
+  onSectionsUpdated?: () => void;
 }
 
-export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationProps) {
+export function ProposalEvaluation({ projectId, analysis, onSectionsUpdated }: ProposalEvaluationProps) {
   const {
     evaluation,
     isEvaluating,
@@ -33,24 +35,33 @@ export function ProposalEvaluation({ projectId, analysis }: ProposalEvaluationPr
               Get an AI-powered evaluation of your proposal
             </CardDescription>
           </div>
-          <Button 
-            onClick={handleEvaluate}
-            disabled={isEvaluating}
-            variant="outline"
-            className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
-          >
-            {isEvaluating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Evaluating...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4 mr-2" />
-                {evaluation ? "Reevaluate" : "Evaluate"}
-              </>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleEvaluate}
+              disabled={isEvaluating}
+              variant="outline"
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+            >
+              {isEvaluating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Evaluating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  {evaluation ? "Reevaluate" : "Evaluate"}
+                </>
+              )}
+            </Button>
+            {evaluation && (
+              <ApplySuggestionsButton
+                projectId={projectId}
+                evaluation={evaluation}
+                onComplete={onSectionsUpdated}
+              />
             )}
-          </Button>
+          </div>
         </div>
         <Separator className="bg-border" />
       </CardHeader>

@@ -97,3 +97,8 @@ import_map = "import_map.json"
 name = "admin-update-subscription"
 verify_jwt = true
 import_map = "import_map.json"
+
+[[functions]]
+name = "apply-evaluation-suggestions"
+verify_jwt = true
+import_map = "import_map.json"

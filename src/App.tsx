@@ -16,6 +16,7 @@ import UploadRFP from "@/pages/UploadRFP";
 import RecentProjects from "@/pages/RecentProjects";
 import ProjectDetails from "@/pages/ProjectDetails";
 import Subscription from "@/pages/Subscription";
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import KnowledgeBase from "@/pages/KnowledgeBase";
 import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
@@ -113,6 +114,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <Subscription />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription/success"
+        element={
+          <ProtectedRoute>
+            <SubscriptionSuccess />
           </ProtectedRoute>
         }
       />

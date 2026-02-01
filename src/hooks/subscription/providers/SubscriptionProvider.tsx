@@ -77,14 +77,35 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return today > endDate && today <= gracePeriodEnd;
   }, [subscription]);
 
-  // Mock renewal function (to be implemented with Stripe)
+  // Renew subscription - calls the actual edge function
   const renewSubscription = useCallback(async () => {
     console.log('Renewing subscription');
     try {
-      // This would normally call a Stripe API endpoint
+      const { data, error } = await supabase.functions.invoke('renew-subscription', {
+        body: { 
+          subscriptionId: subscription?.stripe_subscription_id,
+          customerId: subscription?.stripe_customer_id
+        }
+      });
+      
+      if (error) {
+        console.error('Error calling renew-subscription:', error);
+        return { 
+          success: false, 
+          error: error 
+        };
+      }
+      
+      if (data?.url) {
+        return { 
+          success: true, 
+          url: data.url 
+        };
+      }
+      
       return { 
-        success: true, 
-        url: 'https://example.com/payment' 
+        success: false, 
+        error: new Error('No URL returned from payment portal') 
       };
     } catch (err) {
       console.error('Error in renewSubscription:', err);
@@ -93,7 +114,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         error: err instanceof Error ? err : new Error('Unknown error') 
       };
     }
-  }, []);
+  }, [subscription?.stripe_subscription_id, subscription?.stripe_customer_id]);
 
   // Fetch subscription data from the API
   const fetchSubscriptionData = useCallback(async () => {

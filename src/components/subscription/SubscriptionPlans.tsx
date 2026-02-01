@@ -12,13 +12,23 @@ import { SUBSCRIPTION_PLAN_LIMITS, toSubscriptionPlan } from "@/types/subscripti
 import { createDefaultSubscription } from "@/hooks/subscription/utils/subscription-creation";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
+import { CurrentPlanBadge } from "./CurrentPlanBadge";
+import { UsageStats } from "./UsageStats";
+import { format } from "date-fns";
 
 export function SubscriptionPlans() {
-  const subscription = useSubscription();
+  const { subscription: subContext, setSubscription } = useSubscription();
+  const subscription = subContext ? toSubscriptionPlan(subContext) : null;
   const { session } = useAuth();
   const navigate = useNavigate();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
   const [creatingFreeSubscription, setCreatingFreeSubscription] = useState(false);
+
+  const currentPlanType = subscription?.plan_type || 'starter';
+  const isCurrentPlan = (planType: string) => currentPlanType === planType && subscription?.status === 'active';
+  const renewalDate = subscription?.current_period_end 
+    ? format(new Date(subscription.current_period_end), 'MMM d, yyyy')
+    : null;
 
   const handleContinueFree = async () => {
     if (!session?.user?.id) {
@@ -30,7 +40,7 @@ export function SubscriptionPlans() {
     try {
       await createDefaultSubscription(
         session.user.id,
-        subscription.setSubscription,
+        setSubscription,
         () => {
           toast.success("Welcome! Your free account is ready.");
           navigate('/dashboard');
@@ -57,8 +67,9 @@ export function SubscriptionPlans() {
 
       <div className="grid md:grid-cols-3 gap-8">
         {/* Free Starter Plan */}
-        <Card className="relative">
-          <CardHeader>
+        <Card className={`relative ${isCurrentPlan('starter') ? 'ring-2 ring-green-500' : ''}`}>
+          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('starter')} />
+          <CardHeader className={isCurrentPlan('starter') ? 'pt-8' : ''}>
             <div className="flex items-center gap-2">
               <CardTitle>Starter</CardTitle>
               <Badge variant="secondary">Free</Badge>
@@ -69,29 +80,33 @@ export function SubscriptionPlans() {
             <div className="text-3xl font-bold mb-4">
               $0<span className="text-lg font-normal">/forever</span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.starter} projects</li>
               <li>✓ AI RFP Summary</li>
               <li>✓ AI Proposal Outline</li>
               <li>✓ Basic AI Proposal Draft</li>
               <li>✓ Community support</li>
             </ul>
+            {isCurrentPlan('starter') && (
+              <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.starter} planType="starter" />
+            )}
           </CardContent>
           <CardFooter>
             <Button 
               className="w-full" 
-              variant="outline" 
+              variant={isCurrentPlan('starter') ? "secondary" : "outline"}
               onClick={handleContinueFree}
-              disabled={creatingFreeSubscription}
+              disabled={creatingFreeSubscription || isCurrentPlan('starter')}
             >
-              {creatingFreeSubscription ? "Setting up..." : "Continue Free"}
+              {isCurrentPlan('starter') ? "Current Plan" : creatingFreeSubscription ? "Setting up..." : "Continue Free"}
             </Button>
           </CardFooter>
         </Card>
 
-        {/* Basic Plan (formerly Starter) */}
-        <Card>
-          <CardHeader>
+        {/* Basic Plan */}
+        <Card className={`relative ${isCurrentPlan('basic') ? 'ring-2 ring-green-500' : ''}`}>
+          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('basic')} renewalDate={renewalDate} />
+          <CardHeader className={isCurrentPlan('basic') ? 'pt-8' : ''}>
             <CardTitle>Basic</CardTitle>
             <CardDescription>For small teams</CardDescription>
           </CardHeader>
@@ -99,7 +114,7 @@ export function SubscriptionPlans() {
             <div className="text-3xl font-bold mb-4">
               ${billingInterval === 'monthly' ? '49' : '470'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.basic} projects</li>
               <li>✓ Enhanced AI RFP Summary</li>
               <li>✓ Advanced AI Proposal Outline</li>
@@ -107,10 +122,20 @@ export function SubscriptionPlans() {
               <li>✓ 24-hour support response time</li>
               <li>✓ Email support</li>
             </ul>
+            {isCurrentPlan('basic') && (
+              <>
+                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.basic} planType="basic" />
+                {renewalDate && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Renews on {renewalDate}
+                  </p>
+                )}
+              </>
+            )}
           </CardContent>
           <CardFooter>
             <UpgradeButton 
-              currentPlan={subscription.subscription ? toSubscriptionPlan(subscription.subscription) : null} 
+              currentPlan={subscription} 
               targetPlan="basic" 
               variant={billingInterval} 
             />
@@ -118,11 +143,12 @@ export function SubscriptionPlans() {
         </Card>
 
         {/* Pro Plan */}
-        <Card className="border-primary relative">
-          <CardHeader>
+        <Card className={`relative ${isCurrentPlan('pro') ? 'ring-2 ring-green-500' : 'border-primary'}`}>
+          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('pro')} renewalDate={renewalDate} />
+          <CardHeader className={isCurrentPlan('pro') ? 'pt-8' : ''}>
             <div className="flex items-center gap-2">
               <CardTitle>Pro</CardTitle>
-              <Badge>Most Popular</Badge>
+              {!isCurrentPlan('pro') && <Badge>Most Popular</Badge>}
             </div>
             <CardDescription>For growing businesses</CardDescription>
           </CardHeader>
@@ -130,7 +156,7 @@ export function SubscriptionPlans() {
             <div className="text-3xl font-bold mb-4">
               ${billingInterval === 'monthly' ? '99' : '950'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.pro} projects</li>
               <li>✓ Advanced AI RFP Summary</li>
               <li>✓ Enhanced AI Proposal Outline</li>
@@ -140,10 +166,20 @@ export function SubscriptionPlans() {
               <li>✓ Priority support</li>
               <li>✓ Team collaboration</li>
             </ul>
+            {isCurrentPlan('pro') && (
+              <>
+                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.pro} planType="pro" />
+                {renewalDate && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Renews on {renewalDate}
+                  </p>
+                )}
+              </>
+            )}
           </CardContent>
           <CardFooter>
             <UpgradeButton 
-              currentPlan={subscription.subscription ? toSubscriptionPlan(subscription.subscription) : null} 
+              currentPlan={subscription} 
               targetPlan="pro" 
               variant={billingInterval} 
             />

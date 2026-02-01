@@ -13,10 +13,9 @@ import { useSubscription } from "@/hooks/subscription";
  * It handles:
  * - Displaying welcome message with user's name
  * - Showing subscription plan information
- * - Checking user roles (admin, beta tester)
+ * - Checking user roles (admin)
  * - Providing quick access buttons (report issue, docs, settings)
  * - Showing admin dashboard button for admins
- * - Showing beta dashboard button for beta testers
  */
 export default function DashboardHeader() {
   const {
@@ -27,9 +26,7 @@ export default function DashboardHeader() {
   const {
     isCheckingRoles,
     showAdminButton,
-    showBetaBadge,
     roleCheckError,
-    isBetaTester,
     isAdmin,
     forceRoleCheck
   } = useUserRoles();
@@ -61,14 +58,12 @@ export default function DashboardHeader() {
     if (import.meta.env.DEV) {
       console.log("DashboardHeader role states:", {
         isAdmin,
-        isBetaTester,
         showAdminButton,
-        showBetaBadge,
         isCheckingRoles,
         timestamp: new Date().toISOString()
       });
     }
-  }, [isAdmin, isBetaTester, showAdminButton, showBetaBadge, isCheckingRoles]);
+  }, [isAdmin, showAdminButton, isCheckingRoles]);
   
   return <div className="mt-3 flex justify-center">
       <Card className="bg-brand-green border-0 w-full rounded-none">
@@ -76,7 +71,7 @@ export default function DashboardHeader() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <WelcomeMessage />
             
-            <ActionButtons isCheckingRoles={isCheckingRoles} showAdminButton={showAdminButton} showBetaBadge={showBetaBadge} roleCheckError={roleCheckError} />
+            <ActionButtons isCheckingRoles={isCheckingRoles} showAdminButton={showAdminButton} roleCheckError={roleCheckError} />
           </div>
         </CardContent>
       </Card>

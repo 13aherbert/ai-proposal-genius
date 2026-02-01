@@ -27,7 +27,7 @@ export function UserRoleManager({
   handleRemoveRole,
   isEditing
 }: UserRoleManagerProps) {
-  const availableRoles: UserRole[] = ['admin', 'beta_tester', 'user'];
+  const availableRoles: UserRole[] = ['admin', 'user', 'system_admin'];
   const unassignedRoles = availableRoles.filter(role => !userRoles.includes(role));
 
   return (

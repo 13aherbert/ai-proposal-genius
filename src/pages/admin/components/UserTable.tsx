@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Shield, ShieldCheck, Crown, User, Trash2, Edit, Check, X } from "lucide-react";
+import { Shield, Crown, User, Trash2, Edit, Check, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface UserTableProps {
@@ -35,8 +35,6 @@ const getRoleIcon = (role: UserRole) => {
       return <Crown className="h-3 w-3 text-purple-600" />;
     case 'admin':
       return <Shield className="h-3 w-3 text-red-600" />;
-    case 'beta_tester':
-      return <ShieldCheck className="h-3 w-3 text-blue-600" />;
     case 'user':
       return <User className="h-3 w-3 text-gray-600" />;
     default:
@@ -50,8 +48,6 @@ const getRoleBadgeVariant = (role: UserRole) => {
       return 'destructive';
     case 'admin':
       return 'destructive';
-    case 'beta_tester':
-      return 'secondary';
     case 'user':
       return 'outline';
     default:
@@ -175,7 +171,6 @@ export function UserTable({
                         <Badge key={role} variant={getRoleBadgeVariant(role)} className="flex items-center gap-1 text-xs">
                           {getRoleIcon(role)}
                           {role === 'system_admin' ? 'System Admin' : 
-                           role === 'beta_tester' ? 'Beta Tester' : 
                            role.charAt(0).toUpperCase() + role.slice(1)}
                         </Badge>
                       ))}
@@ -313,7 +308,6 @@ export function UserTable({
                 <SelectContent>
                   <SelectItem value="system_admin">System Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="beta_tester">Beta Tester</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>

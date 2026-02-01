@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Book, Crown, Settings, Users, Beaker, Shield } from "lucide-react";
+import { AlertCircle, Book, Settings, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -10,14 +10,12 @@ import { UserFeedbackDialog } from "@/components/feedback/UserFeedbackDialog";
 type ActionButtonsProps = {
   isCheckingRoles: boolean;
   showAdminButton: boolean;
-  showBetaBadge: boolean;
   roleCheckError: string | null;
 };
 
 export function ActionButtons({ 
   isCheckingRoles, 
   showAdminButton, 
-  showBetaBadge, 
   roleCheckError 
 }: ActionButtonsProps) {
   const navigate = useNavigate();
@@ -27,20 +25,10 @@ export function ActionButtons({
     console.log("ActionButtons rendered with props:", { 
       isCheckingRoles, 
       showAdminButton, 
-      showBetaBadge, 
       roleCheckError,
       timestamp: new Date().toISOString()
     });
-  }, [isCheckingRoles, showAdminButton, showBetaBadge, roleCheckError]);
-
-  useEffect(() => {
-    if (showBetaBadge) {
-      console.log("🔍 Beta badge should be visible now", {
-        showBetaBadge,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [showBetaBadge]);
+  }, [isCheckingRoles, showAdminButton, roleCheckError]);
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
@@ -61,26 +49,9 @@ export function ActionButtons({
         </Button>
       )}
       
-      {showBetaBadge && (
-        <Button 
-          variant="outline" 
-          className="bg-black/20 border-purple-400 hover:bg-black/40 border-2"
-          onClick={() => {
-            console.log("Navigating to beta dashboard", {
-              timestamp: new Date().toISOString(),
-              showBetaBadge
-            });
-            navigate('/beta');
-          }}
-        >
-          <Beaker className="h-5 w-5 mr-2" />
-          Beta Dashboard
-        </Button>
-      )}
-      
       {import.meta.env.DEV && (
         <Badge variant="outline" className="py-2 px-3 bg-blue-900/20 border-blue-400">
-          Admin: {showAdminButton ? 'Yes' : 'No'} | Beta: {showBetaBadge ? 'Yes' : 'No'}
+          Admin: {showAdminButton ? 'Yes' : 'No'}
         </Badge>
       )}
       

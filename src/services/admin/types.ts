@@ -30,6 +30,7 @@ export interface UserProfile {
   } | null;
   createdAt: string;
   lastSignIn: string | null;
+  lastActivityAt: string | null;
 }
 
 // User role record interface

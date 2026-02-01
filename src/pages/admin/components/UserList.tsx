@@ -3,6 +3,7 @@ import React from 'react';
 import { UserProfile, UserRole } from "@/services/admin/types";
 import { Input } from "@/components/ui/input";
 import { UserTable } from "./UserTable";
+import { UserStatsCards } from "./UserStatsCards";
 
 interface UserListProps {
   users: UserProfile[];
@@ -54,6 +55,9 @@ export function UserList({
 
   return (
     <div className="space-y-4">
+      {/* User Statistics Cards */}
+      <UserStatsCards users={users} />
+      
       {/* Search */}
       <div className="flex gap-4 items-center">
         <Input

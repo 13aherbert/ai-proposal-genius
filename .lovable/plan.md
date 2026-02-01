@@ -1,123 +1,202 @@
 
-# Comprehensive Workflow & UX Review: RFP to Winning Proposal
 
-## Implementation Status
+# User Management Enhancement Plan
 
-### ✅ Phase 1: Completed (Immediate Actions)
+## Overview
 
-| Item | Status | Implementation |
-|------|--------|----------------|
-| Knowledge Base Readiness Score | ✅ Done | `KnowledgeBaseReadiness` component with essential coverage scoring |
-| Empty KB warning on dashboard | ✅ Done | Prominent warning card when KB is empty/needs attention |
-| KB Setup Wizard | ✅ Done | `KnowledgeSetupWizard` dialog guiding users through 6 essential categories |
-| 12 proposal-aligned categories | ✅ Done | Updated `categories.tsx` with priority levels and proposal mappings |
-| Smart knowledge filtering update | ✅ Done | Updated edge function to use new category names |
-
-### 🔄 Phase 2: In Progress (Short-Term)
-
-| Item | Status | Notes |
-|------|--------|-------|
-| RFP-to-Knowledge gap analysis UI | 🔄 Planned | Surface knowledge gaps after RFP analysis |
-| Section-by-section preview | 🔄 Planned | Show what each section will contain before generation |
-| Proposal Quality Dashboard | 🔄 Planned | Visual metrics for proposal strength |
-| Win probability display | 🔄 Planned | Surface existing calculations prominently |
-
-### 📋 Phase 3: Planned (Medium-Term)
-
-| Item | Status | Notes |
-|------|--------|-------|
-| Inline KB access in editor | 📋 Planned | Side panel for quick knowledge insertion |
-| Proposal templates | 📋 Planned | Save winning proposals as reusable templates |
-| Bulk KB import | 📋 Planned | Upload multiple documents at once |
-| Industry starter kits | 📋 Planned | Pre-populated templates per industry |
+This plan enhances the User Management page with additional columns (account creation, last activity) and adds valuable administrative tools to improve oversight and management capabilities.
 
 ---
 
-## Files Created/Modified
+## Current State Analysis
 
-### New Files
-- `src/hooks/use-knowledge-readiness.ts` - Hook for KB coverage scoring
-- `src/components/dashboard/KnowledgeBaseReadiness.tsx` - Dashboard readiness card
-- `src/components/knowledge-base/KnowledgeSetupWizard.tsx` - Guided setup dialog
+### What Exists Today
 
-### Modified Files
-- `src/components/knowledge-base/data/categories.tsx` - 12 proposal-aligned categories
-- `src/pages/Dashboard.tsx` - Integrated readiness card and wizard
-- `supabase/functions/generate-section-content/smart-knowledge-filter.ts` - Updated category matching
+| Column | Status |
+|--------|--------|
+| User (Name) | Yes |
+| Email | Yes |
+| Business | Yes |
+| Roles | Yes |
+| Subscription | Yes |
+| Actions (Roles, Edit, Delete) | Yes |
+| **Account Created** | **Missing** |
+| **Last Activity** | **Missing** |
 
----
+### Data Sources Available
 
-## New Knowledge Base Categories (12)
-
-### Essential (6) - Required for quality proposals
-1. **Company Overview & Mission** → Executive Summary
-2. **Team Bios & Qualifications** → Team & Qualifications  
-3. **Past Performance & Case Studies** → Experience, Technical Approach
-4. **Technical Capabilities** → Technical Approach, Methodology
-5. **Pricing & Rates** → Budget, Investment
-6. **Differentiators & Value Props** → Why Choose Us, Executive Summary
-
-### Recommended (2) - Improves proposal quality
-7. **Certifications & Compliance** → Qualifications, Risk Mitigation
-8. **Process & Methodology** → Technical Approach, Timeline
-
-### Optional (4) - Helpful for specific RFP types
-9. **Client Testimonials** → Why Choose Us, Past Performance
-10. **Industry Expertise** → Technical Approach, Experience
-11. **Legal & Terms** → Terms, Appendices
-12. **Tools & Technology** → Technical Approach
+- `profiles.created_at` - Account creation timestamp
+- `profiles.updated_at` - Last profile update
+- `organization_member_activity` - Tracks user activity events
+- `projects` / `knowledge_entries` - User engagement metrics
 
 ---
 
-## KB Readiness Scoring
+## Implementation Plan
 
-The new readiness system calculates:
+### Phase 1: Add Missing Columns
 
-- **Essential Score** (0-100%): Percentage of 6 essential categories with content
-- **Overall Score** (weighted): 60% essential + 30% recommended + 10% optional
-- **Status Levels**:
-  - Empty: 0 entries
-  - Needs Attention: <40% essential coverage
-  - Building: 40-60% essential coverage
-  - Ready: ≥60% essential coverage
+#### 1.1 Update Edge Function (`get-user-roles`)
 
----
-
-## Next Steps
-
-### Priority: Surface Knowledge Gaps in Project View
-
-1. After RFP analysis, show a "Knowledge Readiness" panel on the project page
-2. Map RFP requirements to KB categories
-3. Show which requirements are covered vs. missing
-4. Provide one-click navigation to add missing knowledge
-
-### Database Optimizations Needed
-
-```sql
--- Add indexes for KB performance
-CREATE INDEX IF NOT EXISTS idx_knowledge_entries_category 
-ON knowledge_entries(category);
-
-CREATE INDEX IF NOT EXISTS idx_knowledge_entries_org_category 
-ON knowledge_entries(organization_id, category);
-```
-
----
-
-## Current Workflow (Updated)
+Modify to include additional profile data:
+- `created_at` - Account creation date
+- `updated_at` - Last profile update (proxy for activity)
 
 ```text
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌───────────────┐    ┌─────────────┐
-│  Dashboard  │ ─► │  KB Check    │ ─► │  Upload RFP    │ ─► │  RFP Analysis │ ─► │  Outline    │
-│  (Warning)  │    │  (Wizard)    │    │  (Quick/Full)  │    │  (+ Gaps)     │    │  Gen        │
-└─────────────┘    └──────────────┘    └────────────────┘    └───────────────┘    └─────────────┘
-                                                                                         │
-                                                                                         ▼
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌───────────────┐    ┌─────────────┐
-│  Final      │ ◄─ │  Apply       │ ◄─ │  Proposal      │ ◄─ │  Content Gen  │ ◄─ │ Knowledge   │
-│  Proposal   │    │  Suggestions │    │  Evaluation    │    │  (Per Section)│    │ Base Match  │
-└─────────────┘    └──────────────┘    └────────────────┘    └───────────────┘    └─────────────┘
+Current response per user:
+{
+  user_id, role, email, first_name, last_name, business_name
+}
+
+Enhanced response:
+{
+  user_id, role, email, first_name, last_name, business_name,
+  created_at,      // NEW: from profiles.created_at
+  updated_at       // NEW: from profiles.updated_at (last activity proxy)
+}
 ```
 
-The key difference: Users are now **warned upfront** if their KB is insufficient, and guided through setup with the wizard before they invest time uploading RFPs.
+#### 1.2 Update Types
+
+Update `UserProfile` interface in `src/services/admin/types.ts`:
+- Change `createdAt` from hardcoded value to actual data
+- Add `lastActivityAt` field
+
+#### 1.3 Update User Service
+
+Modify `getAllUsers()` in `src/services/admin/userService.ts`:
+- Parse new fields from edge function response
+- Map `created_at` → `createdAt`
+- Map `updated_at` → `lastActivityAt`
+
+#### 1.4 Update User Table Component
+
+Add two new columns to `UserTable.tsx`:
+
+| Column | Display Format | Notes |
+|--------|---------------|-------|
+| Created | "Jan 15, 2025" with relative time tooltip | formatDistanceToNow |
+| Last Active | "2 days ago" with exact time tooltip | formatDistanceToNow |
+
+---
+
+### Phase 2: Additional Admin Tools (Recommended Additions)
+
+#### 2.1 User Statistics Cards
+
+Add summary cards above the user table showing:
+- Total Users count
+- Active Users (last 30 days)
+- Beta Testers count
+- Admins count
+
+#### 2.2 Enhanced Filtering
+
+Add filter dropdowns for:
+- Role filter (Admin, Beta Tester, User, All)
+- Status filter (Active, Inactive based on last activity)
+- Subscription filter (Trial, Starter, Pro, None)
+
+#### 2.3 User Details Modal
+
+Click a user row to see expanded details:
+- Full profile information
+- Organization memberships
+- Project count
+- Knowledge entries count
+- Activity timeline
+- Subscription history
+
+#### 2.4 Bulk Actions
+
+Add capability to:
+- Export users to CSV
+- Bulk assign roles
+- Bulk invite to beta program
+
+#### 2.5 Quick Actions Enhancement
+
+Expand action column with:
+- "View Details" button (opens modal)
+- "Impersonate" (for debugging, system_admin only)
+- "Send Password Reset" link
+
+---
+
+## Technical Implementation Details
+
+### File Changes Summary
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/functions/get-user-roles/index.ts` | Modify | Add created_at, updated_at to query |
+| `src/services/admin/types.ts` | Modify | Add lastActivityAt to UserProfile |
+| `src/services/admin/userService.ts` | Modify | Parse new date fields |
+| `src/pages/admin/components/UserTable.tsx` | Modify | Add Created and Last Active columns |
+| `src/pages/admin/components/UserStatsCards.tsx` | Create | Summary statistics component |
+| `src/pages/admin/components/UserFilters.tsx` | Create | Filter controls component |
+| `src/pages/admin/components/UserDetailsModal.tsx` | Create | Detailed user view modal |
+| `src/pages/admin/UserManagement.tsx` | Modify | Integrate new components |
+
+### Database Considerations
+
+No schema changes required - all data exists in:
+- `profiles` table (created_at, updated_at)
+- `organization_member_activity` table (for detailed activity if needed later)
+
+---
+
+## UI/UX Design
+
+### Updated Table Layout
+
+```text
+┌─────────────┬─────────────────────────┬────────────┬────────────────┬──────────────┬────────────────┬────────────┐
+│    User     │          Email          │  Business  │     Roles      │ Subscription │    Created     │   Active   │    Actions    │
+├─────────────┼─────────────────────────┼────────────┼────────────────┼──────────────┼────────────────┼────────────┤
+│ John Smith  │ john@example.com        │ Acme Inc   │ [Admin][User]  │ Pro (active) │ Jan 15, 2025   │ 2 days ago │ [Actions ▼]   │
+│ Jane Doe    │ jane@example.com        │ -          │ [Beta][User]   │ Trial        │ Feb 1, 2025    │ Today      │ [Actions ▼]   │
+└─────────────┴─────────────────────────┴────────────┴────────────────┴──────────────┴────────────────┴────────────┴───────────────┘
+```
+
+### Stats Cards Layout
+
+```text
+┌────────────────┐  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+│  Total Users   │  │  Active (30d)  │  │  Beta Testers  │  │     Admins     │
+│      127       │  │       89       │  │       34       │  │        3       │
+│                │  │    70% ↑12%    │  │    27%         │  │                │
+└────────────────┘  └────────────────┘  └────────────────┘  └────────────────┘
+```
+
+---
+
+## Implementation Priority
+
+### Must Have (Phase 1)
+1. Account Created column
+2. Last Activity column
+3. Update edge function for data
+
+### Should Have (Phase 2)
+4. User statistics cards
+5. Enhanced filtering (role, status)
+6. User details modal
+
+### Nice to Have (Phase 3)
+7. CSV export
+8. Bulk actions
+9. Activity timeline view
+10. Impersonate feature
+
+---
+
+## Expected Outcome
+
+After implementation:
+- Admins can quickly see when users signed up
+- Identify inactive users for engagement campaigns
+- Filter users by role/status for targeted actions
+- Access detailed user information without leaving the page
+- Export data for reporting purposes
+

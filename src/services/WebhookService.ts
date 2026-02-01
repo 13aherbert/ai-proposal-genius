@@ -6,6 +6,9 @@ import { toast } from "sonner";
 
 /**
  * WebhookService - Handles interactions with webhook endpoints
+ * 
+ * SECURITY: This service uses JWT authentication instead of client-side secrets.
+ * The webhook secret is stored server-side and validated in the edge function.
  */
 export class WebhookService {
   /**
@@ -22,25 +25,16 @@ export class WebhookService {
     try {
       console.log("Triggering support response webhook for ticket:", ticketId);
       
-      // Get the webhook secret from environment variables
-      const webhookSecret = import.meta.env.VITE_EMAIL_WEBHOOK_SECRET;
-      
-      if (!webhookSecret) {
-        console.error("EMAIL_WEBHOOK_SECRET environment variable is not set");
-        toast.error("Configuration error", {
-          description: "Webhook secret not configured. Contact support."
-        });
-        return { success: false, error: "Webhook secret not configured" };
-      }
-      
       // Apply rate limiting to webhook calls (max 5 per minute)
       return await withRateLimitByKey("support-webhook", async () => {
-        // Call the email-webhooks edge function
+        // Call the email-webhooks edge function with JWT authentication
+        // The edge function validates the user's session and permissions
         const { data, error } = await supabase.functions.invoke("email-webhooks", {
           body: {
             ticketId,
-            responseMessage,
-            secret: webhookSecret
+            responseMessage
+            // NOTE: Secret is now validated server-side using Supabase secrets
+            // The edge function uses the Authorization header for user verification
           }
         });
         
@@ -61,6 +55,14 @@ export class WebhookService {
               description: "Please wait a moment before trying again" 
             });
             return { success: false, error: "Rate limit exceeded" };
+          }
+          
+          // Handle authentication errors
+          if (error.status === 401) {
+            toast.error("Authentication required", { 
+              description: "Please sign in to perform this action" 
+            });
+            return { success: false, error: "Authentication required" };
           }
           
           // General error handler

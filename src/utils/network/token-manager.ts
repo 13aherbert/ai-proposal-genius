@@ -2,64 +2,42 @@
 /**
  * TokenManager utility
  * 
- * Centralizes authentication token management with consistent methods
- * for storing, retrieving, and validating tokens.
+ * SECURITY UPDATE: Authentication tokens are no longer stored in localStorage.
+ * Supabase's built-in session management handles token storage securely.
+ * 
+ * This module now only manages cached non-sensitive data for UI purposes.
+ * All authentication decisions should use supabase.auth.getSession() instead.
  */
 
-const TOKEN_KEY = 'userToken';
 const ROLES_KEY = 'userRoles';
 const SUBSCRIPTION_KEY = 'subscriptionData';
 
-// Basic token validation - checks if token exists and has expected format
-const isTokenValid = (token: string): boolean => {
-  if (!token || typeof token !== 'string' || token.length < 10) {
-    return false;
-  }
-  
-  // Basic JWT format validation (header.payload.signature)
-  return /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(token);
-};
-
 /**
- * Get the stored authentication token
+ * @deprecated Use supabase.auth.getSession() instead
+ * Auth tokens should not be stored in localStorage for security reasons.
+ * This function is kept for backwards compatibility but always returns null.
  */
 export const getAuthToken = (): string | null => {
-  try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    return token && isTokenValid(token) ? token : null;
-  } catch (error) {
-    console.error('Error retrieving auth token from storage:', error);
-    return null;
-  }
+  console.warn('getAuthToken is deprecated. Use supabase.auth.getSession() for authentication.');
+  return null;
 };
 
 /**
- * Store the authentication token
+ * @deprecated Auth tokens should not be stored in localStorage
+ * Use Supabase's built-in session management instead.
+ * This function is kept for backwards compatibility but does nothing.
  */
-export const setAuthToken = (token: string): boolean => {
-  if (!token || !isTokenValid(token)) {
-    console.warn('Attempted to store invalid token');
-    return false;
-  }
-  
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-    return true;
-  } catch (error) {
-    console.error('Error storing auth token:', error);
-    return false;
-  }
+export const setAuthToken = (_token: string): boolean => {
+  console.warn('setAuthToken is deprecated. Supabase handles token storage securely.');
+  return false;
 };
 
 /**
- * Remove the authentication token
+ * @deprecated Auth tokens are now managed by Supabase
+ * This function is kept for backwards compatibility but does nothing.
  */
 export const removeAuthToken = (): void => {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch (error) {
-    console.error('Error removing auth token:', error);
-  }
+  console.warn('removeAuthToken is deprecated. Use supabase.auth.signOut() instead.');
 };
 
 /**
@@ -128,11 +106,11 @@ export const getSubscriptionData = (): Record<string, any> | null => {
 };
 
 /**
- * Clear all authentication related data
+ * Clear all cached data (not auth tokens - those are managed by Supabase)
+ * SECURITY: Only clears non-sensitive cached data for UI purposes
  */
 export const clearAuthData = (): void => {
   try {
-    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ROLES_KEY);
     localStorage.removeItem(SUBSCRIPTION_KEY);
   } catch (error) {

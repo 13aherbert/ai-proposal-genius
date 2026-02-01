@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthForm } from "./AuthFormContext";
 import { toast } from "sonner";
-import { getAuthToken, setAuthToken, setUserRoles } from "@/utils/network";
+import { setUserRoles } from "@/utils/network";
 import { withRetry } from "@/utils/network/retry";
 
 export const useAuthRedirects = () => {
@@ -43,6 +43,7 @@ export const useAuthRedirects = () => {
     }, 5000);
     
     // Check current session with a timeout and retry mechanism
+    // SECURITY: Use Supabase session management, not localStorage tokens
     const checkSession = async () => {
       try {
         const { data, error } = await withRetry(
@@ -65,27 +66,8 @@ export const useAuthRedirects = () => {
         }
       } catch (e) {
         console.error("Exception checking session in redirects:", e);
-        
-        // If timeout occurred, check localStorage as fallback using TokenManager
-        const token = getAuthToken();
-        if (token) {
-          console.log("Session check timed out, but token found via TokenManager");
-          
-          // Attempt to restore session from token
-          try {
-            const { data } = await supabase.auth.setSession({
-              access_token: token,
-              refresh_token: ''
-            });
-            
-            if (data?.session) {
-              console.log("Successfully restored session from token");
-              handleRedirect(data.session);
-            }
-          } catch (restoreError) {
-            console.error("Failed to restore session from token:", restoreError);
-          }
-        }
+        // SECURITY: Don't try to restore from localStorage tokens
+        // User needs to re-authenticate if session check fails
       }
     };
     
@@ -124,18 +106,19 @@ export const useAuthRedirects = () => {
   }, [navigate, location.search, setError]);
   
   const handleRedirect = (session: any) => {
-    // Ensure we have the token in localStorage using TokenManager
+    // SECURITY: Don't store access_token in localStorage
+    // Supabase handles token storage securely
     if (session?.access_token) {
-      setAuthToken(session.access_token);
-      console.log("Auth token stored via TokenManager");
+      console.log("Session authenticated, fetching user roles");
       
       // Prefetch user roles for faster access later with retry logic
+      // This is cached for UI purposes only, not for auth decisions
       withRetry(
         async () => {
           const { data, error } = await supabase.functions.invoke('get-user-roles');
           if (error) throw error;
           if (data?.roles) {
-            console.log("Successfully prefetched user roles, storing with TokenManager");
+            console.log("Successfully prefetched user roles for UI caching");
             setUserRoles(data.roles);
           }
           return data;

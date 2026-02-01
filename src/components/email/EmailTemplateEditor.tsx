@@ -22,6 +22,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { useBrandingContext } from '@/components/branding/BrandingProvider';
+import DOMPurify from 'dompurify';
 
 interface EmailTemplate {
   id: string;
@@ -417,7 +418,12 @@ export function EmailTemplateEditor() {
               <div className="border rounded-lg overflow-hidden">
                 <div 
                   className="p-4 bg-white"
-                  dangerouslySetInnerHTML={{ __html: renderPreview() }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderPreview(), {
+                    ALLOWED_TAGS: ['div', 'span', 'p', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 'br', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'ul', 'ol', 'li'],
+                    ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'class', 'target', 'rel'],
+                    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+                    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover']
+                  }) }}
                 />
               </div>
             )}

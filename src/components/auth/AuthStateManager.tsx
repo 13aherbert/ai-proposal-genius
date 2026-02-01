@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, AuthError } from "@supabase/supabase-js";
-import { getAuthToken, setAuthToken, clearAuthData } from "@/utils/network";
+import { clearAuthData } from "@/utils/network";
 
 // Auth state types
 type AuthState = 
@@ -22,48 +22,17 @@ type AuthActions = {
 
 /**
  * Hook for managing authentication state
- * Provides a clean separation of auth state and actions
+ * SECURITY: Uses Supabase's built-in session management, not localStorage tokens
  */
 export function useAuthStateManager(): [AuthState, AuthActions] {
   const [authState, setAuthState] = useState<AuthState>({ status: 'initializing' });
   
-  // Initialize auth state from storage or session
+  // Initialize auth state from Supabase session
   const initialize = async () => {
     try {
       setAuthState({ status: 'initializing' });
       
-      // First try to restore session from localStorage token if available
-      const storedToken = getAuthToken();
-      
-      if (storedToken) {
-        try {
-          console.log("Attempting to restore session from stored token");
-          const { data, error } = await supabase.auth.setSession({
-            access_token: storedToken,
-            refresh_token: ''
-          });
-          
-          if (error) {
-            console.warn("Failed to restore session from token:", error.message);
-            clearAuthData();
-            setAuthState({ status: 'unauthenticated' });
-            return;
-          }
-          
-          if (data?.session) {
-            console.log("Successfully restored session from token");
-            setAuthState({ 
-              status: 'authenticated', 
-              session: data.session 
-            });
-            return;
-          }
-        } catch (tokenError) {
-          console.error("Error restoring session from token:", tokenError);
-        }
-      }
-      
-      // If token restoration failed, try getting the current session
+      // SECURITY: Get session from Supabase, not localStorage
       try {
         const { data, error } = await supabase.auth.getSession();
         
@@ -75,7 +44,6 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         
         if (data.session) {
           console.log("Session found during initialization");
-          setAuthToken(data.session.access_token);
           setAuthState({ status: 'authenticated', session: data.session });
         } else {
           console.log("No session found during initialization");
@@ -106,7 +74,7 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         switch (event) {
           case 'SIGNED_IN':
             if (session) {
-              setAuthToken(session.access_token);
+              // SECURITY: Don't store tokens in localStorage
               setAuthState({ status: 'authenticated', session });
             }
             break;
@@ -116,7 +84,7 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
             break;
           case 'TOKEN_REFRESHED':
             if (session) {
-              setAuthToken(session.access_token);
+              // SECURITY: Don't store tokens in localStorage
               setAuthState({ status: 'authenticated', session });
             }
             break;
@@ -147,9 +115,8 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         return { error };
       }
       
-      if (data.session) {
-        setAuthToken(data.session.access_token);
-      }
+      // SECURITY: Don't store tokens in localStorage
+      // Supabase handles session management securely
       
       return { error: null };
     } catch (error) {
@@ -178,9 +145,8 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         return { error };
       }
       
-      if (data.session) {
-        setAuthToken(data.session.access_token);
-      }
+      // SECURITY: Don't store tokens in localStorage
+      // Supabase handles session management securely
       
       return { error: null };
     } catch (error) {
@@ -212,7 +178,7 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
   // Reset session (useful for manual session updates)
   const resetSession = (session: Session | null) => {
     if (session) {
-      setAuthToken(session.access_token);
+      // SECURITY: Don't store tokens in localStorage
       setAuthState({ status: 'authenticated', session });
     } else {
       setAuthState({ status: 'unauthenticated' });

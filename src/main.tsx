@@ -4,13 +4,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
-import { getAuthToken } from './utils/network';
 
-// Check for existing token early in application lifecycle
-const initialToken = getAuthToken();
-if (initialToken) {
-  console.log('Initial auth token found in storage');
-}
+// SECURITY: Auth tokens are now managed by Supabase's secure session management
+// No localStorage token checks needed at startup
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

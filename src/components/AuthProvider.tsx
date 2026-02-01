@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Enhanced security cleanup
       SessionSecurity.invalidateSession();
       SecureTokenStorage.clearAllTokens();
-      localStorage.removeItem('userToken');
+      // SECURITY: Clear cached non-sensitive data only
       localStorage.removeItem('subscriptionData');
       localStorage.removeItem('userRoles');
       
@@ -66,7 +66,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Even if signout fails, clear local data and navigate
       SessionSecurity.invalidateSession();
       SecureTokenStorage.clearAllTokens();
-      localStorage.clear();
+      localStorage.removeItem('subscriptionData');
+      localStorage.removeItem('userRoles');
       window.location.href = '/';
     }
   };
@@ -215,29 +216,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           console.error('Error getting session:', error);
           
+          // SECURITY: Don't try to restore from localStorage tokens
+          // Rely on Supabase's built-in session management with httpOnly cookies
           if (error.message === 'Session fetch timed out') {
-            console.log('Session check timed out, but token found in localStorage');
-            
-            // If session fetch times out, try using the stored token
-            const storedToken = localStorage.getItem('userToken');
-            if (storedToken) {
-              try {
-                // Try to set session with stored token
-                const { data: tokenData, error: tokenError } = await supabase.auth.setSession({
-                  access_token: storedToken,
-                  refresh_token: ''
-                });
-                
-                if (!tokenError && tokenData?.session) {
-                  if (isSubscribed) {
-                    setSession(tokenData.session);
-                  }
-                  console.log("Session restored from localStorage token");
-                }
-              } catch (e) {
-                console.error("Failed to restore session from token:", e);
-              }
-            }
+            console.log('Session check timed out - user needs to re-authenticate');
           }
           
           if (error.message !== "Not authenticated") {
@@ -250,10 +232,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (isSubscribed) {
             setSession(data.session);
-            
-            if (data.session?.access_token) {
-              localStorage.setItem('userToken', data.session.access_token);
-            }
+            // SECURITY: Don't store access_token in localStorage
+            // Supabase handles session persistence securely
           }
         }
       } catch (e) {
@@ -280,11 +260,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (isSubscribed && JSON.stringify(session) !== JSON.stringify(currentSession)) {
           setSession(currentSession);
           
+          // SECURITY: Don't store access_token in localStorage
+          // Fetch and cache non-sensitive metadata only
           if (currentSession?.access_token) {
-            localStorage.setItem('userToken', currentSession.access_token);
-            
             try {
-              // Fetch user roles in the background for faster access
+              // Fetch user roles in the background for faster access (cached for UI purposes only)
               Promise.race([
                 supabase.functions.invoke('get-user-roles', {
                   headers: {
@@ -294,27 +274,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 new Promise((_, reject) => setTimeout(() => reject(new Error("Roles fetch timeout")), 3000))
               ]).then(({ data: roleData, error: roleError }: any) => {
                 if (!roleError && roleData) {
+                  // Cache roles for UI display purposes only (not for auth decisions)
                   localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
                 }
               }).catch(err => {
                 console.error("Failed to fetch user roles (non-blocking):", err);
-                
-                // Try the fallback method with token in body
-                supabase.functions.invoke('get-user-roles', {
-                  body: { token: currentSession.access_token }
-                }).then(({ data: roleData, error: roleError }: any) => {
-                  if (!roleError && roleData) {
-                    localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-                  }
-                }).catch(err2 => {
-                  console.error("Fallback roles fetch also failed:", err2);
-                });
               });
             } catch (roleErr) {
               console.error("Exception in background roles fetch:", roleErr);
             }
           } else if (event === 'SIGNED_OUT') {
-            localStorage.removeItem('userToken');
+            // SECURITY: Clear cached data on sign out
             localStorage.removeItem('subscriptionData');
             localStorage.removeItem('userRoles');
           }
@@ -354,9 +324,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             break;
           case 'TOKEN_REFRESHED':
             console.log('Token refreshed successfully');
-            if (currentSession?.access_token) {
-              localStorage.setItem('userToken', currentSession.access_token);
-            }
+            // SECURITY: Don't store access_token in localStorage
+            // Supabase handles token refresh and storage securely
             break;
           case 'USER_UPDATED':
             toast.success("Profile updated");

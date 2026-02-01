@@ -9,14 +9,13 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
-// Support response webhook payload
+// Support response webhook payload (no longer requires client-side secret)
 interface SupportResponseWebhookPayload {
   ticketId: string;
   responseMessage: string;
-  secret: string;
 }
 
 // Request tracking for rate limiting
@@ -104,27 +103,12 @@ serve(async (req) => {
   }
 
   try {
-    // Parse webhook payload
-    const payload = await req.json();
-    console.log("Received webhook payload:", payload);
-    
-    // Verify webhook secret
-    const webhookSecret = Deno.env.get("EMAIL_WEBHOOK_SECRET");
-    if (!webhookSecret) {
-      console.error("EMAIL_WEBHOOK_SECRET environment variable is not set");
+    // SECURITY: Authenticate user via JWT instead of client-side secret
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
       return addCorsHeaders(new Response(
-        JSON.stringify({ error: "Webhook secret not configured" }),
-        { 
-          status: 500, 
-          headers: { "Content-Type": "application/json" } 
-        }
-      ));
-    }
-    
-    if (payload.secret !== webhookSecret) {
-      console.error("Invalid webhook secret");
-      return addCorsHeaders(new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - Authentication required" }),
         { 
           status: 401, 
           headers: { "Content-Type": "application/json" } 
@@ -132,9 +116,43 @@ serve(async (req) => {
       ));
     }
 
+    // Create authenticated Supabase client
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the JWT token and get user claims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Invalid or expired JWT token:", claimsError);
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid or expired token" }),
+        { 
+          status: 401, 
+          headers: { "Content-Type": "application/json" } 
+        }
+      ));
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log("Authenticated user:", userId);
+
+    // Create service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Parse webhook payload
+    const payload = await req.json();
+    console.log("Received webhook payload:", { ticketId: payload.ticketId });
+
     // Handle support response webhook
     if ('ticketId' in payload) {
-      return await handleSupportResponseWebhook(payload as SupportResponseWebhookPayload);
+      return await handleSupportResponseWebhook(
+        supabase, 
+        payload as SupportResponseWebhookPayload,
+        userId
+      );
     }
     
     // Unknown webhook type
@@ -148,7 +166,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing webhook:", error);
     return addCorsHeaders(new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -159,8 +177,13 @@ serve(async (req) => {
 
 /**
  * Handle support response webhook for automated emails
+ * SECURITY: Now requires authenticated user and verifies permissions
  */
-async function handleSupportResponseWebhook(payload: SupportResponseWebhookPayload) {
+async function handleSupportResponseWebhook(
+  supabase: any,
+  payload: SupportResponseWebhookPayload,
+  authenticatedUserId: string
+) {
   const { ticketId, responseMessage } = payload;
   
   try {
@@ -177,6 +200,27 @@ async function handleSupportResponseWebhook(payload: SupportResponseWebhookPaylo
         JSON.stringify({ error: "Ticket not found" }),
         { 
           status: 404, 
+          headers: { "Content-Type": "application/json" } 
+        }
+      ));
+    }
+
+    // SECURITY: Verify the authenticated user has permission to respond to this ticket
+    // Check if user is an admin or the ticket owner
+    const { data: userRoles, error: rolesError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authenticatedUserId);
+
+    const isAdmin = userRoles?.some((r: any) => r.role === "admin" || r.role === "system_admin");
+    const isTicketOwner = ticketData.user_id === authenticatedUserId;
+
+    if (!isAdmin && !isTicketOwner) {
+      console.error("User not authorized to respond to this ticket");
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: "Forbidden - You don't have permission to respond to this ticket" }),
+        { 
+          status: 403, 
           headers: { "Content-Type": "application/json" } 
         }
       ));
@@ -265,7 +309,7 @@ async function handleSupportResponseWebhook(payload: SupportResponseWebhookPaylo
   } catch (error) {
     console.error("Error in handleSupportResponseWebhook:", error);
     return addCorsHeaders(new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

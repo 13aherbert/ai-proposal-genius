@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
@@ -18,6 +18,8 @@ import { useSubscription } from "@/hooks/use-subscription";
  * - Saving the attempted route for redirect after login
  * - Providing detailed error feedback
  * - Supporting grace period for expired subscriptions
+ * 
+ * SECURITY: Uses Supabase's built-in session management instead of localStorage tokens
  */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading, error } = useAuth();
@@ -27,8 +29,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [timeoutOccurred, setTimeoutOccurred] = useState(false);
   const [loadingElapsed, setLoadingElapsed] = useState(0);
-  const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
-  const hasVerifiedCachedToken = useRef<boolean>(false);
 
   // Add a progressive timeout to show more information as time passes
   useEffect(() => {
@@ -50,33 +50,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => clearInterval(stepInterval);
   }, [loading]);
 
-  // Check cached token validity and use it for early access
-  useEffect(() => {
-    if (loading && cachedTokenRef.current && !hasVerifiedCachedToken.current && loadingElapsed >= 2) {
-      console.log("Verifying cached token for early access while full auth completes");
-      hasVerifiedCachedToken.current = true;
-      
-      // Don't redirect away from subscription page when using cached token
-      if (location.pathname === '/' || location.pathname.includes('/subscription')) {
-        return; // These pages have special handling
-      }
-      
-      // If we have cached roles and subscription data along with a token, we can proceed
-      const hasRoles = localStorage.getItem('userRoles');
-      const hasSubscription = localStorage.getItem('subscriptionData');
-      
-      if (hasRoles && hasSubscription) {
-        console.log("Using cached token and data for authentication while waiting for server");
-        
-        // We can continue using cached data until full auth completes
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-        if (location.pathname !== redirectPath) {
-          navigate(redirectPath, { replace: true });
-        }
-      }
-    }
-  }, [loading, loadingElapsed, session, navigate, location.pathname]);
-
   // Reset loading elapsed when loading state changes
   useEffect(() => {
     if (!loading) {
@@ -84,20 +57,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       setTimeoutOccurred(false);
     }
   }, [loading]);
-
-  // Attempt early navigation if we have a cached token
-  useEffect(() => {
-    if (loading && cachedTokenRef.current && loadingElapsed >= 2 && !session) {
-      console.log("Using cached token for early access while full auth completes");
-      // Don't redirect away from subscription page when using cached token
-      if (location.pathname !== '/' && !location.pathname.includes('/subscription')) {
-        return; // Already on a valid page
-      }
-      
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-      navigate(redirectPath, { replace: true });
-    }
-  }, [loading, loadingElapsed, session, navigate, location.pathname]);
 
   useEffect(() => {
     // If we're done loading and there's no session, redirect to login
@@ -166,8 +125,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
               </button>
               <button
                 onClick={() => {
-                  // Clear auth data and reload
-                  localStorage.removeItem('userToken');
+                  // SECURITY: Clear only cached UI data, not auth tokens
                   localStorage.removeItem('userRoles');
                   localStorage.removeItem('subscriptionData');
                   sessionStorage.removeItem('redirectAfterLogin');
@@ -178,11 +136,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                 Sign out and try again
               </button>
             </div>
-            {loadingElapsed > 5 && cachedTokenRef.current && (
-              <p className="text-muted-foreground text-sm mt-4">
-                Using cached authentication data while waiting for server response. Limited functionality may be available.
-              </p>
-            )}
           </div>
         )}
       </div>
@@ -205,8 +158,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             </button>
             <button
               onClick={() => {
-                localStorage.removeItem('userToken');
+                // SECURITY: Clear only cached UI data
                 localStorage.removeItem('userRoles');
+                localStorage.removeItem('subscriptionData');
                 window.location.reload();
               }}
               className="px-4 py-2 bg-secondary text-primary rounded-md hover:bg-secondary/80"
@@ -266,8 +220,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Add a security check - don't render anything if no session
-  return (session || cachedTokenRef.current) ? <>{children}</> : null;
+  // SECURITY: Only render children if session is valid
+  // Don't rely on localStorage tokens for authentication decisions
+  return session ? <>{children}</> : null;
 };
 
 export { ProtectedRoute };

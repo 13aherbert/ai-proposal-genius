@@ -111,6 +111,8 @@ export function UserTable({
             <TableHead>Business</TableHead>
             <TableHead>Roles</TableHead>
             <TableHead>Subscription</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Last Activity</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -186,6 +188,16 @@ export function UserTable({
                     )}
                   </div>
                 )}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm text-muted-foreground">
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm text-muted-foreground">
+                  {user.lastSignIn ? new Date(user.lastSignIn).toLocaleDateString() : 'Never'}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">

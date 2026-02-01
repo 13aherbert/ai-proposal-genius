@@ -9,10 +9,13 @@ import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
 import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
 import { QuickUploadZone } from "@/components/dashboard/QuickUploadZone";
 import { QuickUploadModal } from "@/components/rfp/QuickUploadModal";
+import { KnowledgeBaseReadiness } from "@/components/dashboard/KnowledgeBaseReadiness";
+import { KnowledgeSetupWizard } from "@/components/knowledge-base/KnowledgeSetupWizard";
 import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
+import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
 import { Database, Users, BarChart3, FolderOpen, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -43,9 +46,30 @@ export default function Dashboard() {
     isLoading: activitiesLoading
   } = useRecentActivity(session?.user || null);
   const { organization } = useCurrentOrganization();
+  const knowledgeReadiness = useKnowledgeReadiness();
+  const [showKBWizard, setShowKBWizard] = useState(false);
   
   // Quick upload functionality
   const quickUpload = useQuickUpload();
+  
+  // Show KB wizard for users with empty knowledge base who haven't dismissed it
+  useEffect(() => {
+    if (!knowledgeReadiness.isLoading && knowledgeReadiness.isEmpty) {
+      const hasSeenWizard = localStorage.getItem('kb_wizard_seen');
+      if (!hasSeenWizard && dashboardStats.hasProjects === false) {
+        // Only show wizard to new users without projects
+        setShowKBWizard(true);
+      }
+    }
+  }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, dashboardStats.hasProjects]);
+
+  const handleKBWizardClose = (open: boolean) => {
+    setShowKBWizard(open);
+    if (!open) {
+      localStorage.setItem('kb_wizard_seen', 'true');
+    }
+  };
+  
   useEffect(() => {
     if (session?.user) {
       // Check if user is new (created within last 24 hours)
@@ -105,6 +129,9 @@ export default function Dashboard() {
     return <div className="space-y-6">
         <DashboardHeader />
         
+        {/* Knowledge Base Setup Wizard */}
+        <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
+        
         {/* Quick Upload Modal */}
         <QuickUploadModal
           isOpen={quickUpload.isModalOpen}
@@ -118,6 +145,11 @@ export default function Dashboard() {
           onUpload={quickUpload.uploadAndCreate}
           onViewProject={quickUpload.viewProject}
         />
+        
+        {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention */}
+        {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
+          <KnowledgeBaseReadiness />
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Column - Solo User Dashboard */}
@@ -155,6 +187,11 @@ export default function Dashboard() {
 
           {/* Right Column - Sidebar with reduced height */}
           <div className="space-y-4 mt-32">
+            {/* Knowledge Base Readiness - Compact version in sidebar */}
+            {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+              <KnowledgeBaseReadiness compact />
+            )}
+            
             {/* Onboarding Progress */}
             <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 
@@ -182,6 +219,9 @@ export default function Dashboard() {
       {/* Show segmented welcome for new users or those with minimal activity */}
       {(isNewUser || !dashboardStats.hasProjects && !dashboardStats.hasKnowledgeEntries) && organization?.subscription_tier !== 'enterprise' && <SegmentedWelcome firstName={profileData.first_name} organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} industry={profileData.industry} />}
 
+      {/* Knowledge Base Setup Wizard */}
+      <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
+
       {/* Quick Upload Modal */}
       <QuickUploadModal
         isOpen={quickUpload.isModalOpen}
@@ -195,6 +235,11 @@ export default function Dashboard() {
         onUpload={quickUpload.uploadAndCreate}
         onViewProject={quickUpload.viewProject}
       />
+      
+      {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention */}
+      {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
+        <KnowledgeBaseReadiness />
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Main Content */}
@@ -242,6 +287,11 @@ export default function Dashboard() {
 
         {/* Right Column - Sidebar with reduced height */}
         <div className="space-y-4 mt-32">
+          {/* Knowledge Base Readiness - Compact version in sidebar */}
+          {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+            <KnowledgeBaseReadiness compact />
+          )}
+          
           {/* Onboarding Progress */}
           <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
 

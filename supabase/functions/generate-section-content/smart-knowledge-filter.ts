@@ -161,21 +161,41 @@ function calculateRelevanceScore(
 function getCategoryRelevance(category: string, sectionType: string): number {
   const categoryLower = category.toLowerCase();
   
+  // Updated relevance map aligned with new 12 proposal-focused categories
   const relevanceMap: { [key: string]: { [key: string]: number } } = {
     'executive': {
-      'company': 0.8, 'overview': 0.8, 'business': 0.7, 'services': 0.6, 'capabilities': 0.7
+      'company overview': 0.9, 'mission': 0.9, 'differentiators': 0.9, 'value props': 0.9,
+      'past performance': 0.7, 'case studies': 0.7, 'company': 0.8, 'overview': 0.8, 
+      'business': 0.7, 'services': 0.6, 'capabilities': 0.7
     },
     'technical': {
-      'technical': 0.9, 'methodology': 0.8, 'approach': 0.8, 'process': 0.7, 'system': 0.7, 'solution': 0.8
+      'technical capabilities': 0.95, 'process': 0.9, 'methodology': 0.9,
+      'tools': 0.8, 'technology': 0.8, 'industry expertise': 0.7,
+      'technical': 0.9, 'approach': 0.8, 'system': 0.7, 'solution': 0.8
     },
     'team': {
-      'team': 0.9, 'staff': 0.8, 'personnel': 0.8, 'experience': 0.7, 'qualifications': 0.8, 'expertise': 0.7
+      'team bios': 0.95, 'qualifications': 0.9, 'certifications': 0.8, 'compliance': 0.6,
+      'team': 0.9, 'staff': 0.8, 'personnel': 0.8, 'experience': 0.7, 'expertise': 0.7
     },
     'company': {
+      'company overview': 0.95, 'mission': 0.9, 'past performance': 0.7, 'case studies': 0.7,
       'company': 0.9, 'about': 0.8, 'history': 0.7, 'profile': 0.8, 'overview': 0.7, 'business': 0.8
     },
     'pricing': {
-      'pricing': 0.9, 'cost': 0.8, 'budget': 0.7, 'financial': 0.7, 'rates': 0.8
+      'pricing': 0.95, 'rates': 0.95, 'legal': 0.5, 'terms': 0.5,
+      'cost': 0.8, 'budget': 0.7, 'financial': 0.7
+    },
+    'timeline': {
+      'process': 0.8, 'methodology': 0.8, 'past performance': 0.6,
+      'timeline': 0.9, 'schedule': 0.8, 'milestone': 0.7
+    },
+    'qualifications': {
+      'certifications': 0.95, 'compliance': 0.9, 'team bios': 0.7, 'qualifications': 0.9,
+      'industry expertise': 0.8, 'past performance': 0.7
+    },
+    'references': {
+      'client testimonials': 0.95, 'past performance': 0.9, 'case studies': 0.9,
+      'references': 0.9, 'testimonials': 0.8
     }
   };
   
@@ -266,11 +286,18 @@ function extractKeyPoints(content: string, sectionType: string): string {
 
 function createCompanyProfile(entries: KnowledgeEntry[]): string {
   // Create a condensed company profile from all entries
-  const companyEntries = entries.filter(entry => 
-    entry.category.toLowerCase().includes('company') ||
-    entry.title.toLowerCase().includes('company') ||
-    entry.title.toLowerCase().includes('about')
-  );
+  // Updated to match new category names
+  const companyEntries = entries.filter(entry => {
+    const category = entry.category.toLowerCase();
+    const title = entry.title.toLowerCase();
+    return category.includes('company overview') ||
+           category.includes('mission') ||
+           category.includes('differentiator') ||
+           category.includes('value prop') ||
+           title.includes('company') ||
+           title.includes('about') ||
+           title.includes('overview');
+  });
   
   if (!companyEntries.length) {
     return "COMPANY PROFILE: No specific company information available.";

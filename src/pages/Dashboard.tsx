@@ -3,7 +3,6 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
-import { BetaProgramCard } from "@/components/dashboard/BetaProgramCard";
 import { SegmentedWelcome } from "@/components/dashboard/SegmentedWelcome";
 import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
 import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
@@ -194,9 +193,6 @@ export default function Dashboard() {
             
             {/* Onboarding Progress */}
             <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
-
-            {/* Beta Program Card */}
-            <BetaProgramCard />
           </div>
         </div>
       </div>;
@@ -294,9 +290,6 @@ export default function Dashboard() {
           
           {/* Onboarding Progress */}
           <OnboardingProgress organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} hasProjects={dashboardStats.hasProjects} hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries} profileComplete={profileComplete} />
-
-          {/* Beta Program Card */}
-          <BetaProgramCard />
         </div>
       </div>
     </div>;

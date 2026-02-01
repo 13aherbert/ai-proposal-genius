@@ -21,13 +21,9 @@ import KnowledgeBase from "@/pages/KnowledgeBase";
 import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
 import AccountSettings from "@/pages/AccountSettings";
-import BetaProgram from "@/pages/BetaProgram";
-import BetaRoadmap from "@/pages/BetaRoadmap";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
-import UserManagementPage from "@/pages/admin/UserManagementPage"; // Changed to page component
-import BetaInvitationsPage from "@/pages/admin/BetaInvitationsPage"; // Changed to page component
-import BetaRequests from "@/pages/admin/BetaRequests";
+import UserManagementPage from "@/pages/admin/UserManagementPage";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 
@@ -36,7 +32,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
-import { RecentProjectsRedirect, ProjectDetailsRedirect, BetaInviteRedirect } from "./components/routing/Redirects";
+import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Create a client
@@ -158,33 +154,9 @@ function AppContent() {
         }
       />
       
-      {/* Beta Testing Routes - Changed BetaProgram to not require authentication */}
-      <Route path="/beta" element={<BetaProgram />} />
-      <Route
-        path="/beta/dashboard"
-        element={
-          <ProtectedRoute>
-            <BetaProgram />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/beta/roadmap"
-        element={
-          <ProtectedRoute>
-            <BetaRoadmap />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Legacy beta invite redirect */}
-      <Route path="/beta-invite" element={<BetaInviteRedirect />} />
-      
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/users" element={<UserManagementPage />} />
-      <Route path="/admin/beta-invitations" element={<BetaInvitationsPage />} />
-      <Route path="/admin/beta-requests" element={<BetaRequests />} />
       
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/docs" element={<Documentation />} />

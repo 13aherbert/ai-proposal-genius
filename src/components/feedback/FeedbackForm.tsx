@@ -26,7 +26,6 @@ interface FeedbackFormProps {
   isSubmitting: boolean;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   errorMessage?: string;
-  isBetaFeedback: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -47,7 +46,6 @@ export function FeedbackForm({
   isSubmitting,
   handleSubmit,
   errorMessage,
-  isBetaFeedback,
   onOpenChange
 }: FeedbackFormProps) {
   return (
@@ -152,19 +150,17 @@ export function FeedbackForm({
         )}
       </div>
       
-      {/* Contact Permission Toggle (Beta Feedback Only) */}
-      {isBetaFeedback && (
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="allow-contact"
-            checked={allowContact}
-            onCheckedChange={setAllowContact}
-          />
-          <Label htmlFor="allow-contact" className="cursor-pointer">
-            You may contact me about this feedback
-          </Label>
-        </div>
-      )}
+      {/* Contact Permission Toggle */}
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="allow-contact"
+          checked={allowContact}
+          onCheckedChange={setAllowContact}
+        />
+        <Label htmlFor="allow-contact" className="cursor-pointer">
+          You may contact me about this feedback
+        </Label>
+      </div>
       
       {/* Form Buttons */}
       <DialogFooter>

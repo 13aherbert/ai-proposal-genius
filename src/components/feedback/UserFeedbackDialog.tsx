@@ -10,7 +10,6 @@ interface UserFeedbackDialogProps {
   onOpenChange: (open: boolean) => void;
   errorMessage?: string;
   errorId?: string;
-  isBetaFeedback?: boolean;
   feedbackType?: FeedbackType;
 }
 
@@ -23,10 +22,6 @@ interface UserFeedbackDialogProps {
  * - Improvement suggestions
  * - General feedback
  * 
- * It can be used in two contexts:
- * 1. Regular user feedback (default)
- * 2. Beta program feedback (when isBetaFeedback is true)
- * 
  * It also supports automatic error reporting when provided with errorMessage and errorId.
  */
 export function UserFeedbackDialog({ 
@@ -34,7 +29,6 @@ export function UserFeedbackDialog({
   onOpenChange,
   errorMessage,
   errorId = 'manual-report',
-  isBetaFeedback = false,
   feedbackType: initialFeedbackType = 'general'
 }: UserFeedbackDialogProps) {
   // Use the feedback form hook to handle form state and submission
@@ -58,7 +52,6 @@ export function UserFeedbackDialog({
     initialFeedbackType,
     errorMessage,
     errorId,
-    isBetaFeedback,
     onOpenChange
   });
 
@@ -66,13 +59,11 @@ export function UserFeedbackDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isBetaFeedback ? 'Submit Beta Feedback' : 'Send Feedback'}</DialogTitle>
+          <DialogTitle>Send Feedback</DialogTitle>
           <DialogDescription>
-            {isBetaFeedback 
-              ? "Your feedback helps us improve the beta version. Please share any bugs, suggestions, or comments."
-              : errorMessage 
-                ? "Help us understand what went wrong so we can fix it." 
-                : "Share your thoughts, suggestions, or report issues you've encountered."
+            {errorMessage 
+              ? "Help us understand what went wrong so we can fix it." 
+              : "Share your thoughts, suggestions, or report issues you've encountered."
             }
           </DialogDescription>
         </DialogHeader>
@@ -94,7 +85,6 @@ export function UserFeedbackDialog({
           isSubmitting={isSubmitting}
           handleSubmit={handleSubmit}
           errorMessage={errorMessage}
-          isBetaFeedback={isBetaFeedback}
           onOpenChange={onOpenChange}
         />
       </DialogContent>

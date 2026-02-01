@@ -157,10 +157,10 @@ serve(async (req) => {
         const userIds = [...new Set(allUserRoles?.map(role => role.user_id) || [])];
         console.log(`Found ${userIds.length} unique users with roles`);
 
-        // Now fetch profile information for all these users
+        // Now fetch profile information for all these users including timestamps
         const { data: profiles, error: profilesError } = await adminClient
           .from('profiles')
-          .select('profile_id, username, first_name, last_name, business_name')
+          .select('profile_id, username, first_name, last_name, business_name, created_at, updated_at')
           .in('profile_id', userIds);
 
         if (profilesError) {
@@ -170,7 +170,7 @@ serve(async (req) => {
 
         console.log(`Fetched ${profiles?.length || 0} profiles`);
 
-        // Combine the data by adding email from profiles to user roles
+        // Combine the data by adding email and timestamps from profiles to user roles
         const rolesWithEmails = (allUserRoles || []).map(role => {
           const profile = profiles?.find(p => p.profile_id === role.user_id);
           return {
@@ -178,7 +178,9 @@ serve(async (req) => {
             email: profile?.username || null,
             first_name: profile?.first_name || null,
             last_name: profile?.last_name || null,
-            business_name: profile?.business_name || null
+            business_name: profile?.business_name || null,
+            created_at: profile?.created_at || null,
+            updated_at: profile?.updated_at || null
           };
         });
 

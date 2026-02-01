@@ -387,13 +387,17 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     userRolesData.roles.forEach((record: any) => {
       const userId = record.user_id;
       
-      // Store profile info if available
-      if (record.email || record.first_name || record.last_name || record.business_name) {
+      // Store profile info if available (including timestamps)
+      if (record.email || record.first_name || record.last_name || record.business_name || record.created_at || record.updated_at) {
+        const existingProfile = userProfileMap.get(userId) || {};
         userProfileMap.set(userId, {
-          email: record.email,
-          first_name: record.first_name,
-          last_name: record.last_name,
-          business_name: record.business_name
+          ...existingProfile,
+          email: record.email || existingProfile.email,
+          first_name: record.first_name || existingProfile.first_name,
+          last_name: record.last_name || existingProfile.last_name,
+          business_name: record.business_name || existingProfile.business_name,
+          created_at: record.created_at || existingProfile.created_at,
+          updated_at: record.updated_at || existingProfile.updated_at
         });
       }
       
@@ -432,8 +436,9 @@ export async function getAllUsers(): Promise<UserProfile[]> {
           plan: subscription.plan_type,
           status: subscription.status
         } : null,
-        createdAt: new Date().toISOString(), // We don't have this from the edge function
-        lastSignIn: null
+        createdAt: profile?.created_at || new Date().toISOString(),
+        lastSignIn: null,
+        lastActivityAt: profile?.updated_at || null
       });
     });
     
@@ -530,6 +535,7 @@ export async function getUserDetailsForAdmin(userId: string): Promise<UserProfil
       } : null,
       createdAt: userDetail.created_at,
       lastSignIn: userDetail.last_sign_in,
+      lastActivityAt: userDetail.created_at || null, // Use created_at as fallback until RPC is updated
       organizations: organizations,
       projectCount: userDetail.project_count || 0,
       knowledgeEntriesCount: userDetail.knowledge_entries_count || 0,

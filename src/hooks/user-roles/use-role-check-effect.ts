@@ -1,7 +1,7 @@
 
 import { useCallback } from "react";
 import { UserRoleRefs } from "./types";
-import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
+import { checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
 import { Session } from "@supabase/supabase-js";
 import { adminService } from "@/services/admin";
 import { toast } from "sonner";
@@ -12,7 +12,6 @@ const MIN_CHECK_INTERVAL = 15000;
 export const useRoleCheckEffect = (
   session: Session | null | undefined,
   setIsAdmin: (value: boolean) => void,
-  setIsBetaTester: (updater: (prev: boolean) => boolean) => void,
   setIsUser: (value: boolean) => void,
   setIsCheckingRoles: (value: boolean) => void,
   setRoleCheckError: (value: string | null) => void,
@@ -68,15 +67,6 @@ export const useRoleCheckEffect = (
         refs.lastNetworkErrorTime = now;
       }
       
-      // Check beta tester role directly
-      try {
-        const betaStatus = await checkBetaTesterRole(session.user.id, refs, false);
-        updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, false);
-      } catch (betaError) {
-        console.error("Error during beta role check:", betaError);
-        refs.lastNetworkErrorTime = now;
-      }
-      
       // Check user role
       try {
         const userCheck = await adminService.ensureUserRole();
@@ -108,7 +98,7 @@ export const useRoleCheckEffect = (
     } finally {
       refs.checkingInProgress = false;
     }
-  }, [session, setIsAdmin, setIsBetaTester, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
+  }, [session, setIsAdmin, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
 
   // Return the checkRoles function for external use
   return { checkRoles };

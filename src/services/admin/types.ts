@@ -1,20 +1,6 @@
 
 // User role types
-export type UserRole = 'admin' | 'beta_tester' | 'user' | 'system_admin';
-
-// Beta invitation interface
-export interface BetaInvitation {
-  id: string;
-  email: string;
-  invite_code: string;
-  status: 'pending' | 'accepted' | 'expired' | 'canceled';
-  created_at: string;
-  expires_at: string;
-  accepted_at: string | null;
-  invited_by: string;
-  invitation_email_sent: boolean;
-  updated_at?: string;
-}
+export type UserRole = 'admin' | 'user' | 'system_admin';
 
 // User profile interface for admin management
 export interface UserProfile {

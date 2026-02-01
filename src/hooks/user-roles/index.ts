@@ -1,7 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { checkBetaTesterRole, updateBetaTesterState, checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
+import { checkAdminRole, updateAdminState, checkSystemAdminRole, updateSystemAdminState } from "./role-check-utils";
 import { useRoleCheckEffect } from "./use-role-check-effect";
 import { UserRoleState, UserRoleRefs } from "./types";
 
@@ -17,7 +17,6 @@ const MIN_FORCE_CHECK_INTERVAL = 5000;
 export function useUserRoles() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isBetaTester, setIsBetaTester] = useState(false);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [isUser, setIsUser] = useState(false);
   const [isCheckingRoles, setIsCheckingRoles] = useState(false); 
@@ -27,7 +26,6 @@ export function useUserRoles() {
   const refs = useRef<UserRoleRefs & { systemAdminStatus: boolean }>({
     rolesInitialized: false,
     adminStatus: false,
-    betaTesterStatus: false,
     systemAdminStatus: false,
     userStatus: false,
     checkingInProgress: false,
@@ -42,7 +40,6 @@ export function useUserRoles() {
   const { checkRoles } = useRoleCheckEffect(
     session,
     setIsAdmin,
-    setIsBetaTester,
     setIsUser,
     setIsCheckingRoles,
     setRoleCheckError,
@@ -79,24 +76,18 @@ export function useUserRoles() {
         updateAdminState(adminStatus, refs.adminStatus, refs, setIsAdmin, true);
       });
       
-      // Then check beta tester status
-      checkBetaTesterRole(session.user.id, refs, true).then(betaStatus => {
-        updateBetaTesterState(betaStatus, refs.betaTesterStatus, refs, setIsBetaTester, true);
-      });
-      
       // Check system admin status
       checkSystemAdminRole(session.user.id, refs, true).then(systemAdminStatus => {
         updateSystemAdminState(systemAdminStatus, refs.systemAdminStatus, refs, setIsSystemAdmin, true);
       });
     }
-  }, [session, refs, setIsAdmin, setIsBetaTester, setIsSystemAdmin]);
+  }, [session, refs, setIsAdmin, setIsSystemAdmin]);
 
   // Effect for session changes and timer-based role checking
   useEffect(() => {
     // Reset state when session is null
     if (!session?.user) {
       if (isAdmin) setIsAdmin(false);
-      if (isBetaTester) setIsBetaTester(false);
       if (isSystemAdmin) setIsSystemAdmin(false);
       if (isUser) setIsUser(false);
       if (isCheckingRoles) setIsCheckingRoles(false);
@@ -104,7 +95,6 @@ export function useUserRoles() {
       
       refs.rolesInitialized = false;
       refs.lastNetworkErrorTime = null;
-      refs.betaTesterStatus = false;
       refs.adminStatus = false;
       refs.systemAdminStatus = false;
       refs.lastCheckedTime = null;
@@ -157,11 +147,10 @@ export function useUserRoles() {
         refs.timeout = null;
       }
     };
-  }, [session, checkRoles, refs, isAdmin, isBetaTester, isSystemAdmin, isUser, isCheckingRoles, roleCheckError]);
+  }, [session, checkRoles, refs, isAdmin, isSystemAdmin, isUser, isCheckingRoles, roleCheckError]);
   
   // Make these derive directly from state
   const showAdminButton = isAdmin || isSystemAdmin;
-  const showBetaBadge = isBetaTester;
   const showSystemAdminButton = isSystemAdmin;
 
   // Debug logging for admin status changes
@@ -190,13 +179,11 @@ export function useUserRoles() {
 
   return {
     isAdmin,
-    isBetaTester,
     isSystemAdmin,
     isUser,
     isCheckingRoles,
     roleCheckError,
     showAdminButton,
-    showBetaBadge,
     showSystemAdminButton,
     forceRoleCheck
   };

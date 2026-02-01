@@ -118,81 +118,87 @@ export type Database = {
         }
         Relationships: []
       }
-      beta_invitations: {
+      archived_beta_invitations: {
         Row: {
           accepted_at: string | null
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
+          archived_at: string | null
+          created_at: string | null
+          email: string | null
+          expires_at: string | null
+          id: string | null
           invitation_email_sent: boolean | null
-          invite_code: string
-          invited_by: string
-          status: string
+          invite_code: string | null
+          invited_by: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
           accepted_at?: string | null
-          created_at?: string
-          email: string
-          expires_at: string
-          id?: string
+          archived_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          expires_at?: string | null
+          id?: string | null
           invitation_email_sent?: boolean | null
-          invite_code: string
-          invited_by: string
-          status?: string
+          invite_code?: string | null
+          invited_by?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
           accepted_at?: string | null
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
+          archived_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          expires_at?: string | null
+          id?: string | null
           invitation_email_sent?: boolean | null
-          invite_code?: string
-          invited_by?: string
-          status?: string
+          invite_code?: string | null
+          invited_by?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []
       }
-      beta_requests: {
+      archived_beta_requests: {
         Row: {
-          created_at: string
-          email: string
-          id: string
+          archived_at: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
           name: string | null
           notes: string | null
           processed_at: string | null
           processed_by: string | null
           reason: string | null
-          status: string
-          updated_at: string
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
-          email: string
-          id?: string
+          archived_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
           name?: string | null
           notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
           reason?: string | null
-          status?: string
-          updated_at?: string
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
-          email?: string
-          id?: string
+          archived_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
           name?: string | null
           notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
           reason?: string | null
-          status?: string
-          updated_at?: string
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1992,10 +1998,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_beta_tester_role: {
-        Args: { user_id_param: string }
-        Returns: boolean
-      }
       check_existing_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
@@ -2019,20 +2021,6 @@ export type Database = {
       check_password_reset_rate_limit: {
         Args: { email_param: string }
         Returns: boolean
-      }
-      check_pending_invitation: {
-        Args: { email_param: string }
-        Returns: {
-          accepted_at: string
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invitation_email_sent: boolean
-          invite_code: string
-          invited_by: string
-          status: string
-        }[]
       }
       check_project_limit: { Args: { user_id: string }; Returns: boolean }
       check_system_admin_role: {
@@ -2108,29 +2096,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_beta_invitation_direct: {
-        Args: { invitation_id_param: string }
-        Returns: {
-          accepted_at: string
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invitation_email_sent: boolean
-          invite_code: string
-          invited_by: string
-          status: string
-        }[]
-      }
-      get_invitation_for_email: {
-        Args: { code_param: string; email_param: string }
-        Returns: {
-          expires_at: string
-          id: string
-          invite_code: string
-          status: string
-        }[]
-      }
       get_organization_by_domain: {
         Args: { domain_param: string }
         Returns: {
@@ -2204,10 +2169,6 @@ export type Database = {
         }[]
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
-      invite_beta_tester: {
-        Args: { email_param: string; inviter_id: string }
-        Returns: string
-      }
       is_admin: { Args: never; Returns: boolean }
       is_admin_direct: { Args: never; Returns: boolean }
       is_admin_for_delete: { Args: never; Returns: boolean }
@@ -2235,10 +2196,6 @@ export type Database = {
           target_user_id?: string
         }
         Returns: string
-      }
-      log_invitation_verification: {
-        Args: { code_param: string; success: boolean }
-        Returns: undefined
       }
       log_organization_activity: {
         Args: {
@@ -2305,18 +2262,6 @@ export type Database = {
         Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
-      update_beta_invitation_email_sent: {
-        Args: { invitation_id_param: string; sent_status: boolean }
-        Returns: boolean
-      }
-      update_beta_invitation_status: {
-        Args: {
-          accepted_at_param: string
-          invitation_id_param: string
-          status_param: string
-        }
-        Returns: boolean
-      }
       update_organization_usage_metric: {
         Args: {
           increment_value?: number
@@ -2339,24 +2284,6 @@ export type Database = {
           errors: string[]
           is_valid: boolean
         }[]
-      }
-      verify_invitation_code: {
-        Args: { code_param: string }
-        Returns: {
-          accepted_at: string
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invitation_email_sent: boolean
-          invite_code: string
-          invited_by: string
-          status: string
-        }[]
-      }
-      verify_invitation_code_secure: {
-        Args: { code_param: string }
-        Returns: boolean
       }
     }
     Enums: {

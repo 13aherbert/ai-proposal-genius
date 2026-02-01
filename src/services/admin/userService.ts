@@ -51,30 +51,6 @@ async function checkSystemAdminRole(): Promise<boolean> {
   }
 }
 
-/**
- * Check if current user has beta_tester role
- * @returns Promise<boolean> - True if user has beta_tester role
- */
-export async function isBetaTester(): Promise<boolean> {
-  try {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) return false;
-    
-    const { data, error } = await supabase.rpc('check_beta_tester_role', {
-      user_id_param: userData.user.id
-    });
-    
-    if (error) {
-      console.error('Error checking beta tester status:', error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error('Exception checking beta tester status:', error);
-    return false;
-  }
-}
 
 /**
  * Check if a user has a specific role
@@ -403,7 +379,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
       
       // Get the user's roles
       const existing = userRolesMap.get(userId) || [];
-      if (record.role && ['admin', 'beta_tester', 'user', 'system_admin'].includes(record.role)) {
+      if (record.role && ['admin', 'user', 'system_admin'].includes(record.role)) {
         existing.push(record.role as UserRole);
         userRolesMap.set(userId, existing);
       }

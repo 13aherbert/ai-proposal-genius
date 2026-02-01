@@ -4,8 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SubscriptionPlan, SubscriptionStatus } from "@/types/subscription";
 import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
-import { getUserRolesFromStorage } from "@/hooks/use-user-roles";
-import { withRetry } from "@/utils/network/retry";
+
+// Helper to get cached user roles from localStorage
+const getUserRolesFromStorage = (): string[] | null => {
+  try {
+    const roles = localStorage.getItem('userRoles');
+    return roles ? JSON.parse(roles) : null;
+  } catch {
+    return null;
+  }
+};
 
 export function LoadingState() {
   const [retryCount, setRetryCount] = useState(0);

@@ -22,6 +22,7 @@ import { UpgradeButton } from "@/components/subscription/UpgradeButton";
 import { format, isPast, addDays } from "date-fns";
 import { useSubscription } from "@/hooks/use-subscription";
 import { isNetworkError, getNetworkErrorMessage } from "@/utils/network";
+import { DowngradeOption } from "@/components/subscription/DowngradeOption";
 
 interface SubscriptionCardProps {
   subscription?: SubscriptionPlan | null;
@@ -37,6 +38,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const [isRenewing, setIsRenewing] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showDowngradeOption, setShowDowngradeOption] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
   const { checkSubscription, data: subscriptionFromContext, loading: isContextLoading, error: subscriptionError } = useSubscription();
   const [localSubscription, setLocalSubscription] = useState<SubscriptionPlan | null>(
@@ -649,7 +652,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           )}
           
           {hasActiveSubscription && (
-            <AlertDialog>
+            <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button 
                   variant="destructive"
@@ -666,7 +669,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                   )}
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-lg">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -674,14 +677,37 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
-                {!showCancelReasonInput ? (
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>No, keep my subscription</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => setShowCancelReasonInput(true)}>
-                      Yes, cancel subscription
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                ) : (
+                {/* Step 1: Initial confirmation with downgrade option */}
+                {!showCancelReasonInput && !showDowngradeOption && (
+                  <>
+                    {/* Show downgrade option for Pro users */}
+                    {currentPlanType === 'pro' && (
+                      <DowngradeOption 
+                        currentPlan={currentPlanType}
+                        onDowngradeSuccess={() => {
+                          setCancelDialogOpen(false);
+                          checkSubscription();
+                        }}
+                        onCancel={() => setShowDowngradeOption(false)}
+                      />
+                    )}
+                    
+                    <AlertDialogFooter className="mt-4">
+                      <AlertDialogCancel onClick={() => {
+                        setShowDowngradeOption(false);
+                        setShowCancelReasonInput(false);
+                      }}>
+                        No, keep my subscription
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={() => setShowCancelReasonInput(true)}>
+                        Continue with cancellation
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </>
+                )}
+
+                {/* Step 2: Reason collection */}
+                {showCancelReasonInput && (
                   <>
                     <div className="py-4">
                       <label htmlFor="cancel-reason" className="block text-sm font-medium mb-2">

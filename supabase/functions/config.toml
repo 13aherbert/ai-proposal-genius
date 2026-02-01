@@ -107,3 +107,8 @@ import_map = "import_map.json"
 name = "get-billing-history"
 verify_jwt = true
 import_map = "import_map.json"
+
+[[functions]]
+name = "downgrade-subscription"
+verify_jwt = true
+import_map = "import_map.json"

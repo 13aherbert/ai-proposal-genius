@@ -1,217 +1,293 @@
 
-# Subscription Workflow UX Review & Improvement Plan
+# Beta Program Removal Plan
 
-## Executive Summary
+## Overview
 
-After a thorough review of the subscription workflow, I've identified several UX pain points and areas for improvement. The current system has solid foundations (Stripe integration, cancellation flow, status notifications) but has significant gaps in user visibility, success confirmation, and billing management.
+This plan removes the dedicated Beta program infrastructure while preserving and enhancing the universal feedback system that already works for all users. The Beta program has only 2 active testers and most features use mock data, making it a good candidate for removal to reduce complexity.
 
 ---
 
-## Current Workflow Analysis
+## Current Beta Infrastructure to Remove
 
-### Complete Subscription Flow
+### Database Tables
+| Table | Records | Action |
+|-------|---------|--------|
+| `beta_invitations` | 7 pending invitations | Archive and delete |
+| `beta_requests` | Unknown count | Archive and delete |
 
-```text
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌───────────────┐
-│  Starter/   │ ─► │  View Plans  │ ─► │  Stripe        │ ─► │  Webhook      │
-│  Trial User │    │  /subscribe  │    │  Checkout      │    │  Processing   │
-└─────────────┘    └──────────────┘    └────────────────┘    └───────────────┘
-                                                                     │
-                                                                     ▼
-┌─────────────┐    ┌──────────────┐    ┌────────────────┐    ┌───────────────┐
-│  Cancel/    │ ◄─ │  Manage in   │ ◄─ │  User          │ ◄─ │  DB Updated   │
-│  Upgrade    │    │  Acct Settings│   │  Dashboard     │    │  Status Active│
-└─────────────┘    └──────────────┘    └────────────────┘    └───────────────┘
+### Database Functions
+| Function | Purpose | Action |
+|----------|---------|--------|
+| `check_beta_tester_role()` | Check beta role | Delete |
+| `verify_invitation_code()` | Verify invite codes | Delete |
+| `verify_invitation_code_secure()` | Secure verification | Delete |
+| `invite_beta_tester()` | Create invitations | Delete |
+| `update_beta_invitation_status()` | Update invitation status | Delete |
+| `update_beta_invitation_email_sent()` | Email sent flag | Delete |
+| `check_pending_invitation()` | Check pending invites | Delete |
+| `get_beta_invitation_direct()` | Get invitation details | Delete |
+| `get_invitation_for_email()` | Get invitation by email | Delete |
+| `log_invitation_verification()` | Security logging | Delete |
+
+### User Role Changes
+| Role | Current Users | Action |
+|------|---------------|--------|
+| `beta_tester` | 2 | Remove role from users, keep users active |
+
+---
+
+## Files to Delete
+
+### Pages (4 files)
+- `src/pages/BetaProgram.tsx`
+- `src/pages/BetaRoadmap.tsx`
+- `src/pages/admin/BetaInvitationsPage.tsx`
+- `src/pages/admin/BetaRequests.tsx`
+
+### Components (8 files)
+- `src/components/beta/BetaAccessDenied.tsx`
+- `src/components/beta/BetaInvitationCard.tsx`
+- `src/components/beta/BetaLoadingState.tsx`
+- `src/components/beta/BetaMetricsPanel.tsx`
+- `src/components/beta/BetaRequestDialog.tsx`
+- `src/components/beta/BetaSignupDialog.tsx`
+- `src/components/beta/BetaTesterDashboard.tsx`
+- `src/components/beta/BetaTesterOnboarding.tsx`
+- `src/components/dashboard/BetaProgramCard.tsx`
+
+### Services (5 files)
+- `src/services/beta/betaFeedbackService.ts`
+- `src/services/beta/betaMetricsService.ts`
+- `src/services/beta/betaOnboardingService.ts`
+- `src/services/beta/betaTasksService.ts`
+- `src/services/BetaTestingService.ts`
+
+### Admin Services
+- `src/services/admin/betaService.ts`
+
+### Hooks (1 file)
+- `src/hooks/useBetaProgram.ts`
+
+### Mock Data
+- `src/services/mocks/betaTestingMockData.ts`
+
+### Scripts
+- `src/scripts/add-beta-tester.ts`
+
+### Edge Functions (6 directories)
+- `supabase/functions/create-beta-invitation/`
+- `supabase/functions/get-beta-invitations/`
+- `supabase/functions/get-beta-requests/`
+- `supabase/functions/get-pending-invitation/`
+- `supabase/functions/resend-beta-invitation/`
+- `supabase/functions/verify-beta-invitation/`
+
+---
+
+## Files to Modify
+
+### App.tsx - Remove Beta Routes
+
+Remove these routes:
+- `/beta`
+- `/beta/dashboard`
+- `/beta/roadmap`
+- `/beta-invite`
+- `/admin/beta-invitations`
+- `/admin/beta-requests`
+
+Remove imports for beta pages and components.
+
+### AdminDashboard.tsx - Remove Beta Section
+
+Remove the "Beta Program" card that links to beta invitations and requests.
+
+### User Roles System
+
+**src/hooks/user-roles/index.ts:**
+- Remove `isBetaTester` state variable
+- Remove `setIsBetaTester` calls
+- Remove `showBetaBadge` derived value
+- Remove beta role checking in `forceRoleCheck`
+
+**src/hooks/user-roles/types.ts:**
+- Remove `isBetaTester` from `UserRoleState`
+- Remove `showBetaBadge` from `UserRoleState`
+- Remove `betaTesterStatus` from `UserRoleRefs`
+
+**src/hooks/user-roles/role-check-utils.ts:**
+- Remove `checkBetaTesterRole` function
+- Remove `updateBetaTesterState` function
+
+**src/hooks/user-roles/use-role-check-effect.ts:**
+- Remove beta role checking logic
+- Remove `setIsBetaTester` parameter
+
+### Admin Services
+
+**src/services/admin/index.ts:**
+- Remove all beta-related exports:
+  - `getBetaInvitations`
+  - `createBetaInvitation`
+  - `cancelBetaInvitation`
+  - `verifyBetaInvitation`
+  - `acceptBetaInvitation`
+  - `resendInvitationEmail`
+  - `getBetaRequests`
+  - `processBetaRequest`
+- Remove `isBetaTester` export
+
+**src/services/admin/userService.ts:**
+- Remove `isBetaTester` function
+
+**src/services/admin/roleService.ts:**
+- Remove `isBetaTester` function
+
+### Email Services
+
+**src/services/email/support-emails.ts:**
+- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
+- Remove beta-specific subject prefix logic
+
+**src/services/email/beta-emails.ts:**
+- Delete entire file (beta invite emails, announcements)
+
+**src/services/email/index.ts:**
+- Remove beta email exports
+- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
+
+**src/services/EmailService.ts:**
+- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
+
+### Feedback System (Keep but Simplify)
+
+**src/components/feedback/UserFeedbackDialog.tsx:**
+- Remove `isBetaFeedback` prop
+- Simplify dialog title/description to always show "Send Feedback"
+
+**src/components/feedback/FeedbackForm.tsx:**
+- Remove `isBetaFeedback` prop
+- Remove beta-specific contact permission toggle conditional
+
+**src/hooks/use-feedback-form.tsx:**
+- Remove `isBetaFeedback` parameter
+- Remove beta-specific messaging and tracking
+
+### Redirects
+
+**src/components/routing/Redirects.tsx:**
+- Remove `BetaInviteRedirect` function
+
+**src/components/routing/BetaInviteRedirect.tsx:**
+- Delete entire file
+
+### Edge Function Config
+
+**supabase/functions/config.toml:**
+- Remove entries for deleted beta edge functions
+
+### Check Subscription Edge Function
+
+**supabase/functions/check-subscription/index.ts:**
+- Remove beta tester role check
+- Simplify default subscription logic (just use trial)
+
+---
+
+## Database Migration
+
+SQL script to run for cleanup:
+
+```sql
+-- Archive existing beta data before deletion
+CREATE TABLE IF NOT EXISTS archived_beta_invitations AS 
+SELECT *, NOW() as archived_at FROM beta_invitations;
+
+CREATE TABLE IF NOT EXISTS archived_beta_requests AS 
+SELECT *, NOW() as archived_at FROM beta_requests;
+
+-- Remove beta_tester role from all users
+DELETE FROM user_roles WHERE role = 'beta_tester';
+
+-- Drop beta tables
+DROP TABLE IF EXISTS beta_invitations;
+DROP TABLE IF EXISTS beta_requests;
+
+-- Drop beta-related functions
+DROP FUNCTION IF EXISTS check_beta_tester_role(uuid);
+DROP FUNCTION IF EXISTS verify_invitation_code(text);
+DROP FUNCTION IF EXISTS verify_invitation_code_secure(text);
+DROP FUNCTION IF EXISTS invite_beta_tester(text, uuid);
+DROP FUNCTION IF EXISTS update_beta_invitation_status(uuid, text, timestamptz);
+DROP FUNCTION IF EXISTS update_beta_invitation_email_sent(uuid, boolean);
+DROP FUNCTION IF EXISTS check_pending_invitation(text);
+DROP FUNCTION IF EXISTS get_beta_invitation_direct(uuid);
+DROP FUNCTION IF EXISTS get_invitation_for_email(text, text);
+DROP FUNCTION IF EXISTS log_invitation_verification(text, boolean);
 ```
 
 ---
 
-## Strengths Identified
+## Implementation Phases
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Plan Selection UI | Good | Clear pricing cards with feature lists |
-| Stripe Checkout Integration | Good | Secure redirect to Stripe |
-| Cancellation Flow | Good | Reason collection, confirmation steps |
-| Grace Period Handling | Good | 3-day grace period with warnings |
-| Failed Payment Notifications | Good | Toast notifications with actions |
-| Offline/Cache Fallback | Good | localStorage caching for resilience |
-| Subscription Status Display | Good | Clear status badges |
+### Phase 1: Frontend Cleanup
+1. Remove all Beta routes from App.tsx
+2. Delete Beta page components and their directories
+3. Remove Beta section from AdminDashboard
 
----
+### Phase 2: Hook & Service Cleanup
+1. Simplify user roles hook (remove beta tracking)
+2. Remove beta services and admin beta functions
+3. Simplify feedback system (remove isBetaFeedback)
 
-## Critical UX Gaps & Recommended Improvements
+### Phase 3: Edge Functions
+1. Delete beta-related edge functions
+2. Update check-subscription to remove beta logic
+3. Update config.toml
 
-### 1. No Post-Checkout Success Confirmation (HIGH PRIORITY)
-
-**Problem**: After successful Stripe checkout, users land on `/dashboard` with only a `session_id` query param. There's no clear confirmation of what they just purchased.
-
-**Current Flow**:
-```
-Stripe Checkout → /dashboard?session_id=xxx → (No visual confirmation)
-```
-
-**Impact**: Users feel uncertain if their purchase went through, leading to support tickets.
-
-**Recommendation**: Create a dedicated Success Page
-
-Implementation:
-- Create `/subscription/success` page with purchase confirmation
-- Show: Plan name, amount charged, next billing date, features unlocked
-- Include: "Return to Dashboard" CTA
-- Add: Email confirmation trigger (already sent by Stripe, but reinforce in UI)
-
-### 2. Missing Billing History & Invoice Access (HIGH PRIORITY)
-
-**Problem**: Users have no way to view past invoices or billing history within the app.
-
-**Current State**: No billing history UI exists. Users must go to Stripe Customer Portal (which they may not know how to access).
-
-**Recommendation**: Add Billing History Section
-
-Implementation:
-- Add "Billing History" tab in AccountSettings
-- Show: Date, amount, status, invoice number
-- Add: "Download PDF" link for each invoice (via Stripe API)
-- Add: "Open Billing Portal" button for full Stripe management
-
-### 3. Confusing "Update Payment Method" Flow (MEDIUM PRIORITY)
-
-**Problem**: The `renewSubscription()` function in SubscriptionProvider is a mock that returns `example.com/payment`. The actual implementation redirects to Stripe Billing Portal, but with different logic in different places.
-
-**Current State**:
-- `SubscriptionProvider.renewSubscription()` → Returns mock URL
-- `SubscriptionCard.handleRenewSubscription()` → Calls edge function properly
-- `use-payment-update.ts` → Calls context's mock function
-
-**Impact**: Inconsistent behavior depending on where "Update Payment" is clicked.
-
-**Recommendation**: Unify Payment Update Logic
-
-Implementation:
-- Fix `renewSubscription()` in SubscriptionProvider to call edge function
-- Single source of truth for payment update flow
-- Clear loading and success states
-
-### 4. No Current Plan Indicator on Pricing Page (MEDIUM PRIORITY)
-
-**Problem**: On the `/subscription` page, users can't easily see which plan they currently have. While the button says "Current Plan", there's no visual badge highlighting their current subscription.
-
-**Recommendation**: Add Visual Current Plan Indicator
-
-Implementation:
-- Add "Your Current Plan" ribbon/badge to the current plan card
-- Show current billing cycle (monthly/annual) selection based on actual subscription
-- Highlight renewal date on current plan card
-
-### 5. Missing Downgrade Flow (MEDIUM PRIORITY)
-
-**Problem**: Users on Pro can cancel, but there's no option to downgrade to Basic/Starter instead of canceling completely.
-
-**Current State**: Only "Cancel" option exists for Pro users.
-
-**Recommendation**: Add Downgrade Option
-
-Implementation:
-- In cancellation dialog, offer: "Downgrade to Basic instead? ($49/mo)"
-- Show feature comparison: "You'll lose access to: Evaluation, Team Collaboration..."
-- Handle proration through Stripe
-
-### 6. No Usage Stats on Subscription Page (MEDIUM PRIORITY)
-
-**Problem**: Users can't see how much of their plan they're utilizing (e.g., "5 of 30 projects used").
-
-**Recommendation**: Add Usage Visualization
-
-Implementation:
-- Show project usage: "5/30 projects" with progress bar
-- Show feature utilization where applicable
-- Help users make informed upgrade/downgrade decisions
-
-### 7. Trial Expiration UX is Disruptive (LOW PRIORITY)
-
-**Problem**: Trial users are blocked with banner/modal when trial expires instead of graceful degradation.
-
-**Current State**: `TrialExpiredBanner` shows but users can still access most features.
-
-**Recommendation**: Clearer Trial Status
-
-Implementation:
-- Add countdown: "3 days left in your trial"
-- Progressive messaging: Gentle reminder → Moderate warning → Urgent action needed
-- Feature preview: Show what Pro features they've used that would be lost
-
-### 8. No Email Receipt Confirmation Display (LOW PRIORITY)
-
-**Problem**: After purchase, users don't see confirmation that a receipt email was sent.
-
-**Recommendation**: Add Receipt Confirmation
-
-Implementation:
-- On success page: "A receipt has been sent to your@email.com"
-- Option to resend receipt
-- Link to check spam folder
+### Phase 4: Database Cleanup
+1. Archive beta data
+2. Remove beta_tester roles
+3. Drop beta tables and functions
 
 ---
 
-## Technical Implementation Summary
+## What Gets Preserved
 
-### New Files to Create
+### Universal Feedback System
+- `src/components/feedback/UserFeedbackDialog.tsx` - Simplified for all users
+- `src/components/feedback/FeedbackForm.tsx` - Bug reports, feature requests, improvements
+- `src/hooks/use-feedback-form.tsx` - Form handling logic
+- Error tracking integration remains
 
-| File | Purpose |
-|------|---------|
-| `src/pages/SubscriptionSuccess.tsx` | Post-checkout confirmation page |
-| `src/components/account/BillingHistory.tsx` | Invoice history list |
-| `src/components/subscription/CurrentPlanBadge.tsx` | Visual indicator for current plan |
-| `src/components/subscription/UsageStats.tsx` | Plan utilization display |
-| `src/components/subscription/TrialCountdown.tsx` | Days remaining indicator |
+### User Role System
+- Admin role checking
+- System admin role checking
+- User role checking
+- All RLS policies for these roles
 
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/hooks/subscription/providers/SubscriptionProvider.tsx` | Fix mock renewSubscription() |
-| `src/components/subscription/SubscriptionPlans.tsx` | Add current plan indicator, usage stats |
-| `src/pages/Subscription.tsx` | Add success page routing |
-| `src/pages/AccountSettings.tsx` | Add billing history tab |
-| `supabase/functions/create-checkout-session/index.ts` | Change success_url to /subscription/success |
-
-### Edge Functions Needed
-
-| Function | Purpose |
-|----------|---------|
-| `get-billing-history` | Fetch invoices from Stripe |
-| `downgrade-subscription` | Handle plan downgrades (optional) |
+### Email System
+- Support emails for feedback
+- Welcome emails
+- Password reset emails
+- All non-beta email templates
 
 ---
 
-## Implementation Priority
+## Summary
 
-### Phase 1: Critical UX Fixes ✅ COMPLETE
-1. ✅ Post-checkout success page (`src/pages/SubscriptionSuccess.tsx`)
-2. ✅ Fix renewSubscription() mock function (now calls actual edge function)
-3. ✅ Current plan indicator on pricing page (`CurrentPlanBadge.tsx`)
+| Category | Items Removed | Items Modified |
+|----------|---------------|----------------|
+| Pages | 4 | 0 |
+| Components | 9 | 2 |
+| Services | 6 | 5 |
+| Hooks | 1 | 4 |
+| Edge Functions | 6 | 2 |
+| Database Tables | 2 | 0 |
+| Database Functions | 10 | 0 |
 
-### Phase 2: Billing Transparency ✅ COMPLETE
-4. ✅ Billing history section (`BillingHistory.tsx` + `get-billing-history` edge function)
-5. ✅ Usage stats display (`UsageStats.tsx`)
-6. ✅ Invoice download capability (via Stripe API)
+**Total files deleted:** ~25
+**Total files modified:** ~15
+**Edge functions deleted:** 6
 
-### Phase 3: Enhanced Flow ✅ COMPLETE
-7. ✅ Downgrade option in cancellation flow (`DowngradeOption.tsx` + `downgrade-subscription` edge function)
-8. ✅ Trial countdown component (`TrialCountdown.tsx` with progressive messaging)
-9. ✅ Progressive trial messaging (4 urgency levels: info → warning → urgent → critical)
-
----
-
-## Expected Impact
-
-| Improvement | User Benefit | Support Reduction |
-|-------------|--------------|-------------------|
-| Success Page | Confidence in purchase | -40% "Did it work?" tickets |
-| Billing History | Self-service invoices | -50% invoice request tickets |
-| Current Plan Badge | Clarity on subscription | -20% "What plan am I on?" tickets |
-| Unified Payment Flow | Consistent experience | -30% payment update confusion |
-| Usage Stats | Informed decisions | Better upgrade conversion |
-
-This plan transforms the subscription experience from functional-but-confusing to clear-and-confidence-inspiring, reducing support burden while improving user satisfaction.
+The universal feedback system remains fully functional for all users, providing bug reporting, feature requests, and general feedback capabilities without the overhead of the Beta program infrastructure.

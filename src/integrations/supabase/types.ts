@@ -2022,6 +2022,10 @@ export type Database = {
         Args: { email_param: string }
         Returns: boolean
       }
+      check_password_reset_rate_limit_secure: {
+        Args: { email_param: string }
+        Returns: boolean
+      }
       check_project_limit: { Args: { user_id: string }; Returns: boolean }
       check_system_admin_role: {
         Args: { user_id_param: string }

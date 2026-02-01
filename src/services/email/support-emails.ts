@@ -84,12 +84,11 @@ export class SupportEmailService extends BaseEmailService {
     userName: string = 'Anonymous',
     userEmail?: string,
     errorMessage?: string,
-    errorId?: string,
-    isBetaFeedback: boolean = false
+    errorId?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: ['support@optirfp.ai'],
-      subject: `${isBetaFeedback ? 'Beta ' : ''}Feedback: ${feedbackType}`,
+      subject: `Feedback: ${feedbackType}`,
       templateType: 'support',
       templateData: {
         name: userName,

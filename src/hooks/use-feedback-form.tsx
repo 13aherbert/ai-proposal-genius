@@ -11,7 +11,6 @@ interface UseFeedbackFormProps {
   initialFeedbackType: FeedbackType;
   errorMessage?: string;
   errorId: string;
-  isBetaFeedback: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -19,7 +18,6 @@ export function useFeedbackForm({
   initialFeedbackType,
   errorMessage,
   errorId,
-  isBetaFeedback,
   onOpenChange
 }: UseFeedbackFormProps) {
   const { trackError } = useErrorTracking();
@@ -60,7 +58,7 @@ export function useFeedbackForm({
       
       // Track the feedback in error tracking system
       trackError({
-        message: `${isBetaFeedback ? 'Beta Feedback' : 'User Feedback'}: ${feedbackType} - ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
+        message: `User Feedback: ${feedbackType} - ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
         severity: feedbackType === 'bug' ? ErrorSeverity.ERROR : ErrorSeverity.INFO,
         context: {
           feedback: {
@@ -72,10 +70,9 @@ export function useFeedbackForm({
             allowContact,
             relatedErrorId: errorId,
             relatedErrorMessage: errorMessage,
-            isBetaFeedback,
             ticketId
           },
-          source: isBetaFeedback ? 'beta-feedback-form' : 'user-feedback-form'
+          source: 'user-feedback-form'
         }
       });
 
@@ -87,8 +84,7 @@ export function useFeedbackForm({
         name || (session?.user?.user_metadata?.first_name || 'User'),
         email || session?.user?.email,
         errorMessage,
-        errorId,
-        isBetaFeedback
+        errorId
       );
 
       const userEmail = email || session?.user?.email;
@@ -113,8 +109,8 @@ export function useFeedbackForm({
       
       // Show success message
       toast({
-        title: isBetaFeedback ? "Beta Feedback Submitted" : "Feedback Submitted",
-        description: `Thank you for your ${isBetaFeedback ? 'beta feedback' : 'feedback'}. ${userEmail && allowContact ? 'We\'ve sent a confirmation to your email.' : 'We\'ll review it as soon as possible.'}`,
+        title: "Feedback Submitted",
+        description: `Thank you for your feedback. ${userEmail && allowContact ? 'We\'ve sent a confirmation to your email.' : 'We\'ll review it as soon as possible.'}`,
       });
       
       // Close dialog

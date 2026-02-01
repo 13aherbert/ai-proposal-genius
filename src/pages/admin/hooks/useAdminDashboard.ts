@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { adminService } from '@/services/admin';
-import { UserProfile, UserRole, BetaInvitation } from '@/services/admin/types';
+import { UserProfile, UserRole } from '@/services/admin/types';
 import { useUserRoles } from '@/hooks/user-roles';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,10 +24,6 @@ export function useAdminDashboard() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  
-  // Beta invitations state
-  const [invitations, setInvitations] = useState<BetaInvitation[]>([]);
-  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   
   // Check admin status using multiple methods for reliability
   const checkAdminStatus = useCallback(async () => {
@@ -72,7 +68,6 @@ export function useAdminDashboard() {
         
         // Load initial data
         await loadUsers();
-        await loadInvitations();
         
         setIsLoading(false);
       } catch (err) {
@@ -103,20 +98,6 @@ export function useAdminDashboard() {
       toast.error('Failed to load users');
     } finally {
       setIsLoadingUsers(false);
-    }
-  }, []);
-  
-  // Load beta invitations data
-  const loadInvitations = useCallback(async () => {
-    setIsLoadingInvitations(true);
-    try {
-      const invitationsList = await adminService.getBetaInvitations();
-      setInvitations(invitationsList);
-    } catch (err) {
-      console.error('Error loading invitations:', err);
-      toast.error('Failed to load beta invitations');
-    } finally {
-      setIsLoadingInvitations(false);
     }
   }, []);
   
@@ -214,9 +195,6 @@ export function useAdminDashboard() {
     handleUpdateSubscription,
     handleDeleteUser,
     loadUsers,
-    invitations,
-    isLoadingInvitations,
-    loadInvitations,
     checkAdminStatus
   };
 }

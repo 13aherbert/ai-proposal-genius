@@ -1,16 +1,15 @@
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { LogIn, DollarSign, HelpCircle, Sparkles } from "lucide-react";
+import { LogIn, DollarSign, HelpCircle } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
-import { useState } from "react";
-import { BetaRequestDialog } from "@/components/beta/BetaRequestDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+
 const Index = () => {
-  const [betaDialogOpen, setBetaDialogOpen] = useState(false);
   const isMobile = useIsMobile();
+  
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -19,17 +18,11 @@ const Index = () => {
       });
     }
   };
-  return <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
+  
+  return (
+    <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
-        {/* Beta Program Button - Only show in this position on desktop */}
-        {!isMobile && <div className="absolute top-4 left-4">
-            <Button size="lg" variant="outline" className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white" onClick={() => setBetaDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Join the Beta Program
-            </Button>
-          </div>}
-        
         {/* Navigation Buttons and Login */}
         <div className="absolute top-4 right-4 flex items-center gap-4">
           <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('pricing')}>
@@ -55,16 +48,8 @@ const Index = () => {
         
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
-          {/* Beta Button for Mobile - Centered below header */}
-          {isMobile && <div className="flex justify-center mb-8 pt-12">
-              <Button size="lg" variant="outline" className="border-brand-green text-brand-green hover:bg-brand-green hover:text-white" onClick={() => setBetaDialogOpen(true)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Join the Beta Program
-              </Button>
-            </div>}
-          
           {/* Hero Section */}
-          <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto">
+          <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto mt-12">
             <img src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" alt="OptiRFP Logo" className="h-16 md:h-20 mx-auto mb-4" />
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-4">
               Optimize Proposals. Win Opportunities.
@@ -83,9 +68,6 @@ const Index = () => {
               </Dialog>
             </div>
           </div>
-
-          {/* Beta Request Dialog */}
-          <BetaRequestDialog open={betaDialogOpen} onOpenChange={setBetaDialogOpen} />
 
           {/* Key Benefits Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">
@@ -134,6 +116,8 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

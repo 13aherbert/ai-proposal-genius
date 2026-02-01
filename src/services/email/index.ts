@@ -1,7 +1,6 @@
 
 import { AccountEmailService } from './account-emails';
 import { SupportEmailService } from './support-emails';
-import { BetaEmailService } from './beta-emails';
 
 /**
  * Main EmailService that combines all email services
@@ -9,22 +8,18 @@ import { BetaEmailService } from './beta-emails';
  * This service is organized by email category:
  * - account: user account-related emails (welcome, password reset, etc.)
  * - support: support tickets and feedback emails
- * - beta: beta program-related emails
  */
 class EmailService {
   private readonly _account: AccountEmailService;
   private readonly _support: SupportEmailService;
-  private readonly _beta: BetaEmailService;
 
   constructor() {
     this._account = new AccountEmailService();
     this._support = new SupportEmailService();
-    this._beta = new BetaEmailService();
   }
 
   get account() { return this._account; }
   get support() { return this._support; }
-  get beta() { return this._beta; }
 
   // Account methods
   sendWelcomeEmail(email: string, firstName: string, appUrl?: string) {
@@ -52,17 +47,8 @@ class EmailService {
     return this._support.sendSupportConfirmationEmail(email, name, message, ticketId);
   }
 
-  sendFeedbackEmail(feedbackType: string, comments: string, severity: string, userName?: string, userEmail?: string, errorMessage?: string, errorId?: string, isBetaFeedback?: boolean) {
-    return this._support.sendFeedbackEmail(feedbackType, comments, severity, userName, userEmail, errorMessage, errorId, isBetaFeedback);
-  }
-
-  // Beta methods
-  sendBetaInviteEmail(email: string, inviteCode: string, inviteUrl: string, expiresAt: string) {
-    return this._beta.sendBetaInviteEmail(email, inviteCode, inviteUrl, expiresAt);
-  }
-
-  sendBetaAnnouncementEmail(email: string, featureName: string, featureDetails: string, featureUrl?: string) {
-    return this._beta.sendBetaAnnouncementEmail(email, featureName, featureDetails, featureUrl);
+  sendFeedbackEmail(feedbackType: string, comments: string, severity: string, userName?: string, userEmail?: string, errorMessage?: string, errorId?: string) {
+    return this._support.sendFeedbackEmail(feedbackType, comments, severity, userName, userEmail, errorMessage, errorId);
   }
 }
 

@@ -1,15 +1,4 @@
 
-import { 
-  getBetaInvitations, 
-  createBetaInvitation, 
-  cancelBetaInvitation, 
-  verifyBetaInvitation,
-  acceptBetaInvitation,
-  resendInvitationEmail,
-  getBetaRequests,
-  processBetaRequest
-} from './betaService';
-
 import {
   getAllUsers,
   getUserRoles,
@@ -17,7 +6,6 @@ import {
   removeRole,
   updateSubscriptionPlan,
   isAdmin,
-  isBetaTester,
   checkUserRole,
   ensureUserRole,
   assignRoleByEmail,
@@ -26,21 +14,9 @@ import {
 } from './userService';
 
 // Re-export types
-export type { BetaInvitation, UserProfile, UserRole, UserRoleRecord } from './types';
+export type { UserProfile, UserRole, UserRoleRecord } from './types';
 
 export const adminService = {
-  // Beta invitation methods
-  getBetaInvitations,
-  createBetaInvitation,
-  cancelBetaInvitation,
-  verifyBetaInvitation,
-  acceptBetaInvitation,
-  resendInvitationEmail,
-  
-  // Beta request methods
-  getBetaRequests,
-  processBetaRequest,
-  
   // User management methods
   getAllUsers,
   getUsers: getAllUsers, // Alias for backward compatibility
@@ -54,7 +30,6 @@ export const adminService = {
   
   // Role check methods
   isAdmin,
-  isBetaTester,
   checkUserRole,
   ensureUserRole,
   

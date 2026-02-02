@@ -79,12 +79,26 @@ export function ApiKeyManagement() {
       .join('');
   };
 
-  const hashApiKey = async (apiKey: string) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(apiKey);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  /**
+   * Hashes API key using bcrypt via server-side edge function.
+   * This provides protection against offline brute-force attacks
+   * if the database is compromised, unlike SHA-256 which is too fast.
+   */
+  const hashApiKey = async (apiKey: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('hash-api-key', {
+      body: { apiKey, action: 'hash' },
+    });
+
+    if (error) {
+      console.error('Error hashing API key:', error);
+      throw new Error('Failed to securely hash API key');
+    }
+
+    if (!data?.hash) {
+      throw new Error('Invalid response from hash function');
+    }
+
+    return data.hash;
   };
 
   const createApiKey = async () => {

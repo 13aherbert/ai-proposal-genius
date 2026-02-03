@@ -106,6 +106,28 @@ export function ApiManagement() {
     });
   };
 
+  /**
+   * Hashes API key using bcrypt via server-side edge function.
+   * This provides protection against offline brute-force attacks
+   * if the database is compromised, unlike SHA-256 which is too fast.
+   */
+  const hashApiKey = async (apiKey: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('hash-api-key', {
+      body: { apiKey, action: 'hash' },
+    });
+
+    if (error) {
+      console.error('Error hashing API key:', error);
+      throw new Error('Failed to securely hash API key');
+    }
+
+    if (!data?.hash) {
+      throw new Error('Invalid response from hash function');
+    }
+
+    return data.hash;
+  };
+
   const generateApiKey = async () => {
     try {
       if (!newKeyData.name.trim()) {
@@ -122,6 +144,9 @@ export function ApiManagement() {
                      Math.random().toString(36).substring(2, 15) + 
                      Math.random().toString(36).substring(2, 15);
 
+      // Hash the API key using bcrypt before storing
+      const apiKeyHash = await hashApiKey(apiKey);
+
       const expiresAt = newKeyData.expires_in_days > 0 
         ? new Date(Date.now() + newKeyData.expires_in_days * 24 * 60 * 60 * 1000).toISOString()
         : null;
@@ -131,7 +156,7 @@ export function ApiManagement() {
         .insert({
           organization_id: organization?.id,
           key_name: newKeyData.name,
-          api_key_hash: apiKey, // In production, this should be hashed
+          api_key_hash: apiKeyHash, // Securely hashed with bcrypt
           permissions: newKeyData.permissions,
           expires_at: expiresAt,
           created_by: (await supabase.auth.getUser()).data.user?.id,

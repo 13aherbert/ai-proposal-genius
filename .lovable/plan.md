@@ -1,293 +1,101 @@
 
-# Beta Program Removal Plan
 
-## Overview
+## Knowledge Base Audit & Migration for Proposal Generation
 
-This plan removes the dedicated Beta program infrastructure while preserving and enhancing the universal feedback system that already works for all users. The Beta program has only 2 active testers and most features use mock data, making it a good candidate for removal to reduce complexity.
+### Current Situation
 
----
+Your knowledge base currently contains **14 entries** across **7 categories**, but several issues require attention:
 
-## Current Beta Infrastructure to Remove
+**Category Mismatch**: The database shows entries in legacy categories like:
+- `process-&-methodology` (4 entries)
+- `prior-rfp-responses` (3 entries) 
+- `other-company-information` (3 entries)
+- `pricing-templates` (1 entry)
 
-### Database Tables
-| Table | Records | Action |
-|-------|---------|--------|
-| `beta_invitations` | 7 pending invitations | Archive and delete |
-| `beta_requests` | Unknown count | Archive and delete |
+However, the new proposal generation system expects entries in the **enhanced 12-category structure**:
+- 6 Essential: Company Overview, Team Bios, Past Performance, Technical Capabilities, Pricing & Rates, Differentiators
+- 2 Recommended: Certifications & Compliance, Process & Methodology
+- 4 Optional: Client Testimonials, Industry Expertise, Legal & Terms, Tools & Technology
 
-### Database Functions
-| Function | Purpose | Action |
-|----------|---------|--------|
-| `check_beta_tester_role()` | Check beta role | Delete |
-| `verify_invitation_code()` | Verify invite codes | Delete |
-| `verify_invitation_code_secure()` | Secure verification | Delete |
-| `invite_beta_tester()` | Create invitations | Delete |
-| `update_beta_invitation_status()` | Update invitation status | Delete |
-| `update_beta_invitation_email_sent()` | Email sent flag | Delete |
-| `check_pending_invitation()` | Check pending invites | Delete |
-| `get_beta_invitation_direct()` | Get invitation details | Delete |
-| `get_invitation_for_email()` | Get invitation by email | Delete |
-| `log_invitation_verification()` | Security logging | Delete |
+A `categoryMigrationMap` already exists in the codebase to map old categories to new ones, but it's not being applied to existing entries.
 
-### User Role Changes
-| Role | Current Users | Action |
-|------|---------------|--------|
-| `beta_tester` | 2 | Remove role from users, keep users active |
+### Proposed Solution
 
----
+#### Phase 1: Knowledge Base Audit Tool
+Create an audit feature that analyzes existing entries for:
+1. **Category alignment** - Map legacy categories to new essential/recommended/optional structure
+2. **Content quality assessment** - Check if parsed content is substantive for proposal use
+3. **Essential coverage gaps** - Identify which of the 6 essential categories need attention
 
-## Files to Delete
+#### Phase 2: Migration & Re-parsing System
+1. **Category Migration**
+   - Create a migration edge function that applies the `categoryMigrationMap` to existing entries
+   - Update entries with legacy categories to their new category names
 
-### Pages (4 files)
-- `src/pages/BetaProgram.tsx`
-- `src/pages/BetaRoadmap.tsx`
-- `src/pages/admin/BetaInvitationsPage.tsx`
-- `src/pages/admin/BetaRequests.tsx`
+2. **Content Quality Review**
+   - Add a "Content Review" status to entries
+   - AI-powered analysis to extract and summarize essential proposal information from parsed content
+   - Flag entries that need human review or enhancement
 
-### Components (8 files)
-- `src/components/beta/BetaAccessDenied.tsx`
-- `src/components/beta/BetaInvitationCard.tsx`
-- `src/components/beta/BetaLoadingState.tsx`
-- `src/components/beta/BetaMetricsPanel.tsx`
-- `src/components/beta/BetaRequestDialog.tsx`
-- `src/components/beta/BetaSignupDialog.tsx`
-- `src/components/beta/BetaTesterDashboard.tsx`
-- `src/components/beta/BetaTesterOnboarding.tsx`
-- `src/components/dashboard/BetaProgramCard.tsx`
+#### Phase 3: Knowledge Base Readiness Dashboard Enhancement
+Update the existing `KnowledgeBaseReadiness` component to:
+- Show legacy vs. new category distribution
+- Display content quality scores per category
+- Provide one-click migration action
+- Show "proposal-ready" status for each entry
 
-### Services (5 files)
-- `src/services/beta/betaFeedbackService.ts`
-- `src/services/beta/betaMetricsService.ts`
-- `src/services/beta/betaOnboardingService.ts`
-- `src/services/beta/betaTasksService.ts`
-- `src/services/BetaTestingService.ts`
+### Technical Implementation
 
-### Admin Services
-- `src/services/admin/betaService.ts`
+**New Edge Function**: `audit-knowledge-base`
+```text
+POST /audit-knowledge-base
+{
+  "organizationId": "uuid",
+  "action": "analyze" | "migrate" | "review"
+}
 
-### Hooks (1 file)
-- `src/hooks/useBetaProgram.ts`
-
-### Mock Data
-- `src/services/mocks/betaTestingMockData.ts`
-
-### Scripts
-- `src/scripts/add-beta-tester.ts`
-
-### Edge Functions (6 directories)
-- `supabase/functions/create-beta-invitation/`
-- `supabase/functions/get-beta-invitations/`
-- `supabase/functions/get-beta-requests/`
-- `supabase/functions/get-pending-invitation/`
-- `supabase/functions/resend-beta-invitation/`
-- `supabase/functions/verify-beta-invitation/`
-
----
-
-## Files to Modify
-
-### App.tsx - Remove Beta Routes
-
-Remove these routes:
-- `/beta`
-- `/beta/dashboard`
-- `/beta/roadmap`
-- `/beta-invite`
-- `/admin/beta-invitations`
-- `/admin/beta-requests`
-
-Remove imports for beta pages and components.
-
-### AdminDashboard.tsx - Remove Beta Section
-
-Remove the "Beta Program" card that links to beta invitations and requests.
-
-### User Roles System
-
-**src/hooks/user-roles/index.ts:**
-- Remove `isBetaTester` state variable
-- Remove `setIsBetaTester` calls
-- Remove `showBetaBadge` derived value
-- Remove beta role checking in `forceRoleCheck`
-
-**src/hooks/user-roles/types.ts:**
-- Remove `isBetaTester` from `UserRoleState`
-- Remove `showBetaBadge` from `UserRoleState`
-- Remove `betaTesterStatus` from `UserRoleRefs`
-
-**src/hooks/user-roles/role-check-utils.ts:**
-- Remove `checkBetaTesterRole` function
-- Remove `updateBetaTesterState` function
-
-**src/hooks/user-roles/use-role-check-effect.ts:**
-- Remove beta role checking logic
-- Remove `setIsBetaTester` parameter
-
-### Admin Services
-
-**src/services/admin/index.ts:**
-- Remove all beta-related exports:
-  - `getBetaInvitations`
-  - `createBetaInvitation`
-  - `cancelBetaInvitation`
-  - `verifyBetaInvitation`
-  - `acceptBetaInvitation`
-  - `resendInvitationEmail`
-  - `getBetaRequests`
-  - `processBetaRequest`
-- Remove `isBetaTester` export
-
-**src/services/admin/userService.ts:**
-- Remove `isBetaTester` function
-
-**src/services/admin/roleService.ts:**
-- Remove `isBetaTester` function
-
-### Email Services
-
-**src/services/email/support-emails.ts:**
-- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
-- Remove beta-specific subject prefix logic
-
-**src/services/email/beta-emails.ts:**
-- Delete entire file (beta invite emails, announcements)
-
-**src/services/email/index.ts:**
-- Remove beta email exports
-- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
-
-**src/services/EmailService.ts:**
-- Remove `isBetaFeedback` parameter from `sendFeedbackEmail`
-
-### Feedback System (Keep but Simplify)
-
-**src/components/feedback/UserFeedbackDialog.tsx:**
-- Remove `isBetaFeedback` prop
-- Simplify dialog title/description to always show "Send Feedback"
-
-**src/components/feedback/FeedbackForm.tsx:**
-- Remove `isBetaFeedback` prop
-- Remove beta-specific contact permission toggle conditional
-
-**src/hooks/use-feedback-form.tsx:**
-- Remove `isBetaFeedback` parameter
-- Remove beta-specific messaging and tracking
-
-### Redirects
-
-**src/components/routing/Redirects.tsx:**
-- Remove `BetaInviteRedirect` function
-
-**src/components/routing/BetaInviteRedirect.tsx:**
-- Delete entire file
-
-### Edge Function Config
-
-**supabase/functions/config.toml:**
-- Remove entries for deleted beta edge functions
-
-### Check Subscription Edge Function
-
-**supabase/functions/check-subscription/index.ts:**
-- Remove beta tester role check
-- Simplify default subscription logic (just use trial)
-
----
-
-## Database Migration
-
-SQL script to run for cleanup:
-
-```sql
--- Archive existing beta data before deletion
-CREATE TABLE IF NOT EXISTS archived_beta_invitations AS 
-SELECT *, NOW() as archived_at FROM beta_invitations;
-
-CREATE TABLE IF NOT EXISTS archived_beta_requests AS 
-SELECT *, NOW() as archived_at FROM beta_requests;
-
--- Remove beta_tester role from all users
-DELETE FROM user_roles WHERE role = 'beta_tester';
-
--- Drop beta tables
-DROP TABLE IF EXISTS beta_invitations;
-DROP TABLE IF EXISTS beta_requests;
-
--- Drop beta-related functions
-DROP FUNCTION IF EXISTS check_beta_tester_role(uuid);
-DROP FUNCTION IF EXISTS verify_invitation_code(text);
-DROP FUNCTION IF EXISTS verify_invitation_code_secure(text);
-DROP FUNCTION IF EXISTS invite_beta_tester(text, uuid);
-DROP FUNCTION IF EXISTS update_beta_invitation_status(uuid, text, timestamptz);
-DROP FUNCTION IF EXISTS update_beta_invitation_email_sent(uuid, boolean);
-DROP FUNCTION IF EXISTS check_pending_invitation(text);
-DROP FUNCTION IF EXISTS get_beta_invitation_direct(uuid);
-DROP FUNCTION IF EXISTS get_invitation_for_email(text, text);
-DROP FUNCTION IF EXISTS log_invitation_verification(text, boolean);
+Response:
+{
+  "analysis": {
+    "totalEntries": 14,
+    "legacyEntries": 8,
+    "needsMigration": [...],
+    "needsContentReview": [...],
+    "essentialGaps": ["Company Overview & Mission", "Team Bios", ...],
+    "readinessScore": 45
+  }
+}
 ```
 
----
+**New Frontend Component**: `KnowledgeBaseAudit.tsx`
+- Visual dashboard showing migration status
+- Category mapping preview
+- Bulk migration action button
+- Content quality indicators
 
-## Implementation Phases
+**Database Changes**:
+- Add `content_quality_score` column to `knowledge_entries`
+- Add `migration_status` column (null, 'pending', 'migrated', 'reviewed')
 
-### Phase 1: Frontend Cleanup
-1. Remove all Beta routes from App.tsx
-2. Delete Beta page components and their directories
-3. Remove Beta section from AdminDashboard
+**Files to Create/Modify**:
+1. `supabase/functions/audit-knowledge-base/index.ts` - Main audit logic
+2. `src/components/knowledge-base/KnowledgeBaseAudit.tsx` - Audit dashboard UI
+3. `src/components/knowledge-base/MigrationPreview.tsx` - Preview before migration
+4. Database migration for new columns
+5. Update `KnowledgeBase.tsx` to include audit panel
 
-### Phase 2: Hook & Service Cleanup
-1. Simplify user roles hook (remove beta tracking)
-2. Remove beta services and admin beta functions
-3. Simplify feedback system (remove isBetaFeedback)
+### User Workflow
 
-### Phase 3: Edge Functions
-1. Delete beta-related edge functions
-2. Update check-subscription to remove beta logic
-3. Update config.toml
+1. User opens Knowledge Base page
+2. New "Audit & Migrate" button appears in the sidebar
+3. Clicking it shows:
+   - Current category distribution (pie chart)
+   - List of entries needing category migration
+   - List of entries needing content review
+   - Essential category gaps with recommendations
+4. User can:
+   - Preview category migrations before applying
+   - Run bulk migration with one click
+   - Request AI content review for quality assessment
+5. After migration, readiness score updates automatically
 
-### Phase 4: Database Cleanup
-1. Archive beta data
-2. Remove beta_tester roles
-3. Drop beta tables and functions
-
----
-
-## What Gets Preserved
-
-### Universal Feedback System
-- `src/components/feedback/UserFeedbackDialog.tsx` - Simplified for all users
-- `src/components/feedback/FeedbackForm.tsx` - Bug reports, feature requests, improvements
-- `src/hooks/use-feedback-form.tsx` - Form handling logic
-- Error tracking integration remains
-
-### User Role System
-- Admin role checking
-- System admin role checking
-- User role checking
-- All RLS policies for these roles
-
-### Email System
-- Support emails for feedback
-- Welcome emails
-- Password reset emails
-- All non-beta email templates
-
----
-
-## Summary
-
-| Category | Items Removed | Items Modified |
-|----------|---------------|----------------|
-| Pages | 4 | 0 |
-| Components | 9 | 2 |
-| Services | 6 | 5 |
-| Hooks | 1 | 4 |
-| Edge Functions | 6 | 2 |
-| Database Tables | 2 | 0 |
-| Database Functions | 10 | 0 |
-
-**Total files deleted:** ~25
-**Total files modified:** ~15
-**Edge functions deleted:** 6
-
-The universal feedback system remains fully functional for all users, providing bug reporting, feature requests, and general feedback capabilities without the overhead of the Beta program infrastructure.

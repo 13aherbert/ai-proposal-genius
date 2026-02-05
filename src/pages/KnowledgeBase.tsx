@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { RecentEntries } from "@/components/knowledge-base/RecentEntries";
 import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
 import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigger";
 import { OrphanedFileRecovery } from "@/components/knowledge-base/OrphanedFileRecovery";
+import { KnowledgeBaseAudit } from "@/components/knowledge-base/KnowledgeBaseAudit";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 
@@ -72,6 +72,7 @@ const KnowledgeBase = () => {
                   />
                 </div>
                 <div className="xl:col-span-1 space-y-4">
+                  <KnowledgeBaseAudit />
                   <BulkParsingTrigger />
                   <OrphanedFileRecovery />
                 </div>

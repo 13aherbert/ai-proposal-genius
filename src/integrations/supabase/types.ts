@@ -347,10 +347,12 @@ export type Database = {
         Row: {
           category: string
           content: string | null
+          content_quality_score: number | null
           created_at: string
           entry_id: string
           file_metadata: Json | null
           file_path: string | null
+          migration_status: string | null
           organization_id: string
           parsed_content: string | null
           parsing_error: string | null
@@ -363,10 +365,12 @@ export type Database = {
         Insert: {
           category: string
           content?: string | null
+          content_quality_score?: number | null
           created_at?: string
           entry_id?: string
           file_metadata?: Json | null
           file_path?: string | null
+          migration_status?: string | null
           organization_id: string
           parsed_content?: string | null
           parsing_error?: string | null
@@ -379,10 +383,12 @@ export type Database = {
         Update: {
           category?: string
           content?: string | null
+          content_quality_score?: number | null
           created_at?: string
           entry_id?: string
           file_metadata?: Json | null
           file_path?: string | null
+          migration_status?: string | null
           organization_id?: string
           parsed_content?: string | null
           parsing_error?: string | null

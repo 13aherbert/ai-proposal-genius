@@ -1,101 +1,34 @@
 
+## Fix: Knowledge Base Audit Edge Function 401 Error
 
-## Knowledge Base Audit & Migration for Proposal Generation
+### Root Cause
+The edge function analytics logs show all POST requests returning **401** status codes. The `verify_jwt = true` setting in `config.toml` causes Supabase's **gateway** to validate the JWT token before the request even reaches the function code. This gateway-level check is rejecting the requests, which is why no processing logs appear -- the function code never executes.
 
-### Current Situation
+The function already has its own authorization logic (checking the `Authorization` header and calling `supabase.auth.getUser()`), making the gateway JWT check redundant and problematic.
 
-Your knowledge base currently contains **14 entries** across **7 categories**, but several issues require attention:
+### Fix
 
-**Category Mismatch**: The database shows entries in legacy categories like:
-- `process-&-methodology` (4 entries)
-- `prior-rfp-responses` (3 entries) 
-- `other-company-information` (3 entries)
-- `pricing-templates` (1 entry)
+**File: `supabase/functions/config.toml`**
 
-However, the new proposal generation system expects entries in the **enhanced 12-category structure**:
-- 6 Essential: Company Overview, Team Bios, Past Performance, Technical Capabilities, Pricing & Rates, Differentiators
-- 2 Recommended: Certifications & Compliance, Process & Methodology
-- 4 Optional: Client Testimonials, Industry Expertise, Legal & Terms, Tools & Technology
+Change `verify_jwt` from `true` to `false` for the `audit-knowledge-base` function:
 
-A `categoryMigrationMap` already exists in the codebase to map old categories to new ones, but it's not being applied to existing entries.
-
-### Proposed Solution
-
-#### Phase 1: Knowledge Base Audit Tool
-Create an audit feature that analyzes existing entries for:
-1. **Category alignment** - Map legacy categories to new essential/recommended/optional structure
-2. **Content quality assessment** - Check if parsed content is substantive for proposal use
-3. **Essential coverage gaps** - Identify which of the 6 essential categories need attention
-
-#### Phase 2: Migration & Re-parsing System
-1. **Category Migration**
-   - Create a migration edge function that applies the `categoryMigrationMap` to existing entries
-   - Update entries with legacy categories to their new category names
-
-2. **Content Quality Review**
-   - Add a "Content Review" status to entries
-   - AI-powered analysis to extract and summarize essential proposal information from parsed content
-   - Flag entries that need human review or enhancement
-
-#### Phase 3: Knowledge Base Readiness Dashboard Enhancement
-Update the existing `KnowledgeBaseReadiness` component to:
-- Show legacy vs. new category distribution
-- Display content quality scores per category
-- Provide one-click migration action
-- Show "proposal-ready" status for each entry
-
-### Technical Implementation
-
-**New Edge Function**: `audit-knowledge-base`
 ```text
-POST /audit-knowledge-base
-{
-  "organizationId": "uuid",
-  "action": "analyze" | "migrate" | "review"
-}
-
-Response:
-{
-  "analysis": {
-    "totalEntries": 14,
-    "legacyEntries": 8,
-    "needsMigration": [...],
-    "needsContentReview": [...],
-    "essentialGaps": ["Company Overview & Mission", "Team Bios", ...],
-    "readinessScore": 45
-  }
-}
+[[functions]]
+name = "audit-knowledge-base"
+verify_jwt = false          # <-- changed from true
+import_map = "import_map.json"
 ```
 
-**New Frontend Component**: `KnowledgeBaseAudit.tsx`
-- Visual dashboard showing migration status
-- Category mapping preview
-- Bulk migration action button
-- Content quality indicators
+This matches the pattern used by other working functions in the project (e.g., `get-user-roles` and `generate-section-content`), and follows the recommended approach of handling auth validation inside the function code itself.
 
-**Database Changes**:
-- Add `content_quality_score` column to `knowledge_entries`
-- Add `migration_status` column (null, 'pending', 'migrated', 'reviewed')
+### Why This Works
 
-**Files to Create/Modify**:
-1. `supabase/functions/audit-knowledge-base/index.ts` - Main audit logic
-2. `src/components/knowledge-base/KnowledgeBaseAudit.tsx` - Audit dashboard UI
-3. `src/components/knowledge-base/MigrationPreview.tsx` - Preview before migration
-4. Database migration for new columns
-5. Update `KnowledgeBase.tsx` to include audit panel
+- The function already validates the user by reading the `Authorization` header and calling `supabase.auth.getUser()` (lines 70-86 of `index.ts`)
+- Setting `verify_jwt = false` lets the request reach the function code, where auth is properly handled
+- Unauthorized requests are still rejected by the function's own auth checks (returns 401 if no auth header or invalid user)
 
-### User Workflow
-
-1. User opens Knowledge Base page
-2. New "Audit & Migrate" button appears in the sidebar
-3. Clicking it shows:
-   - Current category distribution (pie chart)
-   - List of entries needing category migration
-   - List of entries needing content review
-   - Essential category gaps with recommendations
-4. User can:
-   - Preview category migrations before applying
-   - Run bulk migration with one click
-   - Request AI content review for quality assessment
-5. After migration, readiness score updates automatically
-
+### Verification Steps
+1. Redeploy the edge function after the config change
+2. Navigate to Knowledge Base page
+3. Click "Analyze" on the Knowledge Base Audit card
+4. Confirm analysis completes without the 401 error

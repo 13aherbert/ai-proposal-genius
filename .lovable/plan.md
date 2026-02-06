@@ -1,34 +1,51 @@
 
-## Fix: Knowledge Base Audit Edge Function 401 Error
+
+## Fix: Knowledge Base AI Content Generation ("Failed to Generate")
 
 ### Root Cause
-The edge function analytics logs show all POST requests returning **401** status codes. The `verify_jwt = true` setting in `config.toml` causes Supabase's **gateway** to validate the JWT token before the request even reaches the function code. This gateway-level check is rejecting the requests, which is why no processing logs appear -- the function code never executes.
 
-The function already has its own authorization logic (checking the `Authorization` header and calling `supabase.auth.getUser()`), making the gateway JWT check redundant and problematic.
+The edge function logs clearly show the error:
 
-### Fix
-
-**File: `supabase/functions/config.toml`**
-
-Change `verify_jwt` from `true` to `false` for the `audit-knowledge-base` function:
-
-```text
-[[functions]]
-name = "audit-knowledge-base"
-verify_jwt = false          # <-- changed from true
-import_map = "import_map.json"
+```
+Claude API error: {"type":"error","error":{"type":"not_found_error","message":"model: claude-3-opus-20240229"}}
 ```
 
-This matches the pattern used by other working functions in the project (e.g., `get-user-roles` and `generate-section-content`), and follows the recommended approach of handling auth validation inside the function code itself.
+The `generate-knowledge-content` Edge Function is calling the Anthropic API with `claude-3-opus-20240229`, a model that has been retired by Anthropic. Every request returns a **404 Not Found** error, which the frontend surfaces as "Failed to Generate."
 
-### Why This Works
+Additionally, the function is **not registered** in `supabase/config.toml`, which could cause deployment issues.
 
-- The function already validates the user by reading the `Authorization` header and calling `supabase.auth.getUser()` (lines 70-86 of `index.ts`)
-- Setting `verify_jwt = false` lets the request reach the function code, where auth is properly handled
-- Unauthorized requests are still rejected by the function's own auth checks (returns 401 if no auth header or invalid user)
+### Changes Required
+
+**1. Update the Claude model (critical fix)**
+
+File: `supabase/functions/generate-knowledge-content/index.ts`
+
+- Replace the retired model `claude-3-opus-20240229` with `claude-sonnet-4-5-20250929` (the same model used successfully by the `generate-section-content` function)
+- This is a one-line change on line 44
+
+**2. Register the function in config.toml**
+
+File: `supabase/config.toml`
+
+- Add a `[[functions]]` entry for `generate-knowledge-content` with `verify_jwt = false` (so the function can handle auth internally, consistent with other AI generation functions)
+
+**3. Redeploy the Edge Function**
+
+- Deploy the updated `generate-knowledge-content` function to apply the model change
+
+### Technical Details
+
+The working `generate-section-content` function already uses current Anthropic models:
+- `claude-sonnet-4-5-20250929` for moderate/high complexity (good balance of quality and cost)
+- `claude-haiku-4-5-20251001` for low complexity (fast and cost-effective)
+
+For knowledge base content generation, `claude-sonnet-4-5-20250929` is the right choice -- it provides high-quality output at a lower cost than the old Opus model.
 
 ### Verification Steps
-1. Redeploy the edge function after the config change
-2. Navigate to Knowledge Base page
-3. Click "Analyze" on the Knowledge Base Audit card
-4. Confirm analysis completes without the 401 error
+
+1. Deploy the updated function
+2. Navigate to the Knowledge Base page
+3. Click "Add New Entry" and select "Generate with AI"
+4. Enter a topic and industry, then click "Generate Content"
+5. Confirm the content generates successfully without errors
+

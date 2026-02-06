@@ -1,51 +1,51 @@
 
 
-## Fix: Knowledge Base AI Content Generation ("Failed to Generate")
+## Enhance AI Knowledge Base Generation with Existing Entry Context
 
-### Root Cause
+### Problem
+Currently, when you generate a new knowledge base entry using AI, the system only uses the topic, industry, and category you provide. It has **no awareness** of your existing knowledge base entries -- meaning it can't reference your company's specific terminology, processes, team details, or any other information you've already documented.
 
-The edge function logs clearly show the error:
+### Solution
+Update the generation system so that it fetches all existing knowledge base entries for your organization and includes them as context when creating new content. This ensures the AI:
 
-```
-Claude API error: {"type":"error","error":{"type":"not_found_error","message":"model: claude-3-opus-20240229"}}
-```
+- Uses your company's actual terminology and naming conventions
+- References existing processes and procedures consistently
+- Avoids contradicting information already in your knowledge base
+- Builds on existing content rather than generating generic material
 
-The `generate-knowledge-content` Edge Function is calling the Anthropic API with `claude-3-opus-20240229`, a model that has been retired by Anthropic. Every request returns a **404 Not Found** error, which the frontend surfaces as "Failed to Generate."
+### What Will Change
 
-Additionally, the function is **not registered** in `supabase/config.toml`, which could cause deployment issues.
+**For you as a user**: The "Generate with AI" experience will look and feel the same, but the output will be noticeably more tailored to your organization. If you already have entries about your team structure, the AI will reference real team names. If you have documented processes, new entries will align with them.
 
-### Changes Required
-
-**1. Update the Claude model (critical fix)**
-
-File: `supabase/functions/generate-knowledge-content/index.ts`
-
-- Replace the retired model `claude-3-opus-20240229` with `claude-sonnet-4-5-20250929` (the same model used successfully by the `generate-section-content` function)
-- This is a one-line change on line 44
-
-**2. Register the function in config.toml**
-
-File: `supabase/config.toml`
-
-- Add a `[[functions]]` entry for `generate-knowledge-content` with `verify_jwt = false` (so the function can handle auth internally, consistent with other AI generation functions)
-
-**3. Redeploy the Edge Function**
-
-- Deploy the updated `generate-knowledge-content` function to apply the model change
+**Behind the scenes**: The system will query your existing knowledge base before generating, and feed that context to the AI model.
 
 ### Technical Details
 
-The working `generate-section-content` function already uses current Anthropic models:
-- `claude-sonnet-4-5-20250929` for moderate/high complexity (good balance of quality and cost)
-- `claude-haiku-4-5-20251001` for low complexity (fast and cost-effective)
+**1. Frontend: `AIGenerator.tsx`**
+- Fetch the user's `current_organization_id` from their profile
+- Pass `organizationId` to the Edge Function alongside the existing fields
 
-For knowledge base content generation, `claude-sonnet-4-5-20250929` is the right choice -- it provides high-quality output at a lower cost than the old Opus model.
+**2. Edge Function: `generate-knowledge-content/index.ts`**
+- Add Supabase client initialization (using `SUPABASE_URL`, `SUPABASE_ANON_KEY` environment variables)
+- Accept the user's auth token from the request `Authorization` header
+- Query `knowledge_entries` table filtered by the user's `organization_id`
+- Filter to entries that have actual content (text content or parsed document content)
+- Pass the formatted entries into the prompt generation function
+- Add content size management to avoid exceeding API token limits (truncate if total context is very large)
 
-### Verification Steps
+**3. Prompt: `generate-knowledge-content/prompt.ts`**
+- Add a new `existingContent` parameter to `generatePrompt()`
+- Insert an "Existing Knowledge Base Context" section into the prompt that instructs the AI to:
+  - Reference and align with existing company information
+  - Use consistent terminology found in existing entries
+  - Avoid duplicating content that already exists
+  - Cross-reference related entries where relevant
 
-1. Deploy the updated function
-2. Navigate to the Knowledge Base page
-3. Click "Add New Entry" and select "Generate with AI"
-4. Enter a topic and industry, then click "Generate Content"
-5. Confirm the content generates successfully without errors
+**4. No new tables or database changes required** -- all the data structures already exist.
+
+### Content Size Management
+To prevent issues with very large knowledge bases exceeding API limits:
+- Each entry's content will be summarized/truncated to a reasonable length (approximately 500 characters per entry)
+- A maximum overall context size will be enforced (roughly 15,000 characters)
+- Entries in the same category as the new entry will be prioritized to ensure the most relevant context is included first
 

@@ -105,5 +105,5 @@ import_map = "import_map.json"
 
 [[functions]]
 name = "audit-knowledge-base"
-verify_jwt = true
+verify_jwt = false
 import_map = "import_map.json"

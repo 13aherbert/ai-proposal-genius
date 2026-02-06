@@ -6,7 +6,8 @@ export function generatePrompt(
   topic: string,
   industry: string,
   category: string,
-  customPrompt?: string
+  customPrompt?: string,
+  existingContent?: string
 ): string {
   // Map industry to specialized instructions
   const industryGuidance = getIndustryGuidance(industry);
@@ -33,6 +34,15 @@ ${categoryStructure}
 - Include relevant details without unnecessary jargon
 - Keep content between 500-1000 words for readability
 
+${existingContent ? `## Existing Knowledge Base Context
+The following entries already exist in this company's knowledge base. Use them to:
+- Maintain consistent terminology and naming conventions used by this organization
+- Reference existing processes, team structures, and tools already documented
+- Avoid duplicating content that already exists — instead, cross-reference it
+- Align with the company's tone, style, and level of detail
+
+${existingContent}
+` : ""}
 ${customPrompt ? `## Additional Instructions From User\n${customPrompt}\n` : ""}
 
 Create the knowledge base entry now:`;

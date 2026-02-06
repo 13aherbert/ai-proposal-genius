@@ -9,6 +9,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { AIProgress } from "@/components/shared/AIProgress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
 
 const INDUSTRIES = [
   { id: "technology", name: "Technology & Software" },
@@ -36,6 +37,7 @@ export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) 
   const [customPrompt, setCustomPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { organization } = useCurrentOrganization();
 
   const generateContent = async () => {
     if (!topic || (!industry && !customIndustry)) {
@@ -63,7 +65,8 @@ export function AIGenerator({ onGeneratedContent, category }: AIGeneratorProps) 
           topic,
           industry: industry === 'other' ? customIndustry : industry,
           category,
-          customPrompt: customPrompt || undefined
+          customPrompt: customPrompt || undefined,
+          organizationId: organization?.id
         }
       });
 

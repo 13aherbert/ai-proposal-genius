@@ -155,7 +155,7 @@ serve(async (req) => {
             content: content,
             organization_id: organizationId,
             user_id: user.id,
-            migration_status: 'auto_generated',
+            migration_status: 'reviewed',
           })
           .select('entry_id')
           .single();

@@ -11,7 +11,8 @@ import {
   RefreshCw, 
   Sparkles,
   FileSearch,
-  Loader2
+  Loader2,
+  Wand2
 } from "lucide-react";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +49,7 @@ export function KnowledgeBaseAudit() {
   const [analysis, setAnalysis] = useState<AuditAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   const runAnalysis = async () => {
     if (!organization?.id) {
@@ -201,9 +203,47 @@ export function KnowledgeBaseAudit() {
             {/* Essential Gaps */}
             {analysis.essentialGaps.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-amber-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  Missing Essential Categories
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    Missing Essential Categories
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!organization?.id || !analysis) return;
+                      setIsAutoFilling(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('auto-fill-knowledge-gaps', {
+                          body: {
+                            organizationId: organization.id,
+                            gapCategories: analysis.essentialGaps,
+                            industry: 'general'
+                          }
+                        });
+                        if (error) throw error;
+                        toast.success(`Filled ${data.filled}/${data.total} gap categories`);
+                        if (data.results?.some((r: any) => !r.success)) {
+                          const failures = data.results.filter((r: any) => !r.success);
+                          failures.forEach((f: any) => toast.warning(`${f.category}: ${f.error}`));
+                        }
+                        await runAnalysis();
+                      } catch (err: any) {
+                        toast.error(`Auto-fill failed: ${err.message}`);
+                      } finally {
+                        setIsAutoFilling(false);
+                      }
+                    }}
+                    disabled={isAutoFilling}
+                  >
+                    {isAutoFilling ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4 mr-1" />
+                    )}
+                    Auto-Fill Gaps
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {analysis.essentialGaps.map((gap) => (

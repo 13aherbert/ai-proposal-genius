@@ -116,4 +116,8 @@ verify_jwt = false
 name = "generate-knowledge-content"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "auto-fill-knowledge-gaps"
+verify_jwt = false
 import_map = "import_map.json"

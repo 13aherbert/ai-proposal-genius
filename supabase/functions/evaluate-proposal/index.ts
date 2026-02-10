@@ -4,6 +4,17 @@ import { corsHeaders } from "../_shared/cors.ts";
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
+function extractSection(analysis: string, patterns: string[]): string {
+  for (const pattern of patterns) {
+    const regex = new RegExp(`(?:#{1,3}\\s*)?(?:\\*\\*)?${pattern}(?:\\*\\*)?[:\\s]*([\\s\\S]*?)(?=\\n#{1,3}\\s|\\n\\*\\*\\d+|$)`, 'i');
+    const match = analysis.match(regex);
+    if (match?.[1]?.trim()) {
+      return match[1].trim();
+    }
+  }
+  return '';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -21,8 +32,50 @@ serve(async (req) => {
       .map(section => `${section.section_title}:\n${section.content || 'No content'}`)
       .join('\n\n');
 
-    // Extract evaluation criteria from analysis
-    const evaluationCriteria = analysis?.match(/Evaluation Criteria:([\s\S]*?)(?=\n#|\n$)/)?.[1] || '';
+    // Extract evaluation criteria with corrected regex patterns
+    const evaluationCriteria = extractSection(analysis || '', [
+      'EVALUATION CRITERIA & SCORING',
+      'EVALUATION CRITERIA',
+      'Evaluation Criteria & Scoring',
+      'Evaluation Criteria',
+      'SCORING CRITERIA',
+      'Scoring Criteria',
+    ]);
+
+    // Extract key requirements
+    const keyRequirements = extractSection(analysis || '', [
+      'KEY REQUIREMENTS ANALYSIS',
+      'KEY REQUIREMENTS',
+      'Key Requirements Analysis',
+      'Key Requirements',
+      'REQUIREMENTS ANALYSIS',
+    ]);
+
+    // Extract win probability / competitive positioning context
+    const winAssessment = extractSection(analysis || '', [
+      'WIN PROBABILITY ASSESSMENT',
+      'WIN PROBABILITY',
+      'Win Probability Assessment',
+      'COMPETITIVE ASSESSMENT',
+    ]);
+
+    const hasRfpCriteria = evaluationCriteria.length > 50;
+
+    console.log('Extracted evaluation criteria length:', evaluationCriteria.length);
+    console.log('Has RFP-specific criteria:', hasRfpCriteria);
+    console.log('Key requirements length:', keyRequirements.length);
+
+    const criteriaInstruction = hasRfpCriteria
+      ? `CRITICAL: The following evaluation criteria were extracted directly from the uploaded RFP. You MUST evaluate against every criterion listed below. Score each one individually. Do NOT substitute generic criteria.\n\nRFP EVALUATION CRITERIA (from uploaded RFP):\n${evaluationCriteria}`
+      : `No specific evaluation criteria were found in the RFP analysis. Evaluate against standard government/enterprise proposal best practices including: Technical Approach, Management Approach, Past Performance, Staffing/Key Personnel, Cost/Price, and Compliance.`;
+
+    const requirementsContext = keyRequirements
+      ? `\n\nRFP REQUIREMENTS & EXPECTATIONS:\n${keyRequirements}`
+      : '';
+
+    const competitiveContext = winAssessment
+      ? `\n\nRFP WIN FACTORS:\n${winAssessment}`
+      : '';
 
     const systemPrompt = `You are an expert proposal evaluator for government and enterprise RFPs. Your role is to provide specific, actionable feedback that helps improve proposal win rates.
 
@@ -30,12 +83,14 @@ IMPORTANT INSTRUCTIONS:
 - You MUST complete ALL sections of the evaluation - do not truncate or cut off
 - Be specific with examples from the actual proposal content
 - Prioritize actionable feedback over general observations
-- Score each criterion clearly (Strong/Medium/Weak)`;
+- Score each criterion clearly (Strong/Medium/Weak)
+- ${hasRfpCriteria ? 'You MUST evaluate against the specific RFP criteria provided. Do NOT use generic criteria as substitutes.' : 'Since no RFP-specific criteria were found, evaluate against standard proposal best practices.'}`;
 
     const userPrompt = `Review this proposal content against the RFP's evaluation criteria and provide comprehensive feedback.
 
-RFP EVALUATION CRITERIA:
-${evaluationCriteria || 'No specific criteria provided - evaluate based on general proposal best practices'}
+${criteriaInstruction}
+${requirementsContext}
+${competitiveContext}
 
 PROPOSAL CONTENT:
 ${proposalContent}
@@ -43,10 +98,11 @@ ${proposalContent}
 Provide a COMPLETE evaluation with these sections (allocate words as shown):
 
 ## 1. ALIGNMENT WITH EVALUATION CRITERIA (~400 words)
-For each criterion identified in the RFP:
+${hasRfpCriteria ? 'For EACH criterion from the RFP listed above:' : 'For each standard evaluation criterion:'}
 - How well the proposal addresses it (with specific quotes/examples)
 - Score: Strong / Medium / Weak
 - What's missing or could be stronger
+${hasRfpCriteria ? '- Reference the specific scoring weights/points if provided in the criteria' : ''}
 
 ## 2. CONTENT QUALITY ANALYSIS (~300 words)
 - Clarity and organization assessment

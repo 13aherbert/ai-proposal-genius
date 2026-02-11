@@ -39,11 +39,11 @@ export function SortableSection({ section, isSelected, onSelect }: SortableSecti
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 flex items-center px-2 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute left-0 top-0 bottom-0 flex items-center px-1 sm:px-2 cursor-grab opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
       >
-        <GripVertical className="h-5 w-5 text-muted-foreground" />
+        <GripVertical className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
       </div>
-      <div className="pl-8">
+      <div className="pl-6 sm:pl-8">
         <SectionEditor
           section={section}
           isSelected={isSelected}

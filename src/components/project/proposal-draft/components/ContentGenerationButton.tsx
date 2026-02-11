@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Sparkles, RefreshCcw, Shield, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Sparkles, RefreshCcw, Shield, AlertTriangle, Info, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -112,42 +112,47 @@ export function ContentGenerationButton({
         </Alert>
       )}
 
-      {/* Generation Controls */}
-      <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-        <div className="flex items-center justify-between">
+      {/* Generation Controls - Collapsible on mobile */}
+      <details className="border rounded-lg bg-muted/50 group">
+        <summary className="p-3 sm:p-4 cursor-pointer flex items-center justify-between list-none">
           <h4 className="text-sm font-medium">Content Generation Settings</h4>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowKnowledgeValidation(!showKnowledgeValidation)}
-          >
-            {showKnowledgeValidation ? 'Hide' : 'Check'} Coverage
-          </Button>
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="space-y-3 p-3 sm:p-4 pt-0">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Knowledge Base Coverage</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowKnowledgeValidation(!showKnowledgeValidation)}
+            >
+              {showKnowledgeValidation ? 'Hide' : 'Check'} Coverage
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="strict-mode"
+              checked={strictMode}
+              onCheckedChange={setStrictMode}
+              disabled={progress.isGenerating}
+            />
+            <Label htmlFor="strict-mode" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="text-sm">Knowledge Base Only Mode</span>
+            </Label>
+          </div>
+          
+          {strictMode && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700 text-sm">
+                Strict mode: AI will only use your knowledge base. Generation will fail if coverage is insufficient.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="strict-mode"
-            checked={strictMode}
-            onCheckedChange={setStrictMode}
-            disabled={progress.isGenerating}
-          />
-          <Label htmlFor="strict-mode" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Knowledge Base Only Mode
-          </Label>
-        </div>
-        
-        {strictMode && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <Shield className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-700">
-              Strict mode enabled: AI will only use information from your knowledge base. 
-              Content generation will fail if insufficient knowledge base coverage is detected.
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
+      </details>
 
       {/* Generation Buttons */}
       <div className="flex flex-col gap-2">

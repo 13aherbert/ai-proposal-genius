@@ -122,19 +122,19 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
                 </CardTitle>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleDelete}
-                className="hover:bg-destructive/90"
+                className="hover:bg-destructive/90 h-8 w-8 sm:h-9 sm:w-9 p-0"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="hover:bg-brand-green hover:text-white"
+                className="hover:bg-brand-green hover:text-white h-8 w-8 sm:h-9 sm:w-9 p-0"
                 onClick={handleToggle}
               >
                 {isSelected ? (
@@ -147,18 +147,16 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
           </div>
         </CardHeader>
         {isSelected && (
-          <CardContent className="space-y-4">
-            <div className="flex justify-end">
-              <Button
-                onClick={generateContent}
-                disabled={isGenerating}
-                variant="outline"
-                className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
-              >
-                <Wand2 className="h-4 w-4" />
-                {isGenerating ? "Generating..." : "Generate with AI"}
-              </Button>
-            </div>
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+            <Button
+              onClick={generateContent}
+              disabled={isGenerating}
+              variant="outline"
+              className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
+            >
+              <Wand2 className="h-4 w-4" />
+              {isGenerating ? "Generating..." : "Generate with AI"}
+            </Button>
             {isGenerating && (
               <AIProgress progress={progress} label="Generating content" />
             )}
@@ -166,11 +164,11 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your content here..."
-              className="min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
+              className="min-h-[150px] sm:min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
             />
             <Button 
               onClick={handleSave} 
-              className="flex items-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
             >
               <Save className="h-4 w-4" />
               Save Changes

@@ -34,12 +34,12 @@ export function CompiledView({ sections }: CompiledViewProps) {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-2 sm:p-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col items-start">
-              <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <CardTitle className="text-xl sm:text-2xl font-semibold leading-none tracking-tight">
                 Compiled Proposal
               </CardTitle>
               <CardDescription>
@@ -51,7 +51,7 @@ export function CompiledView({ sections }: CompiledViewProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowMarkdown(!showMarkdown)}
-                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark text-xs sm:text-sm"
               >
                 {showMarkdown ? "Show Raw" : "Show Formatted"}
               </Button>
@@ -59,7 +59,7 @@ export function CompiledView({ sections }: CompiledViewProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleCopy}
-                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark flex items-center gap-2 text-xs sm:text-sm"
               >
                 <Copy className="h-4 w-4" />
                 Copy
@@ -67,10 +67,10 @@ export function CompiledView({ sections }: CompiledViewProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0">
           {showMarkdown ? (
             <div 
-              className={`prose dark:prose-invert max-w-none border rounded-md p-4 bg-background overflow-y-auto ${
+              className={`prose dark:prose-invert max-w-none border rounded-md p-3 sm:p-4 bg-background overflow-y-auto ${
                 isExpanded ? "min-h-[500px]" : "min-h-[200px]"
               }`}
               onClick={() => setIsExpanded(!isExpanded)}

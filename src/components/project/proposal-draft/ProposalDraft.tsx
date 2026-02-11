@@ -97,18 +97,16 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:justify-between space-y-2 sm:space-y-0">
         <div>
-          <CardTitle className="text-2xl font-semibold">Proposal Draft</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl font-semibold">Proposal Draft</CardTitle>
           <CardDescription>
             Create and edit sections for your proposal
           </CardDescription>
         </div>
-        <div className="flex items-center space-x-2">
-          <BackupManager sections={sections} projectId={projectId} />
-        </div>
+        <BackupManager sections={sections} projectId={projectId} />
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-6 pt-0">
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

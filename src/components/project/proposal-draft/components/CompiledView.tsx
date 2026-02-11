@@ -7,12 +7,15 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ProposalSection } from "../useProposalSections";
 import ReactMarkdown from "react-markdown";
+import { SubmitToKnowledgeBaseButton } from "./SubmitToKnowledgeBaseButton";
 
 interface CompiledViewProps {
   sections: ProposalSection[];
+  projectId: string;
+  projectTitle?: string;
 }
 
-export function CompiledView({ sections }: CompiledViewProps) {
+export function CompiledView({ sections, projectId, projectTitle }: CompiledViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMarkdown, setShowMarkdown] = useState(true);
 
@@ -64,6 +67,11 @@ export function CompiledView({ sections }: CompiledViewProps) {
                 <Copy className="h-4 w-4" />
                 Copy
               </Button>
+              <SubmitToKnowledgeBaseButton
+                proposalContent={compiledContent}
+                projectId={projectId}
+                projectTitle={projectTitle}
+              />
             </div>
           </div>
         </CardHeader>

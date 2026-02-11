@@ -148,7 +148,7 @@ export function BackupManager({ sections, projectId }: BackupManagerProps) {
 
   return (
     <>
-      <div className="flex items-center space-x-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button 
           variant="outline" 
           size="sm" 
@@ -156,7 +156,7 @@ export function BackupManager({ sections, projectId }: BackupManagerProps) {
           className="flex items-center gap-1"
         >
           <Save className="h-3.5 w-3.5" />
-          Save Backup
+          <span className="hidden sm:inline">Save Backup</span>
         </Button>
         
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -167,7 +167,7 @@ export function BackupManager({ sections, projectId }: BackupManagerProps) {
               className="flex items-center gap-1"
             >
               <Download className="h-3.5 w-3.5" />
-              Backup Options
+              <span className="hidden sm:inline">Backup Options</span>
             </Button>
           </DialogTrigger>
           <DialogContent>

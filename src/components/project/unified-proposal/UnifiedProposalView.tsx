@@ -92,7 +92,7 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
               disabled={!hasFeature(tab.feature as any)}
             >
               <tab.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="text-[10px] sm:text-sm sm:inline">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>

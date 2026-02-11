@@ -106,7 +106,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
   return (
     <>
       {/* Mobile: horizontal scrollable tabs */}
-      <div className="md:hidden border-b bg-background overflow-x-auto">
+      <div className="md:hidden border-b bg-background overflow-x-auto sticky top-0 z-10">
         <div className="flex min-w-max px-2 py-2 gap-1">
           {sections.map((section) => {
             const isFeatureAvailable = 

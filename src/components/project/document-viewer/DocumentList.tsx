@@ -13,18 +13,18 @@ export function DocumentList({ documents, onView, onDelete }: DocumentListProps)
         {documents.map((doc) => (
           <div
             key={doc.document_id}
-            className="flex items-center justify-between rounded-lg border p-3"
+            className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 gap-2"
           >
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{doc.file_name}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{doc.file_name}</p>
                 <p className="text-xs text-muted-foreground capitalize">
                   {doc.document_type}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"

@@ -122,15 +122,15 @@ export function ProjectEditForm({ project, onCancel, onSuccess }: ProjectEditFor
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button 
           onClick={handleSave}
-          className="bg-brand-green hover:bg-brand-green/90 text-white flex items-center gap-2"
+          className="bg-brand-green hover:bg-brand-green/90 text-white flex items-center gap-2 w-full sm:w-auto"
         >
           <Save className="h-4 w-4" />
           Save Changes
         </Button>
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
           Cancel
         </Button>
       </div>

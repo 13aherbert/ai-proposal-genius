@@ -55,7 +55,7 @@ export function ApplySuggestionsButton({
       <AlertDialogTrigger asChild>
         <Button
           variant="outline"
-          className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50"
+          className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 hover:border-primary/50 w-full sm:w-auto"
           disabled={progress.isImproving}
         >
           {progress.isImproving ? (

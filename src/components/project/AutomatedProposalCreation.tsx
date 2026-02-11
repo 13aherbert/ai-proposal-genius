@@ -78,18 +78,18 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
   return (
     <Card className="w-full">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-brand-green" />
-            <CardTitle className="text-xl">Automated Proposal Creation</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Automated Proposal Creation</CardTitle>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {!progress.isRunning && progress.completedSteps.length > 0 && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={resetAutomation}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset
@@ -100,7 +100,7 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
                 variant="outline" 
                 size="sm" 
                 onClick={stopAutomation}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Square className="h-4 w-4" />
                 Stop
@@ -109,7 +109,7 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
               <Button 
                 onClick={startAutomation}
                 disabled={progress.isRunning}
-                className="bg-brand-green hover:bg-brand-green-dark text-white gap-2"
+                className="bg-brand-green hover:bg-brand-green-dark text-white gap-2 w-full sm:w-auto"
                 size="sm"
               >
                 <Play className="h-4 w-4" />
@@ -135,7 +135,7 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
         )}
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6">
         {/* Current Step Highlight */}
         {progress.isRunning && (
           <Alert className="border-blue-200 bg-blue-50">
@@ -166,26 +166,26 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
           </h4>
           
           {(['analysis', 'outline', 'sections', 'content', 'evaluation'] as AutomationStep[]).map((step, index) => (
-            <div key={step} className="flex items-center gap-3 p-3 rounded-lg border">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full border">
-                <span className="text-sm font-medium">{index + 1}</span>
+            <div key={step} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border">
+              <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full border shrink-0">
+                <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
               </div>
               
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{stepDisplayNames[step]}</span>
-                  <Badge variant={getStepBadgeVariant(step)} className="text-xs">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm sm:text-base truncate">{stepDisplayNames[step]}</span>
+                  <Badge variant={getStepBadgeVariant(step)} className="text-xs shrink-0">
                     {progress.completedSteps.includes(step) ? 'Completed' :
                      progress.currentStep === step && progress.isRunning ? 'In Progress' :
                      progress.errors.some(error => error.step === step) ? 'Failed' : 'Pending'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground hidden sm:block">
                   {stepDescriptions[step]}
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {renderStepStatus(step)}
               </div>
             </div>

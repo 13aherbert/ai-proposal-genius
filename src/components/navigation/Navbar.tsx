@@ -1,24 +1,28 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const { session, signOut } = useAuth();
   const { profileData } = useProfile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleSignOut = async () => {
+    setMobileMenuOpen(false);
     await signOut();
   };
   
   return (
-    <header className="bg-background border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <header className="bg-background border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <Link to="/dashboard" className="text-xl font-semibold text-brand-green">
+            <Link to="/dashboard" className="text-lg sm:text-xl font-semibold text-brand-green">
               ProposalPro
             </Link>
             
@@ -45,22 +49,98 @@ export function Navbar() {
             )}
           </div>
           
-          {session ? (
-            <div className="flex items-center space-x-4">
-              <Link to="/account-settings" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Account
+          {/* Desktop actions */}
+          <div className="hidden md:flex items-center space-x-4">
+            {session ? (
+              <>
+                <Link to="/account-settings" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                  Account
+                </Link>
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Link to="/">
+                <Button size="sm">Sign In</Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          ) : (
-            <Link to="/">
-              <Button size="sm">Sign In</Button>
-            </Link>
+            )}
+          </div>
+
+          {/* Mobile hamburger */}
+          {session && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           )}
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {session && mobileMenuOpen && (
+        <div className="md:hidden border-t bg-background">
+          <nav className="flex flex-col px-4 py-3 space-y-1">
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/projects"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+            >
+              Projects
+            </Link>
+            <Link
+              to="/upload-rfp"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+            >
+              Upload RFP
+            </Link>
+            <Link
+              to="/knowledge-base"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+            >
+              Knowledge Base
+            </Link>
+            {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
+              <Link
+                to="/organization"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+              >
+                Organization
+              </Link>
+            )}
+            <div className="border-t pt-2 mt-2 space-y-1">
+              <Link
+                to="/account-settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md block"
+              >
+                Account
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md w-full text-left"
+              >
+                Sign Out
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

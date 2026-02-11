@@ -33,9 +33,9 @@ const KnowledgeBase = () => {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)]">
-        <div className="flex flex-col gap-8 h-full">
-          <header className="flex items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex flex-col gap-4 sm:gap-8">
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -45,7 +45,7 @@ const KnowledgeBase = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold text-brand-green">
+              <h1 className="text-2xl sm:text-3xl font-bold text-brand-green">
                 Knowledge Base
               </h1>
             </div>
@@ -56,15 +56,15 @@ const KnowledgeBase = () => {
             />
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100%-5rem)]">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
             <CategorySidebar 
               categories={categories} 
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
             />
-            <div className="lg:col-span-3 space-y-6">
+            <div className="lg:col-span-3 space-y-4 sm:space-y-6">
               <SearchBar />
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
                 <div className="xl:col-span-3">
                   <RecentEntries 
                     selectedCategory={selectedCategory} 

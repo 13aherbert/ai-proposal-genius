@@ -155,12 +155,12 @@ export function ProjectContent({ project }: ProjectContentProps) {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)]">
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-8rem)]">
       <ProjectSidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}
       />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-3 sm:p-6">
         {isTestMode && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-md p-2 text-sm text-amber-700">
             Test mode active. Your subscription features are being simulated.

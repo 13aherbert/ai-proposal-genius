@@ -37,9 +37,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const stepInterval = setInterval(() => {
       setLoadingElapsed(prev => {
         const newValue = prev + 1;
-        
-        // Show timeout message earlier at 3 seconds
-        if (newValue === 3 && loading) {
+        // Show timeout message at 8 seconds
+        if (newValue === 8 && loading) {
           setTimeoutOccurred(true);
         }
         

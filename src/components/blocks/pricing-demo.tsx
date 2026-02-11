@@ -16,7 +16,7 @@ const plans = [
     ],
     description: "Perfect for getting started - no credit card required",
     buttonText: "Get Started Free",
-    href: "/signup",
+    href: "/#signup",
     isPopular: false,
     priceId: {
       monthly: "",

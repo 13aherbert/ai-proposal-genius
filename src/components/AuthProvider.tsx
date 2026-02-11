@@ -303,9 +303,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const isNewUser = (now.getTime() - createdAt.getTime()) < 10000;
 
               if (isNewUser) {
-                console.log('New user detected, redirecting to subscription page');
-                navigate("/subscription", { replace: true });
-                toast.success("Welcome! Please choose your subscription plan");
+                console.log('New user detected, redirecting to dashboard');
+                navigate("/dashboard", { replace: true });
+                toast.success("Welcome! Let's get you started");
               } else {
                 const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
                 console.log(`Existing user detected, redirecting to ${redirectPath}`);

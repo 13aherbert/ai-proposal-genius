@@ -107,6 +107,7 @@ export default function Subscription() {
     <DefaultView
       handleUpdatePayment={handleUpdatePayment}
       isUpdatingPayment={isUpdatingPayment}
+      hasStripeCustomer={!!subscription.data?.stripe_customer_id}
     />
   );
 }

@@ -208,12 +208,10 @@ export function QuickUploadModal({
                 </div>
               </div>
               
-              {!autoGenerate && (
-                <Button onClick={onViewProject} className="w-full gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  View Project
-                </Button>
-              )}
+              <Button onClick={onViewProject} className="w-full gap-2">
+                <ExternalLink className="h-4 w-4" />
+                View Project
+              </Button>
             </div>
           )}
 

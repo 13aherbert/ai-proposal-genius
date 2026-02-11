@@ -251,15 +251,7 @@ const UploadRFP = () => {
                 disabled={hasReachedLimit || isUserTrialExpired}
               />
               
-              {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
-                <Button 
-                  onClick={handleStartAutomation}
-                  className="w-full flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                >
-                  <Zap className="h-4 w-4" />
-                  Start Full Automation
-                </Button>
-              )}
+              
             </div>
             
             <div className="flex flex-col gap-6">

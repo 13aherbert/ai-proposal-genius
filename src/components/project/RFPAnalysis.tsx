@@ -41,7 +41,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
     <Card>
       <CardHeader>
         <div className="flex flex-col items-start">
-          <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+          <CardTitle className="text-xl sm:text-2xl font-semibold leading-none tracking-tight">
             RFP Summary
           </CardTitle>
           <CardDescription>
@@ -92,13 +92,13 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
               onReset={handleReset}
             />
             
-            <div className="flex space-x-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 pt-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="border-red-500 hover:bg-red-500/10 text-red-500"
+                    className="border-red-500 hover:bg-red-500/10 text-red-500 w-full sm:w-auto"
                   >
                     Reset Analysis
                   </Button>
@@ -124,7 +124,7 @@ export function RFPAnalysis({ filePath, projectId }: RFPAnalysisProps) {
                 size="sm"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 w-full sm:w-auto"
               >
                 <RefreshCw className="h-3 w-3" />
                 Analyze Again

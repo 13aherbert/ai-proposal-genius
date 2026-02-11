@@ -21,16 +21,17 @@ export function ProjectHeader({ title }: ProjectHeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <header className="flex items-center gap-4">
+    <header className="flex items-center gap-2 sm:gap-4 px-2 sm:px-0">
       <Button
         variant="ghost"
         size="icon"
         onClick={() => navigate("/projects")}
         aria-label="Back to projects"
+        className="shrink-0"
       >
         <ArrowLeft className="h-4 w-4" />
       </Button>
-      <h1 className="text-3xl font-bold">{title}</h1>
+      <h1 className="text-xl sm:text-3xl font-bold truncate">{title}</h1>
     </header>
   );
 }

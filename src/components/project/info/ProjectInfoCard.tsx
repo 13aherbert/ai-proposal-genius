@@ -19,12 +19,12 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col items-start">
             <CardTitle>Project Information</CardTitle>
             <CardDescription>Details about your RFP project</CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={() => {
@@ -32,10 +32,10 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
                 setIsEditing(false);
               }}
               disabled={!project.rfp_file_path}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full sm:w-auto"
             >
               <Bot className="h-4 w-4" />
-              Automate Proposal
+              <span className="sm:inline">Automate Proposal</span>
             </Button>
             <Button
               variant="outline"
@@ -43,15 +43,15 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
                 setIsEditing(true);
                 setShowAutomation(false);
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full sm:w-auto"
             >
               <Edit className="h-4 w-4" />
-              Edit Details
+              <span className="sm:inline">Edit Details</span>
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6">
         {isEditing ? (
           <ProjectEditForm 
             project={project} 

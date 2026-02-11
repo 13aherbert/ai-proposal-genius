@@ -11,18 +11,18 @@ interface EvaluationContentProps {
  */
 export function EvaluationContent({ content }: EvaluationContentProps) {
   return (
-    <ScrollArea className="h-[500px] w-full rounded-md border bg-background p-6">
+    <ScrollArea className="max-h-[60vh] sm:h-[500px] w-full rounded-md border bg-background p-3 sm:p-6">
       <div className="prose prose-gray max-w-none">
         <ReactMarkdown
           components={{
             h1: ({ children }) => (
-              <h1 className="text-2xl font-bold mb-4 text-foreground">{children}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">{children}</h1>
             ),
             h2: ({ children }) => (
-              <h2 className="text-xl font-semibold mb-3 mt-6 text-foreground">{children}</h2>
+              <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 mt-4 sm:mt-6 text-foreground">{children}</h2>
             ),
             h3: ({ children }) => (
-              <h3 className="text-lg font-medium mb-2 mt-4 text-brand-green">{children}</h3>
+              <h3 className="text-base sm:text-lg font-medium mb-2 mt-3 sm:mt-4 text-brand-green">{children}</h3>
             ),
             p: ({ children }) => {
               const content = String(children);

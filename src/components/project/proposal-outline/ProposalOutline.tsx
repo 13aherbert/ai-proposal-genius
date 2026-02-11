@@ -37,7 +37,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
     <Card>
       <CardHeader>
         <div className="flex flex-col items-start">
-          <CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+          <CardTitle className="text-xl sm:text-2xl font-semibold leading-none tracking-tight">
             Proposal Outline
           </CardTitle>
           <CardDescription>
@@ -80,13 +80,13 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <ReactMarkdown>{outline}</ReactMarkdown>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="border-red-500 hover:bg-red-500/10 text-red-500"
+                    className="border-red-500 hover:bg-red-500/10 text-red-500 w-full sm:w-auto"
                   >
                     Reset Outline
                   </Button>
@@ -111,7 +111,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
                 variant="outline" 
                 onClick={handleGenerateOutline}
                 size="sm"
-                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+                className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark w-full sm:w-auto"
                 disabled={isGenerating}
               >
                 {isGenerating ? (

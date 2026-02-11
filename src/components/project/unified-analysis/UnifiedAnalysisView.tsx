@@ -86,12 +86,12 @@ export function UnifiedAnalysisView({ projectId, filePath, analysis }: UnifiedAn
               disabled={!hasFeature(tab.feature as any)}
             >
               <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              <span className="text-xs sm:text-sm">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
 
-        <TabsContent value="summary" className="mt-4">
+        <TabsContent value="summary" className="mt-2 sm:mt-4">
           {hasFeature('rfp_summary') ? (
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
@@ -106,7 +106,7 @@ export function UnifiedAnalysisView({ projectId, filePath, analysis }: UnifiedAn
           )}
         </TabsContent>
 
-        <TabsContent value="outline" className="mt-4">
+        <TabsContent value="outline" className="mt-2 sm:mt-4">
           {hasFeature('proposal_outline') ? (
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>

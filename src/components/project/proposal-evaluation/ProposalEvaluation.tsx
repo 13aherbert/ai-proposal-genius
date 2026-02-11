@@ -26,21 +26,21 @@ export function ProposalEvaluation({ projectId, analysis, onSectionsUpdated }: P
   return (
     <Card>
       <CardHeader className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col items-start flex-1">
-            <CardTitle className="text-2xl font-semibold leading-none tracking-tight text-foreground">
+            <CardTitle className="text-xl sm:text-2xl font-semibold leading-none tracking-tight text-foreground">
               Proposal Evaluation
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               Get an AI-powered evaluation of your proposal
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Button 
               onClick={handleEvaluate}
               disabled={isEvaluating}
               variant="outline"
-              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark"
+              className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark w-full sm:w-auto"
             >
               {isEvaluating ? (
                 <>

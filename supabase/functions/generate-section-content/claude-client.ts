@@ -1,16 +1,15 @@
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-opus-4-1-20250805';
+// Lovable AI Gateway client for section content generation
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
-export async function generateWithClaude(prompt: string, apiKey: string): Promise<string> {
-  const response = await fetch(CLAUDE_API_URL, {
+export async function generateWithClaude(prompt: string, apiKey: string, model: string = 'google/gemini-2.5-flash'): Promise<string> {
+  const response = await fetch(AI_GATEWAY_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: 4096,
       messages: [
         {
@@ -22,9 +21,15 @@ export async function generateWithClaude(prompt: string, apiKey: string): Promis
   });
 
   if (!response.ok) {
-    throw new Error(`Claude API error: ${response.statusText}`);
+    if (response.status === 429) {
+      throw new Error('Rate limits exceeded, please try again later.');
+    }
+    if (response.status === 402) {
+      throw new Error('Payment required, please add funds to your Lovable AI workspace.');
+    }
+    throw new Error(`AI Gateway error: ${response.status} ${response.statusText}`);
   }
 
   const result = await response.json();
-  return result.content[0].text;
+  return result.choices[0].message.content;
 }

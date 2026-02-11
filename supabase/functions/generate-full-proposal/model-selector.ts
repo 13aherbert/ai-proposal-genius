@@ -1,5 +1,5 @@
-// Tiered model selection for AI cost optimization
-// Selects optimal model based on section complexity and content requirements
+// Tiered model selection for AI cost optimization via Lovable AI Gateway
+// Uses Gemini models for optimal cost/quality balance
 
 export interface ModelConfig {
   model: string;
@@ -11,36 +11,36 @@ export interface ModelConfig {
 export interface CostMetrics {
   modelUsed: string;
   costTier: string;
-  estimatedCostReduction: number; // Percentage vs Opus baseline
+  estimatedCostReduction: number;
 }
 
-// Model tiers with their configurations
+// Model tiers using Gemini via Lovable AI Gateway
 const MODELS = {
   HIGH: {
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'google/gemini-2.5-pro',
     maxTokens: 2500,
     costTier: 'high' as const,
-    displayName: 'Claude Sonnet 4.5 (High Quality)'
+    displayName: 'Gemini 2.5 Pro (High Quality)'
   },
   MEDIUM: {
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'google/gemini-2.5-flash',
     maxTokens: 1500,
     costTier: 'medium' as const,
-    displayName: 'Claude Sonnet 4.5 (Balanced)'
+    displayName: 'Gemini 2.5 Flash (Balanced)'
   },
   LOW: {
-    model: 'claude-haiku-4-5-20251001',
+    model: 'google/gemini-2.5-flash-lite',
     maxTokens: 1200,
     costTier: 'low' as const,
-    displayName: 'Claude Haiku 4.5 (Fast & Efficient)'
+    displayName: 'Gemini 2.5 Flash Lite (Fast & Efficient)'
   }
 };
 
-// Relative cost of each model vs Opus (1.0 baseline)
+// Relative cost of each model (Pro = 1.0 baseline)
 const MODEL_COSTS: { [key: string]: number } = {
-  'claude-opus-4-5-20250929': 1.0,
-  'claude-sonnet-4-5-20250929': 0.60,
-  'claude-haiku-4-5-20251001': 0.20
+  'google/gemini-2.5-pro': 1.0,
+  'google/gemini-2.5-flash': 0.35,
+  'google/gemini-2.5-flash-lite': 0.10
 };
 
 // Section type keywords for classification
@@ -53,84 +53,56 @@ const SECTION_TYPE_PATTERNS = {
   company: ['company', 'about', 'organization', 'background', 'history', 'profile', 'who we are']
 };
 
-// Complexity indicators that suggest more capable model
 const COMPLEXITY_INDICATORS = [
   'strategy', 'approach', 'methodology', 'analysis', 'evaluation',
   'implementation', 'comprehensive', 'detailed', 'advanced', 'complex',
   'integration', 'architecture', 'framework', 'optimization'
 ];
 
-/**
- * Detect section type from title
- */
 export function detectSectionType(sectionTitle: string): string {
   const titleLower = sectionTitle.toLowerCase();
-  
   for (const [type, patterns] of Object.entries(SECTION_TYPE_PATTERNS)) {
     if (patterns.some(pattern => titleLower.includes(pattern))) {
       return type;
     }
   }
-  
   return 'general';
 }
 
-/**
- * Calculate complexity score for a section (0.0 - 1.0)
- */
 function calculateComplexity(sectionTitle: string, sectionType: string): number {
-  // Base complexity by section type
   const baseComplexity: { [key: string]: number } = {
-    executive: 0.9,    // Requires strategic thinking and synthesis
-    technical: 0.8,    // Needs technical accuracy and detail
-    pricing: 0.6,      // Requires careful calculation and justification
-    timeline: 0.5,     // Structured but straightforward
-    team: 0.4,         // Factual with some narrative
-    company: 0.3,      // Straightforward factual content
-    general: 0.5       // Default medium complexity
+    executive: 0.9,
+    technical: 0.8,
+    pricing: 0.6,
+    timeline: 0.5,
+    team: 0.4,
+    company: 0.3,
+    general: 0.5
   };
-  
+
   let complexity = baseComplexity[sectionType] || 0.5;
-  
-  // Adjust based on title length (longer titles often mean more complex sections)
+
   const titleWords = sectionTitle.split(/\s+/).length;
-  if (titleWords > 6) {
-    complexity += 0.1;
-  }
-  
-  // Check for complexity indicators in title
+  if (titleWords > 6) complexity += 0.1;
+
   const titleLower = sectionTitle.toLowerCase();
-  const hasComplexityIndicators = COMPLEXITY_INDICATORS.some(indicator => 
-    titleLower.includes(indicator)
-  );
-  
-  if (hasComplexityIndicators) {
-    complexity += 0.15;
-  }
-  
+  if (COMPLEXITY_INDICATORS.some(i => titleLower.includes(i))) complexity += 0.15;
+
   return Math.min(complexity, 1.0);
 }
 
-/**
- * Select optimal model configuration based on section requirements
- */
 export function selectOptimalModel(sectionTitle: string, contextLength: number = 0): ModelConfig {
   const sectionType = detectSectionType(sectionTitle);
   const sectionComplexity = calculateComplexity(sectionTitle, sectionType);
-  
-  // Additional complexity boost for large context
+
   let contextComplexity = 0;
-  if (contextLength > 50000) {
-    contextComplexity = 0.2;
-  } else if (contextLength > 20000) {
-    contextComplexity = 0.1;
-  }
-  
+  if (contextLength > 50000) contextComplexity = 0.2;
+  else if (contextLength > 20000) contextComplexity = 0.1;
+
   const overallComplexity = Math.min(sectionComplexity + contextComplexity, 1.0);
-  
+
   console.log(`Model selection for "${sectionTitle}" - Type: ${sectionType}, Complexity: ${overallComplexity.toFixed(2)}`);
-  
-  // Tiered selection based on complexity
+
   if (overallComplexity >= 0.75) {
     console.log(`  → Using HIGH tier: ${MODELS.HIGH.displayName}`);
     return MODELS.HIGH;
@@ -143,24 +115,18 @@ export function selectOptimalModel(sectionTitle: string, contextLength: number =
   }
 }
 
-/**
- * Calculate cost savings metrics for tracking
- */
 export function calculateCostMetrics(modelUsed: string): CostMetrics {
-  const opusCost = MODEL_COSTS['claude-opus-4-1-20250805'];
-  const actualCost = MODEL_COSTS[modelUsed] || opusCost;
-  const costReduction = Math.round((1 - (actualCost / opusCost)) * 100);
-  
+  const proCost = MODEL_COSTS['google/gemini-2.5-pro'] || 1.0;
+  const actualCost = MODEL_COSTS[modelUsed] || proCost;
+  const costReduction = Math.round((1 - (actualCost / proCost)) * 100);
+
   return {
     modelUsed,
-    costTier: actualCost <= 0.15 ? 'low' : actualCost <= 0.35 ? 'medium' : 'high',
+    costTier: actualCost <= 0.15 ? 'low' : actualCost <= 0.5 ? 'medium' : 'high',
     estimatedCostReduction: costReduction
   };
 }
 
-/**
- * Get aggregated cost statistics for a set of model usages
- */
 export function aggregateCostStats(modelUsages: string[]): {
   totalSections: number;
   modelsUsed: { [key: string]: number };
@@ -170,15 +136,14 @@ export function aggregateCostStats(modelUsages: string[]): {
   const modelsUsed: { [key: string]: number } = {};
   let totalCostReduction = 0;
   const tierDistribution = { low: 0, medium: 0, high: 0 };
-  
+
   for (const model of modelUsages) {
     modelsUsed[model] = (modelsUsed[model] || 0) + 1;
-    
     const metrics = calculateCostMetrics(model);
     totalCostReduction += metrics.estimatedCostReduction;
     tierDistribution[metrics.costTier as keyof typeof tierDistribution]++;
   }
-  
+
   return {
     totalSections: modelUsages.length,
     modelsUsed,

@@ -4,8 +4,8 @@ import { selectOptimalModel, detectSectionType, calculateCostMetrics, aggregateC
 import { filterKnowledgeForSection, createCompanyProfile, type KnowledgeEntry } from './smart-knowledge-filter.ts';
 import { generateOptimizedPrompt, estimateTokenCount, type PromptConfig } from './optimized-prompt.ts';
 
-// === CLAUDE CLIENT WITH TIERED MODEL SUPPORT ===
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+// === LOVABLE AI GATEWAY CLIENT WITH TIERED MODEL SUPPORT ===
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MAX_RETRIES = 3;
 const BASE_DELAY = 1000;
 const REQUEST_DELAY = 2500;
@@ -23,12 +23,11 @@ async function generateWithTieredModel(
   try {
     console.log(`Calling ${modelConfig.displayName} (${modelConfig.costTier} tier, ${modelConfig.maxTokens} max tokens)`);
     
-    const response = await fetch(CLAUDE_API_URL, {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: modelConfig.model,
@@ -45,14 +44,18 @@ async function generateWithTieredModel(
         return generateWithTieredModel(prompt, apiKey, modelConfig, retryCount + 1);
       }
       
+      if (response.status === 402) {
+        throw new Error('Payment required - please add funds to your Lovable AI workspace');
+      }
+      
       const errorText = await response.text();
-      console.error(`Claude API error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+      console.error(`AI Gateway error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`AI Gateway error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
     return {
-      content: result.content[0].text,
+      content: result.choices[0].message.content,
       model: modelConfig.model
     };
   } catch (error) {
@@ -212,7 +215,7 @@ async function generateOptimizedSectionContent(
   knowledgeEntries: KnowledgeEntry[],
   allSections: string[],
   existingSections: Map<string, string>,
-  anthropicApiKey: string
+  lovableApiKey: string
 ): Promise<SectionResult> {
   const startTime = Date.now();
   
@@ -244,7 +247,7 @@ async function generateOptimizedSectionContent(
   console.log(`Knowledge reduction: ${filteredKnowledge.reductionPercent}%`);
   
   // Step 4: Generate content with selected model
-  const result = await generateWithTieredModel(optimizedPrompt, anthropicApiKey, modelConfig);
+  const result = await generateWithTieredModel(optimizedPrompt, lovableApiKey, modelConfig);
   
   // Step 5: Analyze quality
   const quality = analyzeContentQuality(result.content);
@@ -284,9 +287,9 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!supabaseUrl || !supabaseServiceKey || !anthropicApiKey) {
+    if (!supabaseUrl || !supabaseServiceKey || !lovableApiKey) {
       throw new ProposalGenerationError('Missing required environment variables');
     }
 
@@ -373,7 +376,7 @@ serve(async (req) => {
           entries,
           allSections,
           existingSections,
-          anthropicApiKey
+          lovableApiKey
         );
         
         sectionResults.push(sectionResult);

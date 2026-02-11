@@ -85,7 +85,7 @@ export function useQuickUpload() {
       setState(prev => ({ ...prev, progress: 25 }));
       
       const { error: uploadError } = await supabase.storage
-        .from('rfp_documents')
+        .from('rfp-files')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;

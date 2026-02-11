@@ -157,7 +157,7 @@ export default function Dashboard() {
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
                 {/* Quick Actions with tour targets - Full width with padding */}
-                <div className="w-screen flex gap-4 justify-between px-4">
+                <div className="w-full flex gap-4 justify-between">
                   <div className="flex-1" data-tour="upload-rfp">
                     <QuickUploadZone onFileSelect={(file) => {
                       quickUpload.openModal();
@@ -244,7 +244,7 @@ export default function Dashboard() {
           {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
           {/* Quick Actions - Full width with padding */}
-          <div className="w-screen flex gap-4 justify-between px-4">
+          <div className="w-full flex gap-4 justify-between">
             <div className="flex-1">
               <QuickUploadZone onFileSelect={(file) => {
                 quickUpload.openModal();

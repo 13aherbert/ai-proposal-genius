@@ -9,7 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
@@ -102,16 +102,15 @@ serve(async (req) => {
     const prompt = generatePrompt(topic, industry, category, customPrompt, existingContent);
     console.log("Generated prompt for Claude");
 
-    // Call Claude API to generate content
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call Lovable AI Gateway to generate content
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey!,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${lovableApiKey!}`
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'google/gemini-2.5-flash',
         max_tokens: 4000,
         messages: [
           {
@@ -124,12 +123,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Claude API error:", errorText);
-      throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+      console.error("AI Gateway error:", errorText);
+      throw new Error(`AI Gateway error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
-    const content = result.content[0].text;
+    const content = result.choices[0].message.content;
     
     return new Response(
       JSON.stringify({ content }),

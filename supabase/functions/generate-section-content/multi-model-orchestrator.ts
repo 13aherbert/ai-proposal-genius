@@ -1,4 +1,6 @@
-// Phase 3: Advanced Intelligence - Multi-Model Orchestration
+// Phase 3: Advanced Intelligence - Multi-Model Orchestration via Lovable AI Gateway
+const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
 export interface ModelResult {
   model: string;
   content: string;
@@ -19,70 +21,63 @@ export interface ConsensusResult {
 
 export class MultiModelOrchestrator {
   private static readonly MODELS = [
-    { name: 'claude-opus-4-5-20250929', weight: 0.4, strength: 'reasoning' },
-    { name: 'claude-sonnet-4-5-20250929', weight: 0.35, strength: 'efficiency' },
-    { name: 'claude-haiku-4-5-20251001', weight: 0.25, strength: 'speed' }
+    { name: 'google/gemini-2.5-pro', weight: 0.4, strength: 'reasoning' },
+    { name: 'google/gemini-2.5-flash', weight: 0.35, strength: 'efficiency' },
+    { name: 'google/gemini-2.5-flash-lite', weight: 0.25, strength: 'speed' }
   ];
 
   static async orchestrateGeneration(
     prompt: string,
-    anthropicApiKey: string,
+    apiKey: string,
     sectionType: string,
     complexity: 'simple' | 'moderate' | 'complex' = 'moderate'
   ): Promise<ConsensusResult> {
     const results: ModelResult[] = [];
-    
-    // Determine which models to use based on complexity
     const selectedModels = this.selectModelsForComplexity(complexity);
     
-    // Generate content from multiple models in parallel
     for (const model of selectedModels) {
       try {
         const startTime = Date.now();
-        const content = await this.generateWithModel(prompt, model.name, anthropicApiKey);
+        const content = await this.generateWithModel(prompt, model.name, apiKey);
         const processingTime = Date.now() - startTime;
         
-        const result: ModelResult = {
+        results.push({
           model: model.name,
           content,
           confidence: this.calculateModelConfidence(content, sectionType),
           reasoning_score: this.assessReasoningQuality(content),
           technical_accuracy: this.assessTechnicalAccuracy(content, sectionType),
           processing_time: processingTime
-        };
-        
-        results.push(result);
+        });
       } catch (error) {
         console.warn(`Model ${model.name} failed:`, error.message);
       }
     }
 
-    // Synthesize results using advanced consensus algorithms
     return this.synthesizeResults(results, sectionType);
   }
 
   private static selectModelsForComplexity(complexity: string) {
     switch (complexity) {
       case 'simple':
-        return this.MODELS.slice(2); // Just Haiku for simple content
+        return this.MODELS.slice(2); // Flash Lite for simple
       case 'complex':
-        return this.MODELS; // All models for complex content
+        return this.MODELS; // All models for complex
       default:
-        return this.MODELS.slice(0, 2); // Opus + Sonnet for moderate
+        return this.MODELS.slice(0, 2); // Pro + Flash for moderate
     }
   }
 
   private static async generateWithModel(
     prompt: string,
     model: string,
-    anthropicApiKey: string
+    apiKey: string
   ): Promise<string> {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': anthropicApiKey,
-        'Anthropic-Version': '2023-06-01'
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model,
@@ -96,73 +91,43 @@ export class MultiModelOrchestrator {
     }
 
     const data = await response.json();
-    return data.content[0].text;
+    return data.choices[0].message.content;
   }
 
   private static calculateModelConfidence(content: string, sectionType: string): number {
-    let confidence = 0.5; // Base confidence
-
-    // Length appropriateness
+    let confidence = 0.5;
     const wordCount = content.split(/\s+/).length;
     const idealRange = this.getIdealWordRange(sectionType);
-    if (wordCount >= idealRange.min && wordCount <= idealRange.max) {
-      confidence += 0.2;
-    }
-
-    // Structure quality
+    if (wordCount >= idealRange.min && wordCount <= idealRange.max) confidence += 0.2;
     if (this.hasGoodStructure(content)) confidence += 0.15;
-    
-    // Technical depth
     if (this.hasTechnicalDepth(content, sectionType)) confidence += 0.15;
-
     return Math.min(confidence, 1.0);
   }
 
   private static assessReasoningQuality(content: string): number {
     let score = 0.5;
-    
-    // Logical flow indicators
     const logicIndicators = ['therefore', 'consequently', 'furthermore', 'moreover', 'however'];
-    const logicCount = logicIndicators.filter(indicator => 
-      content.toLowerCase().includes(indicator)
-    ).length;
+    const logicCount = logicIndicators.filter(i => content.toLowerCase().includes(i)).length;
     score += Math.min(logicCount * 0.05, 0.2);
-
-    // Evidence-based reasoning
     if (content.includes('based on') || content.includes('according to')) score += 0.1;
-    
-    // Clear conclusions
     if (content.includes('conclusion') || content.includes('summary')) score += 0.1;
-
     return Math.min(score, 1.0);
   }
 
   private static assessTechnicalAccuracy(content: string, sectionType: string): number {
-    let score = 0.6; // Base technical score
-
+    let score = 0.6;
     const technicalKeywords = this.getTechnicalKeywords(sectionType);
-    const keywordMatches = technicalKeywords.filter(keyword =>
-      content.toLowerCase().includes(keyword.toLowerCase())
-    ).length;
-
+    const keywordMatches = technicalKeywords.filter(k => content.toLowerCase().includes(k.toLowerCase())).length;
     score += Math.min(keywordMatches * 0.05, 0.3);
-
-    // Avoid overly generic content
     const genericPhrases = ['various', 'multiple', 'several', 'numerous'];
-    const genericCount = genericPhrases.filter(phrase =>
-      content.toLowerCase().includes(phrase)
-    ).length;
+    const genericCount = genericPhrases.filter(p => content.toLowerCase().includes(p)).length;
     score -= Math.min(genericCount * 0.05, 0.2);
-
     return Math.max(Math.min(score, 1.0), 0.1);
   }
 
   private static synthesizeResults(results: ModelResult[], sectionType: string): ConsensusResult {
-    if (results.length === 0) {
-      throw new Error('No model results to synthesize');
-    }
+    if (results.length === 0) throw new Error('No model results to synthesize');
 
-    // Single model fallback
     if (results.length === 1) {
       return {
         final_content: results[0].content,
@@ -174,21 +139,16 @@ export class MultiModelOrchestrator {
       };
     }
 
-    // Multi-model consensus
-    const bestResult = results.reduce((best, current) => 
-      (current.confidence + current.reasoning_score + current.technical_accuracy) > 
+    const bestResult = results.reduce((best, current) =>
+      (current.confidence + current.reasoning_score + current.technical_accuracy) >
       (best.confidence + best.reasoning_score + best.technical_accuracy) ? current : best
     );
 
-    // Calculate agreement between models
     const agreement = this.calculateModelAgreement(results);
-    
-    // Enhanced synthesis for high-agreement scenarios
     let finalContent = bestResult.content;
     const improvements: string[] = [];
 
     if (agreement > 0.7) {
-      // High agreement - use best model with minor enhancements
       finalContent = this.enhanceContent(bestResult.content, results, sectionType);
       improvements.push('Enhanced with multi-model insights');
     }
@@ -205,39 +165,32 @@ export class MultiModelOrchestrator {
 
   private static calculateModelAgreement(results: ModelResult[]): number {
     if (results.length < 2) return 1.0;
-
     const contents = results.map(r => r.content);
     let totalSimilarity = 0;
     let comparisons = 0;
-
     for (let i = 0; i < contents.length; i++) {
       for (let j = i + 1; j < contents.length; j++) {
         totalSimilarity += this.calculateContentSimilarity(contents[i], contents[j]);
         comparisons++;
       }
     }
-
     return comparisons > 0 ? totalSimilarity / comparisons : 0;
   }
 
   private static calculateContentSimilarity(content1: string, content2: string): number {
     const words1 = new Set(content1.toLowerCase().split(/\s+/));
     const words2 = new Set(content2.toLowerCase().split(/\s+/));
-    
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
-    
-    return intersection.size / union.size; // Jaccard similarity
+    return intersection.size / union.size;
   }
 
   private static enhanceContent(baseContent: string, allResults: ModelResult[], sectionType: string): string {
-    // For now, return the base content
-    // Future enhancement: merge best elements from all models
     return baseContent;
   }
 
   private static getIdealWordRange(sectionType: string): { min: number; max: number } {
-    const ranges = {
+    const ranges: Record<string, { min: number; max: number }> = {
       'executive': { min: 200, max: 600 },
       'technical': { min: 400, max: 1200 },
       'team': { min: 150, max: 500 },
@@ -255,14 +208,11 @@ export class MultiModelOrchestrator {
 
   private static hasTechnicalDepth(content: string, sectionType: string): boolean {
     const technicalKeywords = this.getTechnicalKeywords(sectionType);
-    const matches = technicalKeywords.filter(keyword =>
-      content.toLowerCase().includes(keyword.toLowerCase())
-    );
-    return matches.length >= 3;
+    return technicalKeywords.filter(k => content.toLowerCase().includes(k.toLowerCase())).length >= 3;
   }
 
   private static getTechnicalKeywords(sectionType: string): string[] {
-    const keywords = {
+    const keywords: Record<string, string[]> = {
       'technical': ['methodology', 'framework', 'architecture', 'implementation', 'integration', 'scalability'],
       'team': ['experience', 'expertise', 'qualification', 'certification', 'leadership', 'collaboration'],
       'timeline': ['milestone', 'deliverable', 'schedule', 'phase', 'deadline', 'duration'],

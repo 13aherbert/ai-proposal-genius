@@ -41,17 +41,17 @@ function createErrorResponse(error: any, context: any, fallbackMessage: string) 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')!;
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
 console.log("Function starting up...");
 console.log("Environment variables loaded:", {
   supabaseUrl: supabaseUrl ? "✓" : "✗",
   supabaseServiceKey: supabaseServiceKey ? "✓" : "✗",
   supabaseAnonKey: supabaseAnonKey ? "✓" : "✗",
-  anthropicApiKey: anthropicApiKey ? "✓" : "✗"
+  lovableApiKey: lovableApiKey ? "✓" : "✗"
 });
 
-if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey || !anthropicApiKey) {
+if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey || !lovableApiKey) {
   throw new Error('Missing required environment variables');
 }
 
@@ -252,7 +252,7 @@ serve(async (req) => {
     
     const orchestrationResult = await MultiModelOrchestrator.orchestrateGeneration(
       promptOptimization.optimized_prompt,
-      anthropicApiKey,
+      lovableApiKey,
       sectionType,
       complexity
     );

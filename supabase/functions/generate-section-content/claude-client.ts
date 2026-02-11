@@ -1,12 +1,19 @@
-// Lovable AI Gateway client for section content generation
-const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Anthropic Claude client for section content generation
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-export async function generateWithClaude(prompt: string, apiKey: string, model: string = 'google/gemini-2.5-flash'): Promise<string> {
-  const response = await fetch(AI_GATEWAY_URL, {
+export async function generateWithClaude(prompt: string, apiKey?: string, model: string = 'claude-sonnet-4-20250514'): Promise<string> {
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+  
+  if (!anthropicKey) {
+    throw new Error('ANTHROPIC_API_KEY is not configured');
+  }
+
+  const response = await fetch(ANTHROPIC_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'x-api-key': anthropicKey,
+      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
       model,
@@ -25,11 +32,12 @@ export async function generateWithClaude(prompt: string, apiKey: string, model: 
       throw new Error('Rate limits exceeded, please try again later.');
     }
     if (response.status === 402) {
-      throw new Error('Payment required, please add funds to your Lovable AI workspace.');
+      throw new Error('Payment required, please check your Anthropic billing.');
     }
-    throw new Error(`AI Gateway error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const result = await response.json();
-  return result.choices[0].message.content;
+  return result.content[0].text;
 }

@@ -4,8 +4,9 @@ import { selectOptimalModel, detectSectionType, calculateCostMetrics, aggregateC
 import { filterKnowledgeForSection, createCompanyProfile, type KnowledgeEntry } from './smart-knowledge-filter.ts';
 import { generateOptimizedPrompt, estimateTokenCount, type PromptConfig } from './optimized-prompt.ts';
 
-// === LOVABLE AI GATEWAY CLIENT WITH TIERED MODEL SUPPORT ===
-const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// === ANTHROPIC CLAUDE CLIENT WITH TIERED MODEL SUPPORT ===
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const MAX_RETRIES = 3;
 const BASE_DELAY = 1000;
 const REQUEST_DELAY = 2500;
@@ -16,21 +17,27 @@ async function delay(ms: number): Promise<void> {
 
 async function generateWithTieredModel(
   prompt: string, 
-  apiKey: string, 
+  _apiKey: string, // kept for interface compatibility
   modelConfig: ModelConfig,
   retryCount = 0
 ): Promise<{ content: string; model: string }> {
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!anthropicKey) {
+    throw new Error('ANTHROPIC_API_KEY is not configured');
+  }
+
   try {
-    console.log(`Calling ${modelConfig.displayName} (${modelConfig.costTier} tier, ${modelConfig.maxTokens} max tokens)`);
+    console.log(`Calling Claude Sonnet for section (original tier: ${modelConfig.costTier}, ${modelConfig.maxTokens} max tokens)`);
     
-    const response = await fetch(AI_GATEWAY_URL, {
+    const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: modelConfig.model,
+        model: CLAUDE_MODEL,
         max_tokens: modelConfig.maxTokens,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -41,29 +48,29 @@ async function generateWithTieredModel(
         const delayMs = BASE_DELAY * Math.pow(2, retryCount);
         console.log(`Rate limited. Retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
         await delay(delayMs);
-        return generateWithTieredModel(prompt, apiKey, modelConfig, retryCount + 1);
+        return generateWithTieredModel(prompt, _apiKey, modelConfig, retryCount + 1);
       }
       
       if (response.status === 402) {
-        throw new Error('Payment required - please add funds to your Lovable AI workspace');
+        throw new Error('Payment required - please check your Anthropic billing');
       }
       
       const errorText = await response.text();
-      console.error(`AI Gateway error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`AI Gateway error: ${response.status} ${response.statusText}`);
+      console.error(`Anthropic API error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
     return {
-      content: result.choices[0].message.content,
-      model: modelConfig.model
+      content: result.content[0].text,
+      model: CLAUDE_MODEL
     };
   } catch (error) {
     if (retryCount < MAX_RETRIES && (error.message.includes('network') || error.message.includes('timeout'))) {
       const delayMs = BASE_DELAY * Math.pow(2, retryCount);
       console.log(`Network error. Retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
       await delay(delayMs);
-      return generateWithTieredModel(prompt, apiKey, modelConfig, retryCount + 1);
+      return generateWithTieredModel(prompt, _apiKey, modelConfig, retryCount + 1);
     }
     throw error;
   }

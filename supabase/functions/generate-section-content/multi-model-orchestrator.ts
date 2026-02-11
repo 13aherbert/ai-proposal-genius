@@ -1,5 +1,5 @@
-// Phase 3: Advanced Intelligence - Multi-Model Orchestration via Lovable AI Gateway
-const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Phase 3: Advanced Intelligence - Multi-Model Orchestration via Anthropic Claude
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 export interface ModelResult {
   model: string;
@@ -20,78 +20,83 @@ export interface ConsensusResult {
 }
 
 export class MultiModelOrchestrator {
-  private static readonly MODELS = [
-    { name: 'google/gemini-2.5-pro', weight: 0.4, strength: 'reasoning' },
-    { name: 'google/gemini-2.5-flash', weight: 0.35, strength: 'efficiency' },
-    { name: 'google/gemini-2.5-flash-lite', weight: 0.25, strength: 'speed' }
-  ];
+  // Use Claude Sonnet as the primary model for all proposal content
+  private static readonly PRIMARY_MODEL = 'claude-sonnet-4-20250514';
 
   static async orchestrateGeneration(
     prompt: string,
-    apiKey: string,
+    _apiKey: string, // kept for interface compatibility, uses ANTHROPIC_API_KEY from env
     sectionType: string,
     complexity: 'simple' | 'moderate' | 'complex' = 'moderate'
   ): Promise<ConsensusResult> {
-    const results: ModelResult[] = [];
-    const selectedModels = this.selectModelsForComplexity(complexity);
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
+    }
+
+    const startTime = Date.now();
     
-    for (const model of selectedModels) {
-      try {
-        const startTime = Date.now();
-        const content = await this.generateWithModel(prompt, model.name, apiKey);
-        const processingTime = Date.now() - startTime;
-        
-        results.push({
-          model: model.name,
-          content,
-          confidence: this.calculateModelConfidence(content, sectionType),
-          reasoning_score: this.assessReasoningQuality(content),
-          technical_accuracy: this.assessTechnicalAccuracy(content, sectionType),
-          processing_time: processingTime
-        });
-      } catch (error) {
-        console.warn(`Model ${model.name} failed:`, error.message);
-      }
-    }
+    try {
+      const content = await this.generateWithClaude(prompt, anthropicKey, this.PRIMARY_MODEL);
+      const processingTime = Date.now() - startTime;
 
-    return this.synthesizeResults(results, sectionType);
-  }
+      const result: ModelResult = {
+        model: this.PRIMARY_MODEL,
+        content,
+        confidence: this.calculateModelConfidence(content, sectionType),
+        reasoning_score: this.assessReasoningQuality(content),
+        technical_accuracy: this.assessTechnicalAccuracy(content, sectionType),
+        processing_time: processingTime
+      };
 
-  private static selectModelsForComplexity(complexity: string) {
-    switch (complexity) {
-      case 'simple':
-        return this.MODELS.slice(2); // Flash Lite for simple
-      case 'complex':
-        return this.MODELS; // All models for complex
-      default:
-        return this.MODELS.slice(0, 2); // Pro + Flash for moderate
+      console.log(`Claude Sonnet generated content in ${processingTime}ms, confidence: ${result.confidence.toFixed(2)}`);
+
+      return {
+        final_content: result.content,
+        confidence_score: result.confidence,
+        model_agreement: 1.0,
+        best_performing_model: this.PRIMARY_MODEL,
+        synthesis_approach: 'claude_sonnet_primary',
+        quality_improvements: [`Generated with ${this.PRIMARY_MODEL} (complexity: ${complexity})`]
+      };
+    } catch (error) {
+      console.error(`Claude Sonnet generation failed:`, error.message);
+      throw error;
     }
   }
 
-  private static async generateWithModel(
+  private static async generateWithClaude(
     prompt: string,
-    model: string,
-    apiKey: string
+    apiKey: string,
+    model: string
   ): Promise<string> {
-    const response = await fetch(AI_GATEWAY_URL, {
+    const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4000,
+        max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Model ${model} API error: ${response.statusText}`);
+      if (response.status === 429) {
+        throw new Error('Anthropic rate limits exceeded, please try again later.');
+      }
+      if (response.status === 402) {
+        throw new Error('Anthropic payment required, please check your billing.');
+      }
+      const errorText = await response.text();
+      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.content[0].text;
   }
 
   private static calculateModelConfidence(content: string, sectionType: string): number {
@@ -123,70 +128,6 @@ export class MultiModelOrchestrator {
     const genericCount = genericPhrases.filter(p => content.toLowerCase().includes(p)).length;
     score -= Math.min(genericCount * 0.05, 0.2);
     return Math.max(Math.min(score, 1.0), 0.1);
-  }
-
-  private static synthesizeResults(results: ModelResult[], sectionType: string): ConsensusResult {
-    if (results.length === 0) throw new Error('No model results to synthesize');
-
-    if (results.length === 1) {
-      return {
-        final_content: results[0].content,
-        confidence_score: results[0].confidence,
-        model_agreement: 1.0,
-        best_performing_model: results[0].model,
-        synthesis_approach: 'single_model',
-        quality_improvements: []
-      };
-    }
-
-    const bestResult = results.reduce((best, current) =>
-      (current.confidence + current.reasoning_score + current.technical_accuracy) >
-      (best.confidence + best.reasoning_score + best.technical_accuracy) ? current : best
-    );
-
-    const agreement = this.calculateModelAgreement(results);
-    let finalContent = bestResult.content;
-    const improvements: string[] = [];
-
-    if (agreement > 0.7) {
-      finalContent = this.enhanceContent(bestResult.content, results, sectionType);
-      improvements.push('Enhanced with multi-model insights');
-    }
-
-    return {
-      final_content: finalContent,
-      confidence_score: Math.min(bestResult.confidence + (agreement * 0.2), 1.0),
-      model_agreement: agreement,
-      best_performing_model: bestResult.model,
-      synthesis_approach: agreement > 0.7 ? 'consensus_enhanced' : 'best_model_selected',
-      quality_improvements: improvements
-    };
-  }
-
-  private static calculateModelAgreement(results: ModelResult[]): number {
-    if (results.length < 2) return 1.0;
-    const contents = results.map(r => r.content);
-    let totalSimilarity = 0;
-    let comparisons = 0;
-    for (let i = 0; i < contents.length; i++) {
-      for (let j = i + 1; j < contents.length; j++) {
-        totalSimilarity += this.calculateContentSimilarity(contents[i], contents[j]);
-        comparisons++;
-      }
-    }
-    return comparisons > 0 ? totalSimilarity / comparisons : 0;
-  }
-
-  private static calculateContentSimilarity(content1: string, content2: string): number {
-    const words1 = new Set(content1.toLowerCase().split(/\s+/));
-    const words2 = new Set(content2.toLowerCase().split(/\s+/));
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
-    const union = new Set([...words1, ...words2]);
-    return intersection.size / union.size;
-  }
-
-  private static enhanceContent(baseContent: string, allResults: ModelResult[], sectionType: string): string {
-    return baseContent;
   }
 
   private static getIdealWordRange(sectionType: string): { min: number; max: number } {

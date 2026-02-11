@@ -156,27 +156,26 @@ export default function Dashboard() {
             <div className="space-y-6" data-tour="solo-dashboard">
               {/* Import and use the SoloUserDashboard component */}
               <div className="space-y-6">
-                {/* Quick Actions with tour targets - Full width with padding */}
-                <div className="w-full flex gap-4 justify-between">
-                  <div className="flex-1" data-tour="upload-rfp">
+                {/* Quick Actions - Stack on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div data-tour="upload-rfp">
                     <QuickUploadZone onFileSelect={(file) => {
                       quickUpload.openModal();
-                      // The modal will handle the rest
                       setTimeout(() => {
                         quickUpload.uploadAndCreate(file);
                       }, 100);
                     }} />
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" data-tour="projects" />
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
                   </div>
                 </div>
 
                 {/* Recent Activity with tour target */}
-                <div className="space-y-4 ml-4" data-tour="recent-activity">
+                <div className="space-y-4" data-tour="recent-activity">
                   <h2 className="text-xl font-semibold">Recent Activity</h2>
                   <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
                 </div>
@@ -185,7 +184,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column - Sidebar with reduced height */}
-          <div className="space-y-4 mt-32">
+          <div className="space-y-4 lg:mt-32">
             {/* Knowledge Base Readiness - Compact version in sidebar */}
             {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
               <KnowledgeBaseReadiness compact />
@@ -243,9 +242,9 @@ export default function Dashboard() {
           {/* Feature Spotlight for new users */}
           {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
-          {/* Quick Actions - Full width with padding */}
-          <div className="w-full flex gap-4 justify-between">
-            <div className="flex-1">
+          {/* Quick Actions - Stack on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
               <QuickUploadZone onFileSelect={(file) => {
                 quickUpload.openModal();
                 setTimeout(() => {
@@ -253,36 +252,36 @@ export default function Dashboard() {
                 }, 100);
               }} />
             </div>
-            <div className="flex-1">
+            <div>
               <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
             </div>
-            <div className="flex-1">
+            <div>
               <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
             </div>
             {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && <>
-                <div className="flex-1">
+                <div>
                   <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
                 </div>
-                <div className="flex-1">
+                <div>
                   <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
                 </div>
               </>}
             {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
-              <div className="flex-1">
+              <div>
                 <QuickActionCard title="Manage Organization" description="Team, security & billing" icon={Building2} href="/organization" variant="secondary" />
               </div>
             )}
           </div>
 
           {/* Recent Activity */}
-          <div className="space-y-4 ml-4">
+          <div className="space-y-4">
             <h2 className="text-xl font-semibold">Recent Activity</h2>
             <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
           </div>
         </div>
 
         {/* Right Column - Sidebar with reduced height */}
-        <div className="space-y-4 mt-32">
+        <div className="space-y-4 lg:mt-32">
           {/* Knowledge Base Readiness - Compact version in sidebar */}
           {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
             <KnowledgeBaseReadiness compact />

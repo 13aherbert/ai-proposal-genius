@@ -96,7 +96,7 @@ export function ProjectsTable({ projects, onDelete, onExport, pagination }: Proj
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             Showing {projects.length} of {totalCount} projects
@@ -124,7 +124,7 @@ export function ProjectsTable({ projects, onDelete, onExport, pagination }: Proj
         </div>
       </div>
       
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

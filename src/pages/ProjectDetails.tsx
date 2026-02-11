@@ -29,8 +29,8 @@ const ProjectDetails = () => {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex flex-col gap-4 sm:gap-8">
           <ProjectHeader title={project.title} />
           <ProjectContent project={project} />
         </div>

@@ -92,7 +92,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
 
   // If in compiled mode, show the compiled view
   if (mode === "compiled") {
-    return <CompiledView sections={sections} />;
+    return <CompiledView sections={sections} projectId={projectId} />;
   }
 
   return (

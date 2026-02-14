@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ProjectEditForm } from "./ProjectEditForm";
 import { ProjectDetails } from "./ProjectDetails";
 import { ProjectDocuments } from "./ProjectDocuments";
-import { AutomatedProposalCreation } from "../AutomatedProposalCreation";
 import { useState } from "react";
-import { Bot, Edit } from "lucide-react";
+import { Edit } from "lucide-react";
 
 interface ProjectInfoCardProps {
   project: Project;
@@ -14,7 +13,6 @@ interface ProjectInfoCardProps {
 
 export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showAutomation, setShowAutomation] = useState(false);
 
   return (
     <Card>
@@ -24,31 +22,14 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
             <CardTitle>Project Information</CardTitle>
             <CardDescription>Details about your RFP project</CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAutomation(true);
-                setIsEditing(false);
-              }}
-              disabled={!project.rfp_file_path}
-              className="flex items-center gap-2 w-full sm:w-auto"
-            >
-              <Bot className="h-4 w-4" />
-              <span className="sm:inline">Automate Proposal</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsEditing(true);
-                setShowAutomation(false);
-              }}
-              className="flex items-center gap-2 w-full sm:w-auto"
-            >
-              <Edit className="h-4 w-4" />
-              <span className="sm:inline">Edit Details</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsEditing(!isEditing)}
+            className="flex items-center gap-2 w-full sm:w-auto"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="sm:inline">{isEditing ? "Cancel" : "Edit Details"}</span>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 sm:space-y-6">
@@ -58,23 +39,6 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
             onCancel={() => setIsEditing(false)}
             onSuccess={() => setIsEditing(false)}
           />
-        ) : showAutomation ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Automated Proposal Creation</h3>
-              <Button
-                variant="ghost"
-                onClick={() => setShowAutomation(false)}
-                className="text-sm"
-              >
-                Back to Details
-              </Button>
-            </div>
-            <AutomatedProposalCreation 
-              projectId={project.project_id}
-              filePath={project.rfp_file_path}
-            />
-          </div>
         ) : (
           <>
             <ProjectDetails project={project} />

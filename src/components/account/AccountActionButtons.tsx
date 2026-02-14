@@ -1,8 +1,6 @@
 
-import { Save, LogOut, CheckCircle } from "lucide-react";
+import { Save, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
 interface AccountActionButtonsProps {
   hasChanges: boolean;
@@ -19,19 +17,8 @@ export function AccountActionButtons({
   isLoadingProfile,
   handleSave
 }: AccountActionButtonsProps) {
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate("/");
-    } catch (error: any) {
-      console.error("Logout error:", error);
-    }
-  };
-
   return (
-    <div className="flex flex-col sm:flex-row gap-4 justify-between">
+    <div className="flex justify-start">
       <Button 
         onClick={handleSave} 
         disabled={isLoading || isLoadingProfile || !hasChanges}
@@ -48,14 +35,6 @@ export function AccountActionButtons({
             {isLoading ? "Saving..." : "Save Changes"}
           </>
         )}
-      </Button>
-      <Button 
-        variant="destructive" 
-        onClick={handleLogout}
-        className="w-full sm:w-auto"
-      >
-        <LogOut className="h-4 w-4 mr-2" />
-        Log Out
       </Button>
     </div>
   );

@@ -139,10 +139,10 @@ export function ApiManagement() {
         return;
       }
 
-      // Generate a secure API key
-      const apiKey = 'sk_' + Math.random().toString(36).substring(2, 15) + 
-                     Math.random().toString(36).substring(2, 15) + 
-                     Math.random().toString(36).substring(2, 15);
+      // Generate a cryptographically secure API key
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      const apiKey = 'sk_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
       // Hash the API key using bcrypt before storing
       const apiKeyHash = await hashApiKey(apiKey);

@@ -75,14 +75,18 @@ export function DomainVerification({ domain, onVerificationComplete }: DomainVer
     setVerificationStatus('checking');
     
     try {
-      // Simulate DNS checking (in real implementation, this would check actual DNS records)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Perform real DNS TXT record verification via DNS-over-HTTPS
+      const dnsResponse = await fetch(
+        `https://dns.google/resolve?name=_lovable-verification.${domain.domain}&type=TXT`
+      );
+      const dnsData = await dnsResponse.json();
       
-      // For demo purposes, randomly succeed or fail
-      const isVerified = Math.random() > 0.3;
+      const txtRecords = dnsData.Answer?.filter((r: any) => r.type === 16) || [];
+      const isVerified = txtRecords.some((record: any) => 
+        record.data?.replace(/"/g, '').includes(domain.verification_token)
+      );
       
       if (isVerified) {
-        // Update domain as verified
         const { error } = await supabase
           .from('organization_domains')
           .update({ 
@@ -103,7 +107,7 @@ export function DomainVerification({ domain, onVerificationComplete }: DomainVer
         setVerificationStatus('failed');
         toast({
           title: "Error",
-          description: "Domain verification failed. Please check your DNS records.",
+          description: "DNS verification failed. Please ensure the TXT record is configured and DNS has propagated.",
           variant: "destructive"
         });
       }

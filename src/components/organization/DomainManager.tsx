@@ -66,7 +66,9 @@ export function DomainManager() {
 
     setAddingDomain(true);
     try {
-      const verificationToken = Math.random().toString(36).substring(2, 15);
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      const verificationToken = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
       
       const { error } = await supabase
         .from('organization_domains')
@@ -91,12 +93,28 @@ export function DomainManager() {
     }
   };
 
-  const verifyDomain = async (domainId: string) => {
+  const verifyDomain = async (domain: Domain) => {
     try {
+      // Perform real DNS TXT record verification via DNS-over-HTTPS
+      const dnsResponse = await fetch(
+        `https://dns.google/resolve?name=_lovable-verification.${domain.domain}&type=TXT`
+      );
+      const dnsData = await dnsResponse.json();
+      
+      const txtRecords = dnsData.Answer?.filter((r: any) => r.type === 16) || [];
+      const isVerified = txtRecords.some((record: any) => 
+        record.data?.replace(/"/g, '').includes(domain.verification_token)
+      );
+
+      if (!isVerified) {
+        toast.error('DNS verification failed. Please ensure the TXT record is configured correctly and DNS has propagated.');
+        return;
+      }
+
       const { error } = await supabase
         .from('organization_domains')
         .update({ is_verified: true, ssl_certificate_status: 'active' })
-        .eq('id', domainId);
+        .eq('id', domain.id);
 
       if (error) throw error;
 
@@ -228,7 +246,7 @@ export function DomainManager() {
                   </div>
                   <div className="flex gap-2">
                     {!domain.is_verified && (
-                      <Button size="sm" variant="outline" onClick={() => verifyDomain(domain.id)}>
+                      <Button size="sm" variant="outline" onClick={() => verifyDomain(domain)}>
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Verify
                       </Button>

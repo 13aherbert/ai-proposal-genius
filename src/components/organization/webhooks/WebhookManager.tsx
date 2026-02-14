@@ -160,7 +160,9 @@ export function WebhookManager() {
   };
 
   const generateSecretToken = () => {
-    const token = `whsec_${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`;
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const token = `whsec_${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}`;
     setFormData(prev => ({ ...prev, secret_token: token }));
   };
 

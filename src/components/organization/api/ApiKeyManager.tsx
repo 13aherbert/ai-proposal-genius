@@ -64,9 +64,10 @@ export function ApiKeyManager() {
   };
 
   const generateApiKey = () => {
-    const timestamp = Date.now().toString();
-    const randomStr = Math.random().toString(36).substring(2);
-    return `sk_${organization?.id?.substring(0, 8)}_${timestamp}_${randomStr}`;
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const randomStr = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `sk_${organization?.id?.substring(0, 8)}_${randomStr}`;
   };
 
   const handleCreateKey = async () => {
@@ -182,10 +183,7 @@ export function ApiKeyManager() {
         ) : (
           apiKeys.map((key) => {
             const keyStatus = getKeyStatus(key);
-            const isRevealed = revealedKeys.has(key.id);
-            const displayKey = isRevealed 
-              ? atob(key.api_key_hash) // In production, you'd need to store and retrieve the actual key
-              : '••••••••••••••••••••••••••••••••••••••••';
+            const displayKey = '••••••••••••••••••••••••••••••••••••••••';
 
             return (
               <Card key={key.id}>
@@ -208,20 +206,7 @@ export function ApiKeyManager() {
                         <code className="bg-muted px-2 py-1 rounded text-sm font-mono flex-1">
                           {displayKey}
                         </code>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleKeyVisibility(key.id)}
-                        >
-                          {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(atob(key.api_key_hash))}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                        {/* API keys cannot be retrieved after creation - only the hash is stored */}
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">

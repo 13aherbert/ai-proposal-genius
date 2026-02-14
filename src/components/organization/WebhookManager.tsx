@@ -129,12 +129,16 @@ export function WebhookManager() {
     }
 
     try {
-      // Generate secret key
-      const secretKey = 'whsec_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      // Generate cryptographically secure secret key
+      const secretBytes = new Uint8Array(24);
+      crypto.getRandomValues(secretBytes);
+      const secretKey = 'whsec_' + Array.from(secretBytes).map(b => b.toString(16).padStart(2, '0')).join('');
       
+      const idBytes = new Uint8Array(8);
+      crypto.getRandomValues(idBytes);
       const webhookData = {
         ...newWebhook,
-        id: Math.random().toString(36).substring(2, 15),
+        id: Array.from(idBytes).map(b => b.toString(16).padStart(2, '0')).join(''),
         secret_key: secretKey,
         success_count: 0,
         failure_count: 0,

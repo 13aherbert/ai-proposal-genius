@@ -420,9 +420,11 @@ export function EmailTemplateEditor() {
                   className="p-4 bg-white"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderPreview(), {
                     ALLOWED_TAGS: ['div', 'span', 'p', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'u', 'br', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'ul', 'ol', 'li'],
-                    ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'class', 'target', 'rel'],
-                    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
-                    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover']
+                    ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'target', 'rel'],
+                    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'style'],
+                    FORBID_ATTR: ['style', 'onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'],
+                    ALLOW_DATA_ATTR: false
                   }) }}
                 />
               </div>

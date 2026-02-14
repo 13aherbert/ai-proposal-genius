@@ -201,10 +201,18 @@ export function ApiKeyManagement() {
               
               {createdApiKey ? (
                 <div className="space-y-4">
+                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      ⚠️ Save This Key Now
+                    </p>
+                    <p className="text-xs text-destructive/80 mt-1">
+                      This is the only time you'll see this key. Copy it to a secure location. We cannot retrieve it later.
+                    </p>
+                  </div>
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm font-medium mb-2">Your new API key:</p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 text-sm bg-background p-2 rounded border">
+                      <code className="flex-1 text-sm bg-background p-2 rounded border break-all">
                         {createdApiKey}
                       </code>
                       <Button
@@ -216,9 +224,6 @@ export function ApiKeyManagement() {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Make sure to copy this API key now. You won't be able to see it again!
-                  </p>
                   <Button 
                     onClick={() => {
                       setCreatedApiKey('');

@@ -1,135 +1,76 @@
 
+## Streamline Proposal Draft Page
 
-## UI/UX Enhancement Review and Recommendations
+### Problems Found
 
-Based on a thorough review of the codebase, session context, and component architecture, here are prioritized improvements across the user experience.
-
----
-
-### 1. Dashboard: Remove Redundant Information When Onboarding Is Complete
-
-**Problem:** The user has completed all 6 essential Knowledge Base categories (100%), yet the dashboard still shows both the `KnowledgeBaseReadiness` card (with "Ready" status) and the `OnboardingProgress` widget. For a returning power user, these occupy prime real estate with no actionable value.
-
-**Changes:**
-- In `Dashboard.tsx`, hide the full `KnowledgeBaseReadiness` card when `readiness.isReady` is true and the user has projects -- they already know they are set up. Keep only the compact sidebar version as a quick-glance stat.
-- The `OnboardingProgress` component already hides when all steps are complete (line 131), which is good. No change needed there.
-
-**File:** `src/pages/Dashboard.tsx`
+1. **Duplicate progress bars**: ContentGenerationButton has its own built-in progress display, AND ProposalDraft renders a separate AIProgress component. Both show during content generation.
+2. **Duplicate strict mode alerts**: Two nearly identical info boxes appear when strict mode is toggled on (one outside and one inside the settings panel).
+3. **BackupManager uses two header buttons**: "Save Backup" and "Backup Options" -- the manual save action should live inside the Backup Options dialog to reduce header clutter.
+4. **Destructive "Delete All" button sits at the same level as creative actions**: It has equal visual weight to "Add Section" and "Generate All Content", making the toolbar feel cluttered and risky.
+5. **Content Generation settings panel always visible**: The collapsible `<details>` block with strict mode and KB validation sits inline even when users have no intent to generate, adding visual noise.
 
 ---
 
-### 2. Dashboard Header: Remove Development-Only Logging from Production
+### Changes
 
-**Problem:** `DashboardHeader.tsx` and `ActionButtons.tsx` contain multiple `console.log` calls and a DEV-only "Admin: Yes/No" badge. These are helpful during development but create noise in production and briefly show "Checking roles..." to end users.
+**1. Remove duplicate progress bar from ProposalDraft.tsx**
 
-**Changes:**
-- Remove or gate all `console.log` calls in `DashboardHeader.tsx` behind `import.meta.env.DEV`
-- Remove the transient "Checking roles..." badge from `ActionButtons.tsx` -- it flashes for a fraction of a second and adds no user value. If role checking is slow, show a skeleton or nothing.
-- Remove the DEV-only "Admin: Yes/No" badge (lines 52-56 of `ActionButtons.tsx`) to keep the component clean.
+Remove the `AIProgress` component (lines 145-152), the `generationProgress` and `isGenerating` state variables, and the `handleProgressUpdate` callback. ContentGenerationButton already handles its own progress display internally -- the parent wrapper is redundant.
 
-**Files:** `src/components/dashboard/DashboardHeader.tsx`, `src/components/dashboard/ActionButtons.tsx`
+**File:** `src/components/project/proposal-draft/ProposalDraft.tsx`
 
 ---
 
-### 3. Recent Activity: Add Empty State with Clear Call-to-Action
+**2. Remove duplicate strict mode alert from ContentGenerationButton.tsx**
 
-**Problem:** The `RecentActivityList` shows "No recent activity to display" as plain white text with no guidance. For a user who has completed their knowledge base but hasn't started a project yet, this is a dead end.
+Remove the standalone strict mode alert at lines 103-113 (outside the settings panel). The identical alert inside the `<details>` panel (lines 146-153) is sufficient since that is where the toggle lives.
 
-**Changes:**
-- Replace the empty state with a styled card containing an illustration/icon, a message like "Your activity feed will appear here", and a primary CTA button: "Upload Your First RFP" linking to `/upload-rfp`.
-- Match the card styling to the existing dashboard theme (dark background with brand-green accents).
-
-**File:** `src/components/dashboard/RecentActivityList.tsx`
+**File:** `src/components/project/proposal-draft/components/ContentGenerationButton.tsx`
 
 ---
 
-### 4. "Approve and Save to Knowledge Base" Button: Add Success State Feedback
+**3. Consolidate BackupManager into a single button**
 
-**Problem:** After saving a proposal to the knowledge base, the `SubmitToKnowledgeBaseButton` returns to its initial state. The user has no visual indication on the button itself that the proposal was already saved, risking duplicate submissions.
+Remove the standalone "Save Backup" button. Move the manual save action inside the "Backup Options" dialog as a third option alongside Export and Import. Rename the trigger button to just "Backups" for brevity.
 
-**Changes:**
-- Track a `hasSaved` state that persists for the component lifecycle.
-- After successful save, change the button text to "Saved to KB" with a checkmark icon and disable it.
-- Optionally allow re-saving with a "Save Again" option if the user edits the proposal further.
-
-**File:** `src/components/project/proposal-draft/components/SubmitToKnowledgeBaseButton.tsx`
+**File:** `src/components/project/proposal-draft/BackupManager.tsx`
 
 ---
 
-### 5. Quick Upload Zone: Add Visual Feedback for Supported File Types
+**4. Move "Delete All Sections" into a dropdown menu**
 
-**Problem:** The upload zone says "PDF, DOC, DOCX supported" in tiny text at the bottom. Users may try unsupported formats without realizing the limitation until they get an error.
+Replace the prominent red "Delete All Sections" button with a small icon-only "more actions" dropdown (using the existing `DropdownMenu` component). The dropdown will contain "Delete All Sections" as a destructive menu item. This de-emphasizes the destructive action and frees up toolbar space.
 
-**Changes:**
-- Move the supported file types into small badge-style indicators next to the title, e.g., `PDF` `DOC` `DOCX` as outlined badges.
-- Add a max file size indicator if there is one (users often wonder about limits).
-
-**File:** `src/components/dashboard/QuickUploadZone.tsx`
+**File:** `src/components/project/proposal-draft/ProposalDraft.tsx`
 
 ---
 
-### 6. Auto-Generated Proposal: Simplify the Metadata Display
+**5. Flatten ContentGenerationButton to just the button**
 
-**Problem:** The proposal metadata grid shows 4-8 stats (Total Sections, Generation Time, Avg Quality, Confidence, plus cost optimization details). This is overwhelming for non-technical users and buries the most important information.
+Move the settings panel (strict mode toggle, KB validation) into a popover or dialog that opens when the user clicks a small settings icon next to the "Generate All Content" button, instead of always rendering a collapsible block inline. The generation button itself stays in the toolbar row alongside other action buttons.
 
-**Changes:**
-- Collapse the cost optimization section into an expandable/collapsible area (default collapsed).
-- Show only 3 primary stats by default: Sections Generated, Quality Score, and Generation Time.
-- Move the per-section metrics table into a "View Details" expandable section.
-
-**File:** `src/components/project/auto-proposal/AutoGeneratedProposal.tsx`
+**File:** `src/components/project/proposal-draft/components/ContentGenerationButton.tsx`
 
 ---
 
-### 7. Compiled View: Add Word/Character Count
+### Result
 
-**Problem:** The compiled proposal view has no indication of document length. Users preparing formal submissions often need to know if they are within page/word limits.
+The toolbar shrinks from 4 full-width buttons + a settings block to a clean row:
+- "Add Section" button
+- "Create Sections from Outline" button (conditional)
+- "Generate All Content" button with a small settings gear icon
+- A "more actions" icon button (containing Delete All)
 
-**Changes:**
-- Add a small footer bar below the compiled content showing: word count, character count, and estimated page count (approx 250 words per page).
-- Display as subtle muted text so it does not distract from the content.
-
-**File:** `src/components/project/proposal-draft/components/CompiledView.tsx`
-
----
-
-### 8. Feature Spotlight: Persist Dismissal Across Sessions
-
-**Problem:** The `FeatureSpotlight` uses local component state (`isDismissed`) which resets on every page navigation or refresh. Users who dismiss it will see it again every time they visit the dashboard.
-
-**Changes:**
-- Use `localStorage` to persist the dismissed state with a key like `feature_spotlight_dismissed`.
-- Only show the spotlight again if there is a genuinely new feature to highlight (could use a version key).
-
-**File:** `src/components/dashboard/FeatureSpotlight.tsx`
-
----
-
-### 9. Mobile UX: Improve Proposal Action Button Row
-
-**Problem:** The action buttons in `AutoGeneratedProposal.tsx` (Copy, Export, Regenerate, Approve and Save) use `flex-wrap` which can look messy on narrow screens with 4 buttons of varying widths.
-
-**Changes:**
-- On mobile (below `sm` breakpoint), stack the buttons into a 2x2 grid using `grid grid-cols-2` instead of `flex-wrap`.
-- Ensure all buttons have equal width on mobile for visual consistency.
-
-**File:** `src/components/project/auto-proposal/AutoGeneratedProposal.tsx`
-
----
+The header simplifies from 2 backup buttons to 1 "Backups" button. One progress bar instead of two. One strict mode alert instead of two.
 
 ### Technical Summary
 
-| # | Enhancement | File(s) | Effort |
-|---|-------------|---------|--------|
-| 1 | Hide readiness card when complete | `Dashboard.tsx` | Small |
-| 2 | Clean up dev logging and transient badges | `DashboardHeader.tsx`, `ActionButtons.tsx` | Small |
-| 3 | Better empty state for activity feed | `RecentActivityList.tsx` | Small |
-| 4 | Save-to-KB success state on button | `SubmitToKnowledgeBaseButton.tsx` | Small |
-| 5 | File type badges on upload zone | `QuickUploadZone.tsx` | Small |
-| 6 | Collapsible metadata in auto-proposal | `AutoGeneratedProposal.tsx` | Medium |
-| 7 | Word/page count in compiled view | `CompiledView.tsx` | Small |
-| 8 | Persist spotlight dismissal | `FeatureSpotlight.tsx` | Small |
-| 9 | Mobile grid for proposal action buttons | `AutoGeneratedProposal.tsx` | Small |
+| Change | File | Effort |
+|--------|------|--------|
+| Remove duplicate progress bar | `ProposalDraft.tsx` | Small |
+| Remove duplicate strict mode alert | `ContentGenerationButton.tsx` | Small |
+| Consolidate BackupManager buttons | `BackupManager.tsx` | Small |
+| Move Delete All to dropdown | `ProposalDraft.tsx` | Small |
+| Move generation settings to popover | `ContentGenerationButton.tsx` | Medium |
 
-All changes use existing UI primitives (shadcn components, Tailwind classes, localStorage) with no new dependencies required.
-
+No new dependencies needed -- uses existing DropdownMenu and Popover components from shadcn/ui.

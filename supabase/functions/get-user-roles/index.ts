@@ -230,12 +230,12 @@ serve(async (req) => {
   } catch (error) {
     console.error("Server error:", error);
     
-    // Return detailed error for easier debugging
+    // Return generic error - detailed info in server logs only
+    console.error("Detailed error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ 
-        error: "Failed to fetch user roles", 
-        details: error.message,
-        stack: error.stack
+        error: "Failed to fetch user roles",
+        code: "INTERNAL_ERROR"
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

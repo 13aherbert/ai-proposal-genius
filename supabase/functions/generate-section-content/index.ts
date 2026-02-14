@@ -123,16 +123,32 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log("Processing request body...");
+    // Authenticate the user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized', details: 'Missing authorization' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user: authUser }, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized', details: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const requestBody = await req.text();
-    console.log("Raw request body received, length:", requestBody.length);
 
     let body;
     try {
       body = JSON.parse(requestBody);
-      console.log("JSON parsed successfully");
     } catch (parseError) {
-      console.error("JSON parsing failed:", parseError);
       throw new ProposalGenerationError("Invalid JSON in request body");
     }
 
@@ -142,12 +158,13 @@ serve(async (req) => {
       throw new ProposalGenerationError("Missing required fields: projectId, sectionTitle, userId");
     }
 
-    console.log("Request parameters validated:", {
-      projectId,
-      sectionTitle, 
-      userId,
-      strictMode
-    });
+    // Ensure authenticated user matches the userId parameter
+    if (authUser.id !== userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden', details: 'User mismatch' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Fetch project details
     console.log("Fetching project details...");

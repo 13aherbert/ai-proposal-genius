@@ -26,6 +26,7 @@ import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
+import Opportunities from "@/pages/Opportunities";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -150,6 +151,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <WhiteLabel />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/opportunities"
+        element={
+          <ProtectedRoute>
+            <Opportunities />
           </ProtectedRoute>
         }
       />

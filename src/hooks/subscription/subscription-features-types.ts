@@ -13,7 +13,8 @@ export type FeatureName =
   | 'api_access'
   | 'white_labeling'
   | 'priority_support'
-  | 'custom_templates';
+  | 'custom_templates'
+  | 'opportunity_search';
 
 export interface SubscriptionFeaturesResult {
   hasFeature: (feature: FeatureName) => boolean;

@@ -1660,6 +1660,74 @@ export type Database = {
           },
         ]
       }
+      saved_opportunities: {
+        Row: {
+          created_at: string
+          department: string | null
+          description_url: string | null
+          external_id: string
+          id: string
+          naics_code: string | null
+          notes: string | null
+          organization_id: string
+          posted_date: string | null
+          raw_data: Json | null
+          response_deadline: string | null
+          saved_by: string
+          set_aside: string | null
+          solicitation_number: string | null
+          source: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description_url?: string | null
+          external_id: string
+          id?: string
+          naics_code?: string | null
+          notes?: string | null
+          organization_id: string
+          posted_date?: string | null
+          raw_data?: Json | null
+          response_deadline?: string | null
+          saved_by: string
+          set_aside?: string | null
+          solicitation_number?: string | null
+          source?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description_url?: string | null
+          external_id?: string
+          id?: string
+          naics_code?: string | null
+          notes?: string | null
+          organization_id?: string
+          posted_date?: string | null
+          raw_data?: Json | null
+          response_deadline?: string | null
+          saved_by?: string
+          set_aside?: string | null
+          solicitation_number?: string | null
+          source?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_opportunities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           created_at: string | null

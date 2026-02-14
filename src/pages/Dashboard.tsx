@@ -53,7 +53,10 @@ export default function Dashboard() {
   
   // Show KB wizard for users with empty knowledge base who haven't dismissed it
   useEffect(() => {
-    if (!knowledgeReadiness.isLoading && knowledgeReadiness.missingEssential.length === 0) return;
+    if (!knowledgeReadiness.isLoading && knowledgeReadiness.missingEssential.length === 0) {
+      setShowKBWizard(false);
+      return;
+    }
     if (!knowledgeReadiness.isLoading && knowledgeReadiness.isEmpty) {
       const hasSeenWizard = localStorage.getItem('kb_wizard_seen');
       if (!hasSeenWizard && dashboardStats.hasProjects === false) {

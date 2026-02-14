@@ -26,7 +26,7 @@ export function LoadingState() {
   const [networkStatus, setNetworkStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const isAttempting = useRef(false);
   const [loadingTime, setLoadingTime] = useState(0);
-  const cachedTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
+  // SECURITY: Auth tokens managed by Supabase session, not localStorage
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -74,20 +74,8 @@ export function LoadingState() {
 
   useEffect(() => {
     try {
-      const userToken = localStorage.getItem('userToken');
-      if (userToken) {
-        console.log("Found stored auth token");
-        
-        if (!supabase.auth.getSession()) {
-          console.log("No active session but token found, attempting to initialize");
-          supabase.auth.setSession({
-            access_token: userToken,
-            refresh_token: '',
-          }).catch(err => {
-            console.error("Error initializing session from stored token:", err);
-          });
-        }
-      }
+      // SECURITY: Auth tokens are managed by Supabase's built-in session management
+      // No manual localStorage token storage needed
       
       const userRoles = getUserRolesFromStorage();
       if (userRoles) {
@@ -157,62 +145,37 @@ export function LoadingState() {
     try {
       isAttempting.current = true;
       
-      const authToken = localStorage.getItem('userToken') || cachedTokenRef.current;
       let userId = null;
-      let sessionHeaders = {};
       
-      if (authToken) {
-        console.log("Using stored auth token for subscription fetch");
-        sessionHeaders = {
-          Authorization: `Bearer ${authToken}`
-        };
-        
-        try {
-          const { data: userData, error: userError } = await supabase.auth.getUser(authToken);
-          if (!userError && userData?.user) {
-            userId = userData.user.id;
-            console.log("Retrieved user ID from token:", userId);
-          }
-        } catch (e) {
-          console.error("Error getting user from token:", e);
+      // SECURITY: Use Supabase's built-in session management instead of localStorage tokens
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Session fetch timed out")), 2000);
+      });
+      
+      const { data: sessionData, error: sessionError } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]) as any;
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        if (isNetworkError(sessionError)) {
+          setNetworkError(true);
+          setNetworkStatus('offline');
+          toast.error(getNetworkErrorMessage(sessionError));
         }
+        tryLoadingFromCache();
+        return;
       }
       
-      if (!userId) {
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Session fetch timed out")), 2000);
-        });
-        
-        const { data: sessionData, error: sessionError } = await Promise.race([
-          sessionPromise,
-          timeoutPromise
-        ]) as any;
-        
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          if (isNetworkError(sessionError)) {
-            setNetworkError(true);
-            setNetworkStatus('offline');
-            toast.error(getNetworkErrorMessage(sessionError));
-          }
-          tryLoadingFromCache();
-          return;
-        }
-        
-        if (!sessionData?.session?.user?.id) {
-          console.log("No authenticated user found for direct subscription fetch");
-          isAttempting.current = false;
-          return;
-        }
-        
-        userId = sessionData.session.user.id;
-        
-        if (sessionData?.session?.access_token) {
-          localStorage.setItem('userToken', sessionData.session.access_token);
-          cachedTokenRef.current = sessionData.session.access_token;
-        }
+      if (!sessionData?.session?.user?.id) {
+        console.log("No authenticated user found for direct subscription fetch");
+        isAttempting.current = false;
+        return;
       }
+      
+      userId = sessionData.session.user.id;
       
       if (!userId) {
         console.log("Could not determine user ID for subscription fetch");
@@ -275,17 +238,18 @@ export function LoadingState() {
         createDefaultSubscription(userId);
       }
       
-      if (!hasUserRoles && authToken) {
+      if (!hasUserRoles && sessionData?.session?.access_token) {
+        const currentToken = sessionData.session.access_token;
         try {
           const { data: roleData, error: roleError } = await supabase.functions.invoke('get-user-roles', {
-            headers: { Authorization: `Bearer ${authToken}` }
+            headers: { Authorization: `Bearer ${currentToken}` }
           });
           
           if (roleError) {
             console.error("Error fetching user roles:", roleError);
             
             const { data: fallbackRoleData, error: fallbackRoleError } = await supabase.functions.invoke('get-user-roles', {
-              body: { token: authToken }
+              body: { token: currentToken }
             });
             
             if (!fallbackRoleError && fallbackRoleData?.roles) {
@@ -419,7 +383,6 @@ export function LoadingState() {
             {loadingTime > 10 && (
               <button
                 onClick={() => {
-                  localStorage.removeItem('userToken');
                   localStorage.removeItem('userRoles');
                   window.location.href = '/';
                 }}

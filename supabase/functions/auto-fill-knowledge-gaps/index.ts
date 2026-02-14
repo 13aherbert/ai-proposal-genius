@@ -83,6 +83,22 @@ serve(async (req) => {
       );
     }
 
+    // SECURITY: Verify user belongs to the organization
+    const { data: membership, error: memberError } = await supabaseClient
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organizationId)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (memberError || !membership) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Not a member of this organization' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log(`Auto-filling ${gapCategories.length} gap categories for org ${organizationId}`);
 
     // Fetch all existing entries

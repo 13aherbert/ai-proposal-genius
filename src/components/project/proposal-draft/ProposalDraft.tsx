@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, MoreVertical } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
@@ -11,7 +11,7 @@ import { CompiledView } from "./components/CompiledView";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { BackupManager } from "./BackupManager";
-import { AIProgress } from "@/components/shared/AIProgress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 export interface ProposalDraftProps {
@@ -21,8 +21,6 @@ export interface ProposalDraftProps {
 
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
   
   const {
     sections,
@@ -85,11 +83,6 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     });
   };
 
-  const handleProgressUpdate = (progress: number, generating: boolean) => {
-    setGenerationProgress(progress);
-    setIsGenerating(generating);
-  };
-
   // If in compiled mode, show the compiled view
   if (mode === "compiled") {
     return <CompiledView sections={sections} projectId={projectId} />;
@@ -127,29 +120,27 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
                 sections={sections}
                 projectId={projectId}
                 onUpdateSection={handleUpdateSection}
-                onProgressUpdate={handleProgressUpdate}
               />
 
               {sections.length > 0 && (
-                <Button
-                  onClick={handleDeleteAllSections}
-                  variant="outline"
-                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete All Sections
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="flex-none">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem
+                      onClick={handleDeleteAllSections}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete All Sections
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
-
-            {isGenerating && (
-              <div className="w-full">
-                <AIProgress 
-                  progress={generationProgress} 
-                  label="Generating content for all sections"
-                />
-              </div>
-            )}
             
             <SectionsList
               sections={sections}

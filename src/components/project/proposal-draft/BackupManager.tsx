@@ -147,68 +147,63 @@ export function BackupManager({ sections, projectId }: BackupManagerProps) {
   };
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button 
           variant="outline" 
-          size="sm" 
-          onClick={saveToLocalBackup}
+          size="sm"
           className="flex items-center gap-1"
         >
           <Save className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Save Backup</span>
+          <span className="hidden sm:inline">Backups</span>
         </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Proposal Backups</DialogTitle>
+          <DialogDescription>
+            Save, export, or import your proposal sections.
+          </DialogDescription>
+        </DialogHeader>
         
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
+        <div className="grid gap-4 py-4">
+          <Button 
+            onClick={() => { saveToLocalBackup(); setIsOpen(false); }}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save Local Backup
+          </Button>
+
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export as File"}
+          </Button>
+          
+          <div className="relative">
             <Button 
               variant="outline" 
-              size="sm"
-              className="flex items-center gap-1"
+              className="w-full flex items-center gap-2"
+              disabled={isImporting}
             >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Backup Options</span>
+              <Upload className="h-4 w-4" />
+              {isImporting ? "Importing..." : "Import from File"}
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Proposal Backup Options</DialogTitle>
-              <DialogDescription>
-                Export your proposal sections or import from a backup file.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid gap-4 py-4">
-              <Button 
-                onClick={handleExport} 
-                disabled={isExporting}
-                className="flex items-center gap-2"
-              >
-                {isExporting ? "Exporting..." : "Export Proposal"}
-                <Download className="h-4 w-4" />
-              </Button>
-              
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="w-full flex items-center gap-2"
-                  disabled={isImporting}
-                >
-                  {isImporting ? "Importing..." : "Import from Backup"}
-                  <Upload className="h-4 w-4" />
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  disabled={isImporting}
-                />
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              disabled={isImporting}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

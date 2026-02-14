@@ -149,7 +149,7 @@ export default function Dashboard() {
           onViewProject={quickUpload.viewProject}
         />
         
-        {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention */}
+        {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention, hide when ready and user has projects */}
         {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
           <KnowledgeBaseReadiness />
         )}
@@ -189,8 +189,8 @@ export default function Dashboard() {
 
           {/* Right Column - Sidebar with reduced height */}
           <div className="space-y-4 lg:mt-32">
-            {/* Knowledge Base Readiness - Compact version in sidebar */}
-            {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+            {/* Knowledge Base Readiness - Compact version in sidebar, hide when ready and user has projects */}
+            {!knowledgeReadiness.isReady && !knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
               <KnowledgeBaseReadiness compact />
             )}
             
@@ -235,7 +235,7 @@ export default function Dashboard() {
         onViewProject={quickUpload.viewProject}
       />
       
-      {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention */}
+      {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention, hide when ready and user has projects */}
       {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
         <KnowledgeBaseReadiness />
       )}
@@ -286,8 +286,8 @@ export default function Dashboard() {
 
         {/* Right Column - Sidebar with reduced height */}
         <div className="space-y-4 lg:mt-32">
-          {/* Knowledge Base Readiness - Compact version in sidebar */}
-          {!knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+          {/* Knowledge Base Readiness - Compact version in sidebar, hide when ready and user has projects */}
+          {!knowledgeReadiness.isReady && !knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
             <KnowledgeBaseReadiness compact />
           )}
           

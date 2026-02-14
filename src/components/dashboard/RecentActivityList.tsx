@@ -1,8 +1,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookOpen, FolderOpen } from "lucide-react";
+import { BookOpen, FolderOpen, Upload, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export interface RecentActivity {
   type: 'project' | 'knowledge';
@@ -19,12 +20,34 @@ interface RecentActivityListProps {
 }
 
 export const RecentActivityList = ({ activities, isLoading, onActivityClick }: RecentActivityListProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
-    return <p className="text-white text-center py-4">Loading recent activity...</p>;
+    return <p className="text-muted-foreground text-center py-4">Loading recent activity...</p>;
   }
 
   if (activities.length === 0) {
-    return <p className="text-white text-center py-4">No recent activity to display</p>;
+    return (
+      <Card className="border-dashed border-2 border-muted">
+        <CardContent className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+          <div className="p-3 rounded-full bg-muted">
+            <FileText className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium text-foreground">No activity yet</p>
+            <p className="text-sm text-muted-foreground">Your recent projects and knowledge base updates will appear here</p>
+          </div>
+          <Button 
+            onClick={() => navigate('/upload-rfp')}
+            className="mt-2 flex items-center gap-2"
+            size="sm"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Your First RFP
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

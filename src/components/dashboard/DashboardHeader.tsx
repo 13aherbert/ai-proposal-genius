@@ -35,35 +35,10 @@ export default function DashboardHeader() {
   // Only force a check once on initial render
   useEffect(() => {
     if (!hasCheckedRoles.current) {
-      // Log that we're doing the initial check
-      console.log("Performing initial role check in DashboardHeader");
       forceRoleCheck();
       hasCheckedRoles.current = true;
     }
   }, [forceRoleCheck]);
-
-  // Log subscription states in development
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("DashboardHeader subscription states:", {
-        subscription: subscriptionData.subscription,
-        hasCheckedSubscription: subscriptionData.hasCheckedSubscription,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [subscriptionData.subscription, subscriptionData.hasCheckedSubscription]);
-
-  // Log role states in development
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("DashboardHeader role states:", {
-        isAdmin,
-        showAdminButton,
-        isCheckingRoles,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [isAdmin, showAdminButton, isCheckingRoles]);
   
   return <div className="mt-3 flex justify-center">
       <Card className="bg-brand-green border-0 w-full rounded-none">

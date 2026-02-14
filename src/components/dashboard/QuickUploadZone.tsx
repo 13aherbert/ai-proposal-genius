@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, Zap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface QuickUploadZoneProps {
@@ -70,9 +71,11 @@ export function QuickUploadZone({ onFileSelect, disabled = false }: QuickUploadZ
             <span>Auto-generates complete proposal</span>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            PDF, DOC, DOCX supported
-          </p>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium">PDF</Badge>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium">DOC</Badge>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium">DOCX</Badge>
+          </div>
         </div>
       </CardContent>
     </Card>

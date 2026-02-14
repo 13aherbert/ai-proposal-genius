@@ -108,13 +108,16 @@ const getSpotlightFeatures = (organizationSize?: OrganizationSize, useCase?: Use
 };
 
 export function FeatureSpotlight({ organizationSize, useCase, onDismiss }: FeatureSpotlightProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(() => {
+    return localStorage.getItem('feature_spotlight_dismissed') === 'true';
+  });
   const feature = getSpotlightFeatures(organizationSize, useCase);
 
   if (isDismissed) return null;
 
   const handleDismiss = () => {
     setIsDismissed(true);
+    localStorage.setItem('feature_spotlight_dismissed', 'true');
     onDismiss?.();
   };
 

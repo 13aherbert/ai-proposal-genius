@@ -93,6 +93,19 @@ export function CompiledView({ sections, projectId, projectTitle }: CompiledView
               onClick={() => setIsExpanded(!isExpanded)}
             />
           )}
+          {/* Document Stats */}
+          {(() => {
+            const words = compiledContent.trim().split(/\s+/).filter(Boolean).length;
+            const chars = compiledContent.length;
+            const pages = Math.ceil(words / 250);
+            return (
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <span>{words.toLocaleString()} words</span>
+                <span>{chars.toLocaleString()} characters</span>
+                <span>~{pages} {pages === 1 ? 'page' : 'pages'}</span>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

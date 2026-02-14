@@ -64,24 +64,14 @@ export default function AccountSettings() {
   };
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       import('../scripts/update-specific-user')
-        .then(() => console.log("Admin update script loaded"))
-        .catch(err => console.error("Failed to load admin update script:", err));
+        .catch(() => {});
+      if (typeof window !== 'undefined') {
+        window.updateRivalProSubscription = updateRivalProSubscription;
+      }
     }
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.updateRivalProSubscription = updateRivalProSubscription;
-      console.log("✅ updateRivalProSubscription function is now available in the console");
-    }
-  }, []);
-
-  // Log profile data every render if it has changed to help with debugging
-  useEffect(() => {
-    console.log("Current profile data:", profileData);
-  }, [profileData]);
 
   return (
     <div className="min-h-screen w-full bg-background">

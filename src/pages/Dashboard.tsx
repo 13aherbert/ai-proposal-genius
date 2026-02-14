@@ -16,7 +16,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
-import { Database, Users, BarChart3, FolderOpen, Building2 } from "lucide-react";
+import { Database, FolderOpen, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
@@ -262,14 +262,6 @@ export default function Dashboard() {
             <div>
               <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
             </div>
-            {(profileData.organization_size === 'small_team' || profileData.organization_size === 'enterprise') && <>
-                <div>
-                  <QuickActionCard title="Team Collaboration" description="Work with your team" icon={Users} href="/projects" variant="secondary" />
-                </div>
-                <div>
-                  <QuickActionCard title="Analytics" description="Track your success" icon={BarChart3} href="/projects" variant="secondary" />
-                </div>
-              </>}
             {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
               <div>
                 <QuickActionCard title="Manage Organization" description="Team, security & billing" icon={Building2} href="/organization" variant="secondary" />

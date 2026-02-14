@@ -55,11 +55,11 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     setDirectFetchAttempted(true);
     
     try {
-      console.log("Attempting direct database fetch for subscription data");
+      
       const { data: sessionData } = await supabase.auth.getSession();
       
       if (!sessionData?.session?.user?.id) {
-        console.log("No authenticated user for direct fetch");
+        
         return;
       }
       
@@ -70,13 +70,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         .maybeSingle();
         
       if (error) {
-        console.error("Error in direct fetch:", error);
+        
         // If this is a network error, try to load from localStorage
         if (isNetworkError(error)) {
           loadFromLocalStorage();
         }
       } else if (data) {
-        console.log("Fetched subscription directly:", data);
+        
         // Convert data to SubscriptionPlan type
         const typedData = toSubscriptionPlan(data);
         setLocalSubscription(typedData);
@@ -86,10 +86,9 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             updated_at: new Date().toISOString()
           }));
         } catch (e) {
-          console.error("Error storing data:", e);
         }
       } else {
-        console.log("No subscription found in direct fetch, creating default trial data");
+        
         
         // Create a default trial subscription object if nothing was found
         const defaultTrial: SubscriptionPlan = {
@@ -113,11 +112,11 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             updated_at: new Date().toISOString()
           }));
         } catch (e) {
-          console.error("Error storing data:", e);
+          
         }
       }
     } catch (err) {
-      console.error("Exception in direct fetch:", err);
+      
       // Try to load from localStorage on any error
       loadFromLocalStorage();
     }
@@ -131,7 +130,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       const storedData = localStorage.getItem('subscriptionData');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        console.log("Loaded subscription from localStorage:", parsedData);
+        
         
         // Convert to SubscriptionPlan type
         const typedData = toSubscriptionPlan(parsedData);
@@ -139,7 +138,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         setHasFetchedFromLocal(true);
       }
     } catch (e) {
-      console.error("Error loading subscription from localStorage:", e);
+      
     }
   };
   
@@ -162,7 +161,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       
       toast.success("Subscription data refreshed");
     } catch (error) {
-      console.error("Error refreshing subscription:", error);
+      
       toast.error("Failed to refresh subscription data");
       
       // Try direct database fetch as fallback
@@ -201,20 +200,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     }
   }, [isContextLoading, subscription, hasFetchedFromLocal]);
   
-  // Debug logging for subscription data
   useEffect(() => {
-    console.log("Current subscription data in SubscriptionCard:", { 
-      initialSubscription, 
-      subscriptionFromContext,
-      localSubscription,
-      subscription,
-      isContextLoading,
-      hasFetchedFromLocal,
-      subscriptionError,
-      loadingTimeout,
-      directFetchAttempted
-    });
-    
     // Update local subscription state if context data becomes available
     if (!localSubscription && subscriptionFromContext) {
       setLocalSubscription(toSubscriptionPlan(subscriptionFromContext));
@@ -222,7 +208,6 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     
     // If there's an error with subscription or loading has taken too long, try direct fetch
     if ((subscriptionError || (loadingTimeout && !subscription)) && !directFetchAttempted) {
-      console.log("Error or timeout detected, trying direct fetch");
       tryDirectFetch();
       
       // If error is network-related, show a toast
@@ -239,25 +224,25 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   useEffect(() => {
     const loadSubscriptionData = async () => {
       try {
-        console.log("SubscriptionCard: Forcing subscription check on mount");
+        
         await checkSubscription();
         
         // If after 2 seconds we still don't have subscription data, try direct fetch
         setTimeout(() => {
           if (!subscriptionFromContext && !localSubscription) {
-            console.log("No subscription data after 2s, trying direct fetch");
+            
             tryDirectFetch();
           }
         }, 2000);
       } catch (error) {
-        console.error("Error checking subscription on SubscriptionCard mount:", error);
+        
         
         // If this is a network error, try direct fetch
         if (isNetworkError(error)) {
           try {
             await tryDirectFetch();
           } catch (directFetchError) {
-            console.error("Direct fetch also failed:", directFetchError);
+            
             loadFromLocalStorage();
           }
         } else {
@@ -287,20 +272,13 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             {loadingTimeout && (
               <div className="mt-4 flex flex-col items-center">
                 <p className="text-sm text-muted-foreground mb-2">This is taking longer than expected.</p>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={handleRefreshSubscription}
-                    className="px-4 py-2 bg-brand-green text-white rounded-md text-sm hover:bg-brand-green/90"
-                  >
-                    Retry Loading
-                  </button>
-                  <button 
-                    onClick={tryDirectFetch}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300"
-                  >
-                    Try Direct Fetch
-                  </button>
-                </div>
+                <Button 
+                  onClick={handleRefreshSubscription}
+                  size="sm"
+                  className="mt-2"
+                >
+                  Retry
+                </Button>
               </div>
             )}
           </div>
@@ -430,7 +408,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       // Refresh subscription data to show updated status
       await checkSubscription();
     } catch (error: any) {
-      console.error('Error cancelling subscription:', error);
+      
       toast.dismiss();
       toast.error("Failed to cancel subscription", {
         description: error.message || "Please try again or contact support"
@@ -468,7 +446,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         window.location.href = '/subscription';
       }, 1000);
     } catch (error: any) {
-      console.error('Error renewing subscription:', error);
+      
       toast.dismiss();
       toast.error("Failed to initiate payment update", {
         description: error.message || "Please try again later."

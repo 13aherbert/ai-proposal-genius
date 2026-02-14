@@ -39,12 +39,11 @@ export function ProjectsToolbar({
         </Button>
         <Button 
           variant="outline" 
-          size="sm" 
+          size="icon" 
           onClick={onRefresh}
-          className="flex items-center gap-2"
+          title="Refresh"
         >
           <RefreshCw className="h-4 w-4" />
-          Refresh Limits
         </Button>
       </div>
     </div>

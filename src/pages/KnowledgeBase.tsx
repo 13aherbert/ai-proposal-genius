@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wrench, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
@@ -8,6 +8,7 @@ import { AddEntryDialog } from "@/components/knowledge-base/AddEntryDialog";
 import { BulkParsingTrigger } from "@/components/knowledge-base/BulkParsingTrigger";
 import { OrphanedFileRecovery } from "@/components/knowledge-base/OrphanedFileRecovery";
 import { KnowledgeBaseAudit } from "@/components/knowledge-base/KnowledgeBaseAudit";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 
@@ -71,10 +72,23 @@ const KnowledgeBase = () => {
                     categories={categories}
                   />
                 </div>
-                <div className="xl:col-span-1 space-y-4">
-                  <KnowledgeBaseAudit />
-                  <BulkParsingTrigger />
-                  <OrphanedFileRecovery />
+                <div className="xl:col-span-1">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="h-4 w-4" />
+                          Maintenance Tools
+                        </div>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4">
+                      <KnowledgeBaseAudit />
+                      <BulkParsingTrigger />
+                      <OrphanedFileRecovery />
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               </div>
             </div>

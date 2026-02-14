@@ -78,19 +78,6 @@ export default function RecentProjects() {
   const { hasFeature, refreshSubscription, disableTestMode, isTestMode } = useSubscriptionFeatures();
   const hasExportFeature = hasFeature("data_export");
   
-  console.log("RecentProjects - Auth state:", { 
-    hasSession: !!session?.user, 
-    loading, 
-    userId: session?.user?.id 
-  });
-  console.log("RecentProjects - Projects data:", { 
-    projects: projects?.length || 0, 
-    isLoading, 
-    error: error?.message, 
-    projectCount, 
-    projectLimit,
-    organizationId 
-  });
   
   // Apply project limit when subscription data is available - with faster checking
   useEffect(() => {
@@ -139,35 +126,9 @@ export default function RecentProjects() {
   };
   
   const handleManualRefresh = () => {
-    toast.info("Refreshing subscription data...");
-    localStorage.removeItem("projectLimit");
-    
-    // Disable test mode if it's enabled
-    if (isTestMode) {
-      console.log("Disabling test mode to fix re-render issues");
-      disableTestMode();
-      toast.success("Test mode disabled");
-    }
-    
-    try {
-      if (window.featureCache && typeof window.featureCache.clear === 'function') {
-        window.featureCache.clear();
-      }
-      if (window.projectLimitCache && typeof window.projectLimitCache.clear === 'function') {
-        window.projectLimitCache.clear();
-      }
-    } catch (e) {
-      console.error("Error clearing feature caches:", e);
-    }
-    
     refreshSubscription();
-    setRefreshAttempts(prev => prev + 1);
     setProjectLimitApplied(false);
-    hasRunInitialChecksRef.current = false;
-    
-    setTimeout(() => {
-      refetch();
-    }, 500);
+    refetch();
   };
   
   // If we have a cached token but auth is still loading, show content with cached data

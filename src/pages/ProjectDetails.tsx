@@ -12,18 +12,12 @@ const ProjectDetails = () => {
   const { session } = useAuth();
   const { data: project, isLoading, error } = useProjectDetails(projectId, session?.user);
 
-  console.log("ProjectDetails - Project ID:", projectId);
-  console.log("ProjectDetails - User:", session?.user?.id);
-  console.log("ProjectDetails - Loading:", isLoading);
-  console.log("ProjectDetails - Error:", error);
-  console.log("ProjectDetails - Project:", project);
-
   if (isLoading) {
     return <ProjectLoading />;
   }
 
   if (error || !project) {
-    console.error("Project not found or error:", error);
+    
     return <ProjectNotFound projectId={projectId} />;
   }
 

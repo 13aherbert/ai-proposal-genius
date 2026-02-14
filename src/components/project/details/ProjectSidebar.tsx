@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
-import { useEffect } from "react";
+
 
 interface ProjectSidebarProps {
   activeSection: string;
@@ -47,23 +47,6 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     },
   ] as const;
 
-  useEffect(() => {
-    console.log("ProjectSidebar - Subscription Plan:", plan);
-    console.log("ProjectSidebar - Plan from subscription object:", subscription?.plan_type);
-    console.log("ProjectSidebar - Subscription Status:", subscription?.status);
-    console.log("ProjectSidebar - isLoading (features):", isLoading);
-    console.log("ProjectSidebar - isLoading (subscription):", subscriptionLoading);
-    console.log("ProjectSidebar - Test Mode:", isTestMode);
-    
-    const featureAvailability = {} as Record<FeatureName, boolean>;
-    sections.forEach(section => {
-      if (section.feature) {
-        featureAvailability[section.feature] = hasFeature(section.feature);
-      }
-    });
-    console.log("Feature availability:", featureAvailability);
-    
-  }, [plan, isLoading, subscriptionLoading, subscription, hasFeature, isTestMode]);
 
   const handleDevModeToggle = () => {
     if (process.env.NODE_ENV === 'development') {

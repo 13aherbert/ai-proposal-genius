@@ -59,6 +59,26 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate the user
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { topic, industry, category, customPrompt, organizationId } = await req.json();
     
     if (!topic || !industry || !category) {
@@ -74,10 +94,6 @@ serve(async (req) => {
     let existingContent = "";
     if (organizationId) {
       try {
-        const authHeader = req.headers.get('Authorization') || '';
-        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: { Authorization: authHeader } }
-        });
 
         const { data: entries, error: fetchError } = await supabaseClient
           .from('knowledge_entries')

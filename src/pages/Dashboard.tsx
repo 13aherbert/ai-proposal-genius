@@ -53,6 +53,7 @@ export default function Dashboard() {
   
   // Show KB wizard for users with empty knowledge base who haven't dismissed it
   useEffect(() => {
+    if (!knowledgeReadiness.isLoading && knowledgeReadiness.missingEssential.length === 0) return;
     if (!knowledgeReadiness.isLoading && knowledgeReadiness.isEmpty) {
       const hasSeenWizard = localStorage.getItem('kb_wizard_seen');
       if (!hasSeenWizard && dashboardStats.hasProjects === false) {
@@ -60,7 +61,7 @@ export default function Dashboard() {
         setShowKBWizard(true);
       }
     }
-  }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, dashboardStats.hasProjects]);
+  }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
 
   const handleKBWizardClose = (open: boolean) => {
     setShowKBWizard(open);

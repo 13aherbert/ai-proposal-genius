@@ -234,7 +234,7 @@ EVIDENCE REQUIREMENTS:
   ): string | null {
     switch (sectionType) {
       case 'executive':
-        return 'EXECUTIVE SUMMARY CONTEXT:\n- Synthesize key points from all other sections\n- Focus on high-level strategic value\n- Include compelling business case';
+        return 'EXECUTIVE SUMMARY CONTEXT:\n- This section MUST be synthesized from the existing proposal sections below. Do not require separate knowledge base entries — use the proposal itself as the primary source.\n- Distill the key value proposition, technical approach, team strengths, and pricing into a cohesive narrative\n- Focus on high-level strategic value and measurable outcomes\n- Keep under 400 words — executives skim, not read';
       
       case 'technical':
         const hasTeamSection = existingSections.find(s => 

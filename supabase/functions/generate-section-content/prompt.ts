@@ -111,6 +111,12 @@ ANTI-PATTERNS TO AVOID:
   }
 }
 
+// Helper to detect executive summary sections
+export function isExecutiveSection(sectionTitle: string): boolean {
+  const title = sectionTitle.toLowerCase();
+  return title.includes('executive') || title.includes('summary') || title.includes('overview');
+}
+
 export function generatePrompt(
   sectionTitle: string,
   project: Project,
@@ -122,26 +128,51 @@ export function generatePrompt(
   const sectionGuidelines = getSectionGuidelines(sectionType);
   
   const isCostRelatedSection = sectionType === 'pricing';
+  const isExecutive = sectionType === 'executive';
+
+  // For executive sections, existing sections are the PRIMARY source
+  const hasExistingSections = existingSections && existingSections.length > 0;
 
   // Extract key information from existing sections for consistency
   let consistencyContext = '';
-  if (existingSections && existingSections.length > 0) {
-    consistencyContext = `\n\nEXISTING SECTIONS FOR CONSISTENCY:
+  if (hasExistingSections) {
+    if (isExecutive) {
+      consistencyContext = `\n\nPRIMARY SOURCE MATERIAL — EXISTING PROPOSAL SECTIONS:
+You MUST synthesize this executive summary from the proposal sections below. These are your primary and authoritative source. Do NOT require separate knowledge base entries.
+
+`;
+    } else {
+      consistencyContext = `\n\nEXISTING SECTIONS FOR CONSISTENCY:
 These proposal sections already exist. You MUST maintain absolute consistency with all pricing, timelines, company information, project scope, and deliverables:
 
 `;
+    }
     
-    existingSections.forEach(section => {
+    existingSections!.forEach(section => {
       consistencyContext += `=== ${section.section_title} ===\n${section.content}\n\n`;
     });
 
-    consistencyContext += `CONSISTENCY REQUIREMENTS:
+    if (isExecutive) {
+      consistencyContext += `SYNTHESIS REQUIREMENTS:
+- Distill the key value proposition, approach, and outcomes from the sections above
+- Do NOT introduce new claims or data not present in the proposal sections
+- Present a cohesive narrative that ties all sections together
+- Keep under 400 words — executives skim, not read
+`;
+    } else {
+      consistencyContext += `CONSISTENCY REQUIREMENTS:
 - Use IDENTICAL pricing, timelines, and project details
 - Maintain same company capabilities and team information  
 - Never contradict established information
 - Align tone and detail level with existing sections
 `;
+    }
   }
+
+  // For executive sections, demote KB context to supplementary
+  const kbSection = isExecutive && hasExistingSections
+    ? `\nSUPPLEMENTARY CONTEXT (use only to enrich, not as primary source):\n${knowledgeBaseContext}`
+    : knowledgeBaseContext;
 
   const costSpecificInstructions = isCostRelatedSection ? `
 PRICING SECTION STRATEGY:
@@ -151,6 +182,38 @@ PRICING SECTION STRATEGY:
 4. Include risk mitigation through milestone-based payments
 5. Show cost transparency and value comparison to alternatives` : '';
 
+  // Executive sections get a modified strict mode that sources from proposal sections
+  const strictModeBlock = strictMode ? (isExecutive ? `
+*** STRICT MODE — EXECUTIVE SUMMARY ***
+
+This section is synthesized from the existing proposal sections above, NOT from the knowledge base.
+- Use ONLY information present in the existing proposal sections
+- Do NOT invent new statistics, claims, or details
+- Do NOT trigger INSUFFICIENT_KNOWLEDGE_BASE_DATA — this section derives from the proposal itself
+- Anti-hallucination rules still apply: no unverified claims, no invented numbers
+- If no existing proposal sections are available, respond with "INSUFFICIENT_PROPOSAL_SECTIONS - Generate other proposal sections first before the executive summary"
+` : `
+*** ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED ***
+
+MANDATORY REQUIREMENTS (VIOLATION = IMMEDIATE REFUSAL):
+1. ZERO TOLERANCE POLICY: Use ONLY information explicitly stated in the knowledge base above
+2. NO SYNTHESIS: Do not combine or extrapolate from knowledge base information  
+3. NO ASSUMPTIONS: Do not fill gaps with industry standards or general knowledge
+4. NO CREATIVE WRITING: Do not generate plausible-sounding but unverified content
+5. EXACT INFORMATION ONLY: Every number, date, process, or claim must exist verbatim in the knowledge base
+
+REFUSAL TRIGGER CONDITIONS:
+- Knowledge base lacks specific information for any part of this section
+- Missing concrete details like pricing, timelines, team qualifications, or technical specifications
+- Insufficient content volume to create a comprehensive section
+- Any doubt about information accuracy or source
+
+RESPONSE PROTOCOL:
+- IF INSUFFICIENT DATA: Respond exactly with "INSUFFICIENT_KNOWLEDGE_BASE_DATA - [specific missing information]"
+- IF ADEQUATE DATA: Create section using ONLY verified knowledge base information with explicit citations
+
+REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.`) : '';
+
   return `You are an expert RFP proposal writer creating the "${sectionTitle}" section. This section must win against strong competition by demonstrating clear, quantifiable value to the client.
 
 PROJECT CONTEXT:
@@ -159,19 +222,19 @@ PROJECT CONTEXT:
 - Business: ${project.business_name || 'Not specified'}
 - RFP Analysis: ${project.analysis || 'No analysis available'}
 
-${knowledgeBaseContext}${consistencyContext}
+${kbSection}${consistencyContext}
 
 ${sectionGuidelines}
 
 ${costSpecificInstructions}
 
-ANTI-HALLUCINATION PROTOCOL (MANDATORY):
+${isExecutive && hasExistingSections ? '' : `ANTI-HALLUCINATION PROTOCOL (MANDATORY):
 • Statistics require format: "[Number] (Source: [Knowledge Base Entry Title])"
 • If no source exists in knowledge base, rewrite as qualitative: "significant improvement" not "45% increase"
 • NEVER create specific percentages, dollar amounts, or timeframes not in knowledge base
 • When describing team: use actual titles/credentials from knowledge base only
 • For vendor partnerships: only name partners explicitly listed in knowledge base
-• If information is missing, write around it - don't invent details
+• If information is missing, write around it - don't invent details`}
 
 ANTI-VERBOSITY PROTOCOL:
 • Maximum words by section: Executive (400), Technical (600), Team (400), Timeline (350), Pricing (500), Other (500)
@@ -194,27 +257,7 @@ SPECIFICITY REQUIREMENTS:
 • Bad: "competitive pricing" → Good: "$34,500 total investment including all deliverables"
 • Bad: "our team of experts" → Good: "[Name], [Title] with [X] years in [Specific Field]"
 
-${strictMode ? `
-*** ULTRA-STRICT ANTI-HALLUCINATION MODE ACTIVATED ***
-
-MANDATORY REQUIREMENTS (VIOLATION = IMMEDIATE REFUSAL):
-1. ZERO TOLERANCE POLICY: Use ONLY information explicitly stated in the knowledge base above
-2. NO SYNTHESIS: Do not combine or extrapolate from knowledge base information  
-3. NO ASSUMPTIONS: Do not fill gaps with industry standards or general knowledge
-4. NO CREATIVE WRITING: Do not generate plausible-sounding but unverified content
-5. EXACT INFORMATION ONLY: Every number, date, process, or claim must exist verbatim in the knowledge base
-
-REFUSAL TRIGGER CONDITIONS:
-- Knowledge base lacks specific information for any part of this section
-- Missing concrete details like pricing, timelines, team qualifications, or technical specifications
-- Insufficient content volume to create a comprehensive section
-- Any doubt about information accuracy or source
-
-RESPONSE PROTOCOL:
-- IF INSUFFICIENT DATA: Respond exactly with "INSUFFICIENT_KNOWLEDGE_BASE_DATA - [specific missing information]"
-- IF ADEQUATE DATA: Create section using ONLY verified knowledge base information with explicit citations
-
-REMEMBER: Better to refuse generation than risk any hallucination. When in doubt, always refuse.` : ''}
+${strictModeBlock}
 
 WRITING STYLE:
 - Use persuasive, confident language that demonstrates expertise

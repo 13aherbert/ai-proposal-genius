@@ -20,22 +20,31 @@ interface KnowledgeBaseValidationProps {
   onAddKnowledge?: () => void;
 }
 
+// Helper to detect executive summary sections that derive from proposal content
+function isExecutiveSection(title: string): boolean {
+  const t = title.toLowerCase();
+  return t.includes('executive') || t.includes('summary') || t.includes('overview');
+}
+
 export function KnowledgeBaseValidation({ sectionTitle, onAddKnowledge }: KnowledgeBaseValidationProps) {
   const { session } = useAuth();
   const [coverage, setCoverage] = useState<KnowledgeBaseCoverage | null>(null);
   const [loading, setLoading] = useState(true);
+  const isExec = isExecutiveSection(sectionTitle);
 
   useEffect(() => {
+    if (isExec) {
+      setLoading(false);
+      return;
+    }
     checkKnowledgeBaseCoverage();
-  }, [sectionTitle, session]);
+  }, [sectionTitle, session, isExec]);
 
   const checkKnowledgeBaseCoverage = async () => {
     if (!session?.user?.id) return;
 
     setLoading(true);
     try {
-      // This is a simplified version - in a real implementation,
-      // you'd call an edge function to assess coverage
       const { data: knowledgeEntries, error } = await supabase
         .from('knowledge_entries')
         .select('*')
@@ -43,7 +52,6 @@ export function KnowledgeBaseValidation({ sectionTitle, onAddKnowledge }: Knowle
 
       if (error) throw error;
 
-      // Simple coverage assessment (this would be more sophisticated in practice)
       const relevantEntries = knowledgeEntries?.filter(entry => {
         const entryText = (entry.title + ' ' + (entry.content || '')).toLowerCase();
         const sectionWords = sectionTitle.toLowerCase().split(' ');
@@ -69,6 +77,18 @@ export function KnowledgeBaseValidation({ sectionTitle, onAddKnowledge }: Knowle
     }
     setLoading(false);
   };
+
+  // Executive sections don't need KB coverage — they synthesize from proposal
+  if (isExec) {
+    return (
+      <div className="flex items-center gap-2">
+        <CheckCircle className="h-4 w-4 text-green-600" />
+        <span className="text-sm text-muted-foreground">
+          This section will be generated from your other proposal sections
+        </span>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

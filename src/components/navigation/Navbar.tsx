@@ -37,6 +37,9 @@ export function Navbar() {
                 <Link to="/upload-rfp" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                   Upload RFP
                 </Link>
+                <Link to="/opportunities" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                  Find Opportunities
+                </Link>
                 <Link to="/knowledge-base" className="text-sm font-medium text-muted-foreground hover:text-foreground">
                   Knowledge Base
                 </Link>
@@ -106,6 +109,13 @@ export function Navbar() {
               className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
             >
               Upload RFP
+            </Link>
+            <Link
+              to="/opportunities"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+            >
+              Find Opportunities
             </Link>
             <Link
               to="/knowledge-base"

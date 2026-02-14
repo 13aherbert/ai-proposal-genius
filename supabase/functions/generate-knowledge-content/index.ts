@@ -81,6 +81,24 @@ serve(async (req) => {
 
     const { topic, industry, category, customPrompt, organizationId } = await req.json();
     
+    // SECURITY: Verify user belongs to the organization if organizationId provided
+    if (organizationId) {
+      const { data: membership, error: memberError } = await supabaseClient
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', organizationId)
+        .eq('user_id', authUser.id)
+        .eq('status', 'active')
+        .single();
+
+      if (memberError || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Not a member of this organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
     if (!topic || !industry || !category) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: topic, industry, or category" }),

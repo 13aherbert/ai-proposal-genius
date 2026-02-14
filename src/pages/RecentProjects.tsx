@@ -21,11 +21,9 @@ export default function RecentProjects() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [refreshAttempts, setRefreshAttempts] = useState(0);
   const hasRunInitialChecksRef = useRef(false);
-  const userTokenRef = useRef<string | null>(localStorage.getItem('userToken'));
-  
-  // Set auth ready when authentication loading is complete or we have a cached token
+  // Set auth ready when authentication loading is complete
   useEffect(() => {
-    if (!loading || userTokenRef.current) {
+    if (!loading) {
       setAuthReady(true);
     }
   }, [loading]);
@@ -82,7 +80,7 @@ export default function RecentProjects() {
   // Apply project limit when subscription data is available - with faster checking
   useEffect(() => {
     // Skip if already applied or no user
-    if (projectLimitApplied || (!session?.user && !userTokenRef.current)) return;
+    if (projectLimitApplied || !session?.user) return;
     
     // Skip if subscription is still loading and we don't have forced starter plan
     if (!subscriptionData && !forceStarterPlan) return;
@@ -131,11 +129,8 @@ export default function RecentProjects() {
     refetch();
   };
   
-  // If we have a cached token but auth is still loading, show content with cached data
-  const shouldSkipLoadingState = userTokenRef.current && loading && authReady;
-  
   // Show loading state while authentication is being verified
-  if (loading && !shouldSkipLoadingState) {
+  if (loading) {
     return (
       <div className="container py-10 space-y-8">
         <ProjectsLoadingState message="Verifying your authentication..." />
@@ -144,7 +139,7 @@ export default function RecentProjects() {
   }
   
   // Show error if user is not authenticated
-  if (!session?.user && !userTokenRef.current) {
+  if (!session?.user) {
     return <ProjectsAuthError />;
   }
 

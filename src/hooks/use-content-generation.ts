@@ -226,9 +226,19 @@ export function useContentGeneration() {
     };
 
     try {
+      // Reorder sections: move executive/summary/overview sections to the end
+      // so they can be synthesized from other proposal sections
+      const isExecSection = (title: string) => {
+        const t = title.toLowerCase();
+        return t.includes('executive') || t.includes('summary') || t.includes('overview');
+      };
+      const nonExecSections = sections.filter(s => !isExecSection(s.section_title));
+      const execSections = sections.filter(s => isExecSection(s.section_title));
+      const orderedSections = [...nonExecSections, ...execSections];
+
       // Generate content for each section
-      for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
+      for (let i = 0; i < orderedSections.length; i++) {
+        const section = orderedSections[i];
         
         setProgress(prev => ({
           ...prev,

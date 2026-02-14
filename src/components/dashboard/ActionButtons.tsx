@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Book, Settings, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { UserFeedbackDialog } from "@/components/feedback/UserFeedbackDialog";
 
 type ActionButtonsProps = {
@@ -21,23 +21,8 @@ export function ActionButtons({
   const navigate = useNavigate();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  useEffect(() => {
-    console.log("ActionButtons rendered with props:", { 
-      isCheckingRoles, 
-      showAdminButton, 
-      roleCheckError,
-      timestamp: new Date().toISOString()
-    });
-  }, [isCheckingRoles, showAdminButton, roleCheckError]);
-
   return (
     <div className="flex flex-wrap gap-3 items-center">
-      {isCheckingRoles && (
-        <Badge variant="outline" className="py-2 px-3">
-          Checking roles...
-        </Badge>
-      )}
-      
       {showAdminButton && (
         <Button 
           variant="outline" 
@@ -49,11 +34,6 @@ export function ActionButtons({
         </Button>
       )}
       
-      {import.meta.env.DEV && (
-        <Badge variant="outline" className="py-2 px-3 bg-blue-900/20 border-blue-400">
-          Admin: {showAdminButton ? 'Yes' : 'No'}
-        </Badge>
-      )}
       
       {roleCheckError && !isCheckingRoles && (
         <Badge variant="destructive" className="py-2 px-3">

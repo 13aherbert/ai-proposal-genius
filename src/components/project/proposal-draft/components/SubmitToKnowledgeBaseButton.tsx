@@ -12,7 +12,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { BookPlus, Loader2 } from "lucide-react";
+import { BookPlus, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { knowledgeCategories } from "@/components/knowledge-base/data/categories";
@@ -32,6 +32,7 @@ export function SubmitToKnowledgeBaseButton({
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Past Performance & Case Studies");
   const [isSaving, setIsSaving] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
 
   const handleOpen = () => {
     setTitle(`${projectTitle || "Untitled Project"} - Approved Proposal`);
@@ -79,6 +80,7 @@ export function SubmitToKnowledgeBaseButton({
           onClick: () => window.location.assign("/knowledge-base"),
         },
       });
+      setHasSaved(true);
       setOpen(false);
     } catch (err) {
       console.error("Failed to save to knowledge base:", err);
@@ -95,13 +97,27 @@ export function SubmitToKnowledgeBaseButton({
       <Button
         variant="outline"
         size="sm"
-        onClick={handleOpen}
-        className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark text-xs sm:text-sm"
-        disabled={!proposalContent}
+        onClick={hasSaved ? undefined : handleOpen}
+        className={`flex items-center gap-2 text-xs sm:text-sm ${
+          hasSaved 
+            ? 'bg-green-600 hover:bg-green-600 text-white border-green-600 cursor-default opacity-90' 
+            : 'bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark'
+        }`}
+        disabled={!proposalContent || hasSaved}
       >
-        <BookPlus className="h-4 w-4" />
-        <span className="hidden sm:inline">Approve & Save</span>
-        <span className="sm:hidden">Save</span>
+        {hasSaved ? (
+          <>
+            <CheckCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Saved to KB</span>
+            <span className="sm:hidden">Saved</span>
+          </>
+        ) : (
+          <>
+            <BookPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Approve & Save</span>
+            <span className="sm:hidden">Save</span>
+          </>
+        )}
       </Button>
 
       <AlertDialog open={open} onOpenChange={setOpen}>

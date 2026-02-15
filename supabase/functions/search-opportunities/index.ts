@@ -137,18 +137,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    // SAM.gov requires dates in MM/DD/YYYY format
+    const toSamDate = (dateStr: string): string => {
+      const parts = dateStr.split("-"); // YYYY-MM-DD
+      if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+      return dateStr;
+    };
+
+    // postedFrom is mandatory for SAM.gov - default to 90 days ago
+    const defaultFrom = new Date();
+    defaultFrom.setDate(defaultFrom.getDate() - 90);
+    const defaultFromStr = `${String(defaultFrom.getMonth() + 1).padStart(2, "0")}/${String(defaultFrom.getDate()).padStart(2, "0")}/${defaultFrom.getFullYear()}`;
+
     const params = new URLSearchParams();
     params.set("api_key", samApiKey);
     if (safeKeyword) params.set("keyword", safeKeyword);
-    if (postedFrom) params.set("postedFrom", String(postedFrom).slice(0, 10));
-    if (postedTo) params.set("postedTo", String(postedTo).slice(0, 10));
-    if (naicsCode) params.set("naicsCode", String(naicsCode).slice(0, 10));
-    if (setAside) params.set("setAside", String(setAside).slice(0, 50));
+    params.set("postedFrom", postedFrom ? toSamDate(String(postedFrom).slice(0, 10)) : defaultFromStr);
+    if (postedTo) params.set("postedTo", toSamDate(String(postedTo).slice(0, 10)));
+    if (naicsCode) params.set("ncode", String(naicsCode).slice(0, 10));
+    if (setAside) params.set("typeOfSetAside", String(setAside).slice(0, 50));
     if (ptype) params.set("ptype", String(ptype).slice(0, 5));
     params.set("limit", String(safeLimit));
     params.set("offset", String(safeOffset));
 
-    const samUrl = `https://api.sam.gov/opportunities/v2/search?${params.toString()}`;
+    const samUrl = `https://api.sam.gov/prod/opportunities/v2/search?${params.toString()}`;
     console.log(`Fetching SAM.gov: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}`);
 
     const samResponse = await fetch(samUrl, {

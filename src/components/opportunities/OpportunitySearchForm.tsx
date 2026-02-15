@@ -47,13 +47,14 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanVal = (v: string) => (v && !v.startsWith("any")) ? v : undefined;
     onSearch({
       keyword,
       postedFrom: postedFrom || undefined,
       postedTo: postedTo || undefined,
       naicsCode: naicsCode || undefined,
-      setAside: setAside || undefined,
-      ptype: ptype || undefined,
+      setAside: cleanVal(setAside),
+      ptype: cleanVal(ptype),
     });
   };
 

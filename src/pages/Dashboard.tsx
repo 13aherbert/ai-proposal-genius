@@ -16,13 +16,16 @@ import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
-import { Database, FolderOpen, Building2 } from "lucide-react";
+import { Database, FolderOpen, Building2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
+import { Navbar } from "@/components/navigation/Navbar";
+import { useSubscription } from "@/hooks/use-subscription";
+import { normalizePlanType } from "@/hooks/subscription/feature-access";
 
 export default function Dashboard() {
   const {
@@ -47,6 +50,9 @@ export default function Dashboard() {
   const { organization } = useCurrentOrganization();
   const knowledgeReadiness = useKnowledgeReadiness();
   const [showKBWizard, setShowKBWizard] = useState(false);
+  const { data: subscriptionData } = useSubscription();
+  const planType = normalizePlanType(subscriptionData?.plan_type);
+  const hasOpportunities = planType === 'pro' || planType === 'enterprise';
   
   // Quick upload functionality
   const quickUpload = useQuickUpload();
@@ -130,6 +136,7 @@ export default function Dashboard() {
   const isSoloUser = profileData.organization_size === 'individual' || isNewUser && !dashboardStats.hasProjects;
   if (isSoloUser) {
     return <div className="space-y-6">
+        <Navbar />
         <DashboardHeader />
         
         {/* Knowledge Base Setup Wizard */}
@@ -176,6 +183,11 @@ export default function Dashboard() {
                   <div>
                     <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" data-tour="knowledge-base" />
                   </div>
+                  {hasOpportunities && (
+                    <div>
+                      <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Recent Activity with tour target */}
@@ -203,6 +215,7 @@ export default function Dashboard() {
 
   // Regular dashboard for team/enterprise users
   return <div className="space-y-6">
+      <Navbar />
       <DashboardHeader />
       
       {/* Enterprise Onboarding - Show for new enterprise users */}
@@ -262,6 +275,11 @@ export default function Dashboard() {
             <div>
               <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
             </div>
+            {hasOpportunities && (
+              <div>
+                <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+              </div>
+            )}
             {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
               <div>
                 <QuickActionCard title="Manage Organization" description="Team, security & billing" icon={Building2} href="/organization" variant="secondary" />

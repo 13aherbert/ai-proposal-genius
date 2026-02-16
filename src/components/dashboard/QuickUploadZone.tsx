@@ -44,10 +44,10 @@ export function QuickUploadZone({ onFileSelect, disabled = false }: QuickUploadZ
       )}
     >
       <input {...getInputProps()} />
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center text-center space-y-4">
+      <CardContent className="p-4">
+        <div className="flex flex-col items-center text-center space-y-3">
           <div className={cn(
-            "p-4 rounded-full transition-colors",
+            "p-3 rounded-full transition-colors",
             "bg-gradient-to-r from-purple-600 to-blue-600"
           )}>
             {isDragActive ? (

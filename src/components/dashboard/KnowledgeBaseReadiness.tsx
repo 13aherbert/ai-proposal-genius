@@ -22,6 +22,11 @@ export function KnowledgeBaseReadiness({ compact = false }: KnowledgeBaseReadine
   const navigate = useNavigate();
   const readiness = useKnowledgeReadiness();
 
+  // Hide completely when all essential categories are filled
+  if (!readiness.isLoading && readiness.missingEssential.length === 0) {
+    return null;
+  }
+
   if (readiness.isLoading) {
     return (
       <Card className={cn(compact && "border-0 shadow-none bg-transparent")}>

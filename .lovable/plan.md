@@ -1,28 +1,39 @@
 
 
-## Fix: Make "Find Opportunities" Accessible from the Dashboard
+## Fix: Pro Users Blocked from Opportunities Page
 
-### Problem
-The Dashboard page (`src/pages/Dashboard.tsx`) does not render the `<Navbar />` component. It only renders `<DashboardHeader />`, which is a welcome/action card -- not the navigation bar. Since the "Find Opportunities" link lives in the Navbar, Pro users on the Dashboard page cannot see or access the Opportunities page.
+### Root Cause
+The Opportunities page (`src/pages/Opportunities.tsx`) does not check whether the subscription data has finished loading before deciding to show the lock screen.
 
-### Solution (Two Changes)
+When the page first renders:
+1. `useSubscription()` returns `{ subscription: null, isLoading: true }`
+2. `normalizePlanType(null?.plan_type)` returns `'trial'`
+3. `determineFeatureAccess('opportunity_search', 'trial')` returns `false`
+4. The page immediately renders the "Pro Feature" lock/upgrade screen
 
-#### 1. Add `<Navbar />` to the Dashboard page
-Import and render `<Navbar />` at the top of both the solo-user and regular dashboard return blocks so the navigation links (including "Find Opportunities") are visible.
+Even though the subscription later loads with `plan_type: 'pro'`, by that point the lock screen is already shown. In some cases (e.g., navigating directly to `/opportunities`), the component may not re-render properly, leaving the user stuck on the lock screen.
 
-**File:** `src/pages/Dashboard.tsx`
-- Import `Navbar` from `@/components/navigation/Navbar`
-- Add `<Navbar />` before `<DashboardHeader />` in both the solo-user return (line ~132) and the regular dashboard return (line ~205)
+### Fix
 
-#### 2. Add a Quick Action card for Opportunities on the Dashboard
-Add a "Find Opportunities" Quick Action card in the dashboard grid for Pro users, so the feature is discoverable without relying solely on the navbar.
+**File:** `src/pages/Opportunities.tsx`
 
-**File:** `src/pages/Dashboard.tsx`
-- Import `Search` icon from `lucide-react`
-- In the Quick Actions grid (both solo and regular dashboards), add a conditional `QuickActionCard` for `/opportunities` when the user has a Pro subscription
-- Use the existing subscription data (already available via `useSubscription` in `DashboardHeader`) or check `subscription?.plan_type` to gate visibility
+1. Destructure `isLoading` from `useSubscription()` alongside `subscription`
+2. Before the `if (!hasPro)` check, add a loading guard: if `isLoading` is true, show a spinner/skeleton instead of the lock screen
+3. Only render the lock screen after loading is complete and the user truly lacks Pro access
 
-### Technical Details
+```text
+Before (current logic):
+  subscription loaded? --NO--> show lock screen (WRONG)
+  subscription loaded? --YES, trial--> show lock screen
+  subscription loaded? --YES, pro--> show search page
 
-The Navbar is already fully functional with the "Find Opportunities" link for all logged-in users (lines 40-42 in Navbar.tsx). The only issue is that Dashboard.tsx never mounts it. No changes to routing, feature gating, or the Opportunities page itself are needed.
+After (fixed logic):
+  still loading? --YES--> show loading spinner
+  subscription loaded, trial? --> show lock screen  
+  subscription loaded, pro? --> show search page
+```
 
+### Technical Detail
+- No database or edge function changes needed
+- The subscription data for this user is correct in both tables (`subscriptions` and `organization_subscriptions` both show `plan_type: 'pro'`)
+- The only change is adding a ~5-line loading guard in `Opportunities.tsx`

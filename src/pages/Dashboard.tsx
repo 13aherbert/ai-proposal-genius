@@ -156,8 +156,8 @@ export default function Dashboard() {
           onViewProject={quickUpload.viewProject}
         />
         
-        {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention, hide when ready and user has projects */}
-        {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
+        {/* Knowledge Base Readiness Warning - Hide when all essential categories are complete */}
+        {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
           <KnowledgeBaseReadiness />
         )}
         
@@ -201,8 +201,8 @@ export default function Dashboard() {
 
           {/* Right Column - Sidebar with reduced height */}
           <div className="space-y-4 lg:mt-32">
-            {/* Knowledge Base Readiness - Compact version in sidebar, hide when ready and user has projects */}
-            {!knowledgeReadiness.isReady && !knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+            {/* Knowledge Base Readiness - Compact version in sidebar, hide when all essentials complete */}
+            {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
               <KnowledgeBaseReadiness compact />
             )}
             
@@ -248,8 +248,8 @@ export default function Dashboard() {
         onViewProject={quickUpload.viewProject}
       />
       
-      {/* Knowledge Base Readiness Warning - Show prominently if empty or needs attention, hide when ready and user has projects */}
-      {(knowledgeReadiness.isEmpty || knowledgeReadiness.needsAttention) && !knowledgeReadiness.isLoading && (
+      {/* Knowledge Base Readiness Warning - Hide when all essential categories are complete */}
+      {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
         <KnowledgeBaseReadiness />
       )}
       
@@ -296,8 +296,8 @@ export default function Dashboard() {
 
         {/* Right Column - Sidebar with reduced height */}
         <div className="space-y-4 lg:mt-32">
-          {/* Knowledge Base Readiness - Compact version in sidebar, hide when ready and user has projects */}
-          {!knowledgeReadiness.isReady && !knowledgeReadiness.isEmpty && !knowledgeReadiness.needsAttention && (
+          {/* Knowledge Base Readiness - Compact version in sidebar, hide when all essentials complete */}
+          {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
             <KnowledgeBaseReadiness compact />
           )}
           

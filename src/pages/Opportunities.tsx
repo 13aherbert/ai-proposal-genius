@@ -3,6 +3,7 @@ import { Navbar } from "@/components/navigation/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Search, Bookmark, Lock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
 import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
@@ -12,7 +13,7 @@ import { useSubscription } from "@/hooks/subscription";
 import { determineFeatureAccess, normalizePlanType } from "@/hooks/subscription/feature-access";
 
 export default function Opportunities() {
-  const { subscription } = useSubscription();
+  const { subscription, isLoading } = useSubscription();
   const planType = normalizePlanType(subscription?.plan_type);
   const hasPro = determineFeatureAccess("opportunity_search" as any, planType);
 
@@ -37,6 +38,19 @@ export default function Opportunities() {
       loadSaved();
     }
   }, [hasPro, loadSaved]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 py-16 text-center">
+          <Skeleton className="h-8 w-48 mx-auto mb-4" />
+          <Skeleton className="h-4 w-64 mx-auto mb-2" />
+          <Skeleton className="h-4 w-56 mx-auto" />
+        </main>
+      </div>
+    );
+  }
 
   if (!hasPro) {
     return (

@@ -171,7 +171,7 @@ export default function Dashboard() {
           {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <QuickUploadZone onFileSelect={(file) => {
               quickUpload.openModal();
               setTimeout(() => quickUpload.uploadAndCreate(file), 100);

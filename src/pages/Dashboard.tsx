@@ -49,15 +49,10 @@ export default function Dashboard() {
 
   // Show KB wizard for users with empty knowledge base who haven't dismissed it
   useEffect(() => {
-    if (!knowledgeReadiness.isLoading && knowledgeReadiness.missingEssential.length === 0) {
-      setShowKBWizard(false);
-      return;
-    }
-    if (!knowledgeReadiness.isLoading && knowledgeReadiness.isEmpty) {
-      const hasSeenWizard = localStorage.getItem('kb_wizard_seen');
-      if (!hasSeenWizard && dashboardStats.hasProjects === false) {
-        setShowKBWizard(true);
-      }
+    if (knowledgeReadiness.isLoading) return;
+    if (knowledgeReadiness.missingEssential.length === 0) return;
+    if (knowledgeReadiness.isEmpty && !localStorage.getItem('kb_wizard_seen') && !dashboardStats.hasProjects) {
+      setShowKBWizard(true);
     }
   }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
 
@@ -148,7 +143,9 @@ export default function Dashboard() {
       )}
 
       {/* Knowledge Base Setup Wizard */}
-      <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
+      {showKBWizard && (
+        <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
+      )}
 
       {/* Quick Upload Modal */}
       <QuickUploadModal

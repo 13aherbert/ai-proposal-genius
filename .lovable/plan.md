@@ -1,134 +1,102 @@
 
 
-## Opportunity Finder Enhancement Plan
+## Fix: Pro User Blocked from Opportunities Page
 
-### Overview
+### Root Cause
 
-Expand the existing SAM.gov-only opportunity search into a multi-source aggregation engine by adding Grants.gov as a second data source, enhancing the search form with more filters, and adding a detail view for opportunities.
+The `SubscriptionProvider` has a race condition identical to the Knowledge Base wizard issue. In `fetchSubscriptionData()` (lines 148-163):
 
----
-
-### Part 1: Multi-Source Edge Function (Grants.gov Integration)
-
-**File: `supabase/functions/search-opportunities/index.ts`**
-
-Refactor the edge function into a modular provider architecture:
-
-- Extract SAM.gov fetch logic into a `fetchSamGov()` helper function
-- Add a new `fetchGrantsGov()` helper that calls the public `https://api.grants.gov/v1/api/search2` endpoint (no API key needed)
-- Both providers return results in the same normalized `Opportunity` format
-- Add a `source` filter parameter so users can search one or both sources
-- Merge and deduplicate results before returning
-- Add an `opportunityType` filter parameter (contract, grant, etc.)
-- SAM.gov results get `type` from the API response; Grants.gov results are tagged as `"grant"`
-
-The Grants.gov search2 endpoint accepts a POST body with fields: `keyword`, `rows`, `oppStatuses` ("forecasted|posted"), `fundingCategories`, `agencies`. No authentication required.
-
-Normalized mapping from Grants.gov response:
-
-| Grants.gov field | Normalized field |
-|---|---|
-| `id` or `oppNumber` | `external_id` |
-| `title` | `title` |
-| `oppNumber` | `solicitation_number` |
-| `agencyName` / `agency` | `department` |
-| `openDate` | `posted_date` |
-| `closeDate` | `response_deadline` |
-| `fundingCategory` | `set_aside` (repurposed for category) |
-| Link constructed from oppNumber | `description_url` |
-| `"grant"` | `type` |
-| `"grants_gov"` | `source` |
-
-**Config update: `supabase/functions/config.toml`**
-
-Add `search-opportunities` entry (currently missing):
-```toml
-[[functions]]
-name = "search-opportunities"
-verify_jwt = false
-import_map = "import_map.json"
+```
+if (!organization?.id) {
+  if (!orgLoading) {
+    // Creates a STARTER subscription, overwriting the real pro plan
+    const defaultSub = await createDefaultSubscription(...);
+    return defaultSub;
+  }
+  setIsLoading(false);
+  return;
+}
 ```
 
----
+When `useCurrentOrganization` briefly reports `loading: false` with `organization: null` (before the async chain resolves), the provider assumes there is no organization and creates a fake **starter** subscription. This starter subscription gets stored in both state and localStorage, so the Opportunities page sees `plan_type: 'starter'` instead of `'pro'` and shows the upgrade wall.
 
-### Part 2: Enhanced Search Form
+Even after the organization loads and the real `pro` subscription is fetched, the localStorage cache from the starter fallback can persist and be used on subsequent page loads.
 
-**File: `src/components/opportunities/OpportunitySearchForm.tsx`**
+### Fix
 
-Add new filter controls:
+**File: `src/hooks/subscription/providers/SubscriptionProvider.tsx`**
 
-- **Source** dropdown: "All Sources", "SAM.gov Only", "Grants.gov Only"
-- **Opportunity Type** dropdown: "Any", "Contract", "Grant", "Solicitation", "Presolicitation", "Sources Sought"
-- **Agency** text input for filtering by agency name
+Change `fetchSubscriptionData()` so it does NOT create a default subscription when the organization is simply not yet available. Instead, it should wait (keep `isLoading: true`) until the organization is definitively loaded.
 
-Update `SearchParams` interface in `src/hooks/use-opportunity-search.ts` to include:
+Replace lines 148-164:
 ```typescript
-source?: string;       // "all" | "sam_gov" | "grants_gov"
-opportunityType?: string;
-agency?: string;
+// Current (broken):
+if (!organization?.id) {
+  if (!orgLoading) {
+    const defaultSub = await createDefaultSubscription(...);
+    return defaultSub;
+  }
+  setIsLoading(false);
+  return;
+}
 ```
 
-The edge function will use `source` to decide which providers to call, reducing unnecessary API calls.
+With:
+```typescript
+// Fixed:
+if (!organization?.id) {
+  // If org is still loading, keep isLoading true and wait
+  if (orgLoading) {
+    return; // useEffect will re-trigger when orgLoading changes
+  }
+  // Org finished loading but is null -- fall through to check
+  // the user's individual subscription table as a fallback
+  console.log('No organization found, checking user subscription table');
+  const { data: userSub, error: userSubError } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
 
----
+  if (userSub) {
+    const subscriptionPlan: SubscriptionPlan = {
+      subscription_id: userSub.subscription_id,
+      user_id: userId,
+      status: userSub.status as SubscriptionPlan['status'],
+      plan_type: userSub.plan_type,
+      current_period_end: userSub.current_period_end,
+      project_limit: userSub.project_limit,
+      features: (userSub.features as Record<string, any>) || {},
+      stripe_customer_id: userSub.stripe_customer_id,
+      stripe_subscription_id: userSub.stripe_subscription_id,
+      created_at: userSub.created_at,
+      updated_at: userSub.updated_at,
+      cancel_at_period_end: userSub.cancel_at_period_end || false,
+    };
+    setSubscription(subscriptionPlan);
+    storeSubscriptionDataLocally(subscriptionPlan);
+    return;
+  }
 
-### Part 3: Opportunity Detail Modal
+  // Only create a default starter if there's truly no subscription anywhere
+  const defaultSub = await createDefaultSubscription(
+    userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
+  );
+  return defaultSub;
+}
+```
 
-**New file: `src/components/opportunities/OpportunityDetailModal.tsx`**
-
-A dialog/sheet component that shows the full opportunity details:
-
-- Title, solicitation number, source badge (SAM.gov or Grants.gov)
-- Full department/agency name
-- Posted date and response deadline (with days remaining)
-- NAICS code, set-aside type, opportunity type
-- Full description (from raw_data if available)
-- External link button ("View on SAM.gov" / "View on Grants.gov")
-- Save button
-- "Start Project" button that navigates to `/upload-rfp` with prefilled data
-
-**Updated file: `src/components/opportunities/OpportunityCard.tsx`**
-
-- Add a "View Details" button that opens the detail modal
-- Show a source badge (SAM.gov vs Grants.gov) on each card
-- Pass click handler from parent
-
-**Updated file: `src/pages/Opportunities.tsx`**
-
-- Manage selected opportunity state for the detail modal
-- Update page description from "Search government RFP opportunities from SAM.gov" to "Search RFPs, contracts, and grant opportunities"
-
----
-
-### Part 4: UI Polish
-
-- Update OpportunityCard to show a colored source badge distinguishing SAM.gov (blue) and Grants.gov (green)
-- Show opportunity type badge alongside the source
-- Update the "View on SAM.gov" button to dynamically show the correct source name
-- Add pagination controls (Next/Previous) using the existing `offset` parameter
-
----
+This ensures:
+1. While the org is loading, `isLoading` stays `true` (no premature render)
+2. If org loading completes but no org exists, we fall back to the `subscriptions` table (where the user's actual `pro` plan lives)
+3. Only if both tables have no data do we create a default starter plan
 
 ### Files Summary
 
-| File | Action |
+| File | Change |
 |---|---|
-| `supabase/functions/search-opportunities/index.ts` | Major refactor: add Grants.gov provider, source filter, modular architecture |
-| `supabase/functions/config.toml` | Add missing `search-opportunities` entry with `verify_jwt = false` |
-| `src/hooks/use-opportunity-search.ts` | Extend `SearchParams` and `Opportunity` interfaces with new fields |
-| `src/components/opportunities/OpportunitySearchForm.tsx` | Add source, opportunity type, and agency filters |
-| `src/components/opportunities/OpportunityDetailModal.tsx` | New component: full detail view in a dialog |
-| `src/components/opportunities/OpportunityCard.tsx` | Add source badge, View Details button |
-| `src/pages/Opportunities.tsx` | Wire up detail modal, update copy, add pagination |
+| `src/hooks/subscription/providers/SubscriptionProvider.tsx` | Replace the organization-null fallback to check `subscriptions` table instead of immediately creating a starter plan |
 
-### Dependencies
+### Why This Fixes It
 
-No new packages required. All changes use existing UI components (Dialog, Badge, Select, Button).
-
-### Security Notes
-
-- Grants.gov public endpoint requires no API key -- no secrets needed
-- All API calls remain server-side via the edge function
-- Rate limiting applies to the combined search (still 50/day per org)
-- No API keys exposed to the frontend
-
+The user's pro subscription exists in both `subscriptions` (user-level) and `organization_subscriptions` (org-level) tables. The current code never reaches the org-level query because the organization briefly appears null, triggering the starter fallback. With this fix, even if the org is null, we check the user-level subscription table before defaulting to starter.

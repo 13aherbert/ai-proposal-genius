@@ -84,7 +84,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
     posted_date: opp.postedDate || null,
     response_deadline: opp.responseDeadLine || opp.archiveDate || null,
     set_aside: opp.typeOfSetAside || opp.typeOfSetAsideDescription || "",
-    description_url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ""}`,
+    description_url: opp.uiLink || (opp.noticeId ? `https://sam.gov/opp/${opp.noticeId}` : (opp.solicitationNumber ? `https://sam.gov/search?keywords=${encodeURIComponent(opp.solicitationNumber)}` : "https://sam.gov")),
     type: opp.type || opp.baseType || "contract",
     raw_data: opp,
   }));
@@ -133,7 +133,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
       set_aside: opp.fundingCategory || "",
       description_url: opp.oppNumber
         ? `https://www.grants.gov/search-results-detail/${opp.oppNumber}`
-        : "",
+        : (opp.id ? `https://www.grants.gov/search-results-detail/${opp.id}` : "https://www.grants.gov"),
       type: "grant",
       raw_data: opp,
     }));

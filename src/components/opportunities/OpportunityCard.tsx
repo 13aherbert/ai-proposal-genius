@@ -34,6 +34,14 @@ function getSourceLabel(source: string) {
   }
 }
 
+function getSourceFallbackUrl(source: string) {
+  switch (source) {
+    case "sam_gov": return "https://sam.gov";
+    case "grants_gov": return "https://www.grants.gov";
+    default: return "#";
+  }
+}
+
 function getSourceColor(source: string) {
   switch (source) {
     case "sam_gov": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
@@ -120,14 +128,12 @@ export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }:
             <Bookmark className="mr-1.5 h-3.5 w-3.5" />
             {isSaved ? "Saved" : "Save"}
           </Button>
-          {opportunity.description_url && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={opportunity.description_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                View on {getSourceLabel(opportunity.source)}
-              </a>
-            </Button>
-          )}
+          <Button size="sm" variant="outline" asChild>
+            <a href={opportunity.description_url || getSourceFallbackUrl(opportunity.source)} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+              View on {getSourceLabel(opportunity.source)}
+            </a>
+          </Button>
         </div>
       </CardContent>
     </Card>

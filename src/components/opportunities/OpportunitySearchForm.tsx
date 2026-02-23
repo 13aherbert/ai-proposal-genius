@@ -28,8 +28,16 @@ const SET_ASIDE_OPTIONS = [
   { value: "WOSB", label: "Women-Owned Small Business" },
 ];
 
-const SOLICITATION_TYPES = [
+const SOURCE_OPTIONS = [
+  { value: "all", label: "All Sources" },
+  { value: "sam_gov", label: "SAM.gov" },
+  { value: "grants_gov", label: "Grants.gov" },
+];
+
+const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "", label: "Any Type" },
+  { value: "contract", label: "Contract" },
+  { value: "grant", label: "Grant" },
   { value: "o", label: "Solicitation" },
   { value: "p", label: "Presolicitation" },
   { value: "k", label: "Combined Synopsis/Solicitation" },
@@ -43,7 +51,9 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
   const [postedTo, setPostedTo] = useState("");
   const [naicsCode, setNaicsCode] = useState("");
   const [setAside, setSetAside] = useState("");
-  const [ptype, setPtype] = useState("");
+  const [source, setSource] = useState("all");
+  const [opportunityType, setOpportunityType] = useState("");
+  const [agency, setAgency] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +64,9 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
       postedTo: postedTo || undefined,
       naicsCode: naicsCode || undefined,
       setAside: cleanVal(setAside),
-      ptype: cleanVal(ptype),
+      source: source || "all",
+      opportunityType: cleanVal(opportunityType),
+      agency: agency || undefined,
     });
   };
 
@@ -69,6 +81,49 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             maxLength={200}
+          />
+        </div>
+
+        <div>
+          <Label>Source</Label>
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Sources" />
+            </SelectTrigger>
+            <SelectContent>
+              {SOURCE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Opportunity Type</Label>
+          <Select value={opportunityType} onValueChange={setOpportunityType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Any Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {OPPORTUNITY_TYPE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || "any_type"} value={opt.value || "any_type"}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="agency">Agency</Label>
+          <Input
+            id="agency"
+            placeholder="e.g. Department of Defense"
+            value={agency}
+            onChange={(e) => setAgency(e.target.value)}
+            maxLength={100}
           />
         </div>
 
@@ -112,22 +167,6 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
             <SelectContent>
               {SET_ASIDE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value || "any"} value={opt.value || "any_set_aside"}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Solicitation Type</Label>
-          <Select value={ptype} onValueChange={setPtype}>
-            <SelectTrigger>
-              <SelectValue placeholder="Any Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {SOLICITATION_TYPES.map((opt) => (
-                <SelectItem key={opt.value || "any"} value={opt.value || "any_type"}>
                   {opt.label}
                 </SelectItem>
               ))}

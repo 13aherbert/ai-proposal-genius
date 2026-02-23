@@ -7,10 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
 import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
+import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDetailModal";
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
 import { useSubscription } from "@/hooks/subscription";
 import { determineFeatureAccess, normalizePlanType } from "@/hooks/subscription/feature-access";
+import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 export default function Opportunities() {
   const { subscription, isLoading } = useSubscription();
@@ -31,6 +33,7 @@ export default function Opportunities() {
   } = useOpportunitySearch();
 
   const [tab, setTab] = useState("search");
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {
@@ -76,9 +79,9 @@ export default function Opportunities() {
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Find Opportunities</h1>
+          <h1 className="text-2xl font-bold">Opportunity Finder</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Search government RFP opportunities from SAM.gov
+            Search RFPs, contracts, and grant opportunities from SAM.gov and Grants.gov
           </p>
         </div>
 
@@ -106,9 +109,10 @@ export default function Opportunities() {
             <div className="grid gap-3 sm:grid-cols-2">
               {results.map((opp) => (
                 <OpportunityCard
-                  key={opp.external_id}
+                  key={`${opp.source}-${opp.external_id}`}
                   opportunity={opp}
                   onSave={saveOpportunity}
+                  onViewDetails={setSelectedOpportunity}
                   isSaved={savedIds.has(opp.external_id)}
                 />
               ))}
@@ -117,7 +121,7 @@ export default function Opportunities() {
             {!isSearching && results.length === 0 && totalRecords === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>Enter a keyword to search for RFP opportunities</p>
+                <p>Enter a keyword to search for RFP and grant opportunities</p>
               </div>
             )}
           </TabsContent>
@@ -131,6 +135,14 @@ export default function Opportunities() {
             />
           </TabsContent>
         </Tabs>
+
+        <OpportunityDetailModal
+          opportunity={selectedOpportunity}
+          open={!!selectedOpportunity}
+          onOpenChange={(open) => !open && setSelectedOpportunity(null)}
+          onSave={saveOpportunity}
+          isSaved={selectedOpportunity ? savedIds.has(selectedOpportunity.external_id) : false}
+        />
       </main>
     </div>
   );

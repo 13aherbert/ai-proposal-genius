@@ -25,6 +25,9 @@ export interface SearchParams {
   naicsCode?: string;
   setAside?: string;
   ptype?: string;
+  source?: string;
+  opportunityType?: string;
+  agency?: string;
   limit?: number;
   offset?: number;
 }

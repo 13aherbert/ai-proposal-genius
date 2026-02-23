@@ -1,102 +1,85 @@
 
 
-## Fix: Pro User Blocked from Opportunities Page
+## Fix: "View on..." Button Not Appearing
 
 ### Root Cause
 
-The `SubscriptionProvider` has a race condition identical to the Knowledge Base wizard issue. In `fetchSubscriptionData()` (lines 148-163):
+The "View on..." button is wrapped in a conditional: `{opportunity.description_url && ...}`. The button only renders when `description_url` is a non-empty string. The SAM.gov API field `uiLink` is often missing or empty in search results, and the fallback URL `https://sam.gov/opp/${opp.noticeId}` only works when `noticeId` is present. Similarly, the Grants.gov URL is only constructed when `oppNumber` exists. When these fields are absent, `description_url` is an empty string, so the button never appears.
 
+### Fix (2 files)
+
+**1. Edge Function: `supabase/functions/search-opportunities/index.ts`**
+
+Ensure `description_url` always has a value by improving the fallback logic:
+
+- SAM.gov (line 87): Change from:
+  ```
+  description_url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ""}`
+  ```
+  To:
+  ```
+  description_url: opp.uiLink || (opp.noticeId ? `https://sam.gov/opp/${opp.noticeId}` : (opp.solicitationNumber ? `https://sam.gov/search?keywords=${encodeURIComponent(opp.solicitationNumber)}` : "https://sam.gov"))
+  ```
+
+- Grants.gov (lines 134-136): Change from only building a URL when `oppNumber` exists, to always providing a fallback:
+  ```
+  description_url: opp.oppNumber
+    ? `https://www.grants.gov/search-results-detail/${opp.oppNumber}`
+    : (opp.id ? `https://www.grants.gov/search-results-detail/${opp.id}` : "https://www.grants.gov")
+  ```
+
+**2. Component: `src/components/opportunities/OpportunityCard.tsx`**
+
+Remove the conditional wrapper so the button ALWAYS shows, even if `description_url` somehow ends up empty. Use a computed fallback URL based on `source`:
+
+- Remove the `{opportunity.description_url && ...}` condition on line 123
+- Compute the link URL: if `description_url` is present use it, otherwise fall back to `https://sam.gov` or `https://www.grants.gov` based on `opportunity.source`
+- The button will always appear next to "Details" and "Save"
+
+Updated button section (lines 105-131):
+```tsx
+<div className="flex items-center gap-2 pt-1 flex-wrap">
+  <Button size="sm" variant="outline" onClick={() => onViewDetails(opportunity)}>
+    <Eye className="mr-1.5 h-3.5 w-3.5" />
+    Details
+  </Button>
+  <Button
+    size="sm"
+    variant={isSaved ? "secondary" : "default"}
+    onClick={() => onSave(opportunity)}
+    disabled={isSaved}
+  >
+    <Bookmark className="mr-1.5 h-3.5 w-3.5" />
+    {isSaved ? "Saved" : "Save"}
+  </Button>
+  <Button size="sm" variant="outline" asChild>
+    <a
+      href={opportunity.description_url || getSourceFallbackUrl(opportunity.source)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+      View on {getSourceLabel(opportunity.source)}
+    </a>
+  </Button>
+</div>
 ```
-if (!organization?.id) {
-  if (!orgLoading) {
-    // Creates a STARTER subscription, overwriting the real pro plan
-    const defaultSub = await createDefaultSubscription(...);
-    return defaultSub;
+
+Add a small helper function:
+```tsx
+function getSourceFallbackUrl(source: string) {
+  switch (source) {
+    case "sam_gov": return "https://sam.gov";
+    case "grants_gov": return "https://www.grants.gov";
+    default: return "#";
   }
-  setIsLoading(false);
-  return;
 }
 ```
 
-When `useCurrentOrganization` briefly reports `loading: false` with `organization: null` (before the async chain resolves), the provider assumes there is no organization and creates a fake **starter** subscription. This starter subscription gets stored in both state and localStorage, so the Opportunities page sees `plan_type: 'starter'` instead of `'pro'` and shows the upgrade wall.
-
-Even after the organization loads and the real `pro` subscription is fetched, the localStorage cache from the starter fallback can persist and be used on subsequent page loads.
-
-### Fix
-
-**File: `src/hooks/subscription/providers/SubscriptionProvider.tsx`**
-
-Change `fetchSubscriptionData()` so it does NOT create a default subscription when the organization is simply not yet available. Instead, it should wait (keep `isLoading: true`) until the organization is definitively loaded.
-
-Replace lines 148-164:
-```typescript
-// Current (broken):
-if (!organization?.id) {
-  if (!orgLoading) {
-    const defaultSub = await createDefaultSubscription(...);
-    return defaultSub;
-  }
-  setIsLoading(false);
-  return;
-}
-```
-
-With:
-```typescript
-// Fixed:
-if (!organization?.id) {
-  // If org is still loading, keep isLoading true and wait
-  if (orgLoading) {
-    return; // useEffect will re-trigger when orgLoading changes
-  }
-  // Org finished loading but is null -- fall through to check
-  // the user's individual subscription table as a fallback
-  console.log('No organization found, checking user subscription table');
-  const { data: userSub, error: userSubError } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (userSub) {
-    const subscriptionPlan: SubscriptionPlan = {
-      subscription_id: userSub.subscription_id,
-      user_id: userId,
-      status: userSub.status as SubscriptionPlan['status'],
-      plan_type: userSub.plan_type,
-      current_period_end: userSub.current_period_end,
-      project_limit: userSub.project_limit,
-      features: (userSub.features as Record<string, any>) || {},
-      stripe_customer_id: userSub.stripe_customer_id,
-      stripe_subscription_id: userSub.stripe_subscription_id,
-      created_at: userSub.created_at,
-      updated_at: userSub.updated_at,
-      cancel_at_period_end: userSub.cancel_at_period_end || false,
-    };
-    setSubscription(subscriptionPlan);
-    storeSubscriptionDataLocally(subscriptionPlan);
-    return;
-  }
-
-  // Only create a default starter if there's truly no subscription anywhere
-  const defaultSub = await createDefaultSubscription(
-    userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
-  );
-  return defaultSub;
-}
-```
-
-This ensures:
-1. While the org is loading, `isLoading` stays `true` (no premature render)
-2. If org loading completes but no org exists, we fall back to the `subscriptions` table (where the user's actual `pro` plan lives)
-3. Only if both tables have no data do we create a default starter plan
-
-### Files Summary
+### Summary
 
 | File | Change |
 |---|---|
-| `src/hooks/subscription/providers/SubscriptionProvider.tsx` | Replace the organization-null fallback to check `subscriptions` table instead of immediately creating a starter plan |
+| `supabase/functions/search-opportunities/index.ts` | Improve `description_url` fallback logic so it is never empty |
+| `src/components/opportunities/OpportunityCard.tsx` | Remove conditional wrapper on the button; add fallback URL helper so button always renders |
 
-### Why This Fixes It
-
-The user's pro subscription exists in both `subscriptions` (user-level) and `organization_subscriptions` (org-level) tables. The current code never reaches the org-level query because the organization briefly appears null, triggering the starter fallback. With this fix, even if the org is null, we check the user-level subscription table before defaulting to starter.

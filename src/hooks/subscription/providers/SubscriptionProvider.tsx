@@ -147,20 +147,44 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // If no organization yet, wait for it to load
       if (!organization?.id) {
-        console.log('No organization found, waiting for organization to load');
-        if (!orgLoading) {
-          // Organization loading is complete but no org found, create default subscription
-          const defaultSub = await createDefaultSubscription(
-            userId,
-            setSubscription,
-            undefined,
-            setIsLoading,
-            setHasCheckedSubscription
-          );
-          return defaultSub;
+        // If org is still loading, keep isLoading true and wait
+        if (orgLoading) {
+          return; // useEffect will re-trigger when orgLoading changes
         }
-        setIsLoading(false);
-        return;
+        // Org finished loading but is null -- fall through to check
+        // the user's individual subscription table as a fallback
+        console.log('No organization found, checking user subscription table');
+        const { data: userSub, error: userSubError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (userSub) {
+          const subscriptionPlan: SubscriptionPlan = {
+            subscription_id: userSub.subscription_id,
+            user_id: userId,
+            status: userSub.status as SubscriptionPlan['status'],
+            plan_type: userSub.plan_type,
+            current_period_end: userSub.current_period_end,
+            project_limit: userSub.project_limit,
+            features: (userSub.features as Record<string, any>) || {},
+            stripe_customer_id: userSub.stripe_customer_id,
+            stripe_subscription_id: userSub.stripe_subscription_id,
+            created_at: userSub.created_at,
+            updated_at: userSub.updated_at,
+            cancel_at_period_end: userSub.cancel_at_period_end || false,
+          };
+          setSubscription(subscriptionPlan);
+          storeSubscriptionDataLocally(subscriptionPlan);
+          return;
+        }
+
+        // Only create a default starter if there's truly no subscription anywhere
+        const defaultSub = await createDefaultSubscription(
+          userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
+        );
+        return defaultSub;
       }
 
       // Fetch organization subscription from database

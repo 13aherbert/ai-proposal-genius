@@ -121,10 +121,10 @@ export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }:
             {isSaved ? "Saved" : "Save"}
           </Button>
           {opportunity.description_url && (
-            <Button size="sm" variant="ghost" asChild>
+            <Button size="sm" variant="outline" asChild>
               <a href={opportunity.description_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                {getSourceLabel(opportunity.source)}
+                View on {getSourceLabel(opportunity.source)}
               </a>
             </Button>
           )}

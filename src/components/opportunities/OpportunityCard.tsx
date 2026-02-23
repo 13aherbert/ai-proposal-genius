@@ -2,13 +2,14 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Bookmark, Calendar, Building2, Hash } from "lucide-react";
+import { ExternalLink, Bookmark, Calendar, Building2, Hash, Eye } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onSave: (opportunity: Opportunity) => void;
+  onViewDetails: (opportunity: Opportunity) => void;
   isSaved?: boolean;
 }
 
@@ -17,7 +18,6 @@ function formatDate(dateStr: string | null): string {
   try {
     return format(parseISO(dateStr), "MMM d, yyyy");
   } catch {
-    // SAM.gov sometimes uses MM/dd/yyyy format
     try {
       return format(new Date(dateStr), "MMM d, yyyy");
     } catch {
@@ -26,7 +26,23 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
-export function OpportunityCard({ opportunity, onSave, isSaved }: OpportunityCardProps) {
+function getSourceLabel(source: string) {
+  switch (source) {
+    case "sam_gov": return "SAM.gov";
+    case "grants_gov": return "Grants.gov";
+    default: return source;
+  }
+}
+
+function getSourceColor(source: string) {
+  switch (source) {
+    case "sam_gov": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+    case "grants_gov": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+    default: return "";
+  }
+}
+
+export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }: OpportunityCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -34,11 +50,16 @@ export function OpportunityCard({ opportunity, onSave, isSaved }: OpportunityCar
           <CardTitle className="text-base leading-snug line-clamp-2">
             {opportunity.title}
           </CardTitle>
-          {opportunity.type && (
-            <Badge variant="secondary" className="shrink-0 text-xs">
-              {opportunity.type}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge className={`text-[10px] border-0 ${getSourceColor(opportunity.source)}`}>
+              {getSourceLabel(opportunity.source)}
             </Badge>
-          )}
+            {opportunity.type && (
+              <Badge variant="secondary" className="text-xs">
+                {opportunity.type}
+              </Badge>
+            )}
+          </div>
         </div>
         {opportunity.solicitation_number && (
           <p className="text-xs text-muted-foreground font-mono">
@@ -81,7 +102,15 @@ export function OpportunityCard({ opportunity, onSave, isSaved }: OpportunityCar
           </Badge>
         )}
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewDetails(opportunity)}
+          >
+            <Eye className="mr-1.5 h-3.5 w-3.5" />
+            Details
+          </Button>
           <Button
             size="sm"
             variant={isSaved ? "secondary" : "default"}
@@ -92,10 +121,10 @@ export function OpportunityCard({ opportunity, onSave, isSaved }: OpportunityCar
             {isSaved ? "Saved" : "Save"}
           </Button>
           {opportunity.description_url && (
-            <Button size="sm" variant="outline" asChild>
+            <Button size="sm" variant="ghost" asChild>
               <a href={opportunity.description_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                View on SAM.gov
+                {getSourceLabel(opportunity.source)}
               </a>
             </Button>
           )}

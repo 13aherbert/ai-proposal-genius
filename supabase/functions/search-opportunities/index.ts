@@ -6,6 +6,155 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ─── Types ───────────────────────────────────────────────────────────
+interface NormalizedOpportunity {
+  external_id: string;
+  source: string;
+  title: string;
+  solicitation_number: string;
+  department: string;
+  naics_code: string;
+  posted_date: string | null;
+  response_deadline: string | null;
+  set_aside: string;
+  description_url: string;
+  type: string;
+  raw_data: Record<string, unknown>;
+}
+
+interface SearchBody {
+  keyword?: string;
+  postedFrom?: string;
+  postedTo?: string;
+  naicsCode?: string;
+  setAside?: string;
+  ptype?: string;
+  source?: string; // "all" | "sam_gov" | "grants_gov"
+  opportunityType?: string; // "contract" | "grant" | etc.
+  agency?: string;
+  limit?: number;
+  offset?: number;
+}
+
+// ─── SAM.gov Provider ────────────────────────────────────────────────
+const toSamDate = (dateStr: string): string => {
+  const parts = dateStr.split("-");
+  if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+  return dateStr;
+};
+
+async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<NormalizedOpportunity[]> {
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+  const safeOffset = Math.max(Number(params.offset) || 0, 0);
+
+  const defaultFrom = new Date();
+  defaultFrom.setDate(defaultFrom.getDate() - 90);
+  const defaultFromStr = `${String(defaultFrom.getMonth() + 1).padStart(2, "0")}/${String(defaultFrom.getDate()).padStart(2, "0")}/${defaultFrom.getFullYear()}`;
+
+  const qp = new URLSearchParams();
+  qp.set("api_key", samApiKey);
+  if (safeKeyword) qp.set("keyword", safeKeyword);
+  qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : defaultFromStr);
+  if (params.postedTo) qp.set("postedTo", toSamDate(String(params.postedTo).slice(0, 10)));
+  if (params.naicsCode) qp.set("ncode", String(params.naicsCode).slice(0, 10));
+  if (params.setAside) qp.set("typeOfSetAside", String(params.setAside).slice(0, 50));
+  if (params.ptype) qp.set("ptype", String(params.ptype).slice(0, 5));
+  qp.set("limit", String(safeLimit));
+  qp.set("offset", String(safeOffset));
+
+  const url = `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`;
+  console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}`);
+
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[SAM.gov] API error [${res.status}]: ${errText}`);
+    return [];
+  }
+
+  const data = await res.json();
+  return (data.opportunitiesData || []).map((opp: any) => ({
+    external_id: opp.noticeId || opp.opportunityId || "",
+    source: "sam_gov",
+    title: opp.title || "",
+    solicitation_number: opp.solicitationNumber || "",
+    department: opp.fullParentPathName || opp.department || "",
+    naics_code: opp.naicsCode || "",
+    posted_date: opp.postedDate || null,
+    response_deadline: opp.responseDeadLine || opp.archiveDate || null,
+    set_aside: opp.typeOfSetAside || opp.typeOfSetAsideDescription || "",
+    description_url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ""}`,
+    type: opp.type || opp.baseType || "contract",
+    raw_data: opp,
+  }));
+}
+
+// ─── Grants.gov Provider ─────────────────────────────────────────────
+async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity[]> {
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+
+  const body: Record<string, unknown> = {
+    keyword: safeKeyword || "",
+    rows,
+    oppStatuses: "forecasted|posted",
+  };
+
+  if (params.agency) body.agencies = String(params.agency).slice(0, 100);
+
+  console.log(`[Grants.gov] Fetching: keyword="${safeKeyword}", rows=${rows}`);
+
+  try {
+    const res = await fetch("https://api.grants.gov/v1/api/search2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[Grants.gov] API error [${res.status}]: ${errText}`);
+      return [];
+    }
+
+    const json = await res.json();
+    const hits = json?.data?.oppHits || [];
+
+    return hits.map((opp: any) => ({
+      external_id: String(opp.id || opp.oppNumber || ""),
+      source: "grants_gov",
+      title: opp.title || "",
+      solicitation_number: opp.oppNumber || "",
+      department: opp.agencyName || opp.agency || "",
+      naics_code: "",
+      posted_date: opp.openDate || null,
+      response_deadline: opp.closeDate || null,
+      set_aside: opp.fundingCategory || "",
+      description_url: opp.oppNumber
+        ? `https://www.grants.gov/search-results-detail/${opp.oppNumber}`
+        : "",
+      type: "grant",
+      raw_data: opp,
+    }));
+  } catch (err) {
+    console.error("[Grants.gov] Fetch error:", err);
+    return [];
+  }
+}
+
+// ─── Deduplication ───────────────────────────────────────────────────
+function deduplicateOpportunities(opps: NormalizedOpportunity[]): NormalizedOpportunity[] {
+  const seen = new Set<string>();
+  return opps.filter((opp) => {
+    const key = `${opp.source}:${opp.external_id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// ─── Main Handler ────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +199,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
     const orgId = profile.current_organization_id;
 
     // Verify org membership
@@ -69,7 +217,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check subscription tier (pro or enterprise required)
+    // Check subscription tier
     const { data: subscription } = await supabase
       .from("organization_subscriptions")
       .select("plan_type")
@@ -80,10 +228,7 @@ Deno.serve(async (req) => {
     if (!["pro", "enterprise", "white_label"].includes(planType)) {
       return new Response(
         JSON.stringify({ error: "Pro or Enterprise subscription required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -100,102 +245,50 @@ Deno.serve(async (req) => {
     if (usageData && usageData.metric_value >= 50) {
       return new Response(
         JSON.stringify({ error: "Daily search limit reached (50/day)" }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Parse search params
-    const body = await req.json();
-    const {
-      keyword = "",
-      postedFrom,
-      postedTo,
-      naicsCode,
-      setAside,
-      ptype,
-      limit = 25,
-      offset = 0,
-    } = body;
+    const body: SearchBody = await req.json();
+    const sourceFilter = body.source || "all";
+    const opportunityType = body.opportunityType || "";
 
-    // Validate inputs
-    const safeKeyword = String(keyword).slice(0, 200).trim();
-    const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 100);
-    const safeOffset = Math.max(Number(offset) || 0, 0);
-
-    // Build SAM.gov API URL
+    // Fetch from providers in parallel
     const samApiKey = Deno.env.get("SAM_GOV_API_KEY");
-    if (!samApiKey) {
-      return new Response(
-        JSON.stringify({ error: "SAM.gov API key not configured" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+    const fetchPromises: Promise<NormalizedOpportunity[]>[] = [];
+
+    if (sourceFilter === "all" || sourceFilter === "sam_gov") {
+      if (samApiKey) {
+        fetchPromises.push(fetchSamGov(body, samApiKey));
+      } else {
+        console.warn("SAM_GOV_API_KEY not configured, skipping SAM.gov");
+      }
+    }
+
+    if (sourceFilter === "all" || sourceFilter === "grants_gov") {
+      fetchPromises.push(fetchGrantsGov(body));
+    }
+
+    const results = await Promise.all(fetchPromises);
+    let allOpportunities = deduplicateOpportunities(results.flat());
+
+    // Apply opportunityType filter client-side
+    if (opportunityType) {
+      allOpportunities = allOpportunities.filter(
+        (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()
       );
     }
 
-    // SAM.gov requires dates in MM/DD/YYYY format
-    const toSamDate = (dateStr: string): string => {
-      const parts = dateStr.split("-"); // YYYY-MM-DD
-      if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
-      return dateStr;
-    };
-
-    // postedFrom is mandatory for SAM.gov - default to 90 days ago
-    const defaultFrom = new Date();
-    defaultFrom.setDate(defaultFrom.getDate() - 90);
-    const defaultFromStr = `${String(defaultFrom.getMonth() + 1).padStart(2, "0")}/${String(defaultFrom.getDate()).padStart(2, "0")}/${defaultFrom.getFullYear()}`;
-
-    const params = new URLSearchParams();
-    params.set("api_key", samApiKey);
-    if (safeKeyword) params.set("keyword", safeKeyword);
-    params.set("postedFrom", postedFrom ? toSamDate(String(postedFrom).slice(0, 10)) : defaultFromStr);
-    if (postedTo) params.set("postedTo", toSamDate(String(postedTo).slice(0, 10)));
-    if (naicsCode) params.set("ncode", String(naicsCode).slice(0, 10));
-    if (setAside) params.set("typeOfSetAside", String(setAside).slice(0, 50));
-    if (ptype) params.set("ptype", String(ptype).slice(0, 5));
-    params.set("limit", String(safeLimit));
-    params.set("offset", String(safeOffset));
-
-    const samUrl = `https://api.sam.gov/prod/opportunities/v2/search?${params.toString()}`;
-    console.log(`Fetching SAM.gov: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}`);
-
-    const samResponse = await fetch(samUrl, {
-      headers: { Accept: "application/json" },
-    });
-
-    if (!samResponse.ok) {
-      const errorText = await samResponse.text();
-      console.error(`SAM.gov API error [${samResponse.status}]: ${errorText}`);
-      return new Response(
-        JSON.stringify({ error: "Failed to search opportunities", details: `SAM.gov returned ${samResponse.status}` }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+    // Apply agency filter client-side for SAM.gov results (Grants.gov handles it in API)
+    if (body.agency && sourceFilter !== "grants_gov") {
+      const agencyLower = body.agency.toLowerCase();
+      allOpportunities = allOpportunities.filter(
+        (opp) =>
+          opp.source === "grants_gov" ||
+          opp.department.toLowerCase().includes(agencyLower)
       );
     }
-
-    const samData = await samResponse.json();
-
-    // Transform results
-    const opportunities = (samData.opportunitiesData || []).map((opp: any) => ({
-      external_id: opp.noticeId || opp.opportunityId || "",
-      source: "sam_gov",
-      title: opp.title || "",
-      solicitation_number: opp.solicitationNumber || "",
-      department: opp.fullParentPathName || opp.department || "",
-      naics_code: opp.naicsCode || "",
-      posted_date: opp.postedDate || null,
-      response_deadline: opp.responseDeadLine || opp.archiveDate || null,
-      set_aside: opp.typeOfSetAside || opp.typeOfSetAsideDescription || "",
-      description_url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ""}`,
-      type: opp.type || opp.baseType || "",
-      raw_data: opp,
-    }));
 
     // Record usage
     await supabase.rpc("update_organization_usage_metric", {
@@ -206,24 +299,18 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        opportunities,
-        totalRecords: samData.totalRecords || opportunities.length,
-        limit: safeLimit,
-        offset: safeOffset,
+        opportunities: allOpportunities,
+        totalRecords: allOpportunities.length,
+        limit: body.limit || 25,
+        offset: body.offset || 0,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in search-opportunities:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

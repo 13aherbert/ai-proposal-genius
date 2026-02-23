@@ -1,49 +1,52 @@
 
 
-## Fix: Prevent Knowledge Base Wizard from Flashing
+## Fix: Knowledge Base Wizard Flashing on Load
 
 ### Root Cause
 
-The `KnowledgeSetupWizard` component always renders a `<Dialog>` in the DOM (controlled by the `open` prop). During the initial load, `knowledgeReadiness.isLoading` is `true`, so the useEffect that sets `showKBWizard` doesn't run yet. Once loading completes, there's a brief state transition that can cause the dialog to flash -- especially if the effect briefly sets it to `true` before the next render cycle corrects it.
+The `useKnowledgeReadiness` hook has a race condition with the organization loading sequence:
 
-### Fix (two changes in `src/pages/Dashboard.tsx`)
+1. `useCurrentOrganization` takes 3 async steps to load (get user, fetch profile, fetch org)
+2. While `organization` is still `null`, `useKnowledgeReadiness` hits the early-return guard at line 50-52 and sets `isLoading = false` with zero entries
+3. With `isLoading = false` and empty entries, the computed `missingEssential` contains all 6 categories and `isEmpty = true`
+4. The Dashboard `useEffect` sees this false "empty" state and sets `showKBWizard = true`
+5. Moments later the organization loads, the hook re-fetches real data, but the wizard already flashed
 
-**1. Don't render the wizard component at all when essentials are complete:**
+In short: the hook says "I'm done loading and the knowledge base is empty" before it even knows which organization to query.
 
-Replace line 151:
-```tsx
-<KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
+### Fix
+
+**File: `src/hooks/use-knowledge-readiness.ts`**
+
+Change the early-return guard (lines 50-52) so that when the organization hasn't loaded yet, the hook keeps `isLoading = true` instead of reporting a false "done" state:
+
 ```
-With:
-```tsx
-{showKBWizard && (
-  <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
-)}
-```
+// Current (broken):
+if (!session?.user?.id || !organization?.id) {
+  setIsLoading(false);  // <-- falsely reports "done" with empty data
+  return;
+}
 
-This prevents the `<Dialog>` from being in the DOM at all when it shouldn't show.
-
-**2. Guard the useEffect to only show the wizard after loading is fully complete and essentials are truly missing:**
-
-Replace the existing useEffect (lines 51-62) with logic that:
-- Does nothing while `isLoading` is true (no state changes during loading)
-- Only sets `showKBWizard = true` if `missingEssential.length > 0` AND `isEmpty` is true AND the wizard hasn't been dismissed AND the user has no projects
-- Immediately returns without setting state if essentials are complete
-
-```tsx
-useEffect(() => {
-  if (knowledgeReadiness.isLoading) return; // Wait for data
-  if (knowledgeReadiness.missingEssential.length === 0) return; // Essentials complete, never show
-  if (knowledgeReadiness.isEmpty && !localStorage.getItem('kb_wizard_seen') && !dashboardStats.hasProjects) {
-    setShowKBWizard(true);
-  }
-}, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
+// Fixed:
+if (!session?.user?.id) {
+  setIsLoading(false);  // No user = genuinely not loading
+  return;
+}
+if (!organization?.id) {
+  return;  // Org still loading, keep isLoading = true
+}
 ```
 
-The key difference: removing the `setShowKBWizard(false)` call that was triggering unnecessary re-renders, and conditionally rendering the component so it's never in the DOM when it shouldn't be.
+This single change means:
+- No user session: correctly reports not loading (no data to show)
+- User exists but organization still loading: keeps `isLoading = true`, so the Dashboard `useEffect` early-returns and never triggers the wizard
+- Both user and org available: proceeds to fetch real data
 
-### Files Modified
+No changes needed in `Dashboard.tsx` -- the existing guard `if (knowledgeReadiness.isLoading) return;` in the useEffect already handles this correctly once the hook reports the right loading state.
+
+### Technical Detail
+
 | File | Change |
 |------|--------|
-| `src/pages/Dashboard.tsx` | Simplify useEffect, conditionally render wizard component |
+| `src/hooks/use-knowledge-readiness.ts` | Split the early-return guard: only set `isLoading(false)` when there's no user session; keep `isLoading = true` when organization is still loading |
 

@@ -56,7 +56,9 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
   qp.set("api_key", samApiKey);
   if (safeKeyword) qp.set("keyword", safeKeyword);
   qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : defaultFromStr);
-  if (params.postedTo) qp.set("postedTo", toSamDate(String(params.postedTo).slice(0, 10)));
+  const defaultTo = new Date();
+  const defaultToStr = `${String(defaultTo.getMonth() + 1).padStart(2, "0")}/${String(defaultTo.getDate()).padStart(2, "0")}/${defaultTo.getFullYear()}`;
+  qp.set("postedTo", params.postedTo ? toSamDate(String(params.postedTo).slice(0, 10)) : defaultToStr);
   if (params.naicsCode) qp.set("ncode", String(params.naicsCode).slice(0, 10));
   if (params.setAside) qp.set("typeOfSetAside", String(params.setAside).slice(0, 50));
   if (params.ptype) qp.set("ptype", String(params.ptype).slice(0, 5));

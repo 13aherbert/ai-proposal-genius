@@ -47,9 +47,12 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
 
   useEffect(() => {
     async function fetchEntries() {
-      if (!session?.user?.id || !organization?.id) {
+      if (!session?.user?.id) {
         setIsLoading(false);
         return;
+      }
+      if (!organization?.id) {
+        return; // Org still loading, keep isLoading = true
       }
 
       try {

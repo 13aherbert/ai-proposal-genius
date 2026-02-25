@@ -28,6 +28,9 @@ export async function generateWithClaude(prompt: string, apiKey?: string, model:
   });
 
   if (!response.ok) {
+    if (response.status === 529) {
+      throw new Error('Anthropic API overloaded (529), please try again later.');
+    }
     if (response.status === 429) {
       throw new Error('Rate limits exceeded, please try again later.');
     }

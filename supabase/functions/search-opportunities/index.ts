@@ -154,6 +154,8 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   const words = phrase.split(/\s+/).filter(Boolean);
   const titleLower = (opp.title || "").toLowerCase();
   const deptLower = (opp.department || "").toLowerCase();
+  const solNumLower = (opp.solicitation_number || "").toLowerCase();
+  const descLower = (typeof (opp.raw_data as any)?.description === "string" ? (opp.raw_data as any).description : "").toLowerCase();
 
   let score = 0;
 
@@ -180,6 +182,18 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
     if (deptLower.includes(w)) score += 5;
   }
 
+  // Solicitation number matches
+  for (const w of words) {
+    if (solNumLower.includes(w)) score += 15;
+  }
+
+  // Raw data description matches
+  if (descLower) {
+    for (const w of words) {
+      if (descLower.includes(w)) score += 3;
+    }
+  }
+
   return score;
 }
 
@@ -188,9 +202,9 @@ function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): Normal
 
   return opps
     .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
+    .filter(({ score }) => score > 0)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      // Tiebreak by posted date descending
       const dateA = a.opp.posted_date || "";
       const dateB = b.opp.posted_date || "";
       return dateB.localeCompare(dateA);

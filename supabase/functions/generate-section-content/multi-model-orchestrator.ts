@@ -35,34 +35,51 @@ export class MultiModelOrchestrator {
     }
 
     const startTime = Date.now();
+    const maxRetries = 3;
     
-    try {
-      const content = await this.generateWithClaude(prompt, anthropicKey, this.PRIMARY_MODEL);
-      const processingTime = Date.now() - startTime;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const content = await this.generateWithClaude(prompt, anthropicKey, this.PRIMARY_MODEL);
+        const processingTime = Date.now() - startTime;
 
-      const result: ModelResult = {
-        model: this.PRIMARY_MODEL,
-        content,
-        confidence: this.calculateModelConfidence(content, sectionType),
-        reasoning_score: this.assessReasoningQuality(content),
-        technical_accuracy: this.assessTechnicalAccuracy(content, sectionType),
-        processing_time: processingTime
-      };
+        const result: ModelResult = {
+          model: this.PRIMARY_MODEL,
+          content,
+          confidence: this.calculateModelConfidence(content, sectionType),
+          reasoning_score: this.assessReasoningQuality(content),
+          technical_accuracy: this.assessTechnicalAccuracy(content, sectionType),
+          processing_time: processingTime
+        };
 
-      console.log(`Claude Sonnet generated content in ${processingTime}ms, confidence: ${result.confidence.toFixed(2)}`);
+        console.log(`Claude Sonnet generated content in ${processingTime}ms, confidence: ${result.confidence.toFixed(2)}`);
 
-      return {
-        final_content: result.content,
-        confidence_score: result.confidence,
-        model_agreement: 1.0,
-        best_performing_model: this.PRIMARY_MODEL,
-        synthesis_approach: 'claude_sonnet_primary',
-        quality_improvements: [`Generated with ${this.PRIMARY_MODEL} (complexity: ${complexity})`]
-      };
-    } catch (error) {
-      console.error(`Claude Sonnet generation failed:`, error.message);
-      throw error;
+        return {
+          final_content: result.content,
+          confidence_score: result.confidence,
+          model_agreement: 1.0,
+          best_performing_model: this.PRIMARY_MODEL,
+          synthesis_approach: 'claude_sonnet_primary',
+          quality_improvements: [`Generated with ${this.PRIMARY_MODEL} (complexity: ${complexity})`]
+        };
+      } catch (error) {
+        const isOverloaded = error.message?.includes('529') || error.message?.includes('Overloaded');
+        const isRateLimit = error.message?.includes('429') || error.message?.includes('rate limit');
+        const isRetryable = isOverloaded || isRateLimit;
+
+        console.error(`Claude Sonnet attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+        if (!isRetryable || attempt === maxRetries) {
+          throw error;
+        }
+
+        // Exponential backoff: 3s, 6s, 12s + jitter
+        const delay = (3000 * Math.pow(2, attempt - 1)) + Math.random() * 2000;
+        console.log(`Retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
+
+    throw new Error('All retry attempts exhausted');
   }
 
   private static async generateWithClaude(
@@ -85,8 +102,11 @@ export class MultiModelOrchestrator {
     });
 
     if (!response.ok) {
+      if (response.status === 529) {
+        throw new Error('Anthropic API overloaded (529), will retry...');
+      }
       if (response.status === 429) {
-        throw new Error('Anthropic rate limits exceeded, please try again later.');
+        throw new Error('Anthropic rate limits exceeded (429), will retry...');
       }
       if (response.status === 402) {
         throw new Error('Anthropic payment required, please check your billing.');

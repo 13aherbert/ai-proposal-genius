@@ -208,9 +208,9 @@ serve(async (req) => {
               const data = await pdfParse(uint8Array);
               extractedRfpText = data.text;
             } else if (fileType === 'doc' || fileType === 'docx') {
-              const buffer = Buffer.from(arrayBuffer);
-              const result = await mammoth.extractRawText({ buffer });
-              extractedRfpText = result.text || '';
+              const uint8 = new Uint8Array(arrayBuffer);
+              const result = await mammoth.extractRawText({ arrayBuffer: uint8.buffer });
+              extractedRfpText = result.value || '';
             } else {
               const decoder = new TextDecoder('utf-8');
               extractedRfpText = decoder.decode(arrayBuffer);

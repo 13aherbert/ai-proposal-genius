@@ -1,107 +1,65 @@
 
 
-## Opportunity Finder: New Features Plan
+## Diagnosis: Why "Video Production" Search Returns Irrelevant Results
 
-### What's Already Built
-- Search with filters (keyword, source, type, agency, dates, NAICS, set-aside)
-- Two data sources: SAM.gov and Grants.gov
-- Save opportunities with status tracking (saved/reviewing/pursuing/dismissed)
-- Detail modal with description extraction
-- "Start Project" flow from saved opportunities
-- Organization-scoped data with RLS, rate limiting (50/day), Pro+ gating
+After analyzing the edge function and search form, I identified three root causes:
 
-### What's Missing from the Spec
+### Problem 1: No Relevance Sorting
+Results are returned in whatever order the external APIs provide (typically by posted date, newest first). There is no client-side relevance ranking, so a contract mentioning "video" once in a footnote ranks equally with one titled "Video Production Services."
 
-Comparing the feature spec against the current implementation, here are the features that can be added, grouped by priority.
+### Problem 2: SAM.gov Opportunity Type Filter is Broken
+The search form has SAM.gov-specific `ptype` codes (e.g., `"o"` for Solicitation, `"p"` for Presolicitation) mixed into the `opportunityType` dropdown. These are sent as `opportunityType` and filtered client-side against `opp.type` — but SAM.gov's `type` field contains strings like `"Solicitation"`, not `"o"`. This means selecting any SAM.gov-specific type filters out ALL results instead of narrowing them.
 
----
+Meanwhile, the SAM.gov API supports a `ptype` query parameter that would filter server-side (much faster/accurate), but the form never sends it.
 
-### Priority 1: Quick Wins (Small effort, high value)
-
-**1. "Generate Proposal Draft" button on search results and detail modal**
-- Add a button to the OpportunityCard and OpportunityDetailModal that navigates to `/upload-rfp` with prefilled data (title, deadline, agency, description)
-- Currently only available on saved opportunities via "Start Project" -- extend to unsaved results too
-- Files: `OpportunityCard.tsx`, `OpportunityDetailModal.tsx`
-
-**2. Notes field on saved opportunities**
-- The `saved_opportunities` table already has a `notes` column
-- Add an inline editable text area on the SavedOpportunities cards so users can add notes
-- Files: `SavedOpportunities.tsx`, `use-opportunity-search.ts` (add `updateNotes` function)
-
-**3. Filter/sort saved opportunities**
-- Add status filter dropdown and sort options (by deadline, date saved) to the Saved tab
-- Currently all saved opportunities display in a flat list with no filtering
-- Files: `SavedOpportunities.tsx`
-
-**4. Pagination for search results**
-- The edge function already accepts `limit` and `offset` but the UI has no pagination controls
-- Add "Load More" or page navigation buttons
-- Files: `Opportunities.tsx`, `OpportunitySearchForm.tsx`
+### Problem 3: Grants.gov Returns Default-Ordered Results
+The Grants.gov API call doesn't specify a `sortBy` parameter, so results come back in default order rather than by keyword relevance.
 
 ---
 
-### Priority 2: Medium Effort Features
+## Fix Plan
 
-**5. Saved Search Alerts / Notifications**
-- New DB table: `saved_searches` (organization_id, user_id, search_params JSONB, name, is_active, last_run_at, created_at)
-- New DB table: `opportunity_alerts` (id, saved_search_id, user_id, opportunity_external_id, is_read, created_at)
-- "Save this search" button on the search form that persists current filter params
-- New edge function `check-saved-searches` that runs on a cron schedule, re-executes saved searches, and inserts alerts for new results
-- In-app notification badge on the Opportunity Finder sidebar item
-- Files: new migration, new edge function, new UI components
+### Fix 1: Add Relevance-Based Sorting in Edge Function
+**File:** `supabase/functions/search-opportunities/index.ts`
 
-**6. Opportunity Lists / Pipeline View**
-- New DB table: `opportunity_lists` (id, organization_id, name, description, created_by, created_at)
-- New DB table: `opportunity_list_items` (id, list_id, saved_opportunity_id)
-- Allow users to create named lists (e.g., "Cybersecurity Opportunities", "Q2 Pipeline")
-- Add a "Move to list" action on saved opportunities
-- Kanban-style pipeline view using existing status values as columns
-- Files: new migration, new components, update `SavedOpportunities.tsx`
+Add a `scoreRelevance()` function after deduplication that:
+- Scores each result based on keyword presence in the title (highest weight), department, and solicitation number
+- Sorts results by relevance score descending, then by posted date descending as tiebreaker
+- Uses case-insensitive partial matching on each keyword token
 
-**7. Search result caching (30-minute TTL)**
-- New DB table: `opportunity_search_cache` (id, cache_key TEXT UNIQUE, results JSONB, total_records INT, created_at, expires_at)
-- In the edge function, hash search params into a cache key, check cache before calling external APIs
-- Reduces API calls and improves response time
-- Files: `search-opportunities/index.ts`, new migration
+```text
+Score weights:
+  Title exact phrase match  → +100
+  Title contains all words  → +50
+  Title contains any word   → +10 per word
+  Department match          → +5 per word
+```
 
----
+### Fix 2: Fix Opportunity Type / ptype Filtering
+**File:** `src/components/opportunities/OpportunitySearchForm.tsx`
 
-### Priority 3: Larger Features (Future phases)
+Split the opportunity type dropdown into two concerns:
+- Keep "Contract" and "Grant" as `opportunityType` (for cross-source filtering)
+- Move SAM.gov-specific types (`o`, `p`, `k`, `r`, `s`) into the `ptype` search parameter so SAM.gov filters them server-side
 
-**8. Additional data source providers (modular)**
-- The edge function architecture already supports adding providers
-- Candidates: EU TED API, Canada MERX, state procurement portals (NY, CA)
-- Each new provider follows the same pattern: fetch, normalize to `NormalizedOpportunity`, merge
+Update `handleSubmit` to send `ptype` when a SAM.gov-specific type is selected.
 
-**9. AI Opportunity Matching**
-- Compare user's company profile (industry, NAICS codes, past wins from knowledge base) against search results
-- Add a relevance score badge to each opportunity card
-- Requires a new edge function that calls the AI service with company context + opportunity data
+**File:** `supabase/functions/search-opportunities/index.ts`
+- The `ptype` param is already passed to SAM.gov API (line 64) — it just needs to receive a value from the frontend.
 
-**10. Deadline calendar view**
-- Calendar component showing saved opportunity deadlines
-- Visual timeline of upcoming deadlines
-- Uses existing `response_deadline` data from saved opportunities
+### Fix 3: Improve Grants.gov Relevance
+**File:** `supabase/functions/search-opportunities/index.ts`
+
+Add `sortBy: "relevance"` to the Grants.gov API request body so results come back ranked by keyword match from the source.
 
 ---
 
-### Recommended Implementation Order
+### Summary of Changes
 
-| # | Feature | Effort | Files Changed |
-|---|---------|--------|---------------|
-| 1 | Generate Proposal Draft button | Small | 2 UI components |
-| 2 | Notes on saved opportunities | Small | 2 files |
-| 3 | Filter/sort saved opportunities | Small | 1 component |
-| 4 | Pagination | Small | 2 files |
-| 5 | Saved search alerts | Medium | Migration + edge function + UI |
-| 6 | Opportunity lists/pipeline | Medium | Migration + new components |
-| 7 | Search result caching | Medium | Migration + edge function |
-| 8 | Additional sources | Medium each | Edge function |
-| 9 | AI matching | Large | Edge function + UI |
-| 10 | Deadline calendar | Medium | New component |
+| File | Change |
+|------|--------|
+| `search-opportunities/index.ts` | Add `scoreRelevance()` function to rank results by keyword match in title/department; add `sortBy: "relevance"` to Grants.gov request |
+| `OpportunitySearchForm.tsx` | Fix opportunity type dropdown to correctly send `ptype` for SAM.gov-specific types vs `opportunityType` for generic types |
 
-### Technical Notes
-- All new tables require RLS policies scoped to `organization_id` using `user_belongs_to_organization()`
-- Saved searches cron would use Supabase `pg_cron` or an external scheduler calling the edge function
-- The existing modular provider pattern in `search-opportunities/index.ts` makes adding new sources straightforward -- each is an async function returning `NormalizedOpportunity[]`
+These three fixes together will ensure that searching "Video Production" surfaces contracts and grants with those words prominently in the title, rather than random results that happen to mention those terms somewhere in their metadata.
 

@@ -16,6 +16,8 @@ export interface Opportunity {
   description_url: string;
   type: string;
   raw_data: Record<string, unknown>;
+  resource_links?: string[];
+  description_text_url?: string | null;
 }
 
 export interface SearchParams {

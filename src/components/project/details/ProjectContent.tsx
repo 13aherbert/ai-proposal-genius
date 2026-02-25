@@ -58,13 +58,21 @@ const FeatureLocked = ({
 
 interface ProjectContentProps {
   project: Project;
+  autoStart?: boolean;
 }
 
-export function ProjectContent({ project }: ProjectContentProps) {
+export function ProjectContent({ project, autoStart }: ProjectContentProps) {
   const [activeSection, setActiveSection] = useState("overview");
   const [shownToasts, setShownToasts] = useState<Set<string>>(new Set());
   const { hasFeature, getPlanName, isTestMode } = useSubscriptionFeatures();
   const navigate = useNavigate();
+
+  // Auto-start: navigate to analysis tab when coming from auto-fetch
+  useEffect(() => {
+    if (autoStart && activeSection === "overview") {
+      setActiveSection("analysis");
+    }
+  }, [autoStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear shown toasts when active section changes
   useEffect(() => {

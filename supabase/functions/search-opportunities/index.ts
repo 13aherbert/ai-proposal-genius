@@ -20,6 +20,8 @@ interface NormalizedOpportunity {
   description_url: string;
   type: string;
   raw_data: Record<string, unknown>;
+  resource_links: string[];
+  description_text_url: string | null;
 }
 
 interface SearchBody {
@@ -89,6 +91,8 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
     description_url: opp.uiLink || (opp.noticeId ? `https://sam.gov/opp/${opp.noticeId}` : (opp.solicitationNumber ? `https://sam.gov/search?keywords=${encodeURIComponent(opp.solicitationNumber)}` : "https://sam.gov")),
     type: opp.type || opp.baseType || "contract",
     raw_data: opp,
+    resource_links: Array.isArray(opp.resourceLinks) ? opp.resourceLinks.map((rl: any) => typeof rl === "string" ? rl : rl?.url || "").filter(Boolean) : [],
+    description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
   }));
 }
 
@@ -139,6 +143,8 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
         : (opp.id ? `https://www.grants.gov/search-results-detail/${opp.id}` : "https://www.grants.gov"),
       type: "grant",
       raw_data: opp,
+      resource_links: [],
+      description_text_url: null,
     }));
   } catch (err) {
     console.error("[Grants.gov] Fetch error:", err);

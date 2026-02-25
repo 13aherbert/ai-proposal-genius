@@ -21,9 +21,10 @@ import {
   Check,
   X,
   ArrowUpDown,
+  FileText,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { SavedOpportunity } from "@/hooks/use-opportunity-search";
 
 interface SavedOpportunitiesProps {
@@ -64,7 +65,7 @@ export function SavedOpportunities({
   onUpdateNotes,
   onDelete,
 }: SavedOpportunitiesProps) {
-  const navigate = useNavigate();
+  const { draftProposal, isDrafting } = useDraftProposal();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -248,16 +249,31 @@ export function SavedOpportunities({
                     size="sm"
                     variant="outline"
                     onClick={() =>
-                      navigate("/upload-rfp", {
-                        state: {
-                          prefillTitle: opp.title,
-                          prefillDeadline: opp.response_deadline,
-                        },
+                      draftProposal({
+                        external_id: opp.external_id,
+                        source: opp.source,
+                        title: opp.title,
+                        solicitation_number: opp.solicitation_number || "",
+                        department: opp.department || "",
+                        naics_code: opp.naics_code || "",
+                        posted_date: opp.posted_date,
+                        response_deadline: opp.response_deadline,
+                        set_aside: opp.set_aside || "",
+                        description_url: opp.description_url || "",
+                        type: "",
+                        raw_data: (opp.raw_data as Record<string, unknown>) || {},
+                        resource_links: [],
+                        description_text_url: null,
                       })
                     }
+                    disabled={isDrafting}
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Start Project
+                    {isDrafting ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    {isDrafting ? "Fetching..." : "Start Project"}
                   </Button>
 
                   {opp.description_url && (

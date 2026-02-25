@@ -177,6 +177,20 @@ export function useOpportunitySearch() {
     }
   }, [loadSaved]);
 
+  const updateNotes = useCallback(async (id: string, notes: string) => {
+    try {
+      const { error } = await supabase
+        .from("saved_opportunities")
+        .update({ notes } as any)
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Notes updated");
+      await loadSaved();
+    } catch (err: any) {
+      toast.error("Failed to update notes");
+    }
+  }, [loadSaved]);
+
   const deleteOpportunity = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
@@ -201,6 +215,7 @@ export function useOpportunitySearch() {
     isLoadingSaved,
     loadSaved,
     updateStatus,
+    updateNotes,
     deleteOpportunity,
   };
 }

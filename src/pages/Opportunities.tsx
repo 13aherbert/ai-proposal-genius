@@ -12,7 +12,9 @@ import { SavedOpportunities } from "@/components/opportunities/SavedOpportunitie
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
 import { useSubscription } from "@/hooks/subscription";
 import { determineFeatureAccess, normalizePlanType } from "@/hooks/subscription/feature-access";
-import type { Opportunity } from "@/hooks/use-opportunity-search";
+import type { Opportunity, SearchParams } from "@/hooks/use-opportunity-search";
+
+const PAGE_SIZE = 25;
 
 export default function Opportunities() {
   const { subscription, isLoading } = useSubscription();
@@ -29,11 +31,14 @@ export default function Opportunities() {
     isLoadingSaved,
     loadSaved,
     updateStatus,
+    updateNotes,
     deleteOpportunity,
   } = useOpportunitySearch();
 
   const [tab, setTab] = useState("search");
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [lastSearchParams, setLastSearchParams] = useState<SearchParams | null>(null);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {
@@ -41,6 +46,20 @@ export default function Opportunities() {
       loadSaved();
     }
   }, [hasPro, loadSaved]);
+
+  const handleSearch = (params: SearchParams) => {
+    setCurrentPage(0);
+    setLastSearchParams(params);
+    search({ ...params, limit: PAGE_SIZE, offset: 0 });
+  };
+
+  const handlePageChange = (page: number) => {
+    if (!lastSearchParams) return;
+    setCurrentPage(page);
+    search({ ...lastSearchParams, limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  };
+
+  const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
   if (isLoading) {
     return (
@@ -98,11 +117,11 @@ export default function Opportunities() {
           </TabsList>
 
           <TabsContent value="search" className="space-y-4">
-            <OpportunitySearchForm onSearch={search} isSearching={isSearching} />
+            <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
 
             {results.length > 0 && (
               <p className="text-sm text-muted-foreground">
-                Showing {results.length} of {totalRecords} results
+                Showing {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, totalRecords)} of {totalRecords} results
               </p>
             )}
 
@@ -118,6 +137,30 @@ export default function Opportunities() {
               ))}
             </div>
 
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage === 0 || isSearching}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={currentPage >= totalPages - 1 || isSearching}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+
             {!isSearching && results.length === 0 && totalRecords === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -131,6 +174,7 @@ export default function Opportunities() {
               opportunities={savedOpportunities}
               isLoading={isLoadingSaved}
               onUpdateStatus={updateStatus}
+              onUpdateNotes={updateNotes}
               onDelete={deleteOpportunity}
             />
           </TabsContent>

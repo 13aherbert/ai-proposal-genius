@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectEditForm } from "./ProjectEditForm";
 import { ProjectDetails } from "./ProjectDetails";
 import { ProjectDocuments } from "./ProjectDocuments";
+import { AutomatedProposalCreation } from "@/components/project/AutomatedProposalCreation";
 import { useState } from "react";
 import { Edit } from "lucide-react";
 
@@ -43,6 +44,12 @@ export function ProjectInfoCard({ project }: ProjectInfoCardProps) {
           <>
             <ProjectDetails project={project} />
             <ProjectDocuments project={project} />
+            {project.rfp_file_path && (
+              <AutomatedProposalCreation 
+                projectId={project.project_id} 
+                filePath={project.rfp_file_path} 
+              />
+            )}
           </>
         )}
       </CardContent>

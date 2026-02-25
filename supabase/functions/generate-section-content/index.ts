@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import pdfParse from "npm:pdf-parse@1.1.1";
 import mammoth from "npm:mammoth@1.6.0";
-import { generateWithClaude } from './claude-client.ts';
+
 import { generatePrompt } from './prompt.ts';
 import { KnowledgeEntry, Project } from './types.ts';
 import { ContentQualityAnalyzer } from './content-quality-analyzer.ts';
@@ -26,17 +26,24 @@ const corsHeaders = {
 
 // Simple error handling
 class ProposalGenerationError extends Error {
-  constructor(message: string) {
+  statusCode: number;
+  isRetryable: boolean;
+
+  constructor(message: string, statusCode: number = 500, isRetryable: boolean = false) {
     super(message);
     this.name = 'ProposalGenerationError';
+    this.statusCode = statusCode;
+    this.isRetryable = isRetryable;
   }
 }
 
 function createErrorResponse(error: any, context: any, fallbackMessage: string) {
+  const message = error?.message || fallbackMessage;
   return {
     success: false,
-    error: error.message || fallbackMessage,
-    details: error.name || 'Error'
+    error: message,
+    details: error?.name || 'Error',
+    retryable: error?.isRetryable ?? /overloaded|rate limit|\b529\b|\b429\b/i.test(message)
   };
 }
 
@@ -109,6 +116,56 @@ function cleanGeneratedContent(content: string, sectionTitle: string): string {
   cleaned = cleaned.replace(headerPattern, '');
   
   return cleaned.trim();
+}
+
+function selectRelevantKnowledgeContext(
+  entries: any[],
+  sectionTitle: string,
+  sectionType: string,
+  maxEntries: number = 10,
+  maxTotalChars: number = 90000,
+  maxEntryChars: number = 12000
+): string {
+  const sectionWords = sectionTitle.toLowerCase().split(/\W+/).filter(Boolean);
+
+  const scoredEntries = entries
+    .map((entry) => {
+      const title = (entry.title || '').toLowerCase();
+      const category = (entry.category || '').toLowerCase();
+      const content = (entry.parsed_content || entry.content || '').trim();
+      if (!content) return null;
+
+      let score = 0;
+      if (title.includes(sectionType) || category.includes(sectionType)) score += 8;
+      for (const word of sectionWords) {
+        if (word.length >= 4 && (title.includes(word) || category.includes(word))) {
+          score += 2;
+        }
+      }
+      score += Math.min(Math.floor(content.length / 3000), 4);
+
+      return { entry, score, content };
+    })
+    .filter((item): item is { entry: any; score: number; content: string } => item !== null)
+    .sort((a, b) => b.score - a.score);
+
+  const selected = scoredEntries.slice(0, maxEntries);
+  const blocks: string[] = [];
+  let total = 0;
+
+  for (const item of selected) {
+    const clippedContent = item.content.length > maxEntryChars
+      ? `${item.content.slice(0, maxEntryChars)}\n\n[Entry truncated for relevance]`
+      : item.content;
+
+    const block = `**${item.entry.title || 'Untitled'}** (${item.entry.category || 'general'})\n${clippedContent}`;
+    if (total + block.length > maxTotalChars) break;
+
+    blocks.push(block);
+    total += block.length;
+  }
+
+  return blocks.join('\n\n---\n\n');
 }
 
 console.log("Function setup complete, listening for requests...");
@@ -208,9 +265,14 @@ serve(async (req) => {
               const data = await pdfParse(uint8Array);
               extractedRfpText = data.text;
             } else if (fileType === 'doc' || fileType === 'docx') {
-              const uint8 = new Uint8Array(arrayBuffer);
-              const result = await mammoth.extractRawText({ arrayBuffer: uint8.buffer });
-              extractedRfpText = result.value || '';
+              try {
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                extractedRfpText = result.value || '';
+              } catch (_mammothPrimaryErr) {
+                const uint8 = new Uint8Array(arrayBuffer);
+                const fallbackResult = await mammoth.extractRawText({ buffer: uint8 } as any);
+                extractedRfpText = fallbackResult.value || '';
+              }
             } else {
               const decoder = new TextDecoder('utf-8');
               extractedRfpText = decoder.decode(arrayBuffer);
@@ -287,21 +349,26 @@ serve(async (req) => {
 
     console.log("Total knowledge base content:", totalContentLength, "characters");
 
-    // Create comprehensive context with ALL knowledge entries
-    let allKnowledgeContent = entriesWithContent.map(entry => {
-      const content = entry.parsed_content || entry.content || '';
-      return `**${entry.title}** (${entry.category})\n${content}`;
-    }).join('\n\n---\n\n');
+    // Create focused context to reduce model overload risk
+    const sectionType = getSectionType(sectionTitle);
+    let allKnowledgeContent = selectRelevantKnowledgeContext(entriesWithContent, sectionTitle, sectionType);
 
-    // Prepend actual RFP document text if available
+    if (!allKnowledgeContent) {
+      throw new ProposalGenerationError("Knowledge base content found but none was relevant enough for this section", 422, false);
+    }
+
+    // Prepend actual RFP document text if available (trimmed for model stability)
     if (rfpDocumentText) {
-      allKnowledgeContent = `PRIMARY RFP DOCUMENT:\n${rfpDocumentText}\n\n---\n\nKNOWLEDGE BASE ENTRIES:\n${allKnowledgeContent}`;
+      const clippedRfpText = rfpDocumentText.length > 12000
+        ? `${rfpDocumentText.slice(0, 12000)}\n\n[Primary RFP excerpt truncated for stability]`
+        : rfpDocumentText;
+      allKnowledgeContent = `PRIMARY RFP DOCUMENT:\n${clippedRfpText}\n\n---\n\nKNOWLEDGE BASE ENTRIES:\n${allKnowledgeContent}`;
     }
 
     // PHASE 3: Advanced Intelligence - Dynamic Prompt Optimization
     console.log("Running Phase 3 advanced intelligence...");
-    
-    const sectionType = getSectionType(sectionTitle);
+    console.log("Context size sent to model:", allKnowledgeContent.length, "characters");
+
     const promptOptimization = DynamicPromptOptimizer.optimizePrompt(
       generatePrompt(sectionTitle, project, allKnowledgeContent, sections, false),
       sectionType,
@@ -487,16 +554,31 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in generate-section-content function:", error);
-    
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isOverloadError = /overloaded|rate limit|\b529\b|\b429\b/i.test(errorMessage);
+
+    const normalizedError = error instanceof ProposalGenerationError
+      ? error
+      : new ProposalGenerationError(
+          errorMessage || "Content generation failed",
+          isOverloadError ? 503 : 500,
+          isOverloadError
+        );
+
     const errorResponse = createErrorResponse(
-      error,
+      normalizedError,
       {},
       "Content generation failed"
     );
 
     return new Response(JSON.stringify(errorResponse), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: error instanceof ProposalGenerationError ? (error as any).statusCode || 500 : 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        ...(normalizedError.isRetryable ? { 'Retry-After': '20' } : {})
+      },
+      status: normalizedError.statusCode,
     });
   }
 });

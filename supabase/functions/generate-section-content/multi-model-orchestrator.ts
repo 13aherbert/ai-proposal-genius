@@ -20,8 +20,9 @@ export interface ConsensusResult {
 }
 
 export class MultiModelOrchestrator {
-  // Use Claude Sonnet as the primary model for all proposal content
+  // Model strategy: primary first, then lightweight fallback during provider overload
   private static readonly PRIMARY_MODEL = 'claude-sonnet-4-20250514';
+  private static readonly FALLBACK_MODEL = 'claude-3-5-haiku-20241022';
 
   static async orchestrateGeneration(
     prompt: string,
@@ -35,15 +36,19 @@ export class MultiModelOrchestrator {
     }
 
     const startTime = Date.now();
-    const maxRetries = 3;
-    
+    const maxRetries = 4;
+    const maxTokens = complexity === 'complex' ? 3200 : complexity === 'moderate' ? 2600 : 2000;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const useFallbackModel = attempt === maxRetries;
+      const modelToUse = useFallbackModel ? this.FALLBACK_MODEL : this.PRIMARY_MODEL;
+
       try {
-        const content = await this.generateWithClaude(prompt, anthropicKey, this.PRIMARY_MODEL);
+        const content = await this.generateWithClaude(prompt, anthropicKey, modelToUse, maxTokens);
         const processingTime = Date.now() - startTime;
 
         const result: ModelResult = {
-          model: this.PRIMARY_MODEL,
+          model: modelToUse,
           content,
           confidence: this.calculateModelConfidence(content, sectionType),
           reasoning_score: this.assessReasoningQuality(content),
@@ -51,29 +56,33 @@ export class MultiModelOrchestrator {
           processing_time: processingTime
         };
 
-        console.log(`Claude Sonnet generated content in ${processingTime}ms, confidence: ${result.confidence.toFixed(2)}`);
+        console.log(`${modelToUse} generated content in ${processingTime}ms, confidence: ${result.confidence.toFixed(2)}`);
 
         return {
           final_content: result.content,
           confidence_score: result.confidence,
           model_agreement: 1.0,
-          best_performing_model: this.PRIMARY_MODEL,
-          synthesis_approach: 'claude_sonnet_primary',
-          quality_improvements: [`Generated with ${this.PRIMARY_MODEL} (complexity: ${complexity})`]
+          best_performing_model: modelToUse,
+          synthesis_approach: useFallbackModel ? 'fallback_model_recovery' : 'claude_sonnet_primary',
+          quality_improvements: [
+            `Generated with ${modelToUse} (complexity: ${complexity})`,
+            useFallbackModel ? 'Recovered generation by switching to fallback model after overload' : 'Primary model path'
+          ]
         };
       } catch (error) {
-        const isOverloaded = error.message?.includes('529') || error.message?.includes('Overloaded');
-        const isRateLimit = error.message?.includes('429') || error.message?.includes('rate limit');
+        const message = error instanceof Error ? error.message : String(error);
+        const isOverloaded = message.includes('529') || message.toLowerCase().includes('overloaded');
+        const isRateLimit = message.includes('429') || message.toLowerCase().includes('rate limit');
         const isRetryable = isOverloaded || isRateLimit;
 
-        console.error(`Claude Sonnet attempt ${attempt}/${maxRetries} failed:`, error.message);
+        console.error(`Claude generation attempt ${attempt}/${maxRetries} (${modelToUse}) failed:`, message);
 
         if (!isRetryable || attempt === maxRetries) {
           throw error;
         }
 
-        // Exponential backoff: 3s, 6s, 12s + jitter
-        const delay = (3000 * Math.pow(2, attempt - 1)) + Math.random() * 2000;
+        // Exponential backoff: 2.5s, 5s, 10s + jitter
+        const delay = (2500 * Math.pow(2, attempt - 1)) + Math.random() * 1500;
         console.log(`Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -85,7 +94,8 @@ export class MultiModelOrchestrator {
   private static async generateWithClaude(
     prompt: string,
     apiKey: string,
-    model: string
+    model: string,
+    maxTokens: number = 2600
   ): Promise<string> {
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
@@ -96,7 +106,7 @@ export class MultiModelOrchestrator {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }]
       })
     });

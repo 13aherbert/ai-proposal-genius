@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useProjectDetails } from "@/hooks/use-project-details";
 import { ProjectHeader } from "@/components/project/details/ProjectHeader";
@@ -8,6 +8,8 @@ import { ProjectContent } from "@/components/project/details/ProjectContent";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
+  const location = useLocation();
+  const autoStart = (location.state as any)?.autoStart === true;
   const { session } = useAuth();
   const { data: project, isLoading } = useProjectDetails(projectId, session?.user);
 
@@ -22,7 +24,7 @@ const ProjectDetails = () => {
   return (
     <div className="min-h-screen w-full bg-background">
       <ProjectHeader title={project.title} />
-      <ProjectContent project={project} />
+      <ProjectContent project={project} autoStart={autoStart} />
     </div>
   );
 };

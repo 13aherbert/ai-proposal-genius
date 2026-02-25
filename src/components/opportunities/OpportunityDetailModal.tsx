@@ -16,9 +16,10 @@ import {
   Hash,
   Clock,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 interface OpportunityDetailModalProps {
@@ -109,7 +110,7 @@ export function OpportunityDetailModal({
   onSave,
   isSaved,
 }: OpportunityDetailModalProps) {
-  const navigate = useNavigate();
+  const { draftProposal, isDrafting } = useDraftProposal();
   if (!opportunity) return null;
 
   const daysRemaining = getDaysRemaining(opportunity.response_deadline);
@@ -227,19 +228,15 @@ export function OpportunityDetailModal({
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                onOpenChange(false);
-                navigate("/upload-rfp", {
-                  state: {
-                    prefillTitle: opportunity.title,
-                    prefillDeadline: opportunity.response_deadline,
-                    prefillAgency: opportunity.department,
-                  },
-                });
-              }}
+              onClick={() => draftProposal(opportunity, () => onOpenChange(false))}
+              disabled={isDrafting}
             >
-              <FileText className="mr-1.5 h-4 w-4" />
-              Draft Proposal
+              {isDrafting ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-1.5 h-4 w-4" />
+              )}
+              {isDrafting ? "Fetching Documents..." : "Draft Proposal"}
             </Button>
             {opportunity.description_url && (
               <Button variant="outline" asChild>

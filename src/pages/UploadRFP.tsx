@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, AlertTriangle, RefreshCw, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback, memo, useEffect, useRef } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
@@ -17,13 +17,24 @@ const MemoizedUploadDropzone = memo(UploadDropzone);
 
 const UploadRFP = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefillState = location.state as {
+    prefillTitle?: string;
+    prefillDeadline?: string;
+    prefillAgency?: string;
+  } | null;
+
   const { session } = useAuth();
   const { data: subscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
-  const [deadline, setDeadline] = useState<Date>();
-  const [clientName, setClientName] = useState("");
+  const [deadline, setDeadline] = useState<Date>(() => {
+    if (prefillState?.prefillDeadline) {
+      try { return new Date(prefillState.prefillDeadline); } catch { return undefined as any; }
+    }
+    return undefined as any;
+  });
+  const [clientName, setClientName] = useState(prefillState?.prefillAgency || "");
   const [businessName, setBusinessName] = useState("");
   const [autoGenerate, setAutoGenerate] = useState(() => {
-    // Default to true unless explicitly set to false
     return localStorage.getItem('auto-generate-preference') !== 'false';
   });
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
@@ -46,6 +57,12 @@ const UploadRFP = () => {
     fetchProjectCount
   } = useRFPUpload();
 
+  // Apply prefill from location.state (e.g., from Opportunity Finder)
+  useEffect(() => {
+    if (prefillState?.prefillTitle && !projectTitle) {
+      setProjectTitle(prefillState.prefillTitle);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (session?.user) {

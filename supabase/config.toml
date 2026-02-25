@@ -126,3 +126,8 @@ import_map = "import_map.json"
 name = "search-opportunities"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "fetch-opportunity-documents"
+verify_jwt = false
+import_map = "import_map.json"

@@ -2,9 +2,9 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Bookmark, Calendar, Building2, Hash, Eye, FileText } from "lucide-react";
+import { ExternalLink, Bookmark, Calendar, Building2, Hash, Eye, FileText, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 interface OpportunityCardProps {
@@ -52,7 +52,7 @@ function getSourceColor(source: string) {
 }
 
 export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }: OpportunityCardProps) {
-  const navigate = useNavigate();
+  const { draftProposal, isDrafting } = useDraftProposal();
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -134,18 +134,15 @@ export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }:
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              navigate("/upload-rfp", {
-                state: {
-                  prefillTitle: opportunity.title,
-                  prefillDeadline: opportunity.response_deadline,
-                  prefillAgency: opportunity.department,
-                },
-              })
-            }
+            onClick={() => draftProposal(opportunity)}
+            disabled={isDrafting}
           >
-            <FileText className="mr-1.5 h-3.5 w-3.5" />
-            Draft Proposal
+            {isDrafting ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {isDrafting ? "Fetching..." : "Draft Proposal"}
           </Button>
           <Button size="sm" variant="ghost" asChild>
             <a href={opportunity.description_url || getSourceFallbackUrl(opportunity.source)} target="_blank" rel="noopener noreferrer">

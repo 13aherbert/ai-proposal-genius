@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, Wand } from "lucide-react";
+import { FileText, LayoutTemplate, CheckSquare, ScrollText, FileEdit, Wand, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -44,6 +44,13 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       icon: CheckSquare,
       feature: "evaluation" as FeatureName,
       description: "Evaluation and scoring",
+    },
+    {
+      id: "design",
+      label: "Design",
+      icon: Palette,
+      feature: "proposal_draft" as FeatureName,
+      description: "Design and export your proposal",
     },
   ] as const;
 

@@ -1612,6 +1612,57 @@ export type Database = {
           },
         ]
       }
+      proposal_designs: {
+        Row: {
+          content_blocks: Json
+          created_at: string
+          design_settings: Json
+          id: string
+          organization_id: string
+          project_id: string
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_blocks?: Json
+          created_at?: string
+          design_settings?: Json
+          id?: string
+          organization_id: string
+          project_id: string
+          template_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_blocks?: Json
+          created_at?: string
+          design_settings?: Json
+          id?: string
+          organization_id?: string
+          project_id?: string
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_designs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_designs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
       proposal_sections: {
         Row: {
           content: string | null

@@ -29,8 +29,8 @@ interface SearchBody {
   naicsCode?: string;
   setAside?: string;
   ptype?: string;
-  source?: string; // "all" | "sam_gov" | "grants_gov"
-  opportunityType?: string; // "contract" | "grant" | etc.
+  source?: string;
+  opportunityType?: string;
   agency?: string;
   limit?: number;
   offset?: number;
@@ -66,7 +66,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
   qp.set("offset", String(safeOffset));
 
   const url = `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`;
-  console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}`);
+  console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}, ptype=${params.ptype || "any"}`);
 
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) {
@@ -101,6 +101,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
     keyword: safeKeyword || "",
     rows,
     oppStatuses: "forecasted|posted",
+    sortBy: "relevance",
   };
 
   if (params.agency) body.agencies = String(params.agency).slice(0, 100);
@@ -143,6 +144,58 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
     console.error("[Grants.gov] Fetch error:", err);
     return [];
   }
+}
+
+// ─── Relevance Scoring ──────────────────────────────────────────────
+function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
+  if (!keyword || !keyword.trim()) return 0;
+
+  const phrase = keyword.toLowerCase().trim();
+  const words = phrase.split(/\s+/).filter(Boolean);
+  const titleLower = (opp.title || "").toLowerCase();
+  const deptLower = (opp.department || "").toLowerCase();
+
+  let score = 0;
+
+  // Exact phrase in title → highest signal
+  if (titleLower.includes(phrase)) {
+    score += 100;
+  }
+
+  // All words present in title
+  const allInTitle = words.every(w => titleLower.includes(w));
+  if (allInTitle && !titleLower.includes(phrase)) {
+    score += 50;
+  }
+
+  // Per-word matches in title
+  if (!allInTitle) {
+    for (const w of words) {
+      if (titleLower.includes(w)) score += 10;
+    }
+  }
+
+  // Department matches
+  for (const w of words) {
+    if (deptLower.includes(w)) score += 5;
+  }
+
+  return score;
+}
+
+function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): NormalizedOpportunity[] {
+  if (!keyword || !keyword.trim()) return opps;
+
+  return opps
+    .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      // Tiebreak by posted date descending
+      const dateA = a.opp.posted_date || "";
+      const dateB = b.opp.posted_date || "";
+      return dateB.localeCompare(dateA);
+    })
+    .map(({ opp }) => opp);
 }
 
 // ─── Deduplication ───────────────────────────────────────────────────
@@ -255,6 +308,7 @@ Deno.serve(async (req) => {
     const body: SearchBody = await req.json();
     const sourceFilter = body.source || "all";
     const opportunityType = body.opportunityType || "";
+    const searchKeyword = body.keyword || "";
 
     // Fetch from providers in parallel
     const samApiKey = Deno.env.get("SAM_GOV_API_KEY");
@@ -275,7 +329,7 @@ Deno.serve(async (req) => {
     const results = await Promise.all(fetchPromises);
     let allOpportunities = deduplicateOpportunities(results.flat());
 
-    // Apply opportunityType filter client-side
+    // Apply opportunityType filter client-side (for generic types like "contract"/"grant")
     if (opportunityType) {
       allOpportunities = allOpportunities.filter(
         (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()
@@ -291,6 +345,9 @@ Deno.serve(async (req) => {
           opp.department.toLowerCase().includes(agencyLower)
       );
     }
+
+    // Rank by relevance to keyword
+    allOpportunities = rankByRelevance(allOpportunities, searchKeyword);
 
     // Record usage
     await supabase.rpc("update_organization_usage_metric", {

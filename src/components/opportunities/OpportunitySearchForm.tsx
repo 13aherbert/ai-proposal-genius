@@ -38,11 +38,11 @@ const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "", label: "Any Type" },
   { value: "contract", label: "Contract" },
   { value: "grant", label: "Grant" },
-  { value: "o", label: "Solicitation" },
-  { value: "p", label: "Presolicitation" },
-  { value: "k", label: "Combined Synopsis/Solicitation" },
-  { value: "r", label: "Sources Sought" },
-  { value: "s", label: "Special Notice" },
+  { value: "ptype:o", label: "Solicitation (SAM.gov)" },
+  { value: "ptype:p", label: "Presolicitation (SAM.gov)" },
+  { value: "ptype:k", label: "Combined Synopsis/Solicitation (SAM.gov)" },
+  { value: "ptype:r", label: "Sources Sought (SAM.gov)" },
+  { value: "ptype:s", label: "Special Notice (SAM.gov)" },
 ];
 
 export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySearchFormProps) {
@@ -58,6 +58,12 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanVal = (v: string) => (v && !v.startsWith("any")) ? v : undefined;
+    
+    // Split ptype: prefixed values from generic opportunityType
+    const isPtype = opportunityType.startsWith("ptype:");
+    const ptypeValue = isPtype ? opportunityType.replace("ptype:", "") : undefined;
+    const oppTypeValue = isPtype ? undefined : cleanVal(opportunityType);
+    
     onSearch({
       keyword,
       postedFrom: postedFrom || undefined,
@@ -65,7 +71,8 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
       naicsCode: naicsCode || undefined,
       setAside: cleanVal(setAside),
       source: source || "all",
-      opportunityType: cleanVal(opportunityType),
+      opportunityType: oppTypeValue,
+      ptype: ptypeValue,
       agency: agency || undefined,
     });
   };

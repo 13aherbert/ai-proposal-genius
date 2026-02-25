@@ -8,6 +8,72 @@ const corsHeaders = {
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
+function scoreFilenameForPrimary(filename: string): number {
+  const lower = filename.toLowerCase();
+  let score = 0;
+
+  // Positive indicators: likely the main RFP/SOW document
+  const positiveKeywords = [
+    { pattern: /solicitation/i, weight: 10 },
+    { pattern: /statement\s*of\s*work|sow/i, weight: 10 },
+    { pattern: /performance\s*work\s*statement|pws/i, weight: 10 },
+    { pattern: /combined\s*synopsis/i, weight: 8 },
+    { pattern: /\brfp\b/i, weight: 8 },
+    { pattern: /\brfq\b/i, weight: 7 },
+    { pattern: /\brfi\b/i, weight: 5 },
+    { pattern: /scope/i, weight: 6 },
+    { pattern: /synopsis/i, weight: 5 },
+    { pattern: /description/i, weight: 3 },
+  ];
+
+  // Negative indicators: supporting/administrative documents
+  const negativeKeywords = [
+    { pattern: /amendment|amend/i, weight: -8 },
+    { pattern: /modification|mod\d/i, weight: -8 },
+    { pattern: /wage\s*determin/i, weight: -10 },
+    { pattern: /\bsf[\-_]?\d/i, weight: -7 },
+    { pattern: /sf1449|sf\s*1449/i, weight: -7 },
+    { pattern: /addendum/i, weight: -6 },
+    { pattern: /attachment\s*[a-z]/i, weight: -3 },
+    { pattern: /exhibit/i, weight: -3 },
+    { pattern: /clauses/i, weight: -5 },
+    { pattern: /provisions/i, weight: -4 },
+    { pattern: /representations/i, weight: -4 },
+    { pattern: /certifications/i, weight: -4 },
+    { pattern: /far\s*\d/i, weight: -5 },
+    { pattern: /dfar/i, weight: -5 },
+    { pattern: /register/i, weight: -3 },
+    { pattern: /checklist/i, weight: -3 },
+  ];
+
+  for (const kw of positiveKeywords) {
+    if (kw.pattern.test(lower)) score += kw.weight;
+  }
+  for (const kw of negativeKeywords) {
+    if (kw.pattern.test(lower)) score += kw.weight;
+  }
+
+  return score;
+}
+
+function selectPrimaryFile(files: { path: string; name: string; isPdf: boolean; size: number }[]): string {
+  const pdfs = files.filter(f => f.isPdf);
+  const candidates = pdfs.length > 0 ? pdfs : files;
+
+  // Score each file
+  const scored = candidates.map(f => ({
+    ...f,
+    score: scoreFilenameForPrimary(f.name),
+  }));
+
+  // Sort by score desc, then by size desc (larger files are more likely the main doc)
+  scored.sort((a, b) => b.score - a.score || b.size - a.size);
+
+  console.log(`[fetch-docs] File scoring results:`, scored.map(s => `${s.name}: score=${s.score}, size=${s.size}`));
+
+  return scored[0].path;
+}
+
 function getFilenameFromResponse(res: Response, url: string): string {
   const cd = res.headers.get("content-disposition");
   if (cd) {
@@ -146,7 +212,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const uploadedFiles: { path: string; name: string; isPdf: boolean }[] = [];
+    const uploadedFiles: { path: string; name: string; isPdf: boolean; size: number }[] = [];
     let primaryFilePath: string | null = null;
     const warnings: string[] = [];
 
@@ -203,12 +269,7 @@ Deno.serve(async (req) => {
 
         const isPdf = filename.toLowerCase().endsWith(".pdf") || 
                        (res.headers.get("content-type") || "").includes("pdf");
-        uploadedFiles.push({ path: storagePath, name: filename, isPdf });
-
-        // First PDF becomes primary, or first file if no PDFs
-        if (!primaryFilePath && isPdf) {
-          primaryFilePath = storagePath;
-        }
+        uploadedFiles.push({ path: storagePath, name: filename, isPdf, size: blob.size });
 
         console.log(`[fetch-docs] Uploaded: ${storagePath} (${blob.size} bytes)`);
       } catch (err) {
@@ -270,10 +331,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use first file if no PDF was found
-    if (!primaryFilePath) {
-      primaryFilePath = uploadedFiles[0].path;
-    }
+    // Intelligent primary file selection using filename scoring
+    primaryFilePath = selectPrimaryFile(uploadedFiles);
 
     // Create project
     const { data: project, error: projectError } = await supabase

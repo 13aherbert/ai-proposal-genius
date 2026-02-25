@@ -222,36 +222,80 @@ serve(async (req) => {
       throw new Error('Missing required fields: filePath and projectId');
     }
 
-    // Download file from storage
-    console.log('Downloading file:', requestData.filePath);
-    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
-      .from('rfp-files')
-      .download(requestData.filePath);
+    // Fetch all project documents for multi-document analysis
+    const { data: projectDocs } = await supabaseAdmin
+      .from('project_documents')
+      .select('file_name, file_path, document_type')
+      .eq('project_id', requestData.projectId)
+      .limit(5);
 
-    if (downloadError) {
-      console.error('Error downloading file:', downloadError);
-      throw new Error(`Failed to download file: ${downloadError.message}`);
+    const allDocPaths = projectDocs && projectDocs.length > 1
+      ? projectDocs
+      : [{ file_name: requestData.filePath.split('/').pop() || 'document', file_path: requestData.filePath, document_type: 'rfp' }];
+
+    console.log(`Processing ${allDocPaths.length} document(s) for analysis`);
+
+    // Download and extract text from all documents
+    let combinedText = '';
+    const docTexts: { fileName: string; filePath: string; text: string }[] = [];
+
+    for (const doc of allDocPaths) {
+      try {
+        console.log('Downloading file:', doc.file_path);
+        const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+          .from('rfp-files')
+          .download(doc.file_path);
+
+        if (downloadError || !fileData) {
+          console.warn(`Failed to download ${doc.file_name}:`, downloadError);
+          continue;
+        }
+
+        const arrayBuffer = await fileData.arrayBuffer();
+        const extractedText = await extractTextFromFile(arrayBuffer, doc.file_path);
+
+        if (extractedText && extractedText.trim().length > 0) {
+          docTexts.push({ fileName: doc.file_name, filePath: doc.file_path, text: extractedText });
+        }
+      } catch (err) {
+        console.warn(`Error extracting text from ${doc.file_name}:`, err);
+      }
     }
 
-    // Convert file to ArrayBuffer and extract text
-    const arrayBuffer = await fileData.arrayBuffer();
-    const extractedText = await extractTextFromFile(arrayBuffer, requestData.filePath);
-
-    if (!extractedText || extractedText.trim().length === 0) {
-      throw new Error('No text content extracted from file');
+    if (docTexts.length === 0) {
+      throw new Error('No text content extracted from any document');
     }
 
-    console.log('Text extracted successfully, length:', extractedText.length);
+    // Build combined text with document headers
+    if (docTexts.length > 1) {
+      combinedText = docTexts.map(d =>
+        `--- DOCUMENT: ${d.fileName} ---\n${d.text}`
+      ).join('\n\n');
+    } else {
+      combinedText = docTexts[0].text;
+    }
+
+    console.log('Total combined text length:', combinedText.length);
+
+    // Intelligently process the combined text
+    console.log('Processing extracted text for analysis');
+    const processedContent = await processRFPContent(combinedText);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('Lovable API key is not configured');
     }
-
-    // Intelligently process the extracted text
-    console.log('Processing extracted text for analysis');
-    const processedContent = await processRFPContent(extractedText);
     
+    // Build multi-document awareness into the system prompt
+    const multiDocInstruction = docTexts.length > 1
+      ? `\n\nIMPORTANT — MULTI-DOCUMENT ANALYSIS:
+You will receive ${docTexts.length} documents from this opportunity, each preceded by a "--- DOCUMENT: filename ---" header.
+First, identify which document is the PRIMARY RFP, solicitation, or Statement of Work. Base your analysis primarily on that document.
+Use other documents (amendments, wage determinations, forms, cover letters) as supplementary context only.
+At the very start of your analysis, state: "PRIMARY DOCUMENT IDENTIFIED: [filename]"
+`
+      : '';
+
     // Call Lovable AI Gateway for analysis
     console.log('Calling Lovable AI Gateway for analysis');
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -265,7 +309,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert RFP analyst with deep experience in competitive proposal strategy. Analyze the following RFP and provide a comprehensive strategic analysis with these sections:
+            content: `You are an expert RFP analyst with deep experience in competitive proposal strategy.${multiDocInstruction} Analyze the following RFP and provide a comprehensive strategic analysis with these sections:
 
 1. **EXECUTIVE SUMMARY** (2-3 sentences)
    - Core opportunity and strategic value
@@ -323,7 +367,6 @@ Be specific, strategic, and actionable. Focus on intelligence that will help win
       const error = await response.text();
       console.error('Lovable AI Gateway error:', error);
       
-      // Handle rate limiting
       if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please try again in a few moments.');
       }
@@ -336,14 +379,38 @@ Be specific, strategic, and actionable. Focus on intelligence that will help win
 
     const analysisData = await response.json();
     const analysis = analysisData.choices[0].message.content;
+
+    // If multi-doc, try to identify which doc the AI chose as primary and update rfp_file_path
+    if (docTexts.length > 1) {
+      const primaryMatch = analysis.match(/PRIMARY DOCUMENT IDENTIFIED:\s*(.+?)(?:\n|$)/i);
+      if (primaryMatch) {
+        const identifiedName = primaryMatch[1].trim().replace(/\*+/g, '').trim();
+        const matchedDoc = docTexts.find(d => 
+          d.fileName.toLowerCase().includes(identifiedName.toLowerCase()) ||
+          identifiedName.toLowerCase().includes(d.fileName.toLowerCase())
+        );
+        if (matchedDoc && matchedDoc.filePath !== requestData.filePath) {
+          console.log(`AI identified primary doc as "${matchedDoc.fileName}", updating rfp_file_path`);
+          await supabaseAdmin
+            .from('projects')
+            .update({ rfp_file_path: matchedDoc.filePath })
+            .eq('project_id', requestData.projectId);
+          // Also update the document_type
+          await supabaseAdmin
+            .from('project_documents')
+            .update({ document_type: 'rfp' })
+            .eq('project_id', requestData.projectId)
+            .eq('file_path', matchedDoc.filePath);
+        }
+      }
+    }
     
     // Validate that the analysis contains specific content (not generic)
+    const totalChars = docTexts.reduce((sum, d) => sum + d.text.length, 0);
     if (isGenericAnalysis(analysis)) {
       console.warn('Generated analysis appears to be generic, document may need manual review');
-      // Still save it but add a note
-      const enhancedAnalysis = `${analysis}\n\n**Note**: This analysis was generated from a large document (${extractedText.length} characters). If the analysis seems generic, please review the original document for additional details or provide specific sections for more targeted analysis.`;
+      const enhancedAnalysis = `${analysis}\n\n**Note**: This analysis was generated from ${docTexts.length} document(s) totaling ${totalChars} characters. If the analysis seems generic, please review the original documents for additional details.`;
       
-      // Save enhanced analysis to database
       console.log('Saving enhanced analysis to database');
       const { error: updateError } = await supabaseAdmin
         .from('projects')
@@ -351,11 +418,9 @@ Be specific, strategic, and actionable. Focus on intelligence that will help win
         .eq('project_id', requestData.projectId);
 
       if (updateError) {
-        console.error('Error saving analysis:', updateError);
         throw new Error(`Failed to save analysis: ${updateError.message}`);
       }
 
-      console.log('Enhanced analysis completed and saved successfully');
       return new Response(
         JSON.stringify({ analysis: enhancedAnalysis }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -370,7 +435,6 @@ Be specific, strategic, and actionable. Focus on intelligence that will help win
       .eq('project_id', requestData.projectId);
 
     if (updateError) {
-      console.error('Error saving analysis:', updateError);
       throw new Error(`Failed to save analysis: ${updateError.message}`);
     }
 

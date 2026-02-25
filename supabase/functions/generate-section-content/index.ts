@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import pdfParse from "npm:pdf-parse@1.1.1";
+import mammoth from "npm:mammoth@1.6.0";
 import { generateWithClaude } from './claude-client.ts';
 import { generatePrompt } from './prompt.ts';
 import { KnowledgeEntry, Project } from './types.ts';
@@ -186,6 +188,49 @@ serve(async (req) => {
 
     console.log("Project found:", project.title);
 
+    // Fetch and include actual primary RFP document text
+    let rfpDocumentText = '';
+    try {
+      if (project.rfp_file_path) {
+        console.log("Downloading primary RFP document for context:", project.rfp_file_path);
+        const { data: rfpFileData, error: rfpDownloadError } = await supabase.storage
+          .from('rfp-files')
+          .download(project.rfp_file_path);
+
+        if (!rfpDownloadError && rfpFileData) {
+          const arrayBuffer = await rfpFileData.arrayBuffer();
+          const fileType = project.rfp_file_path.split('.').pop()?.toLowerCase() || '';
+          
+          try {
+            let extractedRfpText = '';
+            if (fileType === 'pdf') {
+              const uint8Array = new Uint8Array(arrayBuffer);
+              const data = await pdfParse(uint8Array);
+              extractedRfpText = data.text;
+            } else if (fileType === 'doc' || fileType === 'docx') {
+              const buffer = Buffer.from(arrayBuffer);
+              const result = await mammoth.extractRawText({ buffer });
+              extractedRfpText = result.text || '';
+            } else {
+              const decoder = new TextDecoder('utf-8');
+              extractedRfpText = decoder.decode(arrayBuffer);
+            }
+
+            // Truncate to ~20,000 characters to stay within token limits
+            if (extractedRfpText.length > 20000) {
+              extractedRfpText = extractedRfpText.substring(0, 20000) + '\n\n[Document truncated for length]';
+            }
+            rfpDocumentText = extractedRfpText;
+            console.log("RFP document text extracted, length:", rfpDocumentText.length);
+          } catch (extractErr) {
+            console.warn("Failed to extract RFP text:", extractErr);
+          }
+        }
+      }
+    } catch (rfpErr) {
+      console.warn("Error fetching RFP document:", rfpErr);
+    }
+
     // Fetch existing sections for consistency
     console.log("Fetching existing sections...");
     const { data: existingSections, error: sectionsError } = await supabase
@@ -243,10 +288,15 @@ serve(async (req) => {
     console.log("Total knowledge base content:", totalContentLength, "characters");
 
     // Create comprehensive context with ALL knowledge entries
-    const allKnowledgeContent = entriesWithContent.map(entry => {
+    let allKnowledgeContent = entriesWithContent.map(entry => {
       const content = entry.parsed_content || entry.content || '';
       return `**${entry.title}** (${entry.category})\n${content}`;
     }).join('\n\n---\n\n');
+
+    // Prepend actual RFP document text if available
+    if (rfpDocumentText) {
+      allKnowledgeContent = `PRIMARY RFP DOCUMENT:\n${rfpDocumentText}\n\n---\n\nKNOWLEDGE BASE ENTRIES:\n${allKnowledgeContent}`;
+    }
 
     // PHASE 3: Advanced Intelligence - Dynamic Prompt Optimization
     console.log("Running Phase 3 advanced intelligence...");

@@ -225,7 +225,7 @@ serve(async (req) => {
     // Download file from storage
     console.log('Downloading file:', requestData.filePath);
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
-      .from('rfp_documents')
+      .from('rfp-files')
       .download(requestData.filePath);
 
     if (downloadError) {

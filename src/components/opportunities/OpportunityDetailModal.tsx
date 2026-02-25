@@ -18,6 +18,7 @@ import {
   FileText,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 interface OpportunityDetailModalProps {
@@ -108,6 +109,7 @@ export function OpportunityDetailModal({
   onSave,
   isSaved,
 }: OpportunityDetailModalProps) {
+  const navigate = useNavigate();
   if (!opportunity) return null;
 
   const daysRemaining = getDaysRemaining(opportunity.response_deadline);
@@ -222,6 +224,22 @@ export function OpportunityDetailModal({
             >
               <Bookmark className="mr-1.5 h-4 w-4" />
               {isSaved ? "Saved" : "Save Opportunity"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/upload-rfp", {
+                  state: {
+                    prefillTitle: opportunity.title,
+                    prefillDeadline: opportunity.response_deadline,
+                    prefillAgency: opportunity.department,
+                  },
+                });
+              }}
+            >
+              <FileText className="mr-1.5 h-4 w-4" />
+              Draft Proposal
             </Button>
             {opportunity.description_url && (
               <Button variant="outline" asChild>

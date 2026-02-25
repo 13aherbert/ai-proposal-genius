@@ -20,7 +20,17 @@ serve(async (req: Request) => {
   // Get environment variables
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const adminSecretKey = Deno.env.get("ADMIN_SECRET_KEY") || "changeme123";
+  const adminSecretKey = Deno.env.get("ADMIN_SECRET_KEY");
+  if (!adminSecretKey) {
+    console.error("ADMIN_SECRET_KEY environment variable is not configured");
+    return new Response(
+      JSON.stringify({ error: "Server configuration error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   // Create authenticated Supabase client with service role key
   const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
@@ -128,7 +138,7 @@ serve(async (req: Request) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Unknown error" 
+        error: "An internal error occurred" 
       }),
       {
         status: 500,

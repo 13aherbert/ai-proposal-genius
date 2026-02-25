@@ -1,65 +1,36 @@
 
 
-## Diagnosis: Why "Video Production" Search Returns Irrelevant Results
+## Diagnosis
 
-After analyzing the edge function and search form, I identified three root causes:
+The response data from the network request confirms the problem. Searching "Video Production" returns results like "HOSE ASSY,MANIFOLD", "CIRCUIT BREAKER", "DEFLECTOR,DIRT AND", "ANTENNA" -- none containing the words "video" or "production" anywhere in the title or department.
 
-### Problem 1: No Relevance Sorting
-Results are returned in whatever order the external APIs provide (typically by posted date, newest first). There is no client-side relevance ranking, so a contract mentioning "video" once in a footnote ranks equally with one titled "Video Production Services."
+The relevance scoring code IS deployed and running. However, it only **ranks** results -- it does not **filter** them. When SAM.gov's API returns 25 results that have zero relevance to the keyword (all scoring 0), they all appear with equal rank in arbitrary order. The user sees a wall of irrelevant results.
 
-### Problem 2: SAM.gov Opportunity Type Filter is Broken
-The search form has SAM.gov-specific `ptype` codes (e.g., `"o"` for Solicitation, `"p"` for Presolicitation) mixed into the `opportunityType` dropdown. These are sent as `opportunityType` and filtered client-side against `opp.type` — but SAM.gov's `type` field contains strings like `"Solicitation"`, not `"o"`. This means selecting any SAM.gov-specific type filters out ALL results instead of narrowing them.
+### Root Cause
 
-Meanwhile, the SAM.gov API supports a `ptype` query parameter that would filter server-side (much faster/accurate), but the form never sends it.
+SAM.gov's keyword search is broad and often returns results that don't match the keyword in the title or department fields visible to the user. The results may match on internal description text or metadata not exposed in the search response. The current system shows ALL results regardless of relevance score.
 
-### Problem 3: Grants.gov Returns Default-Ordered Results
-The Grants.gov API call doesn't specify a `sortBy` parameter, so results come back in default order rather than by keyword relevance.
-
----
-
-## Fix Plan
-
-### Fix 1: Add Relevance-Based Sorting in Edge Function
-**File:** `supabase/functions/search-opportunities/index.ts`
-
-Add a `scoreRelevance()` function after deduplication that:
-- Scores each result based on keyword presence in the title (highest weight), department, and solicitation number
-- Sorts results by relevance score descending, then by posted date descending as tiebreaker
-- Uses case-insensitive partial matching on each keyword token
-
-```text
-Score weights:
-  Title exact phrase match  → +100
-  Title contains all words  → +50
-  Title contains any word   → +10 per word
-  Department match          → +5 per word
-```
-
-### Fix 2: Fix Opportunity Type / ptype Filtering
-**File:** `src/components/opportunities/OpportunitySearchForm.tsx`
-
-Split the opportunity type dropdown into two concerns:
-- Keep "Contract" and "Grant" as `opportunityType` (for cross-source filtering)
-- Move SAM.gov-specific types (`o`, `p`, `k`, `r`, `s`) into the `ptype` search parameter so SAM.gov filters them server-side
-
-Update `handleSubmit` to send `ptype` when a SAM.gov-specific type is selected.
+### Fix
 
 **File:** `supabase/functions/search-opportunities/index.ts`
-- The `ptype` param is already passed to SAM.gov API (line 64) — it just needs to receive a value from the frontend.
 
-### Fix 3: Improve Grants.gov Relevance
-**File:** `supabase/functions/search-opportunities/index.ts`
+Modify `rankByRelevance()` to **filter out results with a relevance score of 0** when a keyword is provided. This removes results where neither the title nor department contains any of the search terms.
 
-Add `sortBy: "relevance"` to the Grants.gov API request body so results come back ranked by keyword match from the source.
+Additionally, expand scoring to also check `solicitation_number` and the `description` field in `raw_data` (if present) so borderline-relevant results aren't incorrectly filtered.
 
----
+Changes to `scoreRelevance()`:
+- Add scoring for `solicitation_number` matches (+15)
+- Add scoring for `raw_data.description` text matches (+3 per word) -- this catches SAM.gov results where the keyword appears in the description URL/text but not the title
 
-### Summary of Changes
+Changes to `rankByRelevance()`:
+- After scoring, filter out any result with `score === 0` when a keyword is provided
+- This ensures only results with at least some keyword relevance are shown
+
+The result: searching "Video Production" will only show opportunities where "video" or "production" appears somewhere in the title, department, solicitation number, or description metadata. If SAM.gov returns nothing relevant, the user sees fewer (or zero) results rather than a misleading list of unrelated contracts.
+
+### Summary
 
 | File | Change |
 |------|--------|
-| `search-opportunities/index.ts` | Add `scoreRelevance()` function to rank results by keyword match in title/department; add `sortBy: "relevance"` to Grants.gov request |
-| `OpportunitySearchForm.tsx` | Fix opportunity type dropdown to correctly send `ptype` for SAM.gov-specific types vs `opportunityType` for generic types |
-
-These three fixes together will ensure that searching "Video Production" surfaces contracts and grants with those words prominently in the title, rather than random results that happen to mention those terms somewhere in their metadata.
+| `supabase/functions/search-opportunities/index.ts` | Filter out score-0 results; expand scoring to solicitation number and raw_data description fields |
 

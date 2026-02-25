@@ -1,0 +1,91 @@
+import { TemplateConfig } from './types';
+
+export const AVAILABLE_FONTS = [
+  'Inter',
+  'Georgia',
+  'Merriweather',
+  'Roboto',
+  'Playfair Display',
+] as const;
+
+export const templates: TemplateConfig[] = [
+  {
+    id: 'modern-corporate',
+    name: 'Modern Corporate',
+    description: 'Blue & dark palette with bold headers and geometric accents',
+    preview: '🏢',
+    defaults: {
+      primaryColor: '#1e40af',
+      secondaryColor: '#1e293b',
+      headerFont: 'Inter',
+      bodyFont: 'Inter',
+      margins: 'normal',
+    },
+    headerStyle: 'accent-bar',
+    coverLayout: 'centered',
+  },
+  {
+    id: 'clean-minimal',
+    name: 'Clean Minimal',
+    description: 'White-space focused with thin rules and muted colors',
+    preview: '✨',
+    defaults: {
+      primaryColor: '#475569',
+      secondaryColor: '#94a3b8',
+      headerFont: 'Inter',
+      bodyFont: 'Inter',
+      margins: 'wide',
+    },
+    headerStyle: 'minimal',
+    coverLayout: 'minimal',
+  },
+  {
+    id: 'government-contract',
+    name: 'Government Contract',
+    description: 'Conservative serif fonts with formal, compliance-focused layout',
+    preview: '🏛️',
+    defaults: {
+      primaryColor: '#1a365d',
+      secondaryColor: '#2d3748',
+      headerFont: 'Georgia',
+      bodyFont: 'Georgia',
+      margins: 'normal',
+    },
+    headerStyle: 'underline',
+    coverLayout: 'left-aligned',
+  },
+  {
+    id: 'consulting-proposal',
+    name: 'Consulting Proposal',
+    description: 'Professional sans-serif with executive summary emphasis',
+    preview: '💼',
+    defaults: {
+      primaryColor: '#0f766e',
+      secondaryColor: '#134e4a',
+      headerFont: 'Roboto',
+      bodyFont: 'Inter',
+      margins: 'normal',
+    },
+    headerStyle: 'bold',
+    coverLayout: 'split',
+  },
+  {
+    id: 'creative-agency',
+    name: 'Creative Agency',
+    description: 'Vibrant accent colors with modern typography',
+    preview: '🎨',
+    defaults: {
+      primaryColor: '#7c3aed',
+      secondaryColor: '#ec4899',
+      headerFont: 'Playfair Display',
+      bodyFont: 'Inter',
+      margins: 'wide',
+    },
+    headerStyle: 'gradient',
+    coverLayout: 'full-bleed',
+  },
+];
+
+export function getTemplate(id: string): TemplateConfig {
+  return templates.find(t => t.id === id) ?? templates[0];
+}

@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
 const ProposalEvaluation = lazy(() => import("@/components/project/proposal-evaluation/ProposalEvaluation").then(mod => ({ default: mod.ProposalEvaluation })));
+const ProposalDesignStudio = lazy(() => import("@/components/project/design-studio/ProposalDesignStudio").then(mod => ({ default: mod.ProposalDesignStudio })));
 
 // Import consolidated views
 import { UnifiedAnalysisView } from "@/components/project/unified-analysis/UnifiedAnalysisView";
@@ -155,6 +156,19 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
           );
         } else {
           return <FeatureLocked featureName="Evaluation" planName={getPlanName("evaluation")} />;
+        }
+
+      case "design":
+        if (hasFeature("proposal_draft")) {
+          return (
+            <ErrorBoundary>
+              <Suspense fallback={<SectionLoading />}>
+                <ProposalDesignStudio projectId={project.project_id} />
+              </Suspense>
+            </ErrorBoundary>
+          );
+        } else {
+          return <FeatureLocked featureName="Design Studio" planName={getPlanName("proposal_draft")} />;
         }
       
       default:

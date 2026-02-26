@@ -32,10 +32,12 @@ interface UseProposalDesignReturn {
 // Smart layout engine: maps section title keywords to richer block structures
 function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock[] {
   const title = sectionTitle.toLowerCase();
+  // Strip markdown bold/italic from section title
+  const cleanTitle = sectionTitle.replace(/\*{1,3}(.*?)\*{1,3}/g, '$1').replace(/_{1,3}(.*?)_{1,3}/g, '$1');
   const blocks: ContentBlock[] = [];
 
   // Always start with a heading
-  blocks.push({ id: uuidv4(), type: 'heading', content: { text: sectionTitle, level: 2 } });
+  blocks.push({ id: uuidv4(), type: 'heading', content: { text: cleanTitle, level: 2 } });
 
   if (title.includes('executive') && title.includes('summary')) {
     // Extract first sentence as a callout highlight

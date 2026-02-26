@@ -1,68 +1,86 @@
 
 
-## Proposal Design Studio -- Next Iteration Plan
+## More Distinct Templates & Cover Image Upload
 
-### What's Built
-- 9 block types with drag-and-drop editing, 5 templates with cover/header style variations
-- Logo upload, branding customizer, markdown table rendering, outline sidebar
-- PDF export via edge function (HTML print fallback)
-- Autosave every 10s
-
-### What's Missing (Prioritized)
-
-**High Priority -- Core Editing & Export Quality**
-
-1. **Duplicate block** -- No way to copy an existing block; add a "Duplicate" button next to the trash icon in `BlockEditor.tsx`
-2. **Block collapse/expand** -- Long text blocks crowd the editor; add toggle to collapse block content to a single-line summary
-3. **Page break control** -- Divider block always inserts `page-break-after`; add a toggle so users can choose decorative divider vs. page break
-4. **Numbered lists in markdown** -- The edge function's `markdownToHtml` only handles `- ` unordered lists; add ordered list (`1. `) conversion
-5. **Callout/Quote markdown support** -- These blocks render plain text; apply the same `markdownToHtml` conversion so bold/italic/links work inside them
-
-**Medium Priority -- UX Polish**
-
-6. **Undo/redo** -- No history; implement a simple block-state history stack (max 30 states) with Ctrl+Z / Ctrl+Shift+Z
-7. **Block insert between** -- Currently blocks only append to the end; add inline "+" insert buttons between existing blocks
-8. **Preview zoom/page simulation** -- Preview is a single scrolling div; add page-break visual indicators and a zoom control
-9. **Section numbering** -- Heading blocks don't show section numbers; add optional auto-numbering (1, 1.1, 1.2, 2, etc.) controlled by a design setting
-10. **Word count / page estimate** -- Display document stats in the outline sidebar
-
-**Lower Priority -- Advanced Features**
-
-11. **Shareable preview link** -- Generate a public read-only URL for client review (requires new edge function + table for share tokens)
-12. **Word (.docx) export** -- Add DOCX generation alongside PDF
-13. **Version history** -- Save snapshots of the design with timestamps; allow reverting to previous versions
-14. **AI content refinement** -- Button on text blocks to rewrite/improve content using the existing section generation infrastructure
-
-### Recommended Scope for This Iteration
-
-Focus on items 1-5 (core editing) and 6-8 (UX polish) -- these are the highest-impact improvements that don't require new database tables or edge functions.
+### Problem
+All 5 templates currently differ only in colors, fonts, and minor layout shifts. They lack structural variety (e.g., sidebar layouts, banner images, accent shapes). Additionally, there's no way to add a hero/cover image to the cover page -- the image block exists but is separate from the cover.
 
 ### Changes
 
-| File | Change |
-|------|--------|
-| `BlockEditor.tsx` | Add duplicate button, insert-between buttons, collapse/expand toggle per block |
-| `blocks/DividerBlock.tsx` | Add page-break vs. decorative toggle |
-| `blocks/QuoteBlock.tsx` | Render content through `markdownToHtml` in preview mode |
-| `blocks/CalloutBlock.tsx` | Render content through `markdownToHtml` in preview mode |
-| `ProposalPreview.tsx` | Add page-break visual indicators, zoom control slider |
-| `ProposalOutlineSidebar.tsx` | Add word count / page estimate display |
-| `useProposalDesign.ts` | Add undo/redo history stack with keyboard shortcuts |
-| `types.ts` | Add `sectionNumbering` boolean to `DesignSettings` |
-| `blocks/HeadingBlock.tsx` | Render section numbers when enabled |
-| `export-proposal-pdf/index.ts` | Fix ordered list rendering, add section numbering, apply markdown in callout/quote blocks |
-| `BrandingCustomizer.tsx` | Add section numbering toggle |
+#### 1. Add Cover Image Support to CoverBlock
+
+**File:** `types.ts`
+- Add `coverImageUrl?: string` to `ContentBlock.content` convention for cover blocks
+
+**File:** `blocks/CoverBlock.tsx`
+- Add an image upload field in editor mode (reuse the same upload pattern as `ImageBlock`)
+- In preview mode, render the cover image as a background or hero image depending on layout
+- Use `useSignedUrl` to resolve the stored path
+
+**File:** `BrandingCustomizer.tsx`
+- No changes needed -- the cover image is per-block, not per-branding config
+
+#### 2. Add 3 New Structurally Distinct Templates
+
+**File:** `templates.ts` -- add 3 new templates:
+
+| Template | Cover Layout | Header Style | Visual Difference |
+|----------|-------------|-------------|-------------------|
+| **Executive Brief** | `banner` (new) | `boxed` (new) | Full-width hero image banner on cover, headings inside colored boxes |
+| **Technical Report** | `sidebar` (new) | `numbered` (new) | Cover has a colored sidebar strip with metadata, headings show auto-numbers with underline |
+| **Bold Pitch** | `diagonal` (new) | `pill` (new) | Cover uses a diagonal color split, headings are inside rounded pill shapes |
+
+#### 3. Implement New Cover Layouts
+
+**File:** `types.ts`
+- Extend `CoverLayout` type: add `'banner' | 'sidebar' | 'diagonal'`
+
+**File:** `blocks/CoverBlock.tsx` -- add 3 new layout renderers:
+- **`banner`**: Full-width cover image at top (or gradient fallback), title overlaid at bottom with semi-transparent bar
+- **`sidebar`**: Left 30% is a colored sidebar with logo + date + metadata; right 70% has title and subtitle on white
+- **`diagonal`**: Diagonal CSS clip-path splitting primary/secondary colors, title centered over the split
+
+#### 4. Implement New Header Styles
+
+**File:** `types.ts`
+- Extend `HeaderStyle` type: add `'boxed' | 'numbered' | 'pill'`
+
+**File:** `blocks/HeadingBlock.tsx` -- add 3 new style renderers:
+- **`boxed`**: Full-width colored background box with white text
+- **`numbered`**: Auto-number prefix (from sectionNumber prop) with underline, distinct from plain `underline` style by using a colored number badge
+- **`pill`**: Rounded pill/capsule shape background behind the heading text
+
+#### 5. Update Template Mini-Previews
+
+**File:** `TemplateSelector.tsx`
+- Add mini-preview renderers for the 3 new cover layouts (`banner`, `sidebar`, `diagonal`)
+
+#### 6. Update PDF Export
+
+**File:** `supabase/functions/export-proposal-pdf/index.ts`
+- Add HTML rendering for the 3 new cover layouts
+- Add HTML rendering for the 3 new header styles
+- Handle cover image in PDF export (resolve signed URL)
 
 ### Implementation Order
 
-1. Duplicate block + insert-between buttons in BlockEditor
-2. Block collapse/expand toggle
-3. Undo/redo history in useProposalDesign
-4. Page break toggle on DividerBlock
-5. Markdown rendering in QuoteBlock and CalloutBlock
-6. Ordered list support in edge function
-7. Section numbering setting + HeadingBlock rendering
-8. Preview page-break indicators + zoom
-9. Word count in outline sidebar
-10. Deploy updated edge function
+1. Extend `CoverLayout` and `HeaderStyle` types
+2. Add 3 new templates to `templates.ts`
+3. Implement cover image upload in `CoverBlock.tsx` editor mode
+4. Implement 3 new cover layout previews (banner, sidebar, diagonal)
+5. Implement 3 new header style previews (boxed, numbered, pill)
+6. Update `TemplateSelector.tsx` mini-previews
+7. Update edge function for new layouts/styles + cover image
+8. Deploy edge function
+
+### File Changes Summary
+
+| File | Change |
+|------|--------|
+| `types.ts` | Extend `CoverLayout` and `HeaderStyle` union types |
+| `templates.ts` | Add 3 new template configs |
+| `blocks/CoverBlock.tsx` | Cover image upload + 3 new layout renderers |
+| `blocks/HeadingBlock.tsx` | 3 new header style renderers |
+| `TemplateSelector.tsx` | 3 new mini-preview layouts |
+| `export-proposal-pdf/index.ts` | New layout/style HTML + cover image support |
 

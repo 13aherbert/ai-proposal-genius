@@ -1,153 +1,118 @@
 
 
-## Proposal Design Studio -- Phase 1 MVP Implementation Plan
+## Proposal Design Studio -- Next Iteration Plan
 
-### Overview
+### Current State Assessment
 
-Build a template-based proposal design studio that lets users take their completed `proposal_sections` content and render it into a professionally styled, branded document with PDF export via a server-side edge function.
+Phase 1 MVP is functional with: 5 templates, 9 block types, drag-and-drop editor, branding customizer (colors/fonts/margins), preview mode, and PDF export (HTML print fallback). The following gaps remain from the Phase 1 spec and natural quality improvements.
 
-### Architecture
+### Gap Analysis
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  ProjectContent (existing)                          │
-│  ├─ ProjectSidebar: add "Design" section            │
-│  └─ renderSection("design") → ProposalDesignStudio  │
-│       ├─ TemplateSelector (5 templates)             │
-│       ├─ BrandingCustomizer (colors, logo, fonts)   │
-│       ├─ ProposalDesigner (block editor + preview)  │
-│       └─ ExportPanel → export-proposal-pdf edge fn  │
-└─────────────────────────────────────────────────────┘
-```
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Logo upload in branding | Field in types but missing from BrandingCustomizer UI | High |
+| Logo display on cover page | Not rendered | High |
+| Template visual previews | Emoji-only, no real preview thumbnails | Medium |
+| Templates don't apply `headerStyle` / `coverLayout` | Config exists but never used in rendering | High |
+| Table: add/remove columns | Only rows can be added/removed | Medium |
+| Proposal outline sidebar | Not built | Medium |
+| Document stats (word/page count) | Not built | Low |
+| Image replace/remove after upload | No way to swap an uploaded image | Medium |
+| Word (.docx) export | Not built | Low (Phase 2) |
+| Shareable link export | Not built | Low (Phase 2) |
 
-### Database Changes
+### Proposed Iteration Scope
 
-**New table: `proposal_designs`**
+Focus on **template differentiation**, **logo support**, and **editor polish** -- the highest-impact gaps.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| project_id | uuid FK → projects | |
-| organization_id | uuid FK → organizations | |
-| user_id | uuid | |
-| template_id | text | e.g. "modern-corporate" |
-| design_settings | jsonb | Colors, fonts, margins, logo URL |
-| content_blocks | jsonb | Ordered array of block objects (type, content, settings) |
-| created_at | timestamptz | |
-| updated_at | timestamptz | auto-updated via trigger |
+---
 
-RLS: organization-scoped read/write using `user_belongs_to_organization`.
+### 1. Add Logo Upload to BrandingCustomizer
 
-### Template System
+**File:** `BrandingCustomizer.tsx`
 
-Five built-in templates, each defined as a TypeScript config object (no DB rows needed):
+- Add a logo upload section using the same pattern as `ImageBlock` (upload to `rfp-files/{org_id}/branding/`)
+- Show current logo thumbnail with a remove button
+- Requires passing `organizationId` prop through from `ProposalDesignStudio`
 
-1. **Modern Corporate** -- Blue/dark palette, bold headers, geometric accents
-2. **Clean Minimal** -- White space focused, thin rules, muted colors
-3. **Government Contract** -- Conservative serif fonts, formal structure, compliance-focused layout
-4. **Consulting Proposal** -- Professional sans-serif, executive summary emphasis, case study blocks
-5. **Creative Agency** -- Vibrant accent colors, large imagery placeholders, modern typography
+### 2. Render Logo on Cover Page
 
-Each template defines defaults for: primary/secondary colors, header/body fonts, margin sizes, header style, cover page layout.
+**Files:** `blocks/CoverBlock.tsx`, `export-proposal-pdf/index.ts`
 
-### Block Types
+- Display `settings.logoUrl` at the top of the cover block in both editor and preview modes
+- Add logo rendering in the edge function HTML output
 
-Content blocks stored in `content_blocks` JSONB array:
+### 3. Apply Template `headerStyle` and `coverLayout` Variations
 
-- `cover` -- Title, subtitle, logo, date, client name
-- `toc` -- Auto-generated from section headers
-- `heading` -- H1/H2/H3 with customizable style
-- `text` -- Rich text (rendered from markdown)
-- `image` -- User-uploaded image with caption
-- `table` -- Pricing/data table
-- `divider` -- Horizontal rule / page break
-- `quote` -- Highlighted callout/quote block
-- `callout` -- Info/warning/success box
+**Files:** `blocks/CoverBlock.tsx`, `blocks/HeadingBlock.tsx`, `ProposalPreview.tsx`, `ProposalDesignStudio.tsx`, `types.ts`
 
-### Content Mapping
+Currently `headerStyle` and `coverLayout` are stored on the template config but never influence rendering. Changes:
 
-When user clicks "Design Proposal", the system:
-1. Loads all `proposal_sections` for the project
-2. Creates a default `proposal_designs` record if none exists
-3. Maps sections into blocks: cover page + TOC + one `heading` + one `text` block per section
-4. User can then rearrange, add, or remove blocks
+- Pass `templateId` (or the resolved template config) to block components that need it
+- **CoverBlock**: Render 5 distinct cover layouts (`centered`, `left-aligned`, `split`, `minimal`, `full-bleed`) using different flexbox/grid arrangements
+- **HeadingBlock**: Render 5 header styles (`bold` = heavy weight, `underline` = bottom border, `accent-bar` = left color bar, `minimal` = no decoration, `gradient` = gradient text/background)
+- Update the edge function's `renderBlockToHtml` to match these variations
+- Add `headerStyle` and `coverLayout` to `DesignSettings` so they persist with the design (currently only on template config)
 
-### Branding Customizer
+### 4. Template Visual Preview Thumbnails
 
-Inline panel allowing users to set:
-- **Logo**: Upload to `rfp-files` bucket under `{org_id}/branding/`
-- **Primary color**: Color picker
-- **Secondary color**: Color picker
-- **Header font**: Dropdown (Inter, Georgia, Merriweather, Roboto, Playfair Display)
-- **Body font**: Dropdown (same set)
-- **Page margins**: Slider (narrow/normal/wide)
+**File:** `TemplateSelector.tsx`
 
-Settings stored in `design_settings` JSONB.
+- Replace emoji-only previews with small rendered mini-previews showing the template's cover layout, colors, and header style
+- Each card renders a tiny HTML mockup (colored rectangles, text placeholders) styled with the template's `defaults`
 
-### Preview Mode
+### 5. Table Column Management
 
-A full-width preview panel that renders the blocks using the selected template's CSS. Uses CSS `@media print` styles and `page-break` rules to simulate page layout. Toggle between editor and preview modes.
+**File:** `blocks/TableBlock.tsx`
 
-### PDF Export (Server-Side Edge Function)
+- Add "Add Column" button
+- Add column delete button on each header cell
+- When adding a column, extend all existing rows with an empty cell
 
-**New edge function: `export-proposal-pdf`**
+### 6. Image Block Replace/Remove
 
-- Receives `designId` (proposal_designs.id)
-- Loads the design record (template, settings, blocks) from DB
-- Renders HTML from blocks + template CSS
-- Uses Deno-compatible approach: generates styled HTML and converts to PDF using a lightweight HTML-to-PDF approach (server-rendered HTML with print CSS, or `jspdf` + `html2canvas` equivalent for Deno)
-- Returns the PDF as a downloadable file or uploads to storage and returns a signed URL
-- Manual JWT validation (verify_jwt = false in config.toml)
-- Organization membership check before processing
+**File:** `blocks/ImageBlock.tsx`
 
-### File Changes
+- When an image is already uploaded, show "Replace" and "Remove" buttons instead of only showing the preview
+- "Remove" clears the URL; "Replace" triggers file input again
 
-| File | Change |
-|------|--------|
-| **DB Migration** | Create `proposal_designs` table with RLS policies |
-| `src/components/project/details/ProjectSidebar.tsx` | Add "Design" section entry with `Palette` icon |
-| `src/components/project/details/ProjectContent.tsx` | Add `case "design"` rendering `ProposalDesignStudio` |
-| `src/components/project/design-studio/ProposalDesignStudio.tsx` | **New** -- Main container, loads sections + design, orchestrates sub-components |
-| `src/components/project/design-studio/TemplateSelector.tsx` | **New** -- Grid of 5 template cards with preview thumbnails |
-| `src/components/project/design-studio/templates.ts` | **New** -- Template config definitions (colors, fonts, layouts) |
-| `src/components/project/design-studio/BrandingCustomizer.tsx` | **New** -- Color pickers, font selectors, logo upload, margin slider |
-| `src/components/project/design-studio/BlockEditor.tsx` | **New** -- Block list with drag-to-reorder (uses existing @dnd-kit), add/remove blocks |
-| `src/components/project/design-studio/blocks/CoverBlock.tsx` | **New** -- Editable cover page block |
-| `src/components/project/design-studio/blocks/TextBlock.tsx` | **New** -- Markdown text block |
-| `src/components/project/design-studio/blocks/HeadingBlock.tsx` | **New** -- Section header block |
-| `src/components/project/design-studio/blocks/ImageBlock.tsx` | **New** -- Image upload block |
-| `src/components/project/design-studio/blocks/TableBlock.tsx` | **New** -- Editable table block |
-| `src/components/project/design-studio/blocks/DividerBlock.tsx` | **New** -- Divider/page break |
-| `src/components/project/design-studio/blocks/QuoteBlock.tsx` | **New** -- Quote/callout block |
-| `src/components/project/design-studio/blocks/TocBlock.tsx` | **New** -- Auto-generated table of contents |
-| `src/components/project/design-studio/ProposalPreview.tsx` | **New** -- Full document preview renderer |
-| `src/components/project/design-studio/ExportPanel.tsx` | **New** -- Export button, calls edge function, downloads PDF |
-| `src/components/project/design-studio/useProposalDesign.ts` | **New** -- Hook for CRUD on `proposal_designs`, autosave every 10s |
-| `supabase/functions/export-proposal-pdf/index.ts` | **New** -- Edge function: loads design, renders HTML, generates PDF |
-| `supabase/functions/config.toml` | Add `export-proposal-pdf` entry |
+### 7. Proposal Outline Sidebar
 
-### Autosave
+**Files:** New `ProposalOutlineSidebar.tsx`, update `ProposalDesignStudio.tsx`
 
-The `useProposalDesign` hook will debounce updates and auto-save `content_blocks` and `design_settings` to the database every 10 seconds when changes are detected, using a dirty flag pattern.
+- Left panel listing all blocks by type/title (cover, headings, etc.)
+- Click to scroll/focus the corresponding block in the editor
+- Shows block type icons and truncated content labels
+- Integrated into the editor tab alongside the block list
+
+---
 
 ### Implementation Order
 
-1. Database migration (table + RLS)
-2. Template definitions + TemplateSelector UI
-3. useProposalDesign hook (load/save/autosave)
-4. ProposalDesignStudio container + content mapping logic
-5. Block components (cover, text, heading, divider, quote, toc, image, table)
-6. BlockEditor with drag-and-drop reordering
-7. BrandingCustomizer panel
-8. ProposalPreview renderer
-9. Integration into ProjectSidebar + ProjectContent
-10. export-proposal-pdf edge function
-11. ExportPanel UI
+1. Logo upload in BrandingCustomizer + logo on CoverBlock
+2. Add `headerStyle` / `coverLayout` to `DesignSettings` and pass to blocks
+3. CoverBlock layout variations (5 layouts)
+4. HeadingBlock style variations (5 styles)
+5. Update edge function HTML rendering to match new variations
+6. Template visual preview thumbnails
+7. Table column add/remove
+8. Image replace/remove
+9. Proposal outline sidebar
 
-### Technical Notes
+### File Changes Summary
 
-- Image uploads reuse the existing `rfp-files` Supabase storage bucket with `{org_id}/design-assets/` prefix
-- Block drag-and-drop uses `@dnd-kit/core` and `@dnd-kit/sortable` already installed
-- The edge function will need no new secrets -- it reads from DB and storage using the service role key
-- PDF generation in Deno: will use server-rendered HTML with inline CSS, then leverage a Deno-compatible PDF library or return styled HTML that the client can print-to-PDF as a fallback
+| File | Change |
+|------|--------|
+| `types.ts` | Add `headerStyle` and `coverLayout` to `DesignSettings` |
+| `templates.ts` | Copy `headerStyle`/`coverLayout` into template `defaults` |
+| `BrandingCustomizer.tsx` | Add logo upload section, accept `organizationId` prop |
+| `ProposalDesignStudio.tsx` | Pass `organizationId` to BrandingCustomizer |
+| `blocks/CoverBlock.tsx` | Render logo, implement 5 cover layouts |
+| `blocks/HeadingBlock.tsx` | Implement 5 header styles |
+| `blocks/TableBlock.tsx` | Add/remove column support |
+| `blocks/ImageBlock.tsx` | Add replace/remove buttons |
+| `ProposalOutlineSidebar.tsx` | **New** -- outline navigation panel |
+| `ProposalPreview.tsx` | No changes needed (already delegates to block components) |
+| `export-proposal-pdf/index.ts` | Add logo rendering, cover layout variations, heading style variations |
+| `useProposalDesign.ts` | Ensure `headerStyle`/`coverLayout` are included when mapping template defaults |
 

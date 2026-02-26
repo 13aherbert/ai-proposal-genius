@@ -16,18 +16,13 @@ function escapeHtml(str: string): string {
 
 function markdownToHtml(md: string): string {
   let html = escapeHtml(md);
-  // Bold
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  // Italic
   html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
-  // Headers
   html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
   html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
-  // Lists
   html = html.replace(/^- (.*$)/gm, "<li>$1</li>");
   html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
-  // Paragraphs
   html = html.replace(/\n\n/g, "</p><p>");
   html = "<p>" + html + "</p>";
   html = html.replace(/<p><(h[123]|ul|li)/g, "<$1");
@@ -42,6 +37,8 @@ interface DesignSettings {
   bodyFont: string;
   margins: "narrow" | "normal" | "wide";
   logoUrl?: string;
+  headerStyle?: string;
+  coverLayout?: string;
 }
 
 interface ContentBlock {
@@ -50,15 +47,102 @@ interface ContentBlock {
   content: Record<string, unknown>;
 }
 
+// --- Cover layout renderers ---
+
+function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string {
+  const c = block.content;
+  const title = escapeHtml(String(c.title || "Proposal"));
+  const subtitle = escapeHtml(String(c.subtitle || ""));
+  const date = escapeHtml(String(c.date || ""));
+  const layout = settings.coverLayout || "centered";
+  const logo = settings.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" style="max-height:60px;max-width:200px;object-fit:contain;" />` : "";
+
+  switch (layout) {
+    case "left-aligned":
+      return `<div style="display:flex;flex-direction:column;justify-content:center;min-height:600px;background:${settings.primaryColor};color:#fff;padding:60px;page-break-after:always;">
+        ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
+        <h1 style="font-size:36px;font-family:${settings.headerFont};margin-bottom:12px;">${title}</h1>
+        <p style="font-size:20px;opacity:0.9;margin-bottom:16px;">${subtitle}</p>
+        <p style="font-size:14px;opacity:0.7;">${date}</p>
+      </div>`;
+
+    case "split":
+      return `<div style="display:flex;min-height:600px;page-break-after:always;">
+        <div style="width:50%;background:${settings.primaryColor};color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:center;">
+          ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
+          <h1 style="font-size:32px;font-family:${settings.headerFont};margin-bottom:12px;">${title}</h1>
+          <p style="font-size:14px;opacity:0.7;">${date}</p>
+        </div>
+        <div style="width:50%;background:${settings.secondaryColor};color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:center;">
+          <p style="font-size:18px;opacity:0.9;">${subtitle}</p>
+        </div>
+      </div>`;
+
+    case "minimal":
+      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;text-align:center;padding:60px;border:3px solid ${settings.primaryColor};page-break-after:always;">
+        ${logo ? `<div style="margin-bottom:32px;">${logo}</div>` : ""}
+        <h1 style="font-size:32px;font-family:${settings.headerFont};color:${settings.primaryColor};margin-bottom:12px;">${title}</h1>
+        <div style="width:64px;height:2px;background:${settings.primaryColor};margin:16px auto;"></div>
+        <p style="font-size:18px;color:${settings.secondaryColor};opacity:0.8;">${subtitle}</p>
+        <p style="font-size:14px;color:${settings.secondaryColor};opacity:0.6;margin-top:16px;">${date}</p>
+      </div>`;
+
+    case "full-bleed":
+      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:600px;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});color:#fff;padding:60px;text-align:center;position:relative;page-break-after:always;">
+        ${logo ? `<div style="position:absolute;top:32px;left:32px;">${logo}</div>` : ""}
+        <h1 style="font-size:40px;font-family:${settings.headerFont};margin-bottom:16px;">${title}</h1>
+        <p style="font-size:20px;opacity:0.9;margin-bottom:8px;">${subtitle}</p>
+        <p style="font-size:14px;opacity:0.7;">${date}</p>
+      </div>`;
+
+    default: // centered
+      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;background:${settings.primaryColor};color:#fff;text-align:center;padding:60px;page-break-after:always;">
+        ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
+        <h1 style="font-size:36px;font-family:${settings.headerFont};margin-bottom:16px;">${title}</h1>
+        <p style="font-size:20px;opacity:0.9;margin-bottom:24px;">${subtitle}</p>
+        <p style="font-size:14px;opacity:0.7;">${date}</p>
+      </div>`;
+  }
+}
+
+// --- Heading style renderers ---
+
+function renderHeadingHtml(block: ContentBlock, settings: DesignSettings): string {
+  const c = block.content;
+  const lvl = Number(c.level) || 2;
+  const text = escapeHtml(String(c.text || ""));
+  const sizes: Record<number, string> = { 1: "28px", 2: "22px", 3: "18px" };
+  const headerStyle = settings.headerStyle || "accent-bar";
+
+  let style = `font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};margin-top:24px;color:${settings.primaryColor};`;
+
+  switch (headerStyle) {
+    case "bold":
+      style += "font-weight:800;";
+      break;
+    case "underline":
+      style += `font-weight:700;border-bottom:3px solid ${settings.primaryColor};padding-bottom:8px;`;
+      break;
+    case "accent-bar":
+      style += `font-weight:700;border-left:4px solid ${settings.primaryColor};padding-left:12px;`;
+      break;
+    case "gradient":
+      style += `font-weight:700;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
+      break;
+    case "minimal":
+    default:
+      style += "font-weight:600;";
+      break;
+  }
+
+  return `<h${lvl} style="${style}">${text}</h${lvl}>`;
+}
+
 function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], settings: DesignSettings): string {
   const c = block.content;
   switch (block.type) {
     case "cover":
-      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;background:${settings.primaryColor};color:#fff;text-align:center;padding:60px;page-break-after:always;">
-        <h1 style="font-size:36px;font-family:${settings.headerFont};margin-bottom:16px;">${escapeHtml(String(c.title || "Proposal"))}</h1>
-        <p style="font-size:20px;opacity:0.9;margin-bottom:24px;">${escapeHtml(String(c.subtitle || ""))}</p>
-        <p style="font-size:14px;opacity:0.7;">${escapeHtml(String(c.date || ""))}</p>
-      </div>`;
+      return renderCoverHtml(block, settings);
 
     case "toc": {
       const headings = allBlocks
@@ -70,11 +154,8 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
       </div>`;
     }
 
-    case "heading": {
-      const lvl = Number(c.level) || 2;
-      const sizes: Record<number, string> = { 1: "28px", 2: "22px", 3: "18px" };
-      return `<h${lvl} style="font-family:${settings.headerFont};color:${settings.primaryColor};font-size:${sizes[lvl] || "22px"};border-bottom:2px solid ${settings.primaryColor}20;padding-bottom:8px;margin-top:24px;">${escapeHtml(String(c.text || ""))}</h${lvl}>`;
-    }
+    case "heading":
+      return renderHeadingHtml(block, settings);
 
     case "text":
       return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${markdownToHtml(String(c.text || ""))}</div>`;
@@ -122,7 +203,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -132,7 +212,6 @@ Deno.serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify user
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -142,13 +221,11 @@ Deno.serve(async (req: Request) => {
     }
     const userId = claimsData.user.id;
 
-    // Parse body
     const { designId } = await req.json();
     if (!designId) {
       return new Response(JSON.stringify({ error: "Missing designId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Load design with service role
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: design, error: designErr } = await adminClient
       .from("proposal_designs")
@@ -160,7 +237,6 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Design not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Verify org membership
     const { data: membership } = await adminClient
       .from("organization_members")
       .select("id")
@@ -185,7 +261,7 @@ Deno.serve(async (req: Request) => {
   <meta charset="utf-8">
   <title>Proposal</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Georgia&family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Georgia&family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: ${marginPx[settings.margins] || "48px"}; }
     @media print {
@@ -204,7 +280,6 @@ ${bodyHtml}
 </body>
 </html>`;
 
-    // Return HTML for client-side print-to-PDF
     return new Response(JSON.stringify({ html: fullHtml }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

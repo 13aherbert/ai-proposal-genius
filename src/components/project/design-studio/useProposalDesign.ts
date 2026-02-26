@@ -104,7 +104,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
             organization_id: project.organization_id,
             user_id: session.user.id,
             template_id: template.id,
-            design_settings: template.defaults,
+            design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout },
             content_blocks: blocks,
           };
 
@@ -184,7 +184,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
   const updateTemplateId = useCallback((templateId: string) => {
     const tmpl = getTemplate(templateId);
-    setDesign(prev => prev ? { ...prev, template_id: templateId, design_settings: { ...prev.design_settings, ...tmpl.defaults } } : null);
+    setDesign(prev => prev ? { ...prev, template_id: templateId, design_settings: { ...prev.design_settings, ...tmpl.defaults, headerStyle: tmpl.headerStyle, coverLayout: tmpl.coverLayout } } : null);
     dirtyRef.current = true;
   }, []);
 

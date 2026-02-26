@@ -1,6 +1,7 @@
 import { ContentBlock, DesignSettings } from '../types';
 import { Textarea } from '@/components/ui/textarea';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface TextBlockProps {
   block: ContentBlock;
@@ -15,7 +16,38 @@ export function TextBlock({ block, settings, onUpdate, preview }: TextBlockProps
   if (preview) {
     return (
       <div className="prose prose-sm max-w-none" style={{ fontFamily: settings.bodyFont }}>
-        <ReactMarkdown>{text}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ children }) => (
+              <div className="overflow-x-auto my-4">
+                <table className="w-full border-collapse text-sm" style={{ fontFamily: settings.bodyFont }}>
+                  {children}
+                </table>
+              </div>
+            ),
+            thead: ({ children }) => (
+              <thead>
+                {children}
+              </thead>
+            ),
+            tr: ({ children }) => (
+              <tr>{children}</tr>
+            ),
+            th: ({ children }) => (
+              <th className="px-4 py-2 text-left font-semibold" style={{ backgroundColor: settings.primaryColor, color: '#fff' }}>
+                {children}
+              </th>
+            ),
+            td: ({ children }) => (
+              <td className="px-4 py-2 border-b border-border">
+                {children}
+              </td>
+            ),
+          }}
+        >
+          {text}
+        </ReactMarkdown>
       </div>
     );
   }

@@ -64,12 +64,23 @@ export function ProposalPreview({ blocks, settings }: ProposalPreviewProps) {
       </div>
 
       <div
-        className="bg-white text-black shadow-lg rounded-lg mx-auto max-w-[816px] min-h-[1056px] origin-top"
+        className="bg-white shadow-lg rounded-lg mx-auto max-w-[816px] min-h-[1056px] origin-top"
         style={{
           padding: `${MARGIN_PX[settings.margins]}px`,
           fontFamily: settings.bodyFont,
           transform: `scale(${zoom / 100})`,
-        }}
+          color: '#1a1a1a',
+          // Override CSS variables to ensure semantic classes render in a neutral light theme inside preview
+          '--background': '0 0% 100%',
+          '--foreground': '0 0% 10%',
+          '--muted': '220 14% 96%',
+          '--muted-foreground': '220 9% 46%',
+          '--primary': '220 13% 46%',
+          '--primary-foreground': '0 0% 100%',
+          '--border': '220 13% 91%',
+          '--accent': '220 14% 96%',
+          '--accent-foreground': '220 13% 26%',
+        } as React.CSSProperties}
       >
         <div className="space-y-6">
           {blocks.map((block, idx) => (

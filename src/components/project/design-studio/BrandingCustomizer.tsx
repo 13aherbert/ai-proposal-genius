@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
@@ -192,6 +193,16 @@ export function BrandingCustomizer({ settings, onChange, organizationId }: Brand
         <div className="flex justify-between text-[10px] text-muted-foreground">
           <span>Narrow</span><span>Normal</span><span>Wide</span>
         </div>
+      </div>
+
+      {/* Section Numbering */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs">Section Numbering</Label>
+        <Switch
+          checked={settings.sectionNumbering ?? false}
+          onCheckedChange={(checked) => update('sectionNumbering', checked)}
+          className="scale-90"
+        />
       </div>
     </div>
   );

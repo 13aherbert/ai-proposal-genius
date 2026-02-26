@@ -19,6 +19,7 @@ export interface DesignSettings {
   logoUrl?: string;
   headerStyle?: HeaderStyle;
   coverLayout?: CoverLayout;
+  sectionNumbering?: boolean;
 }
 
 export interface TemplateConfig {

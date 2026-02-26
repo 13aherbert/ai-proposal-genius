@@ -7,39 +7,34 @@ interface HeadingBlockProps {
   settings: DesignSettings;
   onUpdate: (block: ContentBlock) => void;
   preview?: boolean;
+  sectionNumber?: string;
 }
 
-export function HeadingBlock({ block, settings, onUpdate, preview }: HeadingBlockProps) {
+export function HeadingBlock({ block, settings, onUpdate, preview, sectionNumber }: HeadingBlockProps) {
   const { text, level } = block.content as { text?: string; level?: number };
   const lvl = level || 2;
   const style: HeaderStyle = settings.headerStyle || 'accent-bar';
+  const prefix = settings.sectionNumbering && sectionNumber ? `${sectionNumber} ` : '';
 
   if (preview) {
     const Tag = `h${lvl}` as keyof JSX.IntrinsicElements;
     const sizes: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl' };
-
     const baseClass = `${sizes[lvl] || 'text-xl'}`;
 
     const getStyle = (): React.CSSProperties => {
       const base: React.CSSProperties = { fontFamily: settings.headerFont, color: settings.primaryColor };
       switch (style) {
-        case 'bold':
-          return { ...base, fontWeight: 800 };
-        case 'underline':
-          return { ...base, fontWeight: 700, borderBottom: `3px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
-        case 'accent-bar':
-          return { ...base, fontWeight: 700, borderLeft: `4px solid ${settings.primaryColor}`, paddingLeft: '0.75rem' };
-        case 'gradient':
-          return { ...base, fontWeight: 700, backgroundImage: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
-        case 'minimal':
-        default:
-          return { ...base, fontWeight: 600 };
+        case 'bold': return { ...base, fontWeight: 800 };
+        case 'underline': return { ...base, fontWeight: 700, borderBottom: `3px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
+        case 'accent-bar': return { ...base, fontWeight: 700, borderLeft: `4px solid ${settings.primaryColor}`, paddingLeft: '0.75rem' };
+        case 'gradient': return { ...base, fontWeight: 700, backgroundImage: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+        case 'minimal': default: return { ...base, fontWeight: 600 };
       }
     };
 
     return (
       <Tag className={baseClass} style={getStyle()}>
-        {text || 'Section Heading'}
+        {prefix}{text || 'Section Heading'}
       </Tag>
     );
   }

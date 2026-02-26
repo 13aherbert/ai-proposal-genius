@@ -1,11 +1,12 @@
 import { ContentBlock } from '../types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Upload, RefreshCw, X } from 'lucide-react';
-import { useCallback, useRef } from 'react';
+import { ImageIcon, Upload, RefreshCw, X, Search } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import { StockImageSearch } from '../StockImageSearch';
 
 interface ImageBlockProps {
   block: ContentBlock;
@@ -17,7 +18,8 @@ interface ImageBlockProps {
 export function ImageBlock({ block, onUpdate, preview, organizationId }: ImageBlockProps) {
   const { session } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { url, caption } = block.content as { url?: string; caption?: string };
+  const [stockSearchOpen, setStockSearchOpen] = useState(false);
+  const { url, caption, suggestedImageQuery } = block.content as { url?: string; caption?: string; suggestedImageQuery?: string };
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,11 +68,16 @@ export function ImageBlock({ block, onUpdate, preview, organizationId }: ImageBl
           </div>
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
-          <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-          <span className="text-xs text-muted-foreground">Click to upload image</span>
-          <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-        </label>
+        <div className="space-y-2">
+          <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+            <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+            <span className="text-xs text-muted-foreground">Click to upload image</span>
+            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          </label>
+          <Button variant="outline" size="sm" className="w-full text-xs gap-1" onClick={() => setStockSearchOpen(true)}>
+            <Search className="h-3 w-3" /> Search Stock Images
+          </Button>
+        </div>
       )}
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
       <Input
@@ -78,6 +85,12 @@ export function ImageBlock({ block, onUpdate, preview, organizationId }: ImageBl
         value={String(caption || '')}
         onChange={(e) => onUpdate({ ...block, content: { ...block.content, caption: e.target.value } })}
         className="h-8 text-xs"
+      />
+      <StockImageSearch
+        open={stockSearchOpen}
+        onOpenChange={setStockSearchOpen}
+        onSelect={(selectedUrl) => onUpdate({ ...block, content: { ...block.content, url: selectedUrl } })}
+        initialQuery={suggestedImageQuery || ''}
       />
     </div>
   );

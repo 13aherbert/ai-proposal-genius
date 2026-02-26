@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Loader2, Eye, Edit, Undo2, Redo2 } from 'lucide-react';
+import { Loader2, Eye, Edit, Undo2, Redo2, Wand2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -11,13 +11,14 @@ import { ProposalOutlineSidebar } from './ProposalOutlineSidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ProposalDesignStudioProps {
   projectId: string;
 }
 
 export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
-  const { design, isLoading, isSaving, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo } = useProposalDesign(projectId);
+  const { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
@@ -43,6 +44,26 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
           <p className="text-sm text-muted-foreground">Design and export your proposal document</p>
         </div>
         <div className="flex items-center gap-1">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="default" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
+                {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Generate Designed Proposal
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Regenerate Design?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will replace all current design blocks with a fresh layout generated from your proposal content and brand guidelines. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={regenerateDesign}>Regenerate</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
             <Undo2 className="h-4 w-4" />
           </Button>

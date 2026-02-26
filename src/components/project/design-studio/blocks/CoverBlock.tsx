@@ -1,12 +1,13 @@
 import { ContentBlock, DesignSettings, CoverLayout } from '../types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, RefreshCw, X } from 'lucide-react';
+import { Upload, RefreshCw, X, Search } from 'lucide-react';
 import { useSignedUrl } from '../useSignedUrl';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import { StockImageSearch } from '../StockImageSearch';
 
 interface CoverBlockProps {
   block: ContentBlock;
@@ -19,6 +20,7 @@ interface CoverBlockProps {
 export function CoverBlock({ block, settings, onUpdate, preview, organizationId }: CoverBlockProps) {
   const { session } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stockSearchOpen, setStockSearchOpen] = useState(false);
   const { title, subtitle, date, coverImageUrl } = block.content as { title?: string; subtitle?: string; date?: string; coverImageUrl?: string };
   const layout: CoverLayout = settings.coverLayout || 'centered';
   const resolvedLogoUrl = useSignedUrl(settings.logoUrl);
@@ -188,15 +190,26 @@ export function CoverBlock({ block, settings, onUpdate, preview, organizationId 
               </Button>
             </div>
           </div>
-        ) : (
-          <label className="flex flex-col items-center justify-center h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
-            <Upload className="h-5 w-5 text-muted-foreground mb-1" />
-            <span className="text-xs text-muted-foreground">Upload cover image</span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageUpload} />
-          </label>
+      ) : (
+          <div className="space-y-2">
+            <label className="flex flex-col items-center justify-center h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50">
+              <Upload className="h-5 w-5 text-muted-foreground mb-1" />
+              <span className="text-xs text-muted-foreground">Upload cover image</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageUpload} />
+            </label>
+            <Button variant="outline" size="sm" className="w-full text-xs gap-1" onClick={() => setStockSearchOpen(true)}>
+              <Search className="h-3 w-3" /> Search Stock Images
+            </Button>
+          </div>
         )}
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverImageUpload} />
       </div>
+      <StockImageSearch
+        open={stockSearchOpen}
+        onOpenChange={setStockSearchOpen}
+        onSelect={(url) => updateField('coverImageUrl', url)}
+        initialQuery={String(title || 'professional business')}
+      />
     </div>
   );
 }

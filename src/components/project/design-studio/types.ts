@@ -7,6 +7,9 @@ export interface ContentBlock {
   settings?: Record<string, unknown>;
 }
 
+export type HeaderStyle = 'bold' | 'underline' | 'accent-bar' | 'minimal' | 'gradient';
+export type CoverLayout = 'centered' | 'left-aligned' | 'split' | 'minimal' | 'full-bleed';
+
 export interface DesignSettings {
   primaryColor: string;
   secondaryColor: string;
@@ -14,6 +17,8 @@ export interface DesignSettings {
   bodyFont: string;
   margins: 'narrow' | 'normal' | 'wide';
   logoUrl?: string;
+  headerStyle?: HeaderStyle;
+  coverLayout?: CoverLayout;
 }
 
 export interface TemplateConfig {

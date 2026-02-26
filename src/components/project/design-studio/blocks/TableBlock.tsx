@@ -32,6 +32,19 @@ export function TableBlock({ block, settings, onUpdate, preview }: TableBlockPro
     onUpdate({ ...block, content: { ...block.content, rows: rows.filter((_, i) => i !== idx) } });
   };
 
+  const addColumn = () => {
+    const newHeaders = [...headers, `Column ${headers.length + 1}`];
+    const newRows = rows.map(r => [...r, '']);
+    onUpdate({ ...block, content: { ...block.content, headers: newHeaders, rows: newRows } });
+  };
+
+  const removeColumn = (colIdx: number) => {
+    if (headers.length <= 1) return;
+    const newHeaders = headers.filter((_, i) => i !== colIdx);
+    const newRows = rows.map(r => r.filter((_, i) => i !== colIdx));
+    onUpdate({ ...block, content: { ...block.content, headers: newHeaders, rows: newRows } });
+  };
+
   if (preview) {
     return (
       <div className="overflow-x-auto my-4">
@@ -62,7 +75,14 @@ export function TableBlock({ block, settings, onUpdate, preview }: TableBlockPro
             <tr>
               {headers.map((h, i) => (
                 <th key={i} className="p-1">
-                  <Input value={h} onChange={(e) => updateHeader(i, e.target.value)} className="h-7 text-xs font-semibold" />
+                  <div className="flex items-center gap-0.5">
+                    <Input value={h} onChange={(e) => updateHeader(i, e.target.value)} className="h-7 text-xs font-semibold" />
+                    {headers.length > 1 && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeColumn(i)}>
+                        <Trash2 className="h-2.5 w-2.5" />
+                      </Button>
+                    )}
+                  </div>
                 </th>
               ))}
               <th className="w-8" />
@@ -86,9 +106,14 @@ export function TableBlock({ block, settings, onUpdate, preview }: TableBlockPro
           </tbody>
         </table>
       </div>
-      <Button variant="outline" size="sm" className="text-xs" onClick={addRow}>
-        <Plus className="h-3 w-3 mr-1" /> Add Row
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="text-xs" onClick={addRow}>
+          <Plus className="h-3 w-3 mr-1" /> Add Row
+        </Button>
+        <Button variant="outline" size="sm" className="text-xs" onClick={addColumn}>
+          <Plus className="h-3 w-3 mr-1" /> Add Column
+        </Button>
+      </div>
     </div>
   );
 }

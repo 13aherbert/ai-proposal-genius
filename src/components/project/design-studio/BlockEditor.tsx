@@ -60,7 +60,7 @@ function SortableBlock({ block, blocks, settings, organizationId, onUpdate, onRe
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="group flex gap-1 items-start">
+    <div ref={setNodeRef} style={style} id={`block-${block.id}`} className="group flex gap-1 items-start">
       <div className="flex flex-col gap-0.5 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button {...attributes} {...listeners} className="cursor-grab p-1 hover:bg-muted rounded">
           <GripVertical className="h-4 w-4 text-muted-foreground" />

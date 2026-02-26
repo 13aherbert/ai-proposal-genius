@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Loader2, Eye, Edit } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
@@ -7,6 +7,7 @@ import { BrandingCustomizer } from './BrandingCustomizer';
 import { BlockEditor } from './BlockEditor';
 import { ProposalPreview } from './ProposalPreview';
 import { ExportPanel } from './ExportPanel';
+import { ProposalOutlineSidebar } from './ProposalOutlineSidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
@@ -19,6 +20,11 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
   const { design, isLoading, isSaving, updateBlocks, updateSettings, updateTemplateId, saveNow } = useProposalDesign(projectId);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
+
+  const handleScrollTo = useCallback((blockId: string) => {
+    const el = document.getElementById(`block-${blockId}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
 
   if (isLoading || !design) {
     return (
@@ -61,7 +67,7 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-2">
-          <BrandingCustomizer settings={design.design_settings} onChange={updateSettings} />
+          <BrandingCustomizer settings={design.design_settings} onChange={updateSettings} organizationId={design.organization_id} />
         </CollapsibleContent>
       </Collapsible>
 
@@ -72,12 +78,19 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
           <TabsTrigger value="preview" className="gap-1"><Eye className="h-3.5 w-3.5" /> Preview</TabsTrigger>
         </TabsList>
         <TabsContent value="editor" className="pt-4">
-          <BlockEditor
-            blocks={design.content_blocks}
-            settings={design.design_settings}
-            organizationId={design.organization_id}
-            onChange={updateBlocks}
-          />
+          <div className="flex gap-4">
+            <div className="w-48 shrink-0 hidden md:block">
+              <ProposalOutlineSidebar blocks={design.content_blocks} onScrollTo={handleScrollTo} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <BlockEditor
+                blocks={design.content_blocks}
+                settings={design.design_settings}
+                organizationId={design.organization_id}
+                onChange={updateBlocks}
+              />
+            </div>
+          </div>
         </TabsContent>
         <TabsContent value="preview" className="pt-4">
           <ProposalPreview blocks={design.content_blocks} settings={design.design_settings} />

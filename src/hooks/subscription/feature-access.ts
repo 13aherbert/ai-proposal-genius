@@ -166,6 +166,7 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   priority_support: ['pro'],  // Only pro has access
   custom_templates: ['pro'],  // Only pro has access
   opportunity_search: ['pro'],  // Only pro has access - RFP opportunity search
+  design_studio: ['pro'],  // Only pro has access - Proposal Design Studio
 };
 
 // Check if user has a specific plan type based on subscription data

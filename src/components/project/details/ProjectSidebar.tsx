@@ -49,7 +49,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
       id: "design",
       label: "Design",
       icon: Palette,
-      feature: "proposal_draft" as FeatureName,
+      feature: "design_studio" as FeatureName,
       description: "Design and export your proposal",
     },
   ] as const;

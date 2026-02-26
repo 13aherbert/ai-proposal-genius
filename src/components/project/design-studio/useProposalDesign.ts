@@ -96,6 +96,35 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
             .order('created_at', { ascending: true });
 
           const template = getTemplate('modern-corporate');
+
+          // Check for default brand guideline
+          let brandOverrides: Partial<DesignSettings> = {};
+          try {
+            const { data: defaultGuideline } = await supabase
+              .from('organization_brand_guidelines' as any)
+              .select('*')
+              .eq('organization_id', project.organization_id)
+              .eq('is_default', true)
+              .maybeSingle();
+
+            if (defaultGuideline) {
+              const g = defaultGuideline as any;
+              brandOverrides = {
+                primaryColor: g.primary_color,
+                secondaryColor: g.secondary_color,
+                headerFont: g.header_font,
+                bodyFont: g.body_font,
+                headerStyle: g.header_style,
+                coverLayout: g.cover_layout,
+                margins: g.margins,
+                sectionNumbering: g.section_numbering,
+                logoUrl: g.logo_url ?? undefined,
+              };
+            }
+          } catch (e) {
+            console.warn('Could not load default brand guideline:', e);
+          }
+
           const blocks: ContentBlock[] = [
             { id: uuidv4(), type: 'cover', content: { title: project.title || 'Proposal', subtitle: `Prepared for ${project.client_name || 'Client'}`, date: new Date().toLocaleDateString() } },
             { id: uuidv4(), type: 'toc', content: {} },
@@ -113,7 +142,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
             organization_id: project.organization_id,
             user_id: session.user.id,
             template_id: template.id,
-            design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout },
+            design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout, ...brandOverrides },
             content_blocks: blocks,
           };
 

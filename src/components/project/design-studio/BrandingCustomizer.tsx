@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { DesignSettings, HeaderStyle, CoverLayout } from './types';
 import { useSignedUrl } from './useSignedUrl';
 import { AVAILABLE_FONTS } from './templates';
@@ -7,11 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Save, BookOpen } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import { useBrandGuidelines, designSettingsToGuidelineInput } from '@/hooks/useBrandGuidelines';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface BrandingCustomizerProps {
   settings: DesignSettings;
@@ -42,6 +45,10 @@ export function BrandingCustomizer({ settings, onChange, organizationId }: Brand
   const { session } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resolvedLogoUrl = useSignedUrl(settings.logoUrl);
+  const { guidelines, guidelineToDesignSettings, saveGuideline, isSaving } = useBrandGuidelines();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [guidelineName, setGuidelineName] = useState('');
+  const [guidelineIsDefault, setGuidelineIsDefault] = useState(true);
 
   const update = <K extends keyof DesignSettings>(key: K, value: DesignSettings[K]) => {
     onChange({ ...settings, [key]: value });
@@ -203,6 +210,76 @@ export function BrandingCustomizer({ settings, onChange, organizationId }: Brand
           onCheckedChange={(checked) => update('sectionNumbering', checked)}
           className="scale-90"
         />
+      </div>
+
+      {/* Brand Guidelines Actions */}
+      <div className="border-t pt-3 mt-3 space-y-2">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Brand Guidelines</h4>
+
+        {/* Load Guideline */}
+        {guidelines.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+                <BookOpen className="h-3.5 w-3.5" /> Load Guideline
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {guidelines.map(g => (
+                <DropdownMenuItem
+                  key={g.id}
+                  onClick={() => {
+                    const merged = { ...settings, ...guidelineToDesignSettings(g) };
+                    onChange(merged);
+                    toast.success(`Applied "${g.name}" guideline`);
+                  }}
+                  className="text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full border" style={{ background: g.primary_color }} />
+                    {g.name}
+                    {g.is_default && <span className="text-[10px] text-muted-foreground">(default)</span>}
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Save as Guideline */}
+        <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+              <Save className="h-3.5 w-3.5" /> Save as Brand Guideline
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm">
+            <DialogHeader><DialogTitle>Save Brand Guideline</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Guideline Name</Label>
+                <Input value={guidelineName} onChange={e => setGuidelineName(e.target.value)} placeholder="e.g. Company Brand" className="h-8 text-sm" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Set as Default</Label>
+                <Switch checked={guidelineIsDefault} onCheckedChange={setGuidelineIsDefault} className="scale-90" />
+              </div>
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={!guidelineName.trim() || isSaving}
+                onClick={async () => {
+                  const input = designSettingsToGuidelineInput(settings, guidelineName.trim(), guidelineIsDefault);
+                  await saveGuideline(input);
+                  setGuidelineName('');
+                  setSaveDialogOpen(false);
+                }}
+              >
+                {isSaving ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -14,8 +14,45 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function markdownToHtml(md: string): string {
-  let html = escapeHtml(md);
+function markdownTableToHtml(md: string, settings: { primaryColor: string }): string {
+  // Match markdown tables and convert before the rest of markdown processing
+  const tableRegex = /(?:^|\n)((?:\|[^\n]+\|\n)(?:\|[\s:|-]+\|\n)((?:\|[^\n]+\|\n?)*))/gm;
+  return md.replace(tableRegex, (_match, fullTable: string) => {
+    const lines = fullTable.trim().split('\n');
+    if (lines.length < 2) return fullTable;
+    
+    const parseRow = (line: string) =>
+      line.split('|').slice(1, -1).map(c => c.trim());
+    
+    const headers = parseRow(lines[0]);
+    const dataRows = lines.slice(2).map(parseRow);
+    
+    const thCells = headers.map(h => `<th style="padding:8px 12px;text-align:left;font-weight:600;">${escapeHtml(h)}</th>`).join('');
+    const bodyRows = dataRows.map((row, i) =>
+      `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#fff'}">${row.map(c => `<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${escapeHtml(c)}</td>`).join('')}</tr>`
+    ).join('');
+    
+    return `\n<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+<thead><tr style="background:${settings.primaryColor};color:#fff;">${thCells}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table>\n`;
+  });
+}
+
+function markdownToHtml(md: string, settings?: { primaryColor: string }): string {
+  // First, convert any markdown tables to HTML before escaping
+  let processed = md;
+  if (settings) {
+    processed = markdownTableToHtml(processed, settings);
+  }
+  // Extract already-converted HTML tables to protect them from escaping
+  const tables: string[] = [];
+  processed = processed.replace(/<table[\s\S]*?<\/table>/g, (match) => {
+    tables.push(match);
+    return `__TABLE_PLACEHOLDER_${tables.length - 1}__`;
+  });
+  
+  let html = escapeHtml(processed);
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
   html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
@@ -27,6 +64,11 @@ function markdownToHtml(md: string): string {
   html = "<p>" + html + "</p>";
   html = html.replace(/<p><(h[123]|ul|li)/g, "<$1");
   html = html.replace(/<\/(h[123]|ul|li)><\/p>/g, "</$1>");
+  
+  // Restore tables
+  tables.forEach((table, i) => {
+    html = html.replace(`__TABLE_PLACEHOLDER_${i}__`, table);
+  });
   return html;
 }
 
@@ -158,7 +200,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
       return renderHeadingHtml(block, settings);
 
     case "text":
-      return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${markdownToHtml(String(c.text || ""))}</div>`;
+      return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${markdownToHtml(String(c.text || ""), settings)}</div>`;
 
     case "image":
       return `<figure style="text-align:center;margin:24px 0;">

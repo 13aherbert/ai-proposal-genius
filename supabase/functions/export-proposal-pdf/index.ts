@@ -292,6 +292,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const settings = design.design_settings as DesignSettings;
+
+    // Resolve logo storage path to signed URL if needed
+    if (settings.logoUrl && !settings.logoUrl.startsWith('http')) {
+      const { data: signedData } = await adminClient.storage
+        .from('rfp-files')
+        .createSignedUrl(settings.logoUrl, 3600);
+      if (signedData?.signedUrl) {
+        settings.logoUrl = signedData.signedUrl;
+      }
+    }
+
     const blocks = (design.content_blocks as ContentBlock[]) || [];
     const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
 

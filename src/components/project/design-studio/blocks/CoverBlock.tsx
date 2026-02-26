@@ -1,5 +1,6 @@
 import { ContentBlock, DesignSettings, CoverLayout } from '../types';
 import { Input } from '@/components/ui/input';
+import { useSignedUrl } from '../useSignedUrl';
 
 interface CoverBlockProps {
   block: ContentBlock;
@@ -11,14 +12,15 @@ interface CoverBlockProps {
 export function CoverBlock({ block, settings, onUpdate, preview }: CoverBlockProps) {
   const { title, subtitle, date } = block.content as { title?: string; subtitle?: string; date?: string };
   const layout: CoverLayout = settings.coverLayout || 'centered';
+  const resolvedLogoUrl = useSignedUrl(settings.logoUrl);
 
   const updateField = (field: string, value: string) => {
     onUpdate({ ...block, content: { ...block.content, [field]: value } });
   };
 
   if (preview) {
-    const logo = settings.logoUrl ? (
-      <img src={settings.logoUrl} alt="Logo" className="max-h-16 max-w-[200px] object-contain" />
+    const logo = resolvedLogoUrl ? (
+      <img src={resolvedLogoUrl} alt="Logo" className="max-h-16 max-w-[200px] object-contain" />
     ) : null;
 
     switch (layout) {

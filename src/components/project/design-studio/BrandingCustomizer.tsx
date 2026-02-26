@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { DesignSettings, HeaderStyle, CoverLayout } from './types';
+import { useSignedUrl } from './useSignedUrl';
 import { AVAILABLE_FONTS } from './templates';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ const COVER_LAYOUTS: { value: CoverLayout; label: string }[] = [
 export function BrandingCustomizer({ settings, onChange, organizationId }: BrandingCustomizerProps) {
   const { session } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resolvedLogoUrl = useSignedUrl(settings.logoUrl);
 
   const update = <K extends keyof DesignSettings>(key: K, value: DesignSettings[K]) => {
     onChange({ ...settings, [key]: value });
@@ -57,8 +59,8 @@ export function BrandingCustomizer({ settings, onChange, organizationId }: Brand
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('rfp-files').getPublicUrl(path);
-    update('logoUrl', urlData.publicUrl);
+    // Store the path, not a public URL (bucket is private)
+    update('logoUrl', path);
     toast.success('Logo uploaded');
   }, [organizationId, session, settings, onChange]);
 
@@ -69,9 +71,9 @@ export function BrandingCustomizer({ settings, onChange, organizationId }: Brand
       {/* Logo Upload */}
       <div className="space-y-1.5">
         <Label className="text-xs">Logo</Label>
-        {settings.logoUrl ? (
+        {settings.logoUrl && resolvedLogoUrl ? (
           <div className="flex items-center gap-3">
-            <img src={settings.logoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain rounded border bg-white p-1" />
+            <img src={resolvedLogoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain rounded border bg-white p-1" />
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => update('logoUrl', undefined)}>
               <X className="h-3.5 w-3.5" />
             </Button>

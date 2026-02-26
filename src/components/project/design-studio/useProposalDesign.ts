@@ -44,6 +44,8 @@ function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock
       blocks.push({ id: uuidv4(), type: 'callout', content: { text: firstSentence + '.', style: 'info' } });
     }
     blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('timeline') || title.includes('schedule') || title.includes('milestones')) {
     // Attempt to parse timeline content into a table
     const tableData = tryParseTable(content, ['Phase', 'Timeline', 'Deliverables']);
@@ -60,7 +62,6 @@ function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock
       blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
     }
   } else if (title.includes('case stud') || title.includes('experience') || title.includes('past performance')) {
-    // Extract a quote-worthy line if present
     const lines = (content || '').split('\n').filter(l => l.trim());
     if (lines.length > 1) {
       blocks.push({ id: uuidv4(), type: 'quote', content: { text: lines[0], attribution: '' } });
@@ -68,11 +69,17 @@ function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock
     } else {
       blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
     }
+    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('methodology') || title.includes('approach') || title.includes('process')) {
     blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
     blocks.push({ id: uuidv4(), type: 'divider', content: {} });
   } else if (title.includes('team') || title.includes('personnel') || title.includes('staff')) {
     blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('solution') || title.includes('overview') || title.includes('company')) {
     blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
     // Add a suggested image block for visual sections
@@ -121,6 +128,68 @@ function extractImageQuery(title: string, content: string | null): string {
   const contentWords = (content || '').slice(0, 200).replace(/[^a-zA-Z\s]/g, ' ').split(/\s+/).filter(w => w.length > 4);
   const topWords = contentWords.slice(0, 3).join(' ');
   return `${keywords} ${topWords}`.trim().slice(0, 60) || 'professional business';
+}
+
+const MAX_AUTO_IMAGES = 6;
+
+async function autoPopulateImages(blocks: ContentBlock[]): Promise<ContentBlock[]> {
+  const imageBlocks = blocks.filter(
+    b => b.type === 'image' && (b.content as any).suggestedImageQuery && !(b.content as any).url
+  );
+
+  const toFetch = imageBlocks.slice(0, MAX_AUTO_IMAGES);
+  if (toFetch.length === 0) return blocks;
+
+  const results = await Promise.allSettled(
+    toFetch.map(block =>
+      supabase.functions.invoke('search-stock-images', {
+        body: { query: (block.content as any).suggestedImageQuery, per_page: 1 },
+      })
+    )
+  );
+
+  const updatedBlocks = [...blocks];
+  toFetch.forEach((block, i) => {
+    const result = results[i];
+    if (result.status === 'fulfilled' && result.value.data?.photos?.[0]) {
+      const photo = result.value.data.photos[0];
+      const idx = updatedBlocks.findIndex(b => b.id === block.id);
+      if (idx !== -1) {
+        updatedBlocks[idx] = {
+          ...updatedBlocks[idx],
+          content: {
+            ...updatedBlocks[idx].content,
+            url: photo.src.large,
+            caption: `Photo by ${photo.photographer}`,
+          },
+        };
+      }
+    }
+  });
+
+  return updatedBlocks;
+}
+
+async function autoPopulateCoverImage(blocks: ContentBlock[], projectTitle: string): Promise<ContentBlock[]> {
+  const coverIdx = blocks.findIndex(b => b.type === 'cover');
+  if (coverIdx === -1 || (blocks[coverIdx].content as any).coverImageUrl) return blocks;
+
+  try {
+    const { data } = await supabase.functions.invoke('search-stock-images', {
+      body: { query: `${projectTitle} professional business`, per_page: 1 },
+    });
+    if (data?.photos?.[0]) {
+      const updated = [...blocks];
+      updated[coverIdx] = {
+        ...updated[coverIdx],
+        content: { ...updated[coverIdx].content, coverImageUrl: data.photos[0].src.large },
+      };
+      return updated;
+    }
+  } catch (e) {
+    console.warn('Failed to auto-populate cover image:', e);
+  }
+  return blocks;
 }
 
 export function useProposalDesign(projectId: string): UseProposalDesignReturn {
@@ -249,13 +318,19 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
       }
     }
 
+    // Auto-populate images from Pexels
+    const populatedBlocks = await autoPopulateCoverImage(
+      await autoPopulateImages(blocks),
+      project.title || 'Proposal'
+    );
+
     const newDesign = {
       project_id: projectId,
       organization_id: project.organization_id,
       user_id: session.user.id,
       template_id: template.id,
       design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout, ...brandOverrides },
-      content_blocks: blocks,
+      content_blocks: populatedBlocks,
     };
 
     const { data: inserted, error: insertErr } = await supabase
@@ -341,8 +416,14 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
         }
       }
 
-      pushHistory(blocks, newSettings);
-      setDesign(prev => prev ? { ...prev, content_blocks: blocks, design_settings: newSettings } : null);
+      // Auto-populate images from Pexels
+      const populatedBlocks = await autoPopulateCoverImage(
+        await autoPopulateImages(blocks),
+        project?.title || 'Proposal'
+      );
+
+      pushHistory(populatedBlocks, newSettings);
+      setDesign(prev => prev ? { ...prev, content_blocks: populatedBlocks, design_settings: newSettings } : null);
       dirtyRef.current = true;
       toast.success('Design regenerated from proposal content');
     } catch (err) {

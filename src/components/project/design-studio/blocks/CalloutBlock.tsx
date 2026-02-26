@@ -2,6 +2,8 @@ import { ContentBlock, DesignSettings } from '../types';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Info, AlertTriangle, CheckCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface CalloutBlockProps {
   block: ContentBlock;
@@ -26,7 +28,13 @@ export function CalloutBlock({ block, settings, onUpdate, preview }: CalloutBloc
     return (
       <div className="flex gap-3 p-4 rounded-lg my-4" style={{ backgroundColor: v.bg, borderLeft: `4px solid ${v.border}` }}>
         <Icon className="h-5 w-5 shrink-0 mt-0.5" style={{ color: v.text }} />
-        <p className="text-sm" style={{ color: v.text, fontFamily: settings.bodyFont }}>{text || 'Callout text'}</p>
+        <div className="text-sm prose prose-sm max-w-none" style={{ color: v.text, fontFamily: settings.bodyFont }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+            p: ({ children }) => <p className="my-1">{children}</p>,
+          }}>
+            {text || 'Callout text'}
+          </ReactMarkdown>
+        </div>
       </div>
     );
   }
@@ -44,7 +52,7 @@ export function CalloutBlock({ block, settings, onUpdate, preview }: CalloutBloc
         </Select>
       </div>
       <Textarea
-        placeholder="Callout text..."
+        placeholder="Callout text (supports Markdown)..."
         value={text}
         onChange={(e) => onUpdate({ ...block, content: { ...block.content, text: e.target.value } })}
         className="min-h-[50px] text-sm"

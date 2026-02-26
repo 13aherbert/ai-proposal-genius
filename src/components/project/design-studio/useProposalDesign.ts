@@ -6,14 +6,25 @@ import { ContentBlock, DesignSettings, ProposalDesign } from './types';
 import { getTemplate } from './templates';
 import { v4 as uuidv4 } from 'uuid';
 
+const MAX_HISTORY = 30;
+
+interface HistoryEntry {
+  blocks: ContentBlock[];
+  settings: DesignSettings;
+}
+
 interface UseProposalDesignReturn {
   design: ProposalDesign | null;
   isLoading: boolean;
   isSaving: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   updateBlocks: (blocks: ContentBlock[]) => void;
   updateSettings: (settings: DesignSettings) => void;
   updateTemplateId: (templateId: string) => void;
   saveNow: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
 }
 
 export function useProposalDesign(projectId: string): UseProposalDesignReturn {
@@ -24,6 +35,21 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
+  // Undo/redo history
+  const historyRef = useRef<HistoryEntry[]>([]);
+  const historyIndexRef = useRef(-1);
+  const skipHistoryRef = useRef(false);
+
+  const pushHistory = useCallback((blocks: ContentBlock[], settings: DesignSettings) => {
+    if (skipHistoryRef.current) return;
+    const idx = historyIndexRef.current;
+    // Truncate any redo entries
+    historyRef.current = historyRef.current.slice(0, idx + 1);
+    historyRef.current.push({ blocks: JSON.parse(JSON.stringify(blocks)), settings: { ...settings } });
+    if (historyRef.current.length > MAX_HISTORY) historyRef.current.shift();
+    historyIndexRef.current = historyRef.current.length - 1;
+  }, []);
+
   // Load or create design
   useEffect(() => {
     if (!session?.user || !projectId) return;
@@ -31,7 +57,6 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     const load = async () => {
       setIsLoading(true);
       try {
-        // Try to load existing design
         const { data, error } = await supabase
           .from('proposal_designs' as any)
           .select('*')
@@ -42,7 +67,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
         if (data) {
           const d = data as any;
-          setDesign({
+          const loaded: ProposalDesign = {
             id: d.id,
             project_id: d.project_id,
             organization_id: d.organization_id,
@@ -52,9 +77,10 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
             content_blocks: (d.content_blocks as ContentBlock[]) || [],
             created_at: d.created_at,
             updated_at: d.updated_at,
-          });
+          };
+          setDesign(loaded);
+          pushHistory(loaded.content_blocks, loaded.design_settings);
         } else {
-          // Create new design - need org_id from project
           const { data: project } = await supabase
             .from('projects')
             .select('organization_id, title, client_name')
@@ -63,7 +89,6 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
           if (!project) throw new Error('Project not found');
 
-          // Load proposal sections to map into blocks
           const { data: sections } = await supabase
             .from('proposal_sections')
             .select('section_title, content')
@@ -72,30 +97,14 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
           const template = getTemplate('modern-corporate');
           const blocks: ContentBlock[] = [
-            {
-              id: uuidv4(),
-              type: 'cover',
-              content: {
-                title: project.title || 'Proposal',
-                subtitle: `Prepared for ${project.client_name || 'Client'}`,
-                date: new Date().toLocaleDateString(),
-              },
-            },
+            { id: uuidv4(), type: 'cover', content: { title: project.title || 'Proposal', subtitle: `Prepared for ${project.client_name || 'Client'}`, date: new Date().toLocaleDateString() } },
             { id: uuidv4(), type: 'toc', content: {} },
           ];
 
           if (sections && sections.length > 0) {
             for (const s of sections) {
-              blocks.push({
-                id: uuidv4(),
-                type: 'heading',
-                content: { text: s.section_title, level: 2 },
-              });
-              blocks.push({
-                id: uuidv4(),
-                type: 'text',
-                content: { text: s.content || '' },
-              });
+              blocks.push({ id: uuidv4(), type: 'heading', content: { text: s.section_title, level: 2 } });
+              blocks.push({ id: uuidv4(), type: 'text', content: { text: s.content || '' } });
             }
           }
 
@@ -117,7 +126,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
           if (insertErr) throw insertErr;
 
           const ins = inserted as any;
-          setDesign({
+          const created: ProposalDesign = {
             id: ins.id,
             project_id: ins.project_id,
             organization_id: ins.organization_id,
@@ -127,7 +136,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
             content_blocks: (ins.content_blocks as ContentBlock[]) || [],
             created_at: ins.created_at,
             updated_at: ins.updated_at,
-          });
+          };
+          setDesign(created);
+          pushHistory(created.content_blocks, created.design_settings);
         }
       } catch (err: any) {
         console.error('Error loading proposal design:', err);
@@ -148,6 +159,22 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
       }
     }, 10000);
     return () => clearInterval(timerRef.current);
+  }, [design]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [design]);
 
   const saveDesign = async (d: ProposalDesign) => {
@@ -173,20 +200,53 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   };
 
   const updateBlocks = useCallback((blocks: ContentBlock[]) => {
-    setDesign(prev => prev ? { ...prev, content_blocks: blocks } : null);
+    setDesign(prev => {
+      if (!prev) return null;
+      pushHistory(blocks, prev.design_settings);
+      return { ...prev, content_blocks: blocks };
+    });
     dirtyRef.current = true;
-  }, []);
+  }, [pushHistory]);
 
   const updateSettings = useCallback((settings: DesignSettings) => {
-    setDesign(prev => prev ? { ...prev, design_settings: settings } : null);
+    setDesign(prev => {
+      if (!prev) return null;
+      pushHistory(prev.content_blocks, settings);
+      return { ...prev, design_settings: settings };
+    });
     dirtyRef.current = true;
-  }, []);
+  }, [pushHistory]);
 
   const updateTemplateId = useCallback((templateId: string) => {
     const tmpl = getTemplate(templateId);
-    setDesign(prev => prev ? { ...prev, template_id: templateId, design_settings: { ...prev.design_settings, ...tmpl.defaults, headerStyle: tmpl.headerStyle, coverLayout: tmpl.coverLayout } } : null);
+    setDesign(prev => {
+      if (!prev) return null;
+      const newSettings = { ...prev.design_settings, ...tmpl.defaults, headerStyle: tmpl.headerStyle, coverLayout: tmpl.coverLayout };
+      pushHistory(prev.content_blocks, newSettings);
+      return { ...prev, template_id: templateId, design_settings: newSettings };
+    });
     dirtyRef.current = true;
-  }, []);
+  }, [pushHistory]);
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0 || !design) return;
+    historyIndexRef.current--;
+    const entry = historyRef.current[historyIndexRef.current];
+    skipHistoryRef.current = true;
+    setDesign(prev => prev ? { ...prev, content_blocks: entry.blocks, design_settings: entry.settings } : null);
+    dirtyRef.current = true;
+    skipHistoryRef.current = false;
+  }, [design]);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1 || !design) return;
+    historyIndexRef.current++;
+    const entry = historyRef.current[historyIndexRef.current];
+    skipHistoryRef.current = true;
+    setDesign(prev => prev ? { ...prev, content_blocks: entry.blocks, design_settings: entry.settings } : null);
+    dirtyRef.current = true;
+    skipHistoryRef.current = false;
+  }, [design]);
 
   const saveNow = useCallback(async () => {
     if (design) {
@@ -195,5 +255,8 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     }
   }, [design]);
 
-  return { design, isLoading, isSaving, updateBlocks, updateSettings, updateTemplateId, saveNow };
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
+
+  return { design, isLoading, isSaving, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo };
 }

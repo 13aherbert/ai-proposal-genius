@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Loader2, Eye, Edit } from 'lucide-react';
+import { Loader2, Eye, Edit, Undo2, Redo2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -17,7 +17,7 @@ interface ProposalDesignStudioProps {
 }
 
 export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
-  const { design, isLoading, isSaving, updateBlocks, updateSettings, updateTemplateId, saveNow } = useProposalDesign(projectId);
+  const { design, isLoading, isSaving, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo } = useProposalDesign(projectId);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
@@ -42,7 +42,15 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
           <h2 className="text-lg font-bold text-foreground">Proposal Design Studio</h2>
           <p className="text-sm text-muted-foreground">Design and export your proposal document</p>
         </div>
-        <ExportPanel designId={design.id} isSaving={isSaving} onSave={saveNow} />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+          <ExportPanel designId={design.id} isSaving={isSaving} onSave={saveNow} />
+        </div>
       </div>
 
       {/* Template Selector (collapsible) */}

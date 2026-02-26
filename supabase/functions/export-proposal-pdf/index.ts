@@ -15,23 +15,17 @@ function escapeHtml(str: string): string {
 }
 
 function markdownTableToHtml(md: string, settings: { primaryColor: string }): string {
-  // Match markdown tables and convert before the rest of markdown processing
   const tableRegex = /(?:^|\n)((?:\|[^\n]+\|\n)(?:\|[\s:|-]+\|\n)((?:\|[^\n]+\|\n?)*))/gm;
   return md.replace(tableRegex, (_match, fullTable: string) => {
     const lines = fullTable.trim().split('\n');
     if (lines.length < 2) return fullTable;
-    
-    const parseRow = (line: string) =>
-      line.split('|').slice(1, -1).map(c => c.trim());
-    
+    const parseRow = (line: string) => line.split('|').slice(1, -1).map(c => c.trim());
     const headers = parseRow(lines[0]);
     const dataRows = lines.slice(2).map(parseRow);
-    
     const thCells = headers.map(h => `<th style="padding:8px 12px;text-align:left;font-weight:600;">${escapeHtml(h)}</th>`).join('');
     const bodyRows = dataRows.map((row, i) =>
       `<tr style="background:${i % 2 === 0 ? '#f8fafc' : '#fff'}">${row.map(c => `<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${escapeHtml(c)}</td>`).join('')}</tr>`
     ).join('');
-    
     return `\n<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
 <thead><tr style="background:${settings.primaryColor};color:#fff;">${thCells}</tr></thead>
 <tbody>${bodyRows}</tbody>
@@ -40,32 +34,34 @@ function markdownTableToHtml(md: string, settings: { primaryColor: string }): st
 }
 
 function markdownToHtml(md: string, settings?: { primaryColor: string }): string {
-  // First, convert any markdown tables to HTML before escaping
   let processed = md;
   if (settings) {
     processed = markdownTableToHtml(processed, settings);
   }
-  // Extract already-converted HTML tables to protect them from escaping
   const tables: string[] = [];
   processed = processed.replace(/<table[\s\S]*?<\/table>/g, (match) => {
     tables.push(match);
     return `__TABLE_PLACEHOLDER_${tables.length - 1}__`;
   });
-  
+
   let html = escapeHtml(processed);
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#3b82f6;text-decoration:underline;">$1</a>');
   html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
   html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
+  // Ordered lists
+  html = html.replace(/^\d+\. (.*$)/gm, "<oli>$1</oli>");
+  html = html.replace(/(<oli>.*<\/oli>\n?)+/g, (match) => `<ol style="padding-left:20px;">${match.replace(/<\/?oli>/g, (t) => t === '<oli>' ? '<li>' : '</li>')}</ol>`);
+  // Unordered lists
   html = html.replace(/^- (.*$)/gm, "<li>$1</li>");
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul style='padding-left:20px;'>$&</ul>");
   html = html.replace(/\n\n/g, "</p><p>");
   html = "<p>" + html + "</p>";
-  html = html.replace(/<p><(h[123]|ul|li)/g, "<$1");
-  html = html.replace(/<\/(h[123]|ul|li)><\/p>/g, "</$1>");
-  
-  // Restore tables
+  html = html.replace(/<p><(h[123]|ul|ol|li)/g, "<$1");
+  html = html.replace(/<\/(h[123]|ul|ol|li)><\/p>/g, "</$1>");
+
   tables.forEach((table, i) => {
     html = html.replace(`__TABLE_PLACEHOLDER_${i}__`, table);
   });
@@ -81,12 +77,27 @@ interface DesignSettings {
   logoUrl?: string;
   headerStyle?: string;
   coverLayout?: string;
+  sectionNumbering?: boolean;
 }
 
 interface ContentBlock {
   id: string;
   type: string;
   content: Record<string, unknown>;
+}
+
+function computeSectionNumbers(blocks: ContentBlock[]): Record<string, string> {
+  const counters = [0, 0, 0];
+  const result: Record<string, string> = {};
+  for (const block of blocks) {
+    if (block.type !== 'heading') continue;
+    const level = Number(block.content.level) || 2;
+    const idx = Math.min(level, 3) - 1;
+    counters[idx]++;
+    for (let i = idx + 1; i < counters.length; i++) counters[i] = 0;
+    result[block.id] = counters.slice(0, idx + 1).join('.');
+  }
+  return result;
 }
 
 // --- Cover layout renderers ---
@@ -107,7 +118,6 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
         <p style="font-size:20px;opacity:0.9;margin-bottom:16px;">${subtitle}</p>
         <p style="font-size:14px;opacity:0.7;">${date}</p>
       </div>`;
-
     case "split":
       return `<div style="display:flex;min-height:600px;page-break-after:always;">
         <div style="width:50%;background:${settings.primaryColor};color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:center;">
@@ -119,7 +129,6 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
           <p style="font-size:18px;opacity:0.9;">${subtitle}</p>
         </div>
       </div>`;
-
     case "minimal":
       return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;text-align:center;padding:60px;border:3px solid ${settings.primaryColor};page-break-after:always;">
         ${logo ? `<div style="margin-bottom:32px;">${logo}</div>` : ""}
@@ -128,7 +137,6 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
         <p style="font-size:18px;color:${settings.secondaryColor};opacity:0.8;">${subtitle}</p>
         <p style="font-size:14px;color:${settings.secondaryColor};opacity:0.6;margin-top:16px;">${date}</p>
       </div>`;
-
     case "full-bleed":
       return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:600px;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});color:#fff;padding:60px;text-align:center;position:relative;page-break-after:always;">
         ${logo ? `<div style="position:absolute;top:32px;left:32px;">${logo}</div>` : ""}
@@ -136,8 +144,7 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
         <p style="font-size:20px;opacity:0.9;margin-bottom:8px;">${subtitle}</p>
         <p style="font-size:14px;opacity:0.7;">${date}</p>
       </div>`;
-
-    default: // centered
+    default:
       return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;background:${settings.primaryColor};color:#fff;text-align:center;padding:60px;page-break-after:always;">
         ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
         <h1 style="font-size:36px;font-family:${settings.headerFont};margin-bottom:16px;">${title}</h1>
@@ -147,40 +154,28 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
   }
 }
 
-// --- Heading style renderers ---
-
-function renderHeadingHtml(block: ContentBlock, settings: DesignSettings): string {
+function renderHeadingHtml(block: ContentBlock, settings: DesignSettings, sectionNumber?: string): string {
   const c = block.content;
   const lvl = Number(c.level) || 2;
-  const text = escapeHtml(String(c.text || ""));
+  const prefix = sectionNumber ? `${sectionNumber} ` : '';
+  const text = escapeHtml(prefix + String(c.text || ""));
   const sizes: Record<number, string> = { 1: "28px", 2: "22px", 3: "18px" };
   const headerStyle = settings.headerStyle || "accent-bar";
 
   let style = `font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};margin-top:24px;color:${settings.primaryColor};`;
 
   switch (headerStyle) {
-    case "bold":
-      style += "font-weight:800;";
-      break;
-    case "underline":
-      style += `font-weight:700;border-bottom:3px solid ${settings.primaryColor};padding-bottom:8px;`;
-      break;
-    case "accent-bar":
-      style += `font-weight:700;border-left:4px solid ${settings.primaryColor};padding-left:12px;`;
-      break;
-    case "gradient":
-      style += `font-weight:700;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`;
-      break;
-    case "minimal":
-    default:
-      style += "font-weight:600;";
-      break;
+    case "bold": style += "font-weight:800;"; break;
+    case "underline": style += `font-weight:700;border-bottom:3px solid ${settings.primaryColor};padding-bottom:8px;`; break;
+    case "accent-bar": style += `font-weight:700;border-left:4px solid ${settings.primaryColor};padding-left:12px;`; break;
+    case "gradient": style += `font-weight:700;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; break;
+    case "minimal": default: style += "font-weight:600;"; break;
   }
 
   return `<h${lvl} style="${style}">${text}</h${lvl}>`;
 }
 
-function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], settings: DesignSettings): string {
+function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], settings: DesignSettings, sectionMap: Record<string, string>): string {
   const c = block.content;
   switch (block.type) {
     case "cover":
@@ -189,7 +184,11 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
     case "toc": {
       const headings = allBlocks
         .filter((b) => b.type === "heading")
-        .map((b, i) => `<li style="margin:6px 0;"><span style="color:${settings.primaryColor};font-weight:600;">${i + 1}.</span> ${escapeHtml(String(b.content.text || ""))}</li>`);
+        .map((b) => {
+          const num = sectionMap[b.id];
+          const prefix = num ? `${num}. ` : '';
+          return `<li style="margin:6px 0;"><span style="color:${settings.primaryColor};font-weight:600;">${prefix}</span>${escapeHtml(String(b.content.text || ""))}</li>`;
+        });
       return `<div style="padding:40px 0;page-break-after:always;">
         <h2 style="font-family:${settings.headerFont};color:${settings.primaryColor};margin-bottom:16px;">Table of Contents</h2>
         <ul style="list-style:none;padding:0;">${headings.join("")}</ul>
@@ -197,7 +196,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
     }
 
     case "heading":
-      return renderHeadingHtml(block, settings);
+      return renderHeadingHtml(block, settings, sectionMap[block.id]);
 
     case "text":
       return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${markdownToHtml(String(c.text || ""), settings)}</div>`;
@@ -217,11 +216,13 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
       </table>`;
     }
 
-    case "divider":
-      return `<hr style="border:none;border-top:1px solid ${settings.primaryColor}30;margin:32px 0;page-break-after:always;" />`;
+    case "divider": {
+      const isPageBreak = (c.isPageBreak as boolean) ?? true;
+      return `<hr style="border:none;border-top:1px solid ${settings.primaryColor}30;margin:32px 0;${isPageBreak ? 'page-break-after:always;' : ''}" />`;
+    }
 
     case "quote":
-      return `<blockquote style="border-left:4px solid ${settings.primaryColor};padding-left:16px;margin:16px 0;font-style:italic;color:${settings.secondaryColor};">${escapeHtml(String(c.text || ""))}</blockquote>`;
+      return `<blockquote style="border-left:4px solid ${settings.primaryColor};padding-left:16px;margin:16px 0;font-style:italic;color:${settings.secondaryColor};">${markdownToHtml(String(c.text || ""))}</blockquote>`;
 
     case "callout": {
       const variant = String(c.variant || "info");
@@ -231,7 +232,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
         success: { bg: "#dcfce7", border: "#22c55e", text: "#166534" },
       };
       const v = colors[variant] || colors.info;
-      return `<div style="background:${v.bg};border-left:4px solid ${v.border};padding:16px;border-radius:8px;margin:16px 0;color:${v.text};font-size:14px;">${escapeHtml(String(c.text || ""))}</div>`;
+      return `<div style="background:${v.bg};border-left:4px solid ${v.border};padding:16px;border-radius:8px;margin:16px 0;color:${v.text};font-size:14px;">${markdownToHtml(String(c.text || ""))}</div>`;
     }
 
     default:
@@ -304,9 +305,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const blocks = (design.content_blocks as ContentBlock[]) || [];
+    const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
     const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
 
-    const bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings)).join("\n");
+    const bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings, sectionMap)).join("\n");
 
     const fullHtml = `<!DOCTYPE html>
 <html>
@@ -324,7 +326,7 @@ Deno.serve(async (req: Request) => {
     img { max-width: 100%; }
     h1, h2, h3 { font-family: ${settings.headerFont}, sans-serif; }
     p { margin: 8px 0; }
-    ul { padding-left: 20px; }
+    ul, ol { padding-left: 20px; }
     li { margin: 4px 0; }
   </style>
 </head>

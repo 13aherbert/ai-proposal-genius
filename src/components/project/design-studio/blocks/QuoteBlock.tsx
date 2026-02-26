@@ -1,5 +1,7 @@
 import { ContentBlock, DesignSettings } from '../types';
 import { Textarea } from '@/components/ui/textarea';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface QuoteBlockProps {
   block: ContentBlock;
@@ -17,7 +19,11 @@ export function QuoteBlock({ block, settings, onUpdate, preview }: QuoteBlockPro
         className="border-l-4 pl-4 py-2 my-4 italic"
         style={{ borderColor: settings.primaryColor, fontFamily: settings.bodyFont, color: settings.secondaryColor }}
       >
-        {text || 'Quote text'}
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+          p: ({ children }) => <p className="my-1">{children}</p>,
+        }}>
+          {text || 'Quote text'}
+        </ReactMarkdown>
       </blockquote>
     );
   }
@@ -26,7 +32,7 @@ export function QuoteBlock({ block, settings, onUpdate, preview }: QuoteBlockPro
     <div className="flex gap-2">
       <div className="w-1 rounded bg-primary" />
       <Textarea
-        placeholder="Enter quote or highlight text..."
+        placeholder="Enter quote or highlight text (supports Markdown)..."
         value={text}
         onChange={(e) => onUpdate({ ...block, content: { ...block.content, text: e.target.value } })}
         className="min-h-[60px] text-sm italic"

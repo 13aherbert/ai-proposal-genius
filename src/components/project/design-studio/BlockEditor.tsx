@@ -100,7 +100,7 @@ function SortableBlock({ block, blocks, settings, organizationId, onUpdate, onRe
 
   const renderBlock = () => {
     switch (block.type) {
-      case 'cover': return <CoverBlock block={block} settings={settings} onUpdate={onUpdate} />;
+      case 'cover': return <CoverBlock block={block} settings={settings} onUpdate={onUpdate} organizationId={organizationId} />;
       case 'toc': return <TocBlock block={block} allBlocks={blocks} settings={settings} />;
       case 'heading': return <HeadingBlock block={block} settings={settings} onUpdate={onUpdate} />;
       case 'text': return <TextBlock block={block} settings={settings} onUpdate={onUpdate} />;

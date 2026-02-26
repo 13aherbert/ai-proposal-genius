@@ -17,6 +17,7 @@ interface UseProposalDesignReturn {
   design: ProposalDesign | null;
   isLoading: boolean;
   isSaving: boolean;
+  isRegenerating: boolean;
   canUndo: boolean;
   canRedo: boolean;
   updateBlocks: (blocks: ContentBlock[]) => void;
@@ -25,6 +26,101 @@ interface UseProposalDesignReturn {
   saveNow: () => Promise<void>;
   undo: () => void;
   redo: () => void;
+  regenerateDesign: () => Promise<void>;
+}
+
+// Smart layout engine: maps section title keywords to richer block structures
+function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock[] {
+  const title = sectionTitle.toLowerCase();
+  const blocks: ContentBlock[] = [];
+
+  // Always start with a heading
+  blocks.push({ id: uuidv4(), type: 'heading', content: { text: sectionTitle, level: 2 } });
+
+  if (title.includes('executive') && title.includes('summary')) {
+    // Extract first sentence as a callout highlight
+    const firstSentence = content?.split(/[.!?]\s/)?.[0] || '';
+    if (firstSentence && content) {
+      blocks.push({ id: uuidv4(), type: 'callout', content: { text: firstSentence + '.', style: 'info' } });
+    }
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+  } else if (title.includes('timeline') || title.includes('schedule') || title.includes('milestones')) {
+    // Attempt to parse timeline content into a table
+    const tableData = tryParseTable(content, ['Phase', 'Timeline', 'Deliverables']);
+    if (tableData) {
+      blocks.push({ id: uuidv4(), type: 'table', content: tableData });
+    } else {
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    }
+  } else if (title.includes('pricing') || title.includes('cost') || title.includes('budget') || title.includes('fee')) {
+    const tableData = tryParseTable(content, ['Item', 'Description', 'Cost']);
+    if (tableData) {
+      blocks.push({ id: uuidv4(), type: 'table', content: tableData });
+    } else {
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    }
+  } else if (title.includes('case stud') || title.includes('experience') || title.includes('past performance')) {
+    // Extract a quote-worthy line if present
+    const lines = (content || '').split('\n').filter(l => l.trim());
+    if (lines.length > 1) {
+      blocks.push({ id: uuidv4(), type: 'quote', content: { text: lines[0], attribution: '' } });
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: lines.slice(1).join('\n') } });
+    } else {
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    }
+  } else if (title.includes('methodology') || title.includes('approach') || title.includes('process')) {
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    blocks.push({ id: uuidv4(), type: 'divider', content: {} });
+  } else if (title.includes('team') || title.includes('personnel') || title.includes('staff')) {
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+  } else if (title.includes('solution') || title.includes('overview') || title.includes('company')) {
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    // Add a suggested image block for visual sections
+    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
+  } else if (title.includes('conclusion') || title.includes('closing') || title.includes('next steps')) {
+    const firstLine = (content || '').split('\n')[0] || '';
+    if (firstLine) {
+      blocks.push({ id: uuidv4(), type: 'callout', content: { text: firstLine, style: 'success' } });
+      const rest = (content || '').split('\n').slice(1).join('\n').trim();
+      if (rest) {
+        blocks.push({ id: uuidv4(), type: 'text', content: { text: rest } });
+      }
+    } else {
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    }
+  } else {
+    // Default: heading + text
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+  }
+
+  return blocks;
+}
+
+function tryParseTable(content: string | null, defaultHeaders: string[]): Record<string, unknown> | null {
+  if (!content) return null;
+  // Check if content has markdown table or structured list patterns
+  const lines = content.split('\n').filter(l => l.trim());
+  const pipeLines = lines.filter(l => l.includes('|'));
+  
+  if (pipeLines.length >= 2) {
+    // Parse markdown table
+    const headerLine = pipeLines[0];
+    const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
+    const dataRows = pipeLines.slice(1).filter(l => !l.match(/^[\s|:-]+$/));
+    const rows = dataRows.map(row => row.split('|').map(c => c.trim()).filter(Boolean));
+    return { headers, rows };
+  }
+
+  return null;
+}
+
+function extractImageQuery(title: string, content: string | null): string {
+  // Generate a Pexels search query from section context
+  const keywords = title.replace(/[^a-zA-Z\s]/g, '').trim();
+  const contentWords = (content || '').slice(0, 200).replace(/[^a-zA-Z\s]/g, ' ').split(/\s+/).filter(w => w.length > 4);
+  const topWords = contentWords.slice(0, 3).join(' ');
+  return `${keywords} ${topWords}`.trim().slice(0, 60) || 'professional business';
 }
 
 export function useProposalDesign(projectId: string): UseProposalDesignReturn {
@@ -32,6 +128,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const [design, setDesign] = useState<ProposalDesign | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -43,7 +140,6 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const pushHistory = useCallback((blocks: ContentBlock[], settings: DesignSettings) => {
     if (skipHistoryRef.current) return;
     const idx = historyIndexRef.current;
-    // Truncate any redo entries
     historyRef.current = historyRef.current.slice(0, idx + 1);
     historyRef.current.push({ blocks: JSON.parse(JSON.stringify(blocks)), settings: { ...settings } });
     if (historyRef.current.length > MAX_HISTORY) historyRef.current.shift();
@@ -81,93 +177,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
           setDesign(loaded);
           pushHistory(loaded.content_blocks, loaded.design_settings);
         } else {
-          const { data: project } = await supabase
-            .from('projects')
-            .select('organization_id, title, client_name')
-            .eq('project_id', projectId)
-            .single();
-
-          if (!project) throw new Error('Project not found');
-
-          const { data: sections } = await supabase
-            .from('proposal_sections')
-            .select('section_title, content')
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: true });
-
-          const template = getTemplate('modern-corporate');
-
-          // Check for default brand guideline
-          let brandOverrides: Partial<DesignSettings> = {};
-          try {
-            const { data: defaultGuideline } = await supabase
-              .from('organization_brand_guidelines' as any)
-              .select('*')
-              .eq('organization_id', project.organization_id)
-              .eq('is_default', true)
-              .maybeSingle();
-
-            if (defaultGuideline) {
-              const g = defaultGuideline as any;
-              brandOverrides = {
-                primaryColor: g.primary_color,
-                secondaryColor: g.secondary_color,
-                headerFont: g.header_font,
-                bodyFont: g.body_font,
-                headerStyle: g.header_style,
-                coverLayout: g.cover_layout,
-                margins: g.margins,
-                sectionNumbering: g.section_numbering,
-                logoUrl: g.logo_url ?? undefined,
-              };
-            }
-          } catch (e) {
-            console.warn('Could not load default brand guideline:', e);
-          }
-
-          const blocks: ContentBlock[] = [
-            { id: uuidv4(), type: 'cover', content: { title: project.title || 'Proposal', subtitle: `Prepared for ${project.client_name || 'Client'}`, date: new Date().toLocaleDateString() } },
-            { id: uuidv4(), type: 'toc', content: {} },
-          ];
-
-          if (sections && sections.length > 0) {
-            for (const s of sections) {
-              blocks.push({ id: uuidv4(), type: 'heading', content: { text: s.section_title, level: 2 } });
-              blocks.push({ id: uuidv4(), type: 'text', content: { text: s.content || '' } });
-            }
-          }
-
-          const newDesign = {
-            project_id: projectId,
-            organization_id: project.organization_id,
-            user_id: session.user.id,
-            template_id: template.id,
-            design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout, ...brandOverrides },
-            content_blocks: blocks,
-          };
-
-          const { data: inserted, error: insertErr } = await supabase
-            .from('proposal_designs' as any)
-            .insert(newDesign as any)
-            .select()
-            .single();
-
-          if (insertErr) throw insertErr;
-
-          const ins = inserted as any;
-          const created: ProposalDesign = {
-            id: ins.id,
-            project_id: ins.project_id,
-            organization_id: ins.organization_id,
-            user_id: ins.user_id,
-            template_id: ins.template_id,
-            design_settings: ins.design_settings as DesignSettings,
-            content_blocks: (ins.content_blocks as ContentBlock[]) || [],
-            created_at: ins.created_at,
-            updated_at: ins.updated_at,
-          };
-          setDesign(created);
-          pushHistory(created.content_blocks, created.design_settings);
+          await createNewDesign();
         }
       } catch (err: any) {
         console.error('Error loading proposal design:', err);
@@ -179,6 +189,169 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
     load();
   }, [projectId, session?.user]);
+
+  const createNewDesign = async () => {
+    if (!session?.user) return;
+
+    const { data: project } = await supabase
+      .from('projects')
+      .select('organization_id, title, client_name')
+      .eq('project_id', projectId)
+      .single();
+
+    if (!project) throw new Error('Project not found');
+
+    const { data: sections } = await supabase
+      .from('proposal_sections')
+      .select('section_title, content')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+
+    const template = getTemplate('modern-corporate');
+
+    // Check for default brand guideline
+    let brandOverrides: Partial<DesignSettings> = {};
+    try {
+      const { data: defaultGuideline } = await supabase
+        .from('organization_brand_guidelines' as any)
+        .select('*')
+        .eq('organization_id', project.organization_id)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (defaultGuideline) {
+        const g = defaultGuideline as any;
+        brandOverrides = {
+          primaryColor: g.primary_color,
+          secondaryColor: g.secondary_color,
+          headerFont: g.header_font,
+          bodyFont: g.body_font,
+          headerStyle: g.header_style,
+          coverLayout: g.cover_layout,
+          margins: g.margins,
+          sectionNumbering: g.section_numbering,
+          logoUrl: g.logo_url ?? undefined,
+        };
+      }
+    } catch (e) {
+      console.warn('Could not load default brand guideline:', e);
+    }
+
+    // Use smart layout engine for block generation
+    const blocks: ContentBlock[] = [
+      { id: uuidv4(), type: 'cover', content: { title: project.title || 'Proposal', subtitle: `Prepared for ${project.client_name || 'Client'}`, date: new Date().toLocaleDateString() } },
+      { id: uuidv4(), type: 'toc', content: {} },
+    ];
+
+    if (sections && sections.length > 0) {
+      for (const s of sections) {
+        blocks.push(...mapSectionToBlocks(s.section_title, s.content || ''));
+      }
+    }
+
+    const newDesign = {
+      project_id: projectId,
+      organization_id: project.organization_id,
+      user_id: session.user.id,
+      template_id: template.id,
+      design_settings: { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout, ...brandOverrides },
+      content_blocks: blocks,
+    };
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('proposal_designs' as any)
+      .insert(newDesign as any)
+      .select()
+      .single();
+
+    if (insertErr) throw insertErr;
+
+    const ins = inserted as any;
+    const created: ProposalDesign = {
+      id: ins.id,
+      project_id: ins.project_id,
+      organization_id: ins.organization_id,
+      user_id: ins.user_id,
+      template_id: ins.template_id,
+      design_settings: ins.design_settings as DesignSettings,
+      content_blocks: (ins.content_blocks as ContentBlock[]) || [],
+      created_at: ins.created_at,
+      updated_at: ins.updated_at,
+    };
+    setDesign(created);
+    pushHistory(created.content_blocks, created.design_settings);
+  };
+
+  // Regenerate design from current proposal sections
+  const regenerateDesign = useCallback(async () => {
+    if (!design || !session?.user) return;
+    setIsRegenerating(true);
+    try {
+      const { data: sections } = await supabase
+        .from('proposal_sections')
+        .select('section_title, content')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+
+      const { data: project } = await supabase
+        .from('projects')
+        .select('title, client_name')
+        .eq('project_id', projectId)
+        .single();
+
+      // Check for default brand guideline
+      let brandOverrides: Partial<DesignSettings> = {};
+      try {
+        const { data: defaultGuideline } = await supabase
+          .from('organization_brand_guidelines' as any)
+          .select('*')
+          .eq('organization_id', design.organization_id)
+          .eq('is_default', true)
+          .maybeSingle();
+
+        if (defaultGuideline) {
+          const g = defaultGuideline as any;
+          brandOverrides = {
+            primaryColor: g.primary_color,
+            secondaryColor: g.secondary_color,
+            headerFont: g.header_font,
+            bodyFont: g.body_font,
+            headerStyle: g.header_style,
+            coverLayout: g.cover_layout,
+            margins: g.margins,
+            sectionNumbering: g.section_numbering,
+            logoUrl: g.logo_url ?? undefined,
+          };
+        }
+      } catch (e) {
+        console.warn('Could not load brand guideline:', e);
+      }
+
+      const template = getTemplate(design.template_id);
+      const newSettings = { ...template.defaults, headerStyle: template.headerStyle, coverLayout: template.coverLayout, ...brandOverrides };
+
+      const blocks: ContentBlock[] = [
+        { id: uuidv4(), type: 'cover', content: { title: project?.title || 'Proposal', subtitle: `Prepared for ${project?.client_name || 'Client'}`, date: new Date().toLocaleDateString() } },
+        { id: uuidv4(), type: 'toc', content: {} },
+      ];
+
+      if (sections && sections.length > 0) {
+        for (const s of sections) {
+          blocks.push(...mapSectionToBlocks(s.section_title, s.content || ''));
+        }
+      }
+
+      pushHistory(blocks, newSettings);
+      setDesign(prev => prev ? { ...prev, content_blocks: blocks, design_settings: newSettings } : null);
+      dirtyRef.current = true;
+      toast.success('Design regenerated from proposal content');
+    } catch (err) {
+      console.error('Regenerate failed:', err);
+      toast.error('Failed to regenerate design');
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [design, projectId, session, pushHistory]);
 
   // Autosave every 10s
   useEffect(() => {
@@ -287,5 +460,5 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const canUndo = historyIndexRef.current > 0;
   const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
-  return { design, isLoading, isSaving, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo };
+  return { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign };
 }

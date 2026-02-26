@@ -1,62 +1,72 @@
 
 
-## Plan: Persistent Brand Guidelines Across Proposals
+## AI Proposal Auto-Design Plan
 
 ### Current State
-- Each proposal stores its own `DesignSettings` (colors, fonts, logo, header style, cover layout) in the `proposal_designs` table -- these are per-proposal, not shared.
-- An `organization_branding` table exists but is used for the white-label system (app-level theming), not for proposal design defaults.
-- There is no way to save or load proposal branding presets.
+The system **already has most of what's described**:
+- 8 templates with distinct layouts, 9 block types, drag-and-drop editor, brand guidelines system, cover image upload, PDF export, autosave, outline sidebar, undo/redo
+- `useProposalDesign.ts` already creates initial blocks from `proposal_sections` (cover → TOC → heading+text per section) and applies default brand guidelines
+- Missing: smart section-to-block mapping (all sections become heading+text), stock image search, "Generate Designed Proposal" one-click button, Pexels integration
 
-### Approach
-Create a new `organization_brand_guidelines` table to store proposal-specific brand presets (logo, colors, fonts, header/cover style). Users can save their current design settings as guidelines from the Design Studio, or manage them from Account Settings. When creating a new proposal, the system auto-applies saved guidelines instead of template defaults.
+### What to Build
 
-### Database Changes
+#### 1. Smart Layout Engine in `useProposalDesign.ts`
+Upgrade the block generation logic (lines 128-137) to map section types to richer block structures instead of always producing heading+text:
 
-**New table: `organization_brand_guidelines`**
+| Section type pattern | Generated blocks |
+|---|---|
+| `executive_summary` | heading + callout (key points) + text |
+| `timeline` / `schedule` | heading + table (auto-parsed if content has dates) |
+| `pricing` / `cost` | heading + table (auto-parsed) |
+| `team` / `personnel` | heading + text (team grid placeholder) |
+| `case_study` / `experience` | heading + quote + text |
+| `methodology` / `approach` | heading + text + divider |
+| Default | heading + text (current behavior) |
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | |
-| organization_id | UUID FK | references organizations(id) |
-| name | TEXT | e.g. "Default", "Client-facing" |
-| is_default | BOOLEAN | only one default per org |
-| logo_url | TEXT | storage path in rfp-files |
-| primary_color | TEXT | hex |
-| secondary_color | TEXT | hex |
-| header_font | TEXT | |
-| body_font | TEXT | |
-| header_style | TEXT | matches HeaderStyle type |
-| cover_layout | TEXT | matches CoverLayout type |
-| margins | TEXT | narrow/normal/wide |
-| section_numbering | BOOLEAN | |
-| created_at / updated_at | TIMESTAMPTZ | |
+Match by checking `section_title.toLowerCase()` against keyword patterns.
 
-RLS: org members can read; owners/admins can insert/update/delete.
+#### 2. "Generate Designed Proposal" Button
+Add a prominent button in `ProposalDesignStudio.tsx` (and optionally in the proposal draft view) that:
+- Deletes existing blocks (after confirmation if they exist)
+- Re-fetches `proposal_sections` and `organization_brand_guidelines`
+- Runs the smart layout engine to regenerate all blocks
+- Applies the default brand guideline or best-matching template
 
-### Code Changes
+This is essentially a "regenerate design from content" action exposed as a one-click UX.
+
+#### 3. Pexels Stock Image Search
+**Edge function**: `search-stock-images/index.ts` — proxies requests to `https://api.pexels.com/v1/search` with the API key stored as a Supabase secret.
+
+**UI**: Add a "Search Stock Images" tab/button to `ImageBlock.tsx` and `CoverBlock.tsx`:
+- Opens a dialog with a search input
+- Shows image grid from Pexels results
+- Click to insert image URL into the block
+
+**AI suggestion**: When generating blocks, auto-populate a `suggestedImageQuery` field in image block content based on the preceding section title (e.g., "cybersecurity consulting" for a "Solution" section about cybersecurity).
+
+#### 4. No Database Changes Required
+The existing `proposal_designs` table and `organization_brand_guidelines` table already cover all storage needs. No new tables needed.
+
+### File Changes
 
 | File | Change |
-|------|--------|
-| **New: `src/hooks/useBrandGuidelines.ts`** | Hook to fetch, save, update, delete brand guidelines for the current org. Includes `getDefaultGuideline()` helper. |
-| **`BrandingCustomizer.tsx`** | Add "Save as Brand Guideline" button and a dropdown to load a saved guideline. When loading, it applies all settings from the guideline to the current proposal. |
-| **`useProposalDesign.ts`** | On new proposal creation (the `else` branch), check for a default brand guideline and merge its settings (logo, colors, fonts, styles) into the initial `DesignSettings` instead of using only template defaults. |
-| **`AccountSettings.tsx`** | Add a new "Brand Guidelines" card section that shows saved guidelines with edit/delete, and a button to create a new one. Visible to all users (not just enterprise). |
-| **New: `src/components/account/BrandGuidelinesCard.tsx`** | UI component for managing brand guidelines from account settings -- list, create, edit, set default, delete. Includes color pickers, font selectors, and logo upload reusing existing patterns. |
-| **`ProposalDesignStudio.tsx`** | No direct changes needed; `BrandingCustomizer` handles the save/load UI. |
-
-### User Flow
-
-1. **From Design Studio**: User customizes branding, clicks "Save as Brand Guideline" -- saves current colors/fonts/logo/styles as a named preset. Option to mark as default.
-2. **From Account Settings**: User manages guidelines (rename, edit colors, set default, delete).
-3. **New proposal creation**: System checks for a default guideline. If found, merges its values into the initial design settings (overriding template colors/fonts/logo but keeping template structure).
-4. **From Design Studio**: User can click "Load Guideline" dropdown to apply a saved guideline to the current proposal at any time.
+|---|---|
+| `useProposalDesign.ts` | Add `mapSectionToBlocks()` function with keyword-based layout mapping; add `regenerateDesign()` method returned from hook |
+| `ProposalDesignStudio.tsx` | Add "Generate Designed Proposal" button that calls `regenerateDesign()` |
+| **New: `supabase/functions/search-stock-images/index.ts`** | Pexels API proxy edge function |
+| **New: `src/components/project/design-studio/StockImageSearch.tsx`** | Dialog component with search input + image grid |
+| `blocks/ImageBlock.tsx` | Add "Search Stock Images" button that opens `StockImageSearch` dialog |
+| `blocks/CoverBlock.tsx` | Add "Search Stock Images" option alongside upload |
+| `supabase/config.toml` | Add `[functions.search-stock-images]` with `verify_jwt = false` |
 
 ### Implementation Order
 
-1. Create `organization_brand_guidelines` table + RLS policies
-2. Build `useBrandGuidelines` hook
-3. Add save/load UI to `BrandingCustomizer`
-4. Update `useProposalDesign` to auto-apply default guideline on new proposals
-5. Build `BrandGuidelinesCard` for Account Settings
-6. Add the card to `AccountSettings.tsx`
+1. Add Pexels API key as Supabase secret
+2. Create `search-stock-images` edge function
+3. Build `StockImageSearch` dialog component
+4. Add stock image search to `ImageBlock` and `CoverBlock`
+5. Build smart `mapSectionToBlocks()` layout engine
+6. Add `regenerateDesign()` to `useProposalDesign` hook
+7. Add "Generate Designed Proposal" button to `ProposalDesignStudio`
+8. Deploy edge function
 

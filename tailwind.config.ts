@@ -110,7 +110,7 @@ export default {
               color: 'inherit',
             },
             h3: {
-              color: '#34D399',
+              color: 'inherit',
             },
             h4: {
               color: 'inherit',

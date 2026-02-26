@@ -14,11 +14,28 @@ export function TextBlock({ block, settings, onUpdate, preview }: TextBlockProps
   const text = (block.content as { text?: string }).text || '';
 
   if (preview) {
+    const headingStyle = (level: string) => ({
+      color: settings.primaryColor,
+      fontFamily: settings.headerFont,
+    });
+
     return (
       <div className="prose prose-sm max-w-none" style={{ fontFamily: settings.bodyFont }}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
+            h1: ({ children }) => (
+              <h1 className="text-3xl font-bold mt-6 mb-4" style={headingStyle('h1')}>{children}</h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-2xl font-bold mt-6 mb-3" style={headingStyle('h2')}>{children}</h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-xl font-bold mt-6 mb-2" style={headingStyle('h3')}>{children}</h3>
+            ),
+            h4: ({ children }) => (
+              <h4 className="text-lg font-semibold mt-4 mb-2" style={headingStyle('h4')}>{children}</h4>
+            ),
             table: ({ children }) => (
               <div className="overflow-x-auto my-4">
                 <table className="w-full border-collapse text-sm" style={{ fontFamily: settings.bodyFont }}>
@@ -27,9 +44,7 @@ export function TextBlock({ block, settings, onUpdate, preview }: TextBlockProps
               </div>
             ),
             thead: ({ children }) => (
-              <thead>
-                {children}
-              </thead>
+              <thead>{children}</thead>
             ),
             tr: ({ children }) => (
               <tr>{children}</tr>

@@ -29,11 +29,18 @@ interface UseProposalDesignReturn {
   regenerateDesign: () => Promise<void>;
 }
 
+// Normalize markdown heading lines: strip bold markers around heading text (### **Title** → ### Title)
+function cleanMarkdownHeadings(text: string): string {
+  return text.replace(/^(#{1,4})\s+\*{1,3}(.*?)\*{1,3}\s*$/gm, '$1 $2');
+}
+
 // Smart layout engine: maps section title keywords to richer block structures
 function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock[] {
   const title = sectionTitle.toLowerCase();
   // Strip markdown bold/italic from section title
   const cleanTitle = sectionTitle.replace(/\*{1,3}(.*?)\*{1,3}/g, '$1').replace(/_{1,3}(.*?)_{1,3}/g, '$1');
+  // Clean markdown headings in content
+  const cleanContent = cleanMarkdownHeadings(content || '');
   const blocks: ContentBlock[] = [];
 
   // Always start with a heading
@@ -41,66 +48,66 @@ function mapSectionToBlocks(sectionTitle: string, content: string): ContentBlock
 
   if (title.includes('executive') && title.includes('summary')) {
     // Extract first sentence as a callout highlight
-    const firstSentence = content?.split(/[.!?]\s/)?.[0] || '';
-    if (firstSentence && content) {
+    const firstSentence = cleanContent?.split(/[.!?]\s/)?.[0] || '';
+    if (firstSentence && cleanContent) {
       blocks.push({ id: uuidv4(), type: 'callout', content: { text: firstSentence + '.', style: 'info' } });
     }
-    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
-    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
+    const imageQuery = extractImageQuery(sectionTitle, cleanContent);
     blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('timeline') || title.includes('schedule') || title.includes('milestones')) {
     // Attempt to parse timeline content into a table
-    const tableData = tryParseTable(content, ['Phase', 'Timeline', 'Deliverables']);
+    const tableData = tryParseTable(cleanContent, ['Phase', 'Timeline', 'Deliverables']);
     if (tableData) {
       blocks.push({ id: uuidv4(), type: 'table', content: tableData });
     } else {
-      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
     }
   } else if (title.includes('pricing') || title.includes('cost') || title.includes('budget') || title.includes('fee')) {
-    const tableData = tryParseTable(content, ['Item', 'Description', 'Cost']);
+    const tableData = tryParseTable(cleanContent, ['Item', 'Description', 'Cost']);
     if (tableData) {
       blocks.push({ id: uuidv4(), type: 'table', content: tableData });
     } else {
-      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
     }
   } else if (title.includes('case stud') || title.includes('experience') || title.includes('past performance')) {
-    const lines = (content || '').split('\n').filter(l => l.trim());
+    const lines = cleanContent.split('\n').filter(l => l.trim());
     if (lines.length > 1) {
       blocks.push({ id: uuidv4(), type: 'quote', content: { text: lines[0], attribution: '' } });
       blocks.push({ id: uuidv4(), type: 'text', content: { text: lines.slice(1).join('\n') } });
     } else {
-      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
     }
-    const imageQuery = extractImageQuery(sectionTitle, content);
+    const imageQuery = extractImageQuery(sectionTitle, cleanContent);
     blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('methodology') || title.includes('approach') || title.includes('process')) {
-    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
-    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
+    const imageQuery = extractImageQuery(sectionTitle, cleanContent);
     blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
     blocks.push({ id: uuidv4(), type: 'divider', content: {} });
   } else if (title.includes('team') || title.includes('personnel') || title.includes('staff')) {
-    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
-    const imageQuery = extractImageQuery(sectionTitle, content);
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
+    const imageQuery = extractImageQuery(sectionTitle, cleanContent);
     blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('solution') || title.includes('overview') || title.includes('company')) {
-    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
     // Add a suggested image block for visual sections
-    const imageQuery = extractImageQuery(sectionTitle, content);
+    const imageQuery = extractImageQuery(sectionTitle, cleanContent);
     blocks.push({ id: uuidv4(), type: 'image', content: { url: '', caption: '', suggestedImageQuery: imageQuery } });
   } else if (title.includes('conclusion') || title.includes('closing') || title.includes('next steps')) {
-    const firstLine = (content || '').split('\n')[0] || '';
+    const firstLine = cleanContent.split('\n')[0] || '';
     if (firstLine) {
       blocks.push({ id: uuidv4(), type: 'callout', content: { text: firstLine, style: 'success' } });
-      const rest = (content || '').split('\n').slice(1).join('\n').trim();
+      const rest = cleanContent.split('\n').slice(1).join('\n').trim();
       if (rest) {
         blocks.push({ id: uuidv4(), type: 'text', content: { text: rest } });
       }
     } else {
-      blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+      blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
     }
   } else {
     // Default: heading + text
-    blocks.push({ id: uuidv4(), type: 'text', content: { text: content || '' } });
+    blocks.push({ id: uuidv4(), type: 'text', content: { text: cleanContent } });
   }
 
   return blocks;

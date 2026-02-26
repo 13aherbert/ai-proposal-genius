@@ -11,7 +11,10 @@ interface HeadingBlockProps {
 }
 
 export function HeadingBlock({ block, settings, onUpdate, preview, sectionNumber }: HeadingBlockProps) {
-  const { text, level } = block.content as { text?: string; level?: number };
+  const rawText = (block.content as { text?: string }).text || '';
+  const { level } = block.content as { level?: number };
+  // Strip markdown bold/italic markers for display
+  const text = rawText.replace(/\*{1,3}(.*?)\*{1,3}/g, '$1').replace(/_{1,3}(.*?)_{1,3}/g, '$1');
   const lvl = level || 2;
   const style: HeaderStyle = settings.headerStyle || 'accent-bar';
   const prefix = settings.sectionNumbering && sectionNumber ? `${sectionNumber} ` : '';

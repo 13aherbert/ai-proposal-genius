@@ -1,57 +1,25 @@
 
+Diagnosis confirmed:
+1) The green “Project Plan & Timeline” text is coming from Markdown rendered inside a Text block (`TextBlock.tsx`), not from a Heading block.
+2) Global typography config hard-codes all `h3` tags to green in `tailwind.config.ts` (`typography.DEFAULT.css.h3.color = '#34D399'`), so Markdown `###` headings render green regardless of proposal branding.
+3) The `**` seen in editor is raw Markdown in the textarea (source mode), not preview rendering.
 
-## Auto-Insert Pexels Images During Design Generation
+Implementation plan:
+1) Remove hard-coded green `h3` typography rule from `tailwind.config.ts` (set to `inherit` like h1/h2/h4).
+2) Add explicit Markdown heading renderers in `TextBlock.tsx` (`h1`–`h4`) so preview headings use proposal branding (`settings.primaryColor`, `settings.headerFont`) and no global prose color leaks in.
+3) Normalize generated markdown heading lines in `useProposalDesign.ts` when creating text blocks (convert patterns like `### **Title**` → `### Title`) to reduce noisy `**` in editor-generated content.
+4) Keep existing textarea editor behavior (raw markdown), but ensure generated content is cleaner by default after regeneration.
 
-### Problem
-Currently, the layout engine only adds empty image blocks with a `suggestedImageQuery` field for "solution"/"overview"/"company" sections. Users must manually search and select images. Other visual sections (case studies, methodology, team) get no image blocks at all.
+Validation plan:
+1) Regenerate Designed Proposal.
+2) Confirm “Project Plan & Timeline” in Preview matches brand color/font (not green).
+3) Confirm timeline/cost sections still render tables correctly.
+4) Confirm generated markdown no longer includes `**` around heading text for new regenerations.
+5) Verify one existing proposal and one newly regenerated proposal end-to-end in Preview + Editor tabs.
 
-### Changes
-
-#### 1. Add more image blocks across section types in `mapSectionToBlocks()`
-
-**File:** `useProposalDesign.ts` — `mapSectionToBlocks()` function
-
-Add image blocks with `suggestedImageQuery` to these additional section types:
-- `case_study` / `experience` — after text
-- `methodology` / `approach` — after text, before divider
-- `team` / `personnel` — after text
-- `executive_summary` — after text
-
-Each gets a contextual `suggestedImageQuery` derived from `extractImageQuery()`.
-
-#### 2. Auto-fetch Pexels images during generation
-
-**File:** `useProposalDesign.ts` — new `autoPopulateImages()` async function
-
-After `mapSectionToBlocks()` builds all blocks, iterate over image blocks that have a `suggestedImageQuery` but no `url`. For each, call the `search-stock-images` edge function and pick the first result's `large` URL. This runs during both `createNewDesign()` and `regenerateDesign()`.
-
-```text
-blocks = mapSectionToBlocks(...)
-blocks = await autoPopulateImages(blocks)  // fills empty image URLs
-```
-
-Logic:
-- Collect all image blocks with `suggestedImageQuery` and empty `url`
-- Batch queries (max 5-6 to avoid slowness)
-- Call `supabase.functions.invoke('search-stock-images', { body: { query, per_page: 1 } })`
-- Set `block.content.url` to first photo's `large` src
-- Set `block.content.caption` to photographer credit
-- If any call fails, leave the block empty (graceful fallback)
-
-#### 3. Also auto-populate cover image
-
-In `createNewDesign()` and `regenerateDesign()`, after building blocks, find the cover block and if it has no `coverImageUrl`, fetch a relevant image using the project title as query and set it.
-
-### File Changes
-
-| File | Change |
-|------|--------|
-| `useProposalDesign.ts` | Add image blocks to more section types in `mapSectionToBlocks()`; add `autoPopulateImages()` function; call it in `createNewDesign()` and `regenerateDesign()` |
-
-No database changes. No new files. No edge function changes.
-
-### Implementation Notes
-- Parallel fetch all image queries using `Promise.allSettled` to avoid one failure blocking everything
-- Cap at 6 concurrent image fetches to keep generation fast (<3s)
-- Users can still replace/remove any auto-inserted image via existing UI
-
+Technical details:
+- Files to update:
+  - `tailwind.config.ts`
+  - `src/components/project/design-studio/blocks/TextBlock.tsx`
+  - `src/components/project/design-studio/useProposalDesign.ts`
+- No DB or Edge Function changes required.

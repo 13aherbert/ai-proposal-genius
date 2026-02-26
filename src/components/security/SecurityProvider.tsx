@@ -49,7 +49,7 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net 'nonce-${generateNonce()}';
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
         font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
-        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io https://via.placeholder.com;
+        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io https://via.placeholder.com https://images.pexels.com;
         connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com https://api.stripe.com;
         frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
         frame-ancestors 'none';

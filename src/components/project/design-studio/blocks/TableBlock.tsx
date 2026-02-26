@@ -2,6 +2,8 @@ import { ContentBlock, DesignSettings } from '../types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface TableBlockProps {
   block: ContentBlock;
@@ -57,7 +59,14 @@ export function TableBlock({ block, settings, onUpdate, preview }: TableBlockPro
           <tbody>
             {rows.map((row, ri) => (
               <tr key={ri} className={ri % 2 === 0 ? 'bg-muted/30' : ''}>
-                {row.map((cell, ci) => <td key={ci} className="px-4 py-2 border-b">{cell}</td>)}
+                {row.map((cell, ci) => (
+                  <td key={ci} className="px-4 py-2 border-b">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                      p: ({ children }) => <span>{children}</span>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    }}>{cell}</ReactMarkdown>
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

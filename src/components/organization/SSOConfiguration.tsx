@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Shield, Key, Settings, Plus, Trash2 } from "lucide-react";
+import { Shield, Key, Settings, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
@@ -34,6 +34,16 @@ interface SSOConfig {
   updated_at: string;
 }
 
+// All SSO operations go through edge function to prevent client-side secret exposure
+async function invokeSSOFunction(action: string, organizationId: string, configId?: string, configData?: any) {
+  const { data, error } = await supabase.functions.invoke('manage-sso-config', {
+    body: { action, organizationId, configId, configData },
+  });
+  if (error) throw new Error(error.message || 'SSO operation failed');
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 export function SSOConfiguration() {
   const { session } = useAuth();
   const { organization: currentOrganization } = useCurrentOrganization();
@@ -43,7 +53,6 @@ export function SSOConfiguration() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingConfig, setEditingConfig] = useState<SSOConfig | null>(null);
 
-  // New SSO configuration form state
   const [newConfig, setNewConfig] = useState<{
     provider_type: 'saml' | 'oauth' | 'oidc';
     provider_name: string;
@@ -67,19 +76,11 @@ export function SSOConfiguration() {
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('organization_sso_config')
-        .select('*')
-        .eq('organization_id', currentOrganization.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSsoConfigs(data as SSOConfig[] || []);
+      const result = await invokeSSOFunction('list', currentOrganization.id);
+      setSsoConfigs(result.data as SSOConfig[] || []);
     } catch (error: any) {
       console.error('Error fetching SSO configs:', error);
-      toast.error("Failed to load SSO configurations", {
-        description: error.message
-      });
+      toast.error("Failed to load SSO configurations");
     } finally {
       setIsLoading(false);
     }
@@ -93,17 +94,7 @@ export function SSOConfiguration() {
 
     try {
       setIsCreating(true);
-      const { error } = await supabase
-        .from('organization_sso_config')
-        .insert({
-          organization_id: currentOrganization.id,
-          provider_type: newConfig.provider_type,
-          provider_name: newConfig.provider_name,
-          configuration: newConfig.configuration,
-          is_active: newConfig.is_active
-        });
-
-      if (error) throw error;
+      await invokeSSOFunction('create', currentOrganization.id, undefined, newConfig);
 
       toast.success("SSO configuration created successfully");
       setShowCreateForm(false);
@@ -116,53 +107,33 @@ export function SSOConfiguration() {
       fetchSSOConfigs();
     } catch (error: any) {
       console.error('Error creating SSO config:', error);
-      toast.error("Failed to create SSO configuration", {
-        description: error.message
-      });
+      toast.error("Failed to create SSO configuration");
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleToggleConfig = async (config: SSOConfig) => {
+    if (!currentOrganization?.id) return;
     try {
-      const { error } = await supabase
-        .from('organization_sso_config')
-        .update({ is_active: !config.is_active })
-        .eq('id', config.id);
-
-      if (error) throw error;
-
-      toast.success(
-        config.is_active 
-          ? "SSO configuration disabled" 
-          : "SSO configuration enabled"
-      );
+      await invokeSSOFunction('toggle', currentOrganization.id, config.id);
+      toast.success(config.is_active ? "SSO configuration disabled" : "SSO configuration enabled");
       fetchSSOConfigs();
     } catch (error: any) {
       console.error('Error toggling SSO config:', error);
-      toast.error("Failed to update SSO configuration", {
-        description: error.message
-      });
+      toast.error("Failed to update SSO configuration");
     }
   };
 
   const handleDeleteConfig = async (configId: string) => {
+    if (!currentOrganization?.id) return;
     try {
-      const { error } = await supabase
-        .from('organization_sso_config')
-        .delete()
-        .eq('id', configId);
-
-      if (error) throw error;
-
+      await invokeSSOFunction('delete', currentOrganization.id, configId);
       toast.success("SSO configuration deleted");
       fetchSSOConfigs();
     } catch (error: any) {
       console.error('Error deleting SSO config:', error);
-      toast.error("Failed to delete SSO configuration", {
-        description: error.message
-      });
+      toast.error("Failed to delete SSO configuration");
     }
   };
 

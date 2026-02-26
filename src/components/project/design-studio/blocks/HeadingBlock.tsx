@@ -28,9 +28,28 @@ export function HeadingBlock({ block, settings, onUpdate, preview, sectionNumber
         case 'underline': return { ...base, fontWeight: 700, borderBottom: `3px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
         case 'accent-bar': return { ...base, fontWeight: 700, borderLeft: `4px solid ${settings.primaryColor}`, paddingLeft: '0.75rem' };
         case 'gradient': return { ...base, fontWeight: 700, backgroundImage: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
+        case 'boxed': return { fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: settings.primaryColor, color: '#fff', padding: '0.5rem 1rem', borderRadius: '0.25rem' };
+        case 'pill': return { fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: settings.primaryColor, color: '#fff', padding: '0.4rem 1.5rem', borderRadius: '9999px', display: 'inline-block' };
+        case 'numbered': return { ...base, fontWeight: 700, borderBottom: `2px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
         case 'minimal': default: return { ...base, fontWeight: 600 };
       }
     };
+
+    if (style === 'numbered' && prefix) {
+      return (
+        <div className="flex items-center gap-3" style={{ borderBottom: `2px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' }}>
+          <span
+            className="flex-shrink-0 flex items-center justify-center rounded text-white font-bold"
+            style={{ backgroundColor: settings.primaryColor, width: '2rem', height: '2rem', fontSize: '0.875rem' }}
+          >
+            {prefix.trim()}
+          </span>
+          <Tag className={baseClass} style={{ fontFamily: settings.headerFont, color: settings.primaryColor, fontWeight: 700 }}>
+            {text || 'Section Heading'}
+          </Tag>
+        </div>
+      );
+    }
 
     return (
       <Tag className={baseClass} style={getStyle()}>

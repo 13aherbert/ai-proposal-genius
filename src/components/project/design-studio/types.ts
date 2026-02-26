@@ -7,8 +7,8 @@ export interface ContentBlock {
   settings?: Record<string, unknown>;
 }
 
-export type HeaderStyle = 'bold' | 'underline' | 'accent-bar' | 'minimal' | 'gradient';
-export type CoverLayout = 'centered' | 'left-aligned' | 'split' | 'minimal' | 'full-bleed';
+export type HeaderStyle = 'bold' | 'underline' | 'accent-bar' | 'minimal' | 'gradient' | 'boxed' | 'numbered' | 'pill';
+export type CoverLayout = 'centered' | 'left-aligned' | 'split' | 'minimal' | 'full-bleed' | 'banner' | 'sidebar' | 'diagonal';
 
 export interface DesignSettings {
   primaryColor: string;
@@ -28,8 +28,8 @@ export interface TemplateConfig {
   description: string;
   preview: string; // emoji or icon identifier
   defaults: DesignSettings;
-  headerStyle: 'bold' | 'underline' | 'accent-bar' | 'minimal' | 'gradient';
-  coverLayout: 'centered' | 'left-aligned' | 'split' | 'minimal' | 'full-bleed';
+  headerStyle: HeaderStyle;
+  coverLayout: CoverLayout;
 }
 
 export interface ProposalDesign {

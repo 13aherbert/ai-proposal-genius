@@ -42,6 +42,34 @@ function TemplateMiniPreview({ template }: { template: TemplateConfig }) {
           <div className="h-1 w-9 rounded-full bg-white/60 mb-1" />
           <div className="h-1 w-5 rounded-full bg-white/40" />
         </div>
+      ) : layout === 'banner' ? (
+        <div className="h-full flex flex-col">
+          <div className="flex-1" style={{ background: `linear-gradient(135deg, ${primaryColor}88, ${secondaryColor}88)` }} />
+          <div className="p-2" style={{ backgroundColor: primaryColor }}>
+            <div className="h-1.5 w-10 rounded-full bg-white/90 mb-1" />
+            <div className="h-1 w-7 rounded-full bg-white/50" />
+          </div>
+        </div>
+      ) : layout === 'sidebar' ? (
+        <div className="h-full flex">
+          <div className="w-[30%] p-1.5 flex flex-col justify-end" style={{ backgroundColor: primaryColor }}>
+            <div className="h-1 w-5 rounded-full bg-white/60 mb-0.5" />
+            <div className="h-1 w-4 rounded-full bg-white/40" />
+          </div>
+          <div className="w-[70%] p-2 flex flex-col justify-center bg-white">
+            <div className="h-1.5 w-12 rounded-full mb-1" style={{ backgroundColor: primaryColor }} />
+            <div className="h-1 w-8 rounded-full" style={{ backgroundColor: secondaryColor, opacity: 0.5 }} />
+          </div>
+        </div>
+      ) : layout === 'diagonal' ? (
+        <div className="h-full relative overflow-hidden flex items-center justify-center">
+          <div className="absolute inset-0" style={{ backgroundColor: primaryColor }} />
+          <div className="absolute inset-0" style={{ backgroundColor: secondaryColor, clipPath: 'polygon(100% 0, 0% 100%, 100% 100%)' }} />
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="h-2 w-12 rounded-full bg-white/90 mb-1" />
+            <div className="h-1 w-7 rounded-full bg-white/60" />
+          </div>
+        </div>
       ) : (
         /* centered */
         <div className="h-full flex flex-col items-center justify-center p-3" style={{ backgroundColor: primaryColor }}>
@@ -56,7 +84,7 @@ function TemplateMiniPreview({ template }: { template: TemplateConfig }) {
 
 export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {templates.map((t) => (
         <Card
           key={t.id}

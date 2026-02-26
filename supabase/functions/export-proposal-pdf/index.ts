@@ -107,6 +107,7 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
   const title = escapeHtml(String(c.title || "Proposal"));
   const subtitle = escapeHtml(String(c.subtitle || ""));
   const date = escapeHtml(String(c.date || ""));
+  const coverImageUrl = c.coverImageUrl ? escapeHtml(String(c.coverImageUrl)) : "";
   const layout = settings.coverLayout || "centered";
   const logo = settings.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" style="max-height:60px;max-width:200px;object-fit:contain;" />` : "";
 
@@ -144,6 +145,43 @@ function renderCoverHtml(block: ContentBlock, settings: DesignSettings): string 
         <p style="font-size:20px;opacity:0.9;margin-bottom:8px;">${subtitle}</p>
         <p style="font-size:14px;opacity:0.7;">${date}</p>
       </div>`;
+    case "banner":
+      return `<div style="min-height:600px;page-break-after:always;">
+        <div style="height:350px;background:${coverImageUrl ? `url(${coverImageUrl}) center/cover no-repeat` : `linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor})`};"></div>
+        <div style="background:${settings.primaryColor};color:#fff;padding:32px 48px;">
+          ${logo ? `<div style="margin-bottom:12px;">${logo}</div>` : ""}
+          <h1 style="font-size:32px;font-family:${settings.headerFont};margin-bottom:8px;">${title}</h1>
+          <p style="font-size:16px;opacity:0.9;margin-bottom:4px;">${subtitle}</p>
+          <p style="font-size:14px;opacity:0.7;">${date}</p>
+        </div>
+      </div>`;
+    case "sidebar":
+      return `<div style="display:flex;min-height:600px;page-break-after:always;">
+        <div style="width:30%;background:${settings.primaryColor};color:#fff;padding:32px;display:flex;flex-direction:column;justify-content:space-between;">
+          ${logo ? `<div>${logo}</div>` : "<div></div>"}
+          <div>
+            <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.7;">Date</p>
+            <p style="font-size:13px;margin-bottom:16px;">${date}</p>
+            <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.7;">Prepared by</p>
+            <p style="font-size:13px;">${subtitle}</p>
+          </div>
+        </div>
+        <div style="width:70%;padding:60px;display:flex;flex-direction:column;justify-content:center;">
+          <h1 style="font-size:36px;font-family:${settings.headerFont};color:${settings.primaryColor};margin-bottom:16px;">${title}</h1>
+          <p style="font-size:18px;color:${settings.secondaryColor};">${subtitle}</p>
+        </div>
+      </div>`;
+    case "diagonal":
+      return `<div style="position:relative;min-height:600px;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;page-break-after:always;">
+        <div style="position:absolute;inset:0;background:${settings.primaryColor};"></div>
+        <div style="position:absolute;inset:0;background:${settings.secondaryColor};clip-path:polygon(100% 0, 0% 100%, 100% 100%);"></div>
+        <div style="position:relative;z-index:1;color:#fff;padding:60px;">
+          ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
+          <h1 style="font-size:40px;font-family:${settings.headerFont};margin-bottom:16px;">${title}</h1>
+          <p style="font-size:20px;opacity:0.9;margin-bottom:8px;">${subtitle}</p>
+          <p style="font-size:14px;opacity:0.7;">${date}</p>
+        </div>
+      </div>`;
     default:
       return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:600px;background:${settings.primaryColor};color:#fff;text-align:center;padding:60px;page-break-after:always;">
         ${logo ? `<div style="margin-bottom:24px;">${logo}</div>` : ""}
@@ -169,6 +207,16 @@ function renderHeadingHtml(block: ContentBlock, settings: DesignSettings, sectio
     case "underline": style += `font-weight:700;border-bottom:3px solid ${settings.primaryColor};padding-bottom:8px;`; break;
     case "accent-bar": style += `font-weight:700;border-left:4px solid ${settings.primaryColor};padding-left:12px;`; break;
     case "gradient": style += `font-weight:700;background:linear-gradient(135deg,${settings.primaryColor},${settings.secondaryColor});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;`; break;
+    case "boxed": style = `font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};margin-top:24px;font-weight:700;background:${settings.primaryColor};color:#fff;padding:8px 16px;border-radius:4px;`; break;
+    case "pill": style = `font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};margin-top:24px;font-weight:700;background:${settings.primaryColor};color:#fff;padding:6px 24px;border-radius:9999px;display:inline-block;`; break;
+    case "numbered":
+      if (sectionNumber) {
+        return `<div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid ${settings.primaryColor};padding-bottom:8px;margin-top:24px;">
+          <span style="background:${settings.primaryColor};color:#fff;font-weight:700;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:14px;">${escapeHtml(sectionNumber)}</span>
+          <h${lvl} style="font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};color:${settings.primaryColor};font-weight:700;margin:0;">${escapeHtml(String(c.text || ""))}</h${lvl}>
+        </div>`;
+      }
+      style += `font-weight:700;border-bottom:2px solid ${settings.primaryColor};padding-bottom:8px;`; break;
     case "minimal": default: style += "font-weight:600;"; break;
   }
 
@@ -305,6 +353,22 @@ Deno.serve(async (req: Request) => {
     }
 
     const blocks = (design.content_blocks as ContentBlock[]) || [];
+
+    // Resolve cover image URLs in cover blocks
+    for (const block of blocks) {
+      if (block.type === 'cover' && block.content.coverImageUrl) {
+        const imgPath = String(block.content.coverImageUrl);
+        if (!imgPath.startsWith('http')) {
+          const { data: signedData } = await adminClient.storage
+            .from('rfp-files')
+            .createSignedUrl(imgPath, 3600);
+          if (signedData?.signedUrl) {
+            block.content.coverImageUrl = signedData.signedUrl;
+          }
+        }
+      }
+    }
+
     const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
     const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
 

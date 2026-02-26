@@ -16,6 +16,7 @@ import { SubscriptionCard } from "@/components/account/SubscriptionCard";
 import { BillingHistory } from "@/components/account/BillingHistory";
 import { ProfileLoading } from "@/components/account/ProfileLoading";
 import { AccountActionButtons } from "@/components/account/AccountActionButtons";
+import { BrandGuidelinesCard } from "@/components/account/BrandGuidelinesCard";
 import { useProfile } from "@/hooks/use-profile";
 
 export default function AccountSettings() {
@@ -121,6 +122,8 @@ export default function AccountSettings() {
                 <SubscriptionCard subscription={subscription ? toSubscriptionPlan(subscription) : null} />
                 
                 <BillingHistory />
+
+                <BrandGuidelinesCard />
                 
                 {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
                   <div className="p-6 border rounded-lg bg-card">

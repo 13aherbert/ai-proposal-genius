@@ -597,6 +597,68 @@ export type Database = {
           },
         ]
       }
+      organization_brand_guidelines: {
+        Row: {
+          body_font: string | null
+          cover_layout: string | null
+          created_at: string
+          header_font: string | null
+          header_style: string | null
+          id: string
+          is_default: boolean
+          logo_url: string | null
+          margins: string | null
+          name: string
+          organization_id: string
+          primary_color: string | null
+          secondary_color: string | null
+          section_numbering: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          body_font?: string | null
+          cover_layout?: string | null
+          created_at?: string
+          header_font?: string | null
+          header_style?: string | null
+          id?: string
+          is_default?: boolean
+          logo_url?: string | null
+          margins?: string | null
+          name?: string
+          organization_id: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          section_numbering?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          body_font?: string | null
+          cover_layout?: string | null
+          created_at?: string
+          header_font?: string | null
+          header_style?: string | null
+          id?: string
+          is_default?: boolean
+          logo_url?: string | null
+          margins?: string | null
+          name?: string
+          organization_id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          section_numbering?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_brand_guidelines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_branding: {
         Row: {
           accent_color: string | null

@@ -12,6 +12,7 @@ export type FeatureName =
   | 'advanced_analytics'
   | 'api_access'
   | 'white_labeling'
+  | 'design_studio'
   | 'priority_support'
   | 'custom_templates'
   | 'opportunity_search';

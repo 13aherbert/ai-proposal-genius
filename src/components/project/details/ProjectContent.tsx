@@ -159,7 +159,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
         }
 
       case "design":
-        if (hasFeature("proposal_draft")) {
+        if (hasFeature("design_studio")) {
           return (
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
@@ -168,7 +168,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
             </ErrorBoundary>
           );
         } else {
-          return <FeatureLocked featureName="Design Studio" planName={getPlanName("proposal_draft")} />;
+          return <FeatureLocked featureName="Design Studio" planName={getPlanName("design_studio")} />;
         }
       
       default:

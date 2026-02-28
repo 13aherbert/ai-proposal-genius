@@ -36,6 +36,9 @@ import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
 
+// Layouts
+import DashboardLayout from "@/layouts/DashboardLayout";
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,115 +56,25 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/upload-rfp"
-        element={
-          <ProtectedRoute>
-            <UploadRFP />
-          </ProtectedRoute>
-        }
-      />
       
-      {/* Primary project routes */}
-      <Route
-        path="/projects"
-        element={
-          <ProtectedRoute>
-            <RecentProjects />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projects/:projectId"
-        element={
-          <ProtectedRoute>
-            <ProjectDetails />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Legacy route redirects for backward compatibility */}
-      <Route
-        path="/recent-projects"
-        element={
-          <ProtectedRoute>
-            <RecentProjectsRedirect />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/project/:projectId"
-        element={
-          <ProtectedRoute>
-            <ProjectDetailsRedirect />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/subscription"
-        element={
-          <ProtectedRoute>
-            <Subscription />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/subscription/success"
-        element={
-          <ProtectedRoute>
-            <SubscriptionSuccess />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/knowledge-base"
-        element={
-          <ProtectedRoute>
-            <KnowledgeBase />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/account-settings"
-        element={
-          <ProtectedRoute>
-            <AccountSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/organization"
-        element={
-          <ProtectedRoute>
-            <Organization />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/white-label"
-        element={
-          <ProtectedRoute>
-            <WhiteLabel />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/opportunities"
-        element={
-          <ProtectedRoute>
-            <Opportunities />
-          </ProtectedRoute>
-        }
-      />
+      {/* All authenticated routes share DashboardLayout */}
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/upload-rfp" element={<UploadRFP />} />
+        <Route path="/projects" element={<RecentProjects />} />
+        <Route path="/projects/:projectId" element={<ProjectDetails />} />
+        <Route path="/subscription" element={<Subscription />} />
+        <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+        <Route path="/knowledge-base" element={<KnowledgeBase />} />
+        <Route path="/account-settings" element={<AccountSettings />} />
+        <Route path="/organization" element={<Organization />} />
+        <Route path="/white-label" element={<WhiteLabel />} />
+        <Route path="/opportunities" element={<Opportunities />} />
+        
+        {/* Legacy route redirects */}
+        <Route path="/recent-projects" element={<RecentProjectsRedirect />} />
+        <Route path="/project/:projectId" element={<ProjectDetailsRedirect />} />
+      </Route>
       
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminDashboard />} />

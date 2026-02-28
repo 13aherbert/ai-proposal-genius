@@ -132,7 +132,7 @@ export default function RecentProjects() {
   // Show loading state while authentication is being verified
   if (loading) {
     return (
-      <div className="container py-10 space-y-8">
+      <div className="py-10 space-y-8">
         <ProjectsLoadingState message="Verifying your authentication..." />
       </div>
     );
@@ -146,7 +146,7 @@ export default function RecentProjects() {
   // Show loading state if organization data is still loading
   if (isLoading) {
     return (
-      <div className="container py-10 space-y-8">
+      <div className="py-10 space-y-8">
         <ProjectsLoadingState message="Loading your projects..." />
       </div>
     );
@@ -155,8 +155,8 @@ export default function RecentProjects() {
   // Handle organization-related errors
   if (error && error.message.includes('organization')) {
     return (
-      <div className="container py-10 space-y-8">
-        <ProjectsError 
+      <div className="py-10 space-y-8">
+        <ProjectsError
           onRetry={refetch}
           message="There was an issue loading your organization data. Please try again."
         />
@@ -168,7 +168,7 @@ export default function RecentProjects() {
   const displayProjectLimit = determineDisplayLimit(projectLimit);
 
   return (
-    <div className="container py-10 space-y-8">
+    <div className="py-10 space-y-8">
       {isTestMode && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-700">
           ⚠️ Test mode is active. Click "Refresh Data" to disable it and fix render issues.

@@ -1,58 +1,40 @@
 
 
-## Layout & Margin Audit
+## Fix: Admin Role Assignment Fails
 
-### Current Issues
+### Root Causes
 
-**1. Inconsistent Navbar/Footer usage across pages:**
-- **Dashboard**: Renders `<Navbar />` inside content (within `space-y-6`), no container wrapper, no Footer
-- **Opportunities**: Renders own `<Navbar />`, `max-w-5xl` container, no Footer
-- **Organization**: Renders own `<Navbar />` + `<Footer />`, `max-w-7xl` container
-- **KnowledgeBase, AccountSettings, UploadRFP, RecentProjects, ProjectDetails, Subscription**: No Navbar, no Footer
+Two bugs in the database functions called by `secure-admin-operations`:
 
-**2. `DashboardLayout` exists but is never used** — it wraps `<Outlet />` with Navbar, Footer, subscription banners, and a `max-w-7xl` container, but no routes reference it.
+**Bug 1: Ambiguous column in `check_admin_rate_limit`**
+The function parameter `action_type` conflicts with the column `action_type` in `admin_rate_limits`. Postgres error: `column reference "action_type" is ambiguous`. This causes the rate limit check to fail, returning a 429 error.
 
-**3. Inconsistent container widths:**
-- Dashboard: no container (just `space-y-6`)
-- Opportunities: `max-w-5xl`
-- Organization: `max-w-7xl`
-- KnowledgeBase: `container mx-auto px-3 sm:px-4`
-- AccountSettings: `container mx-auto px-4`
-- UploadRFP: `container mx-auto px-4`
-- RecentProjects: `container` (no explicit max-width/padding)
-- ProjectDetails: `container mx-auto px-3 sm:px-4`
+**Bug 2: `assign_user_role` uses `auth.uid()` which is null**
+The edge function uses the service role key (no user session), so `auth.uid()` returns null. Inside `assign_user_role`, it calls `is_admin_direct()` and `is_system_admin()` which both rely on `auth.uid()` → both return false → raises "Unauthorized" exception.
 
-### Plan
+Similarly, `log_admin_action` (called inside `assign_user_role`) also uses `is_admin_direct()` with `auth.uid()`.
 
-**Use `DashboardLayout` as a shared layout route for all authenticated pages.** This eliminates per-page Navbar/Footer duplication and standardizes margins.
+### Fix Plan
 
-#### Step 1: Wire DashboardLayout into App.tsx routing
-Wrap all authenticated routes inside a `<Route element={<DashboardLayout />}>` parent so every page gets consistent Navbar, Footer, subscription banners, and `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6` container.
+#### 1. Fix `check_admin_rate_limit` — ambiguous column reference
+Run a migration to rename the parameter or qualify the column reference:
+```sql
+-- Qualify table column references to disambiguate from parameter names
+```
 
-#### Step 2: Remove duplicate Navbar/Footer from individual pages
-- **Dashboard.tsx**: Remove `<Navbar />` import and usage
-- **Opportunities.tsx**: Remove `<Navbar />` and outer `min-h-screen` wrapper; keep only the inner content
-- **Organization.tsx**: Remove `<Navbar />`, `<Footer />`, `<AuthCheck>`, subscription banners, and outer wrappers; render just `<OrganizationDashboard />`
+#### 2. Bypass RPC permission checks in edge function
+Since the edge function already verified admin status via `direct_admin_check`, the service role client should directly insert/delete from `user_roles` and `activity_feed` instead of calling RPC functions that re-check admin via `auth.uid()`.
 
-#### Step 3: Normalize page containers
-Remove per-page `container mx-auto` and `min-h-screen` wrappers from pages that will now be inside DashboardLayout's container:
-- **KnowledgeBase**: Remove outer `min-h-screen` + `container` div
-- **AccountSettings**: Remove outer `min-h-screen` + `container` div
-- **UploadRFP**: Remove outer `min-h-screen` + `container` div
-- **RecentProjects**: Already uses just `container py-10` — remove `container` wrapper
-- **ProjectDetails**: Remove outer `min-h-screen` + `container` div
+**File:** `supabase/functions/secure-admin-operations/index.ts`
+- For `assign_role`: Replace `supabase.rpc('assign_user_role', ...)` with direct table operations using the service role client (which bypasses RLS):
+  1. Check if role already exists via `select` on `user_roles`
+  2. Insert into `user_roles` directly
+  3. Log the action directly into `activity_feed`
+- For `remove_role`: Replace `supabase.rpc('remove_user_role', ...)` with direct `delete` on `user_roles`
+- Remove the `log_admin_action` RPC calls (which also fail due to `auth.uid()`) and replace with direct inserts
 
-### Files to modify
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Wrap authenticated routes in `<Route element={<DashboardLayout />}>` |
-| `src/layouts/DashboardLayout.tsx` | Minor: remove `<AuthCheck>` wrapper (handled by `ProtectedRoute`) |
-| `src/pages/Dashboard.tsx` | Remove `<Navbar />` |
-| `src/pages/Opportunities.tsx` | Remove `<Navbar />` and outer wrapper |
-| `src/pages/Organization.tsx` | Simplify to just `<OrganizationDashboard />` |
-| `src/pages/KnowledgeBase.tsx` | Remove outer container wrappers |
-| `src/pages/AccountSettings.tsx` | Remove outer container wrappers |
-| `src/pages/UploadRFP.tsx` | Remove outer container wrappers |
-| `src/pages/RecentProjects.tsx` | Remove `container` class |
-| `src/pages/ProjectDetails.tsx` | Remove outer container wrappers |
+| Change | Location |
+|--------|----------|
+| Fix ambiguous `action_type` in rate limit function | DB migration |
+| Replace RPC calls with direct table operations | `secure-admin-operations/index.ts` |
 

@@ -1,32 +1,58 @@
 
 
-## Gate Design Studio to Pro+ Subscribers
+## Layout & Margin Audit
 
-### Problem
-The Design tab currently uses `proposal_draft` as its feature gate, which grants access to all plans (trial, starter, pro). It should be restricted to pro and higher.
+### Current Issues
 
-### Changes
+**1. Inconsistent Navbar/Footer usage across pages:**
+- **Dashboard**: Renders `<Navbar />` inside content (within `space-y-6`), no container wrapper, no Footer
+- **Opportunities**: Renders own `<Navbar />`, `max-w-5xl` container, no Footer
+- **Organization**: Renders own `<Navbar />` + `<Footer />`, `max-w-7xl` container
+- **KnowledgeBase, AccountSettings, UploadRFP, RecentProjects, ProjectDetails, Subscription**: No Navbar, no Footer
 
-#### 1. Add `design_studio` feature to the feature system
-**File:** `src/hooks/subscription/subscription-features-types.ts`
-- Add `'design_studio'` to the `FeatureName` union type
+**2. `DashboardLayout` exists but is never used** — it wraps `<Outlet />` with Navbar, Footer, subscription banners, and a `max-w-7xl` container, but no routes reference it.
 
-#### 2. Add `design_studio` to the feature access map
-**File:** `src/hooks/subscription/feature-access.ts`
-- Add `design_studio: ['pro']` to `FEATURE_ACCESS_MAP`
+**3. Inconsistent container widths:**
+- Dashboard: no container (just `space-y-6`)
+- Opportunities: `max-w-5xl`
+- Organization: `max-w-7xl`
+- KnowledgeBase: `container mx-auto px-3 sm:px-4`
+- AccountSettings: `container mx-auto px-4`
+- UploadRFP: `container mx-auto px-4`
+- RecentProjects: `container` (no explicit max-width/padding)
+- ProjectDetails: `container mx-auto px-3 sm:px-4`
 
-#### 3. Update sidebar to use new feature gate
-**File:** `src/components/project/details/ProjectSidebar.tsx`
-- Change the design section's `feature` from `"proposal_draft"` to `"design_studio"`
+### Plan
 
-#### 4. Update ProjectContent to use new feature gate
-**File:** `src/components/project/details/ProjectContent.tsx`
-- Change the `case "design"` check from `hasFeature("proposal_draft")` to `hasFeature("design_studio")`
+**Use `DashboardLayout` as a shared layout route for all authenticated pages.** This eliminates per-page Navbar/Footer duplication and standardizes margins.
 
+#### Step 1: Wire DashboardLayout into App.tsx routing
+Wrap all authenticated routes inside a `<Route element={<DashboardLayout />}>` parent so every page gets consistent Navbar, Footer, subscription banners, and `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6` container.
+
+#### Step 2: Remove duplicate Navbar/Footer from individual pages
+- **Dashboard.tsx**: Remove `<Navbar />` import and usage
+- **Opportunities.tsx**: Remove `<Navbar />` and outer `min-h-screen` wrapper; keep only the inner content
+- **Organization.tsx**: Remove `<Navbar />`, `<Footer />`, `<AuthCheck>`, subscription banners, and outer wrappers; render just `<OrganizationDashboard />`
+
+#### Step 3: Normalize page containers
+Remove per-page `container mx-auto` and `min-h-screen` wrappers from pages that will now be inside DashboardLayout's container:
+- **KnowledgeBase**: Remove outer `min-h-screen` + `container` div
+- **AccountSettings**: Remove outer `min-h-screen` + `container` div
+- **UploadRFP**: Remove outer `min-h-screen` + `container` div
+- **RecentProjects**: Already uses just `container py-10` — remove `container` wrapper
+- **ProjectDetails**: Remove outer `min-h-screen` + `container` div
+
+### Files to modify
 | File | Change |
 |------|--------|
-| `subscription-features-types.ts` | Add `design_studio` to `FeatureName` |
-| `feature-access.ts` | Add `design_studio: ['pro']` to access map |
-| `ProjectSidebar.tsx` | Update design section feature to `design_studio` |
-| `ProjectContent.tsx` | Update design case feature check to `design_studio` |
+| `src/App.tsx` | Wrap authenticated routes in `<Route element={<DashboardLayout />}>` |
+| `src/layouts/DashboardLayout.tsx` | Minor: remove `<AuthCheck>` wrapper (handled by `ProtectedRoute`) |
+| `src/pages/Dashboard.tsx` | Remove `<Navbar />` |
+| `src/pages/Opportunities.tsx` | Remove `<Navbar />` and outer wrapper |
+| `src/pages/Organization.tsx` | Simplify to just `<OrganizationDashboard />` |
+| `src/pages/KnowledgeBase.tsx` | Remove outer container wrappers |
+| `src/pages/AccountSettings.tsx` | Remove outer container wrappers |
+| `src/pages/UploadRFP.tsx` | Remove outer container wrappers |
+| `src/pages/RecentProjects.tsx` | Remove `container` class |
+| `src/pages/ProjectDetails.tsx` | Remove outer container wrappers |
 

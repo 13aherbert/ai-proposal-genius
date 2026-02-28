@@ -48,13 +48,12 @@ serve(async (req) => {
       );
     }
 
-    // Verify admin privileges
+    // Verify admin privileges using parameterized function (service role client has no auth.uid())
     const { data: adminCheck, error: adminError } = await supabase
-      .rpc('is_admin_direct')
-      .single();
+      .rpc('direct_admin_check', { user_id_param: user.id });
 
     if (adminError || !adminCheck) {
-      console.error('Admin check failed:', adminError);
+      console.error('Admin check failed:', adminError, 'result:', adminCheck);
       return new Response(
         JSON.stringify({ error: 'Insufficient privileges' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

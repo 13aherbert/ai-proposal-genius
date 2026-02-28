@@ -33,9 +33,7 @@ const KnowledgeBase = () => {
   } = useKnowledgeBase();
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="flex flex-col gap-4 sm:gap-8">
+    <div className="flex flex-col gap-4 sm:gap-8">
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Button
@@ -92,8 +90,6 @@ const KnowledgeBase = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
       </div>
     </div>
   );

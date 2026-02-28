@@ -22,7 +22,7 @@ import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
-import { Navbar } from "@/components/navigation/Navbar";
+
 import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
 
@@ -119,7 +119,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <Navbar />
+      
       <DashboardHeader />
 
       {/* Enterprise Onboarding - Show for new enterprise users */}

@@ -75,9 +75,7 @@ export default function AccountSettings() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8">
           <header className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -154,7 +152,5 @@ export default function AccountSettings() {
             <DeleteAccountSection />
           </div>
         </div>
-      </div>
-    </div>
   );
 }

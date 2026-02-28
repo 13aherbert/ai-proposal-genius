@@ -90,22 +90,44 @@ serve(async (req) => {
           );
         }
 
-        const { data: roleResult, error: roleError } = await supabase
-          .rpc('assign_user_role', {
-            _user_id: data.user_id,
-            _role: data.role,
-            _created_by: user.id
-          });
+        // Check if role already exists
+        const { data: existingRole } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', data.user_id)
+          .eq('role', data.role)
+          .maybeSingle();
 
-        if (roleError) {
-          console.error('Role assignment failed:', roleError);
+        if (existingRole) {
+          result = { success: true, message: 'Role already assigned' };
+          break;
+        }
+
+        // Insert role directly (service role bypasses RLS)
+        const { data: newRole, error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user_id, role: data.role, created_by: user.id })
+          .select('id')
+          .single();
+
+        if (roleInsertError) {
+          console.error('Role assignment failed:', roleInsertError);
           return new Response(
-            JSON.stringify({ error: roleError.message }),
+            JSON.stringify({ error: roleInsertError.message }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        result = { success: true, role_id: roleResult };
+        // Log action directly into activity_feed
+        await supabase.from('activity_feed').insert({
+          user_id: user.id,
+          action_type: 'assign_role',
+          resource_type: 'admin_action',
+          resource_id: data.user_id,
+          details: { role: data.role, timestamp: new Date().toISOString() }
+        });
+
+        result = { success: true, role_id: newRole.id };
         break;
 
       case 'remove_role':
@@ -116,29 +138,30 @@ serve(async (req) => {
           );
         }
 
-        const { data: removeResult, error: removeError } = await supabase
-          .rpc('remove_user_role', {
-            _user_id: data.user_id,
-            _role: data.role
-          });
+        const { error: deleteError, count: deletedCount } = await supabase
+          .from('user_roles')
+          .delete({ count: 'exact' })
+          .eq('user_id', data.user_id)
+          .eq('role', data.role);
 
-        if (removeError) {
-          console.error('Role removal failed:', removeError);
+        if (deleteError) {
+          console.error('Role removal failed:', deleteError);
           return new Response(
-            JSON.stringify({ error: removeError.message }),
+            JSON.stringify({ error: deleteError.message }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        // Log the role removal
-        await supabase.rpc('log_admin_action', {
-          admin_user_id: user.id,
+        // Log action directly
+        await supabase.from('activity_feed').insert({
+          user_id: user.id,
           action_type: 'remove_role',
-          target_user_id: data.user_id,
+          resource_type: 'admin_action',
+          resource_id: data.user_id,
           details: { role: data.role, timestamp: new Date().toISOString() }
         });
 
-        result = { success: removeResult };
+        result = { success: (deletedCount ?? 0) > 0 };
         break;
 
       case 'delete_user':
@@ -149,18 +172,28 @@ serve(async (req) => {
           );
         }
 
-        const { data: deleteResult, error: deleteError } = await supabase
-          .rpc('delete_user_as_admin', {
-            target_user_id: data.user_id
+        // Use cascade_delete_user_data directly (doesn't depend on auth.uid())
+        const { data: deleteResult, error: delError } = await supabase
+          .rpc('cascade_delete_user_data', {
+            user_id_param: data.user_id
           });
 
-        if (deleteError) {
-          console.error('User deletion failed:', deleteError);
+        if (delError) {
+          console.error('User deletion failed:', delError);
           return new Response(
-            JSON.stringify({ error: deleteError.message }),
+            JSON.stringify({ error: delError.message }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+
+        // Log action directly
+        await supabase.from('activity_feed').insert({
+          user_id: user.id,
+          action_type: 'delete_user',
+          resource_type: 'admin_action',
+          resource_id: data.user_id,
+          details: { timestamp: new Date().toISOString() }
+        });
 
         result = { success: deleteResult };
         break;
@@ -190,11 +223,12 @@ serve(async (req) => {
           );
         }
 
-        // Log the subscription update
-        await supabase.rpc('log_admin_action', {
-          admin_user_id: user.id,
+        // Log action directly
+        await supabase.from('activity_feed').insert({
+          user_id: user.id,
           action_type: 'update_subscription',
-          target_user_id: data.user_id,
+          resource_type: 'admin_action',
+          resource_id: data.user_id,
           details: { plan: data.plan, status: data.status, timestamp: new Date().toISOString() }
         });
 

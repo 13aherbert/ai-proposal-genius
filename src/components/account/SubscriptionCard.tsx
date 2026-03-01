@@ -359,7 +359,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
     switch(planType) {
       case 'pro': return 'Pro Plan';
       case 'starter': return 'Starter Plan';
-      case 'trial': return 'Trial Plan';
+      case 'trial': return 'Starter Plan';
       default: return 'Free Plan';
     }
   };
@@ -493,7 +493,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
             <p className="text-sm text-muted-foreground">
               {currentPlanType !== 'trial' 
                 ? `Next billing date: ${format(new Date(subscription.current_period_end), 'MMMM dd, yyyy')}`
-                : 'Trial plan'}
+                : 'Starter plan'}
             </p>
           )}
           

@@ -54,7 +54,10 @@ export function BillingHistory() {
       }
     } catch (err) {
       console.error('Error fetching billing history:', err);
-      setError('Failed to load billing history');
+      // Gracefully handle errors for free-tier users (no Stripe customer)
+      // Show empty state instead of error
+      setInvoices([]);
+      setError(null);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

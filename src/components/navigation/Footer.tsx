@@ -10,7 +10,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
           <div className="mb-2 md:mb-0">
-            &copy; {currentYear} ProposalPro. All rights reserved.
+            &copy; {currentYear} OptiRFP. All rights reserved.
           </div>
           
           <div className="flex space-x-4">
@@ -20,7 +20,7 @@ export function Footer() {
             <Link to="/subscription" className="hover:text-foreground">
               Pricing
             </Link>
-            <a href="mailto:support@proposalpro.com" className="hover:text-foreground">
+            <a href="mailto:support@optirfp.ai" className="hover:text-foreground">
               Support
             </a>
           </div>

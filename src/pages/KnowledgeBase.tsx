@@ -11,6 +11,8 @@ import { KnowledgeBaseAudit } from "@/components/knowledge-base/KnowledgeBaseAud
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
+import { useStarterTemplates } from "@/components/knowledge-base/hooks/useStarterTemplates";
+import { Progress } from "@/components/ui/progress";
 
 /**
  * KnowledgeBase page component
@@ -31,9 +33,17 @@ const KnowledgeBase = () => {
     setSelectedCategory, 
     categories 
   } = useKnowledgeBase();
+  const { isSeeding, seedingProgress } = useStarterTemplates();
 
   return (
     <div className="flex flex-col gap-4 sm:gap-8">
+      {isSeeding && (
+        <div className="p-4 bg-muted rounded-lg space-y-2">
+          <p className="text-sm font-medium">Setting up starter templates...</p>
+          <Progress value={seedingProgress} className="h-2" />
+          <p className="text-xs text-muted-foreground">{seedingProgress}% complete</p>
+        </div>
+      )}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Button

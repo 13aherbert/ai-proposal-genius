@@ -69,6 +69,29 @@ const plans = [
       annual: "prod_Rn5STkpd7teaIR"
     }
   },
+  {
+    name: "Enterprise",
+    price: "299",
+    yearlyPrice: "2870",
+    period: "month",
+    features: [
+      "Unlimited projects",
+      "Unlimited users",
+      "API access",
+      "SSO integration",
+      "Dedicated account manager",
+      "Custom branding",
+      "Priority onboarding",
+    ],
+    description: "For organizations needing full control and dedicated support",
+    buttonText: "Contact Sales",
+    href: "mailto:sales@optirfp.ai",
+    isPopular: false,
+    priceId: {
+      monthly: "",
+      annual: ""
+    }
+  },
 ];
 
 export function PricingDemo() {

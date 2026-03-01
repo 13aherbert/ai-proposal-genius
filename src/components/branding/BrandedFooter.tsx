@@ -155,7 +155,7 @@ export function BrandedFooter() {
               fontFamily: branding.fontFamily 
             }}
           >
-            © 2024 {branding.brandName || 'Company'}. All rights reserved.
+            © 2026 {branding.brandName || 'Company'}. All rights reserved.
           </p>
         </div>
       </div>

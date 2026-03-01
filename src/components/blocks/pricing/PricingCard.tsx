@@ -42,6 +42,12 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const { subscription } = useSubscription();
 
   const handleSubscribe = async () => {
+    // Handle Contact Sales (Enterprise)
+    if (plan.buttonText === "Contact Sales") {
+      window.location.href = plan.href;
+      return;
+    }
+
     // Handle free trial selection
     if (plan.name === "Free Trial" || plan.price === "0") {
       if (session) {
@@ -130,11 +136,6 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         plan.isPopular ? "border-[#34D399] border-2" : "border-border",
         "flex flex-col",
         !plan.isPopular && "mt-5",
-        index === 0 || index === 2
-          ? "z-0 transform translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg]"
-          : "z-10",
-        index === 0 && "origin-right",
-        index === 2 && "origin-left"
       )}
     >
       {plan.isPopular && (

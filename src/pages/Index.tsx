@@ -6,6 +6,8 @@ import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SocialProofBar } from "@/components/blocks/SocialProofBar";
+import { Testimonial } from "@/components/blocks/Testimonial";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -69,6 +71,9 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Social Proof Stats */}
+          <SocialProofBar />
+
           {/* Key Benefits Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">
             <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
@@ -101,6 +106,9 @@ const Index = () => {
               <p className="text-gray-400">Reduce proposal creation time by 50% with automated content generation and formatting.</p>
             </div>
           </div>
+
+          {/* Testimonial */}
+          <Testimonial />
 
           {/* Pricing Section */}
           <div id="pricing">

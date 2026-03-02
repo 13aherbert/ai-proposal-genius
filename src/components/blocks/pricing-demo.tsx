@@ -1,5 +1,5 @@
-
 import { Pricing } from "./pricing";
+import { ROICalculator } from "./ROICalculator";
 
 const plans = [
   {
@@ -100,10 +100,13 @@ const plans = [
 
 export function PricingDemo() {
   return (
+    <>
+    <ROICalculator />
     <Pricing
       plans={plans}
       title="Choose Your Plan"
       description="Start free and upgrade when you're ready for more features"
     />
+    </>
   );
 }

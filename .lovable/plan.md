@@ -1,43 +1,35 @@
 
 
-## Plan: Redesign BillingHistory with 3 Distinct UI States
+## Plan: Enhanced Enterprise Tier + Pro "Most Popular" Badge + Contact Sales Modal
 
-**File:** `src/components/account/BillingHistory.tsx` — full rewrite of the component.
+### Overview
+The Enterprise card already exists but needs updated features, styling, and a contact form modal. The "Popular" badge needs to move from Basic to Pro. A new `EnterpriseSalesModal` component handles the contact form.
 
 ### Changes
 
-**1. Data fetching with retry logic**
-- Replace manual `useState`/`useEffect` fetching with `withRetry` from `src/utils/network/retry.ts` (already exists) — 3 retries with exponential backoff
-- Keep `useState` pattern (project doesn't use React Query for this component currently) but wrap the supabase call in `withRetry`
-- On retry exhaustion, set error state (currently errors are swallowed and show empty state — change to distinguish real errors from "no Stripe customer")
-- Detect "no customer" responses (empty invoices array with 200 status) as empty state, not error
+**1. `src/components/blocks/pricing-demo.tsx`** — Update plans array
+- Move `isPopular: true` from Basic to Pro
+- Update Enterprise features to the full list (Everything in Pro plus unlimited projects, unlimited team members, API access, SSO/SAML, custom AI model training, dedicated account manager, 4-hour support response, quarterly business reviews, custom integrations, SOC 2 compliance support)
+- Update Enterprise yearlyPrice to `2988` ($249/mo * 12)
+- Remove `href: "mailto:..."` — the modal handles contact now
 
-**2. Loading state — skeleton rows**
-- Replace the spinner with 3 skeleton rows using the existing `Skeleton` component from `@/components/ui/skeleton`
-- Each row: flex container (h-[60px], gap-4, p-4, border, rounded-lg) containing 3 skeletons for date, amount, and status badge
+**2. `src/components/blocks/pricing/PricingCard.tsx`** — Enterprise-specific rendering
+- Add Enterprise badge: "For teams & government contractors" (blue-500 accent) at top-left
+- Add Enterprise card styling: `shadow-lg border-l-4 border-l-blue-500`
+- Enterprise CTA: instead of auth dialog or direct subscribe, open an `EnterpriseSalesModal`
+- Enterprise button style: outline with blue border, blue text
+- Import and use new `EnterpriseSalesModal` component
 
-**3. Error state — friendly error card**
-- Import `AlertOctagon` from lucide-react
-- Red-tinted card (bg-red-50 border-red-200) with centered layout
-- AlertOctagon icon (red-500, 48px)
-- Heading: "Unable to load billing history"
-- Subtext: "This is usually a temporary connection issue. Your billing is secure."
-- Two buttons side-by-side: "Try Again" (primary, calls fetchBillingHistory) and "Contact Support" (secondary, mailto:support@optirfp.ai)
-- No raw error messages or technical details shown to user
+**3. `src/components/blocks/pricing/EnterpriseSalesModal.tsx`** — NEW file
+- Dialog with form fields: Company name (required), Email (required), Team size (select: <5, 5-20, 20-50, 50+), Message (optional textarea)
+- Zod validation for company name and email
+- Submit constructs a `mailto:sales@optirfp.ai` with form data as body/subject
+- Shows toast on submit, closes dialog
+- Uses existing `Input`, `Label`, `Textarea`, `Select`, `Button`, `Dialog` components
 
-**4. Empty state — improved design**
-- Receipt icon (64px, text-gray-400)
-- Heading: "No billing history yet"
-- Subtext: "Your invoices and payment history will appear here after your first charge."
-- CTA: "View Plans" button linking to `/pricing`
-
-**5. Error discrimination logic**
-- API returns `{ invoices: [], hasMore: false }` with 200 for users without Stripe customer → empty state
-- API throws or returns non-200 → error state (after retries exhausted)
-- Console.error for debugging preserved, but never shown in UI
+**4. Grid is already 4-column (`lg:grid-cols-4`) — no change needed.**
 
 ### Technical Details
-- Single file change: `src/components/account/BillingHistory.tsx`
-- Reuses existing: `Skeleton`, `withRetry`, `Card`, `Button`, `Badge` components
-- New import: `AlertOctagon` from lucide-react, `Skeleton` from ui, `withRetry` from utils, `useNavigate` from react-router-dom
+- The `PricingCard` animation logic uses index-based transforms (index 0/2 scale down, index 1 centered). With 4 cards this needs adjustment: remove the x-offset/scale logic for the 4-card layout to keep all cards equal size
+- Enterprise card gets `mt-0` instead of `mt-5` (like popular cards) to align with the elevated style
 

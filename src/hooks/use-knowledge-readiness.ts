@@ -29,6 +29,9 @@ export interface KnowledgeReadiness {
   // Missing items
   missingEssential: string[];
   missingRecommended: string[];
+
+  // Template detection
+  templateOnlyCategories: string[];
   
   // Loading state
   isLoading: boolean;
@@ -78,11 +81,22 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
   }, [session?.user?.id, organization?.id]);
 
   const readiness = useMemo((): Omit<KnowledgeReadiness, 'isLoading' | 'error'> => {
+    const TEMPLATE_MARKER = "Replace with your content";
+
     // Count entries per category
     const entryCounts: Record<string, number> = {};
     entries.forEach(entry => {
       const category = entry.category;
       entryCounts[category] = (entryCounts[category] || 0) + 1;
+    });
+
+    // Detect template-only categories
+    const templateOnlyCategories: string[] = [];
+    enhancedKnowledgeCategories.forEach(cat => {
+      const catEntries = entries.filter(e => e.category === cat.name);
+      if (catEntries.length > 0 && catEntries.every(e => (e.content || '').includes(TEMPLATE_MARKER))) {
+        templateOnlyCategories.push(cat.name);
+      }
     });
 
     // Build category coverage
@@ -138,6 +152,7 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
       isEmpty: entries.length === 0,
       missingEssential,
       missingRecommended,
+      templateOnlyCategories,
     };
   }, [entries]);
 

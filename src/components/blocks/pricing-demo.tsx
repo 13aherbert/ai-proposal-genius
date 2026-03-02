@@ -39,7 +39,7 @@ const plans = [
     description: "Perfect for small teams and growing businesses",
     buttonText: "Upgrade to Basic",
     href: "/subscription",
-    isPopular: true,
+    isPopular: false,
     priceId: {
       monthly: "prod_Rn5Qc3JRlG2dP5",
       annual: "prod_Rn5Qc3JRlG2dP5"
@@ -63,7 +63,7 @@ const plans = [
     description: "Best for large teams and enterprises",
     buttonText: "Upgrade to Pro",
     href: "/subscription",
-    isPopular: false,
+    isPopular: true,
     priceId: {
       monthly: "prod_Rn5STkpd7teaIR",
       annual: "prod_Rn5STkpd7teaIR"
@@ -72,20 +72,24 @@ const plans = [
   {
     name: "Enterprise",
     price: "299",
-    yearlyPrice: "2870",
+    yearlyPrice: "2988",
     period: "month",
     features: [
+      "Everything in Pro, plus:",
       "Unlimited projects",
-      "Unlimited users",
+      "Unlimited team members",
       "API access",
-      "SSO integration",
+      "SSO/SAML authentication",
+      "Custom AI model training",
       "Dedicated account manager",
-      "Custom branding",
-      "Priority onboarding",
+      "4-hour support response time",
+      "Quarterly business reviews",
+      "Custom integrations",
+      "SOC 2 compliance support",
     ],
     description: "For organizations needing full control and dedicated support",
     buttonText: "Contact Sales",
-    href: "mailto:sales@optirfp.ai",
+    href: "#",
     isPopular: false,
     priceId: {
       monthly: "",

@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { toast } from "sonner";
 import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
+import { EnterpriseSalesModal } from "./EnterpriseSalesModal";
 
 interface PricingPlan {
   name: string;
@@ -40,15 +42,16 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const { isMonthly } = usePricingContext();
   const { session } = useAuth();
   const { subscription } = useSubscription();
+  const [enterpriseOpen, setEnterpriseOpen] = useState(false);
+
+  const isEnterprise = plan.name === "Enterprise";
 
   const handleSubscribe = async () => {
-    // Handle Contact Sales (Enterprise)
-    if (plan.buttonText === "Contact Sales") {
-      window.location.href = plan.href;
+    if (isEnterprise) {
+      setEnterpriseOpen(true);
       return;
     }
 
-    // Handle free trial selection
     if (plan.name === "Free Trial" || plan.price === "0") {
       if (session) {
         toast.success("You're all set with the free plan!", {
@@ -56,7 +59,6 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         });
         navigate('/dashboard');
       } else {
-        // For non-authenticated users, store the selection and trigger signup
         localStorage.setItem('selected_plan', JSON.stringify({
           planType: 'free',
           isMonthly
@@ -109,6 +111,70 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
     }
   };
 
+  const renderCTA = () => {
+    if (isEnterprise) {
+      return (
+        <>
+          <button
+            onClick={() => setEnterpriseOpen(true)}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
+              "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white transition-all duration-300"
+            )}
+          >
+            {plan.buttonText}
+          </button>
+          <EnterpriseSalesModal open={enterpriseOpen} onOpenChange={setEnterpriseOpen} />
+        </>
+      );
+    }
+
+    if (session) {
+      return (
+        <button
+          onClick={handleSubscribe}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
+            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+            plan.isPopular
+              ? "bg-[#34D399] text-white"
+              : plan.name === "Free Trial"
+              ? "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-[#f3f3f3] text-[#4B4F54]"
+          )}
+        >
+          {plan.buttonText}
+        </button>
+      );
+    }
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <button
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
+              "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+              plan.isPopular
+                ? "bg-[#34D399] text-white"
+                : plan.name === "Free Trial"
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-[#f3f3f3] text-[#4B4F54]"
+            )}
+          >
+            {plan.name === "Free Trial" ? "Start Free" : "Sign Up"}
+          </button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <AuthForm defaultView="sign_up" />
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <motion.div
       initial={{ y: 50, opacity: 1 }}
@@ -117,8 +183,6 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           ? {
               y: plan.isPopular ? -20 : 0,
               opacity: 1,
-              x: index === 2 ? -30 : index === 0 ? 30 : 0,
-              scale: index === 0 || index === 2 ? 0.94 : 1.0,
             }
           : {}
       }
@@ -134,8 +198,9 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       className={cn(
         `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
         plan.isPopular ? "border-[#34D399] border-2" : "border-border",
+        isEnterprise && "shadow-lg border-l-4 border-l-blue-500",
         "flex flex-col",
-        !plan.isPopular && "mt-5",
+        !plan.isPopular && !isEnterprise && "mt-5",
       )}
     >
       {plan.isPopular && (
@@ -143,6 +208,14 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           <Star className="text-white h-4 w-4 fill-current" />
           <span className="text-white ml-1 font-sans font-semibold">
             Popular
+          </span>
+        </div>
+      )}
+
+      {isEnterprise && (
+        <div className="absolute top-0 left-0 bg-blue-500 py-0.5 px-2 rounded-br-xl rounded-tl-xl">
+          <span className="text-white text-xs font-semibold">
+            For teams & gov contractors
           </span>
         </div>
       )}
@@ -200,49 +273,8 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
 
         <hr className="w-full my-4 border-[#4B4F54]" />
 
-        {session ? (
-          <button
-            onClick={handleSubscribe}
-            className={cn(
-              buttonVariants({
-                variant: "outline",
-              }),
-              "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-              "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
-              plan.isPopular
-                ? "bg-[#34D399] text-white"
-                : plan.name === "Free Trial"
-                ? "bg-blue-500 text-white hover:bg-blue-600"
-                : "bg-[#f3f3f3] text-[#4B4F54]"
-            )}
-          >
-            {plan.buttonText}
-          </button>
-        ) : (
-          <Dialog>
-            <DialogTrigger asChild>
-              <button
-                className={cn(
-                  buttonVariants({
-                    variant: "outline",
-                  }),
-                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-                  "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
-                  plan.isPopular
-                    ? "bg-[#34D399] text-white"
-                    : plan.name === "Free Trial"
-                    ? "bg-blue-500 text-white hover:bg-blue-600"
-                    : "bg-[#f3f3f3] text-[#4B4F54]"
-                )}
-              >
-                {plan.name === "Free Trial" ? "Start Free" : "Sign Up"}
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <AuthForm defaultView="sign_up" />
-            </DialogContent>
-          </Dialog>
-        )}
+        {renderCTA()}
+
         <p className="mt-6 text-xs leading-5 text-[#C8C8C9]">
           {plan.description}
         </p>

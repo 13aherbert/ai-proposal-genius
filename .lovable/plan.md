@@ -1,58 +1,47 @@
 
 
-## Plan: Fix Critical OptiRFP Issues
+## Plan: Enhanced Knowledge Base Starter Templates
 
-### 1. Rebrand "ProposalPro" to "OptiRFP"
+### What exists now
+- `useStarterTemplates.ts` already seeds 6 entries with basic placeholder content when KB is empty
+- Progress bar shows during seeding in `KnowledgeBase.tsx`
+- Categories match the 6 essential categories in `categories.tsx`
 
-**Files to change:**
-- `src/components/navigation/Footer.tsx`: Change copyright to "OptiRFP" and email to `support@optirfp.ai`
-- `src/components/branding/BrandedFooter.tsx`: Update copyright year to 2026
+### Changes
 
-### 2. Fix "Trial Plan" label to "Starter"
+#### 1. Enrich template content with user profile data
+**File:** `src/components/knowledge-base/hooks/useStarterTemplates.ts`
+- Fetch user profile (`business_name`, `industry`) before seeding
+- Replace current short markdown templates with the detailed content from the request (Company Overview with mission/capabilities/contact sections, Key Personnel with qualifications/projects, Past Performance with scope/results, Technical Capabilities with competencies/certifications, Pricing & Rates with rate schedules/payment terms, Why Choose Us with differentiators/value proposition)
+- Interpolate `companyName` and `industry` from profile data, falling back to `[Your Company Name]` / `[Your Industry]`
 
-**File:** `src/components/account/SubscriptionCard.tsx`
-- Line 362: Change `'trial': return 'Trial Plan'` to `'trial': return 'Starter Plan'`
-- Line 496: Change `'Trial plan'` text to `'Starter plan'`
+#### 2. Add template badge to entry list
+**File:** `src/components/knowledge-base/entries/EntryList.tsx`
+- Detect template entries by checking if content contains `"Replace with your content"` or similar marker text
+- Show a yellow "TEMPLATE" badge above the title for such entries
+- Add a subtle yellow-tinted left border for visual distinction
 
-### 3. Fix Billing History Error
-
-The `get-billing-history` edge function calls Stripe, which will fail if no Stripe customer exists or the key isn't set. Rather than fixing Stripe integration, we gracefully handle the error in `BillingHistory.tsx`:
-- Show "No billing history yet" instead of an error when the function fails (treat function errors for free-tier users as "no invoices")
-- Only show the error state for unexpected failures
-
-### 4. Add Enterprise Tier ($299/month)
-
-**File:** `src/components/blocks/pricing-demo.tsx`
-- Add a 4th plan: Enterprise at $299/month ($2,870/year)
-- Features: Unlimited projects, Unlimited users, API access, SSO integration, Dedicated account manager, Custom branding, Priority onboarding
-- Button: "Contact Sales" linking to `mailto:sales@optirfp.ai`
-
-**File:** `src/components/blocks/pricing/PricingCard.tsx`
-- Handle "Contact Sales" plans: open mailto link instead of checkout
-- Adjust card layout indices for 4-card grid
-
-**File:** `src/components/blocks/pricing/PricingGrid.tsx`
-- Verify grid handles 4 cards properly
-
-### 5. Knowledge Base Starter Templates
-
-**File:** New hook `src/components/knowledge-base/hooks/useStarterTemplates.ts`
-- On first load for a user/org, check if knowledge base is empty
-- If empty, insert 6 starter template entries with placeholder content marked "Replace with your content"
-- Categories: Company Overview, Team Bios, Past Performance, Technical Capabilities, Pricing & Rates, Differentiators
-- Show a progress indicator during seeding
-
+#### 3. Add KB completion progress tracker
 **File:** `src/pages/KnowledgeBase.tsx`
-- Integrate the starter template hook
-- Show progress bar when templates are being created
+- Add a persistent progress section showing "X of 6 essential categories completed"
+- Query `knowledge_entries` to check which of the 6 essential categories have non-template content (content that no longer contains the placeholder markers)
+- Include a tip: "Replace template content with your actual company information for better proposals"
+- Hide once all 6 are completed with real content
+
+#### 4. Update entry list to pass content info
+**File:** `src/components/knowledge-base/entries/useEntries.ts`
+- Include a `content` snippet in the formatted entries so EntryList can detect template status
+**File:** `src/components/knowledge-base/types.ts`
+- Add optional `isTemplate` field to `KnowledgeEntry` type
 
 ### Technical Details
 
-| Change | Files |
-|--------|-------|
-| Rebrand to OptiRFP | Footer.tsx, BrandedFooter.tsx |
-| Trial → Starter label | SubscriptionCard.tsx |
-| Graceful billing error | BillingHistory.tsx |
-| Enterprise tier | pricing-demo.tsx, PricingCard.tsx |
-| Starter templates | New hook + KnowledgeBase.tsx |
+| Change | File(s) |
+|--------|---------|
+| Rich template content with profile personalization | `useStarterTemplates.ts` |
+| Template badge + visual styling | `EntryList.tsx` |
+| Completion progress indicator | `KnowledgeBase.tsx` |
+| Pass template detection data | `useEntries.ts`, `types.ts` |
+
+No database changes needed -- the existing `knowledge_entries` table and `content` column support the richer templates. Template detection is content-based (checking for placeholder markers) rather than requiring a new DB column.
 

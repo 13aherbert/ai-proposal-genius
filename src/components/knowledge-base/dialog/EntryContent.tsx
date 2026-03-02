@@ -49,7 +49,7 @@ export const EntryContent = ({
         
         {content && (
           <ScrollArea className="h-[400px] w-full rounded-lg border p-4">
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm max-w-none whitespace-pre-wrap">
               {content}
             </div>
           </ScrollArea>
@@ -68,7 +68,7 @@ export const EntryContent = ({
         />
       ) : (
         <ScrollArea className="h-[400px] w-full">
-          <div className="prose prose-sm max-w-none">
+          <div className="prose prose-sm max-w-none whitespace-pre-wrap">
             {content || "No content available"}
           </div>
         </ScrollArea>

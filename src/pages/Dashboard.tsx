@@ -22,6 +22,9 @@ import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
+import { ProgressiveOnboarding } from "@/components/onboarding/ProgressiveOnboarding";
+import { OnboardingResumeBanner } from "@/components/onboarding/OnboardingResumeBanner";
+import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";
 
 import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
@@ -46,6 +49,7 @@ export default function Dashboard() {
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';
   const quickUpload = useQuickUpload();
+  const onboarding = useOnboardingFlow();
 
   // Show KB wizard for users with empty knowledge base who haven't dismissed it
   useEffect(() => {
@@ -121,6 +125,27 @@ export default function Dashboard() {
     <div className="space-y-6">
       
       <DashboardHeader />
+
+      {/* Progressive Onboarding Wizard */}
+      <ProgressiveOnboarding
+        isOpen={onboarding.isOpen}
+        currentStep={onboarding.currentStep}
+        onNext={onboarding.next}
+        onBack={onboarding.back}
+        onSkip={onboarding.skip}
+        onComplete={onboarding.complete}
+        goToStep={onboarding.goToStep}
+        setIsOpen={onboarding.setIsOpen}
+      />
+
+      {/* Resume Banner for skipped onboarding */}
+      {onboarding.showBanner && (
+        <OnboardingResumeBanner
+          currentStep={onboarding.currentStep}
+          onResume={onboarding.resume}
+          onDismiss={onboarding.dismiss}
+        />
+      )}
 
       {/* Enterprise Onboarding - Show for new enterprise users */}
       {isEnterprise && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && (

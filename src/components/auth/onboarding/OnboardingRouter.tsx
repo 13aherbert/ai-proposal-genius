@@ -50,8 +50,15 @@ export function OnboardingRouter() {
   };
 
   const handleContinueToDashboard = () => {
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
+
+  // For all user types, redirect to dashboard where the progressive onboarding wizard triggers
+  useEffect(() => {
+    if (!isLoading && profile) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isLoading, profile, navigate]);
 
   const handleScheduleDemo = () => {
     // For white label prospects, we could integrate with a scheduling tool

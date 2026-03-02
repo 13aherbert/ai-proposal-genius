@@ -9,7 +9,7 @@ function generateCompanyOverview(companyName: string, industry: string) {
   const year = new Date().getFullYear() - 5;
   return `${companyName} is a ${industry} firm specializing in [PRIMARY SERVICES]. Founded in ${year}, we have successfully served [NUMBER] clients across [REGIONS/AREAS].
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 OUR MISSION
 To deliver exceptional [SERVICE TYPE] that helps our clients achieve [KEY OUTCOMES]. We believe in [CORE VALUE 1], [CORE VALUE 2], and [CORE VALUE 3].
@@ -42,7 +42,7 @@ CONTACT INFORMATION
 function generateTeamBios() {
   return `[NAME] - [TITLE/ROLE]
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 OVERVIEW
 [NAME] brings [NUMBER] years of experience in [FIELD/INDUSTRY]. [HE/SHE] has successfully led [NUMBER] projects totaling $[VALUE] in contract value.
@@ -79,7 +79,7 @@ CLIENT: [CLIENT NAME/AGENCY]
 CONTRACT VALUE: $[AMOUNT]
 TIMELINE: [START DATE] - [END DATE]
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 PROJECT SCOPE
 [DETAILED DESCRIPTION OF WORK PERFORMED]
@@ -105,7 +105,7 @@ CLIENT FEEDBACK
 function generateTechnicalCapabilities(companyName: string) {
   return `${companyName} - TECHNICAL EXPERTISE
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 CORE COMPETENCIES
 
@@ -140,7 +140,7 @@ Quality Management Standards:
 function generatePricingRates(companyName: string) {
   return `${companyName} - PRICING & RATES
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 STANDARD RATE SCHEDULE
 
@@ -182,7 +182,7 @@ For custom quotes, contact:
 function generateDifferentiators(companyName: string) {
   return `WHY CHOOSE ${companyName}
 
-*${TEMPLATE_MARKER}*
+${TEMPLATE_MARKER}
 
 OUR COMPETITIVE ADVANTAGES
 

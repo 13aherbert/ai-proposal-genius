@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { withRetry } from "@/utils/network/retry";
 import { format } from "date-fns";
-import { Download, ExternalLink, FileText, Loader2, Receipt, RefreshCw } from "lucide-react";
+import { AlertOctagon, Download, ExternalLink, FileText, Receipt, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Invoice {
   id: string;
@@ -22,44 +25,43 @@ interface Invoice {
   description: string;
 }
 
-/**
- * BillingHistory - Displays invoice history from Stripe
- * Shows date, amount, status with download/view options
- */
+type FetchState = "loading" | "success" | "error" | "empty";
+
 export function BillingHistory() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [fetchState, setFetchState] = useState<FetchState>("loading");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchBillingHistory = async (showRefreshToast = false) => {
+    if (showRefreshToast) {
+      setIsRefreshing(true);
+    } else {
+      setFetchState("loading");
+    }
+
     try {
-      if (showRefreshToast) {
-        setIsRefreshing(true);
+      const result = await withRetry(async () => {
+        const { data, error } = await supabase.functions.invoke('get-billing-history');
+        if (error) throw error;
+        return data;
+      }, 3, 1000, 10000);
+
+      const invoiceList: Invoice[] = result?.invoices || [];
+      if (invoiceList.length === 0) {
+        setInvoices([]);
+        setFetchState("empty");
       } else {
-        setIsLoading(true);
-      }
-      setError(null);
-
-      const { data, error: fnError } = await supabase.functions.invoke('get-billing-history');
-
-      if (fnError) {
-        throw fnError;
+        setInvoices(invoiceList);
+        setFetchState("success");
       }
 
-      setInvoices(data?.invoices || []);
-      
-      if (showRefreshToast) {
-        toast.success("Billing history refreshed");
-      }
+      if (showRefreshToast) toast.success("Billing history refreshed");
     } catch (err) {
-      console.error('Error fetching billing history:', err);
-      // Gracefully handle errors for free-tier users (no Stripe customer)
-      // Show empty state instead of error
+      console.error("Failed to fetch billing history:", err);
       setInvoices([]);
-      setError(null);
+      setFetchState("error");
     } finally {
-      setIsLoading(false);
       setIsRefreshing(false);
     }
   };
@@ -71,7 +73,7 @@ export function BillingHistory() {
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'paid':
-        return <Badge variant="default" className="bg-green-600 hover:bg-green-600">Paid</Badge>;
+        return <Badge variant="success">Paid</Badge>;
       case 'open':
         return <Badge variant="secondary">Pending</Badge>;
       case 'void':
@@ -84,34 +86,24 @@ export function BillingHistory() {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   };
 
   const handleOpenBillingPortal = async () => {
     try {
       toast.loading("Opening billing portal...");
-      
-      const { data, error } = await supabase.functions.invoke('renew-subscription', {
-        body: {}
-      });
-
+      const { data, error } = await supabase.functions.invoke('renew-subscription', { body: {} });
       toast.dismiss();
-
       if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
+      if (data?.url) window.open(data.url, '_blank');
     } catch (err) {
       console.error('Error opening billing portal:', err);
       toast.error("Failed to open billing portal");
     }
   };
 
-  if (isLoading) {
+  // --- LOADING STATE ---
+  if (fetchState === "loading") {
     return (
       <Card>
         <CardHeader>
@@ -121,14 +113,81 @@ export function BillingHistory() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 border rounded-lg h-[60px]">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16 ml-auto" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  // --- ERROR STATE ---
+  if (fetchState === "error") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            Billing History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center dark:border-red-900 dark:bg-red-950/30">
+            <AlertOctagon className="h-12 w-12 mx-auto mb-4 text-red-500" />
+            <h3 className="text-lg font-semibold mb-1">Unable to load billing history</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              This is usually a temporary connection issue. Your billing is secure.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button onClick={() => fetchBillingHistory()}>Try Again</Button>
+              <Button variant="outline" asChild>
+                <a href="mailto:support@optirfp.ai">Contact Support</a>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // --- EMPTY STATE ---
+  if (fetchState === "empty") {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Billing History
+              </CardTitle>
+              <CardDescription>View and download your past invoices</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground/40" />
+            <h3 className="text-lg font-semibold mb-1">No billing history yet</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Your invoices and payment history will appear here after your first charge.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/pricing')}>
+              View Plans
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // --- SUCCESS STATE ---
   return (
     <Card>
       <CardHeader>
@@ -141,12 +200,7 @@ export function BillingHistory() {
             <CardDescription>View and download your past invoices</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => fetchBillingHistory(true)}
-              disabled={isRefreshing}
-            >
+            <Button variant="ghost" size="sm" onClick={() => fetchBillingHistory(true)} disabled={isRefreshing}>
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button variant="outline" size="sm" onClick={handleOpenBillingPortal}>
@@ -157,73 +211,40 @@ export function BillingHistory() {
         </div>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>{error}</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-4"
-              onClick={() => fetchBillingHistory()}
+        <div className="space-y-3">
+          {invoices.map((invoice) => (
+            <div
+              key={invoice.id}
+              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
-              Try Again
-            </Button>
-          </div>
-        )}
-
-        {!error && invoices.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No billing history yet</p>
-            <p className="text-sm mt-1">Your invoices will appear here once you have a paid subscription.</p>
-          </div>
-        )}
-
-        {!error && invoices.length > 0 && (
-          <div className="space-y-3">
-            {invoices.map((invoice) => (
-              <div 
-                key={invoice.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="hidden sm:flex h-10 w-10 items-center justify-center bg-muted rounded-lg">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{invoice.description}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(invoice.created), 'MMM d, yyyy')}
-                      {invoice.number && ` • ${invoice.number}`}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="hidden sm:flex h-10 w-10 items-center justify-center bg-muted rounded-lg">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(invoice.amount, invoice.currency)}</p>
-                    {getStatusBadge(invoice.status)}
-                  </div>
-                  {invoice.invoicePdfUrl && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      asChild
-                    >
-                      <a 
-                        href={invoice.invoicePdfUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        title="Download PDF"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
+                <div>
+                  <p className="font-medium">{invoice.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(invoice.created), 'MMM d, yyyy')}
+                    {invoice.number && ` • ${invoice.number}`}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="font-semibold">{formatCurrency(invoice.amount, invoice.currency)}</p>
+                  {getStatusBadge(invoice.status)}
+                </div>
+                {invoice.invoicePdfUrl && (
+                  <Button variant="ghost" size="icon" asChild>
+                    <a href={invoice.invoicePdfUrl} target="_blank" rel="noopener noreferrer" title="Download PDF">
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

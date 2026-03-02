@@ -122,10 +122,12 @@ export const useEntries = (selectedCategory: string | null) => {
 
       console.log('Raw data from database:', data);
 
+      const TEMPLATE_MARKER = "Replace with your content";
       const formattedEntries = data.map(entry => ({
         title: entry.title,
         category: entry.category,
-        updated: new Date(entry.updated_at).toLocaleDateString()
+        updated: new Date(entry.updated_at).toLocaleDateString(),
+        isTemplate: entry.content?.includes(TEMPLATE_MARKER) ?? false,
       }));
 
       console.log('Formatted entries:', formattedEntries);

@@ -9,4 +9,5 @@ export interface KnowledgeEntry {
   title: string;
   category: string;
   updated: string;
+  isTemplate?: boolean;
 }

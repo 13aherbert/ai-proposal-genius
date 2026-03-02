@@ -1,4 +1,4 @@
-import { ArrowLeft, Wrench, ChevronDown } from "lucide-react";
+import { ArrowLeft, Wrench, ChevronDown, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
@@ -12,17 +12,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/components/AuthProvider";
 import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledgeBase";
 import { useStarterTemplates } from "@/components/knowledge-base/hooks/useStarterTemplates";
+import { useKBCompletion } from "@/components/knowledge-base/hooks/useKBCompletion";
 import { Progress } from "@/components/ui/progress";
 
-/**
- * KnowledgeBase page component
- * 
- * Provides a user interface for managing and accessing knowledge base entries
- * organized by categories. Includes:
- * - Category navigation sidebar
- * - Search functionality
- * - Viewing and adding entries
- */
 const KnowledgeBase = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -34,6 +26,7 @@ const KnowledgeBase = () => {
     categories 
   } = useKnowledgeBase();
   const { isSeeding, seedingProgress } = useStarterTemplates();
+  const { completedCount, totalCategories, allComplete, isLoading: completionLoading } = useKBCompletion();
 
   return (
     <div className="flex flex-col gap-4 sm:gap-8">
@@ -42,6 +35,21 @@ const KnowledgeBase = () => {
           <p className="text-sm font-medium">Setting up starter templates...</p>
           <Progress value={seedingProgress} className="h-2" />
           <p className="text-xs text-muted-foreground">{seedingProgress}% complete</p>
+        </div>
+      )}
+      {!isSeeding && !completionLoading && !allComplete && (
+        <div className="p-4 bg-muted rounded-lg space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold">Knowledge Base Completion</h4>
+            <span className="text-sm font-medium text-muted-foreground">
+              {completedCount} of {totalCategories}
+            </span>
+          </div>
+          <Progress value={(completedCount / totalCategories) * 100} className="h-2" />
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Lightbulb className="h-3 w-3" />
+            Replace template content with your actual company information for better proposals
+          </p>
         </div>
       )}
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

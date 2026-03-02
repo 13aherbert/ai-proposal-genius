@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 // Define CORS headers for browser compatibility
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
@@ -15,91 +15,40 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log("Auth header present:", !!req.headers.get('Authorization'));
+  const authHeader = req.headers.get('Authorization');
+  console.log("Auth header present:", !!authHeader);
   
   try {
-    // Get user ID from auth context
-    const authUser = req.headers.get('x-supabase-auth-user');
     let userId = null;
     
-    if (authUser) {
-      try {
-        userId = JSON.parse(authUser).id;
-        console.log("Retrieved user ID from auth context:", userId);
-      } catch (e) {
-        console.error("Failed to parse auth user:", e);
-      }
-    }
-    
-    // If no user ID found in auth context, try getting it from Authorization header
-    if (!userId) {
-      // Get authorization header
-      const authHeader = req.headers.get('Authorization');
-      let token = null;
-      
-      // Try header auth first
-      if (authHeader) {
-        token = authHeader.replace('Bearer ', '');
-        console.log("Using token from Authorization header");
-      } else {
-        // Try to get token from JSON body if not in headers
-        try {
-          const contentLength = req.headers.get('content-length');
-          const hasBody = contentLength && parseInt(contentLength) > 0;
-          
-          if (hasBody) {
-            const clonedReq = req.clone();
-            try {
-              const body = await clonedReq.json();
-              if (body?.token) {
-                token = body.token;
-                console.log("Found token in request body");
-              }
-            } catch (parseError) {
-              console.error("Error parsing request body:", parseError);
-            }
-          } else {
-            console.log("Request has empty body (content-length: 0)");
-          }
-        } catch (e) {
-          console.error("Error accessing request body:", e);
-        }
-      }
-      
-      // If we still don't have userId but we have a token, try to validate it
-      if (!userId && token) {
-        try {
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-          const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-          
-          if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Missing Supabase environment variables");
-          }
-          
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-          if (userError || !user) {
-            console.error("Error getting user from token:", userError);
-            throw new Error("Invalid token");
-          }
-          
-          userId = user.id;
-          console.log("Extracted user ID from token:", userId);
-        } catch (tokenError) {
-          console.error("Failed to validate token:", tokenError);
-        }
-      }
-    }
-    
-    // Return error if no userId is provided
-    if (!userId) {
-      console.error("Unable to determine user ID from request");
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: "User ID could not be determined", details: "No valid auth context or token provided" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+    // Create a client with the user's token to validate via getClaims
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Failed to validate token via getClaims:", claimsError);
+      return new Response(
+        JSON.stringify({ error: "User ID could not be determined", details: "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    userId = claimsData.claims.sub;
+    console.log("Extracted user ID from claims:", userId);
     
     // Create Supabase client with admin privileges to bypass RLS
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

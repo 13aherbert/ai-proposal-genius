@@ -155,13 +155,14 @@ export default function Dashboard() {
         <EnterpriseGettingStarted />
       )}
 
-      {/* Segmented welcome only for brand-new users without any content */}
+      {/* Empty state for new users */}
       {!isEstablished && !isEnterprise && (
-        <SegmentedWelcome
-          firstName={profileData.first_name}
-          organizationSize={profileData.organization_size as OrganizationSize}
-          useCase={profileData.use_case as UseCase}
-          industry={profileData.industry}
+        <DashboardEmptyState
+          profileComplete={profileComplete}
+          hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
+          hasProjects={dashboardStats.hasProjects}
+          knowledgeReadiness={knowledgeReadiness}
+          onUploadClick={quickUpload.openModal}
         />
       )}
 
@@ -184,12 +185,10 @@ export default function Dashboard() {
         onViewProject={quickUpload.viewProject}
       />
 
+      {/* Main content for established users */}
+      {isEstablished && (
       <div className={showSidebar ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : ""}>
-        {/* Main Content */}
         <div className={showSidebar ? "lg:col-span-3 space-y-6" : "space-y-6"}>
-          {/* Feature Spotlight for new users */}
-          {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
-
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <QuickUploadZone onFileSelect={(file) => {

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
-import { SegmentedWelcome } from "@/components/dashboard/SegmentedWelcome";
-import { FeatureSpotlight } from "@/components/dashboard/FeatureSpotlight";
+import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
 import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
 import { QuickUploadZone } from "@/components/dashboard/QuickUploadZone";
 import { QuickUploadModal } from "@/components/rfp/QuickUploadModal";
@@ -19,6 +18,7 @@ import { Database, FolderOpen, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
+
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
@@ -157,13 +157,14 @@ export default function Dashboard() {
         <EnterpriseGettingStarted />
       )}
 
-      {/* Segmented welcome only for brand-new users without any content */}
+      {/* Empty state for new users */}
       {!isEstablished && !isEnterprise && (
-        <SegmentedWelcome
-          firstName={profileData.first_name}
-          organizationSize={profileData.organization_size as OrganizationSize}
-          useCase={profileData.use_case as UseCase}
-          industry={profileData.industry}
+        <DashboardEmptyState
+          profileComplete={profileComplete}
+          hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
+          hasProjects={dashboardStats.hasProjects}
+          knowledgeReadiness={knowledgeReadiness}
+          onUploadClick={quickUpload.openModal}
         />
       )}
 
@@ -186,12 +187,10 @@ export default function Dashboard() {
         onViewProject={quickUpload.viewProject}
       />
 
+      {/* Main content for established users */}
+      {isEstablished && (
       <div className={showSidebar ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : ""}>
-        {/* Main Content */}
         <div className={showSidebar ? "lg:col-span-3 space-y-6" : "space-y-6"}>
-          {/* Feature Spotlight for new users */}
-          {isNewUser && <FeatureSpotlight organizationSize={profileData.organization_size as OrganizationSize} useCase={profileData.use_case as UseCase} />}
-
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <QuickUploadZone onFileSelect={(file) => {
@@ -228,6 +227,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

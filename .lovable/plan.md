@@ -1,57 +1,36 @@
 
 
-## Plan: Redesign Dashboard Empty State for New Users
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Overview
-Replace the current `SegmentedWelcome` + `FeatureSpotlight` + `QuickActionCard` grid with a new hero-driven empty state and interactive getting started checklist when the user has no projects or knowledge entries (`!isEstablished`).
+### Changes
 
-### New File: `src/components/dashboard/DashboardEmptyState.tsx`
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-Single component containing both the hero section and the checklist, rendered when `!isEstablished && !isEnterprise`.
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**Hero Section:**
-- Gradient card (`bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5`, border-0)
-- Left column: "AI-Powered" badge with Sparkles icon, "Create your first AI-powered proposal in 3 minutes" headline (text-3xl md:text-4xl), description text, two CTAs — primary "Upload Your First RFP" button (triggers `onUploadClick` callback to reuse existing QuickUpload flow) and outline "Try with Sample RFP" button (navigates to `/upload-rfp` with sample query param)
-- Right column (hidden lg:block): Visual illustration showing FileText icon → ArrowDown → CheckCircle icon in a rounded-3xl gradient container
-- "Supports PDF, DOCX, and TXT files up to 50MB" helper text
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**Process Steps (3-column grid below hero):**
-- Upload RFP → AI Analyzes → Get Proposal
-- Each in a `Card` with `border-0 shadow-none bg-muted/50`, icon in colored circle, title, description
-- Stacks to 1 column on mobile
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**Getting Started Checklist:**
-- Props: `profileComplete`, `hasKnowledgeEntries`, `knowledgeReadiness` (for essential count)
-- 3 items: Complete Profile, Build Knowledge Base, Create First Proposal
-- Each item has status (completed/in-progress/pending) with colored left border and status icon
-- Completed = green bg + check, In-progress = yellow bg + animated dot, Pending = gray
-- Action buttons for incomplete items linking to respective pages
-- Completion rewards as badges ("+10% proposal quality", "First win!")
-- Header shows "{n} of 3 completed" badge
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-**Props interface:**
-```typescript
-interface DashboardEmptyStateProps {
-  profileComplete: boolean;
-  hasKnowledgeEntries: boolean;
-  knowledgeReadiness: { missingEssential: string[]; completedEssential: number };
-  onUploadClick: () => void;
-}
-```
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Modified File: `src/pages/Dashboard.tsx`
-
-- Import `DashboardEmptyState`
-- When `!isEstablished && !isEnterprise`: render `<DashboardEmptyState>` instead of `<SegmentedWelcome>`, `<FeatureSpotlight>`, and the quick actions grid
-- Pass `profileComplete`, `dashboardStats.hasKnowledgeEntries`, `knowledgeReadiness`, and an `onUploadClick` that opens the QuickUpload modal
-- The quick actions grid + recent activity still render for established users (no change to that path)
-- Remove the `FeatureSpotlight` render for new users (replaced by the hero) — keep `isNewUser` check but remove that block
-- Keep sidebar with `OnboardingProgress` and `KnowledgeBaseReadiness` as-is
-
-### Files Summary
-
-| File | Action |
-|------|--------|
-| `src/components/dashboard/DashboardEmptyState.tsx` | Create |
-| `src/pages/Dashboard.tsx` | Modify — swap SegmentedWelcome/FeatureSpotlight for new empty state |
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

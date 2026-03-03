@@ -145,6 +145,26 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Exit Intent Modal */}
+      <ExitIntentModal
+        open={exitOpen}
+        onDismiss={dismiss}
+        onClose={close}
+        onSignUp={() => {
+          exitSignUp();
+          setExitSignupOpen(true);
+        }}
+      />
+
+      {/* Signup dialog triggered by exit intent CTA */}
+      <Dialog open={exitSignupOpen} onOpenChange={setExitSignupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <ErrorBoundary name="ExitIntentSignupModal">
+            <AuthForm defaultView="sign_up" variant="dialog" />
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

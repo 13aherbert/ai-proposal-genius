@@ -1,41 +1,36 @@
 
 
-## Plan: Exit-Intent Modal for OptiRFP Homepage
+## Plan: Add Social Proof Elements to OptiRFP
 
-### New Files
+### Changes
 
-**1. `src/hooks/use-exit-intent.ts`**
-- State: `showModal`, `hasTriggered` (session-scoped)
-- On mount, check suppression: `localStorage` keys `optirfp_signed_up`, `optirfp_exit_dismissed` (7-day TTL)
-- After 30s timeout + cursor movement detected, attach listeners:
-  - `document.addEventListener('mouseleave')` — trigger if `e.clientY < 10`
-  - `window.addEventListener('scroll')` — track scroll velocity, trigger if upward scroll > 500px in < 200ms
-- Expose: `showModal`, `dismiss()` (sets localStorage timestamp), `close()`, `signUp()` (sets `optirfp_signed_up`)
-- No trigger if `session` exists (passed as param or checked internally)
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. `src/components/blocks/ExitIntentModal.tsx`**
-- Desktop: `Dialog` with `sm:max-w-md`, Gift icon, headline ("Wait! Don't miss out on 3 months free"), 3 value prop bullets with Check icons, "Start Free Trial" button (opens signup Dialog or navigates), "Maybe Later" ghost button
-- Mobile: Use `Sheet` from vaul (bottom drawer) instead of centered Dialog
-- Analytics: fire `exit_intent_shown` on open, `exit_intent_signup_clicked`, `exit_intent_dismissed`, `exit_intent_closed` via existing `useAnalytics().trackEvent()`
-- "Start Free Trial" click: dismiss modal, open signup dialog (controlled state) or set a callback
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-### Modified Files
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**3. `src/pages/Index.tsx`**
-- Import `useExitIntent` and `ExitIntentModal`
-- Import `useAuth` from `AuthProvider` — pass `session` to hook so it won't trigger for logged-in users
-- Add state `signupOpen` for a controlled signup Dialog triggered by exit-intent CTA
-- Render `<ExitIntentModal>` and a controlled `<Dialog open={signupOpen}>` with `AuthForm` for signup
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### Technical Details
-- Scroll velocity: store `lastScrollY` and `lastScrollTime`, compare delta on each scroll event
-- Cursor movement: set a `hasMoved` flag on first `mousemove` event to filter bots
-- Session check via `useAuth()` — if `session` exists, hook returns `showModal: false` and skips all listeners
-- All localStorage keys prefixed with `optirfp_`
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-| File | Action |
-|------|--------|
-| `src/hooks/use-exit-intent.ts` | Create |
-| `src/components/blocks/ExitIntentModal.tsx` | Create |
-| `src/pages/Index.tsx` | Modify — add hook + modal |
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

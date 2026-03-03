@@ -106,6 +106,8 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
               <Input
                 id="email"
                 type="email"
+                data-testid="email-input"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -117,6 +119,8 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
               <Input
                 id="password"
                 type="password"
+                data-testid="password-input"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

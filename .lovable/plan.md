@@ -1,36 +1,31 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Interactive Onboarding Checklist
 
-### Changes
+The existing `DashboardEmptyState.tsx` already has a checklist section (lines 164-236) that is close to what's requested but lacks confetti celebration, progress bar, staggered animations, the "all complete" CTA, and the enhanced styling from the spec. The `OnboardingProgress` component in the sidebar is a separate, older widget.
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+### Approach
+Upgrade the checklist section inside `DashboardEmptyState.tsx` in-place rather than creating a separate component, since it already has the correct data flow and props.
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+### Changes to `src/components/dashboard/DashboardEmptyState.tsx`
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+**Checklist section upgrades (lines 164-236):**
+- Add `Progress` bar (h-2) below the header showing `completedCount / items.length` with percentage text
+- Add confetti burst (`canvas-confetti`) via `useEffect` when all 3 items are completed
+- Enhance status icons to 32px circles: green-500 + Check for completed, yellow-500 + Loader2 (animate-spin) for in-progress, gray-200 + Circle for pending
+- Add staggered fade-in animation on checklist items using inline `style={{ animationDelay }}` with the existing `animate-fade-in` class
+- Add "all complete" state: green border on Card, "Complete!" badge with Sparkles in header, description changes to congratulatory text, and a full-width "Create Your First Proposal" CTA at the bottom linking to `/upload-rfp`
+- Item card styling: use `border-2` instead of `border`, add hover transition on pending items
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+**Imports to add:** `Progress`, `Loader2`, `confetti` (from canvas-confetti), `useEffect`/`useState` (already imported: useMemo)
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+### Changes to `src/pages/Dashboard.tsx`
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+No changes needed — `DashboardEmptyState` is already rendered with the correct props when `!isEstablished && !isEnterprise`.
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+### Files Summary
+
+| File | Action |
+|------|--------|
+| `src/components/dashboard/DashboardEmptyState.tsx` | Modify — enhance checklist with progress bar, confetti, animations, all-complete state |
 

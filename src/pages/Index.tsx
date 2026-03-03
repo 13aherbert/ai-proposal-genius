@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -10,9 +10,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SocialProofBar } from "@/components/blocks/SocialProofBar";
 import { Testimonial } from "@/components/blocks/Testimonial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useExitIntent } from "@/hooks/use-exit-intent";
+import { ExitIntentModal } from "@/components/blocks/ExitIntentModal";
+import { useAuth } from "@/components/AuthProvider";
 
 const Index = () => {
   const isMobile = useIsMobile();
+  const { session } = useAuth();
+  const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
+  const [exitSignupOpen, setExitSignupOpen] = useState(false);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

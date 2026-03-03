@@ -16,8 +16,7 @@ import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
 import { Database, FolderOpen, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
-import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
+
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";

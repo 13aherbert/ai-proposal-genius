@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -8,9 +9,19 @@ import { FAQ } from "@/components/blocks/faq";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SocialProofBar } from "@/components/blocks/SocialProofBar";
 import { Testimonial } from "@/components/blocks/Testimonial";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Index = () => {
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isAutomated = !!(navigator as any).webdriver;
+    if (prefersReducedMotion || isAutomated) {
+      document.body.classList.add('reduce-motion');
+    }
+    return () => document.body.classList.remove('reduce-motion');
+  }, []);
   
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -37,13 +48,15 @@ const Index = () => {
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70">
+              <Button variant="secondary" data-testid="login-button" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70">
                 <LogIn className="h-4 w-4" />
                 {!isMobile && "Login"}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <AuthForm defaultView="sign_in" variant="dialog" />
+              <ErrorBoundary name="LoginModal">
+                <AuthForm defaultView="sign_in" variant="dialog" />
+              </ErrorBoundary>
             </DialogContent>
           </Dialog>
         </div>
@@ -65,7 +78,9 @@ const Index = () => {
                   <Button size="lg" className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold">Start Forever Free Today</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
-                  <AuthForm defaultView="sign_up" variant="dialog" />
+                  <ErrorBoundary name="SignupModal">
+                    <AuthForm defaultView="sign_up" variant="dialog" />
+                  </ErrorBoundary>
                 </DialogContent>
               </Dialog>
             </div>

@@ -92,6 +92,23 @@
   @apply overflow-hidden;
 }
 
+/* Reduced motion support for modals */
+@media (prefers-reduced-motion: reduce) {
+  [role="dialog"],
+  [data-radix-dialog-content],
+  [data-radix-dialog-overlay] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.reduce-motion [role="dialog"],
+.reduce-motion [data-radix-dialog-content],
+.reduce-motion [data-radix-dialog-overlay] {
+  animation: none !important;
+  transition: none !important;
+}
+
 /* Dropdown positioning improvements */
 [data-radix-popper-content-wrapper] {
   z-index: 999 !important;

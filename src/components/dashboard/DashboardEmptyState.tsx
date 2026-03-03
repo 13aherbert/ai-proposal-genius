@@ -1,13 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Sparkles, Upload, FileText, ArrowDown, ArrowRight,
-  CheckCircle, Brain, FileCheck, Check, Circle,
+  CheckCircle, Brain, FileCheck, Check, Circle, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import confetti from "canvas-confetti";
 
 interface DashboardEmptyStateProps {
   profileComplete: boolean;
@@ -78,6 +80,16 @@ export function DashboardEmptyState({
   }, [profileComplete, hasKnowledgeEntries, hasProjects, knowledgeReadiness]);
 
   const completedCount = checklistItems.filter((i) => i.status === "completed").length;
+  const progress = (completedCount / checklistItems.length) * 100;
+  const allCompleted = completedCount === checklistItems.length;
+
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (allCompleted && !celebrated) {
+      setCelebrated(true);
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+  }, [allCompleted, celebrated]);
 
   return (
     <div className="space-y-8">
@@ -162,41 +174,62 @@ export function DashboardEmptyState({
       </div>
 
       {/* Getting Started Checklist */}
-      <Card>
+      <Card className={cn(allCompleted && "border-accent")}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Getting Started
-            <Badge variant="secondary">{completedCount} of 3 completed</Badge>
-          </CardTitle>
-          <CardDescription>
-            Complete these steps to unlock the full power of OptiRFP
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                Getting Started
+                {allCompleted ? (
+                  <Badge variant="success">
+                    <Sparkles className="mr-1 h-3 w-3" />
+                    Complete!
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">{completedCount} of 3 completed</Badge>
+                )}
+              </CardTitle>
+              <CardDescription className="mt-1.5">
+                {allCompleted
+                  ? "You're all set! Start creating winning proposals."
+                  : "Complete these steps to unlock the full power of OptiRFP"}
+              </CardDescription>
+            </div>
+            <span className="text-sm font-medium text-muted-foreground">
+              {completedCount} / {checklistItems.length}
+            </span>
+          </div>
+          <div className="mt-4 space-y-1">
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-right">{Math.round(progress)}% complete</p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {checklistItems.map((item) => (
+          {checklistItems.map((item, index) => (
             <div
               key={item.id}
               className={cn(
-                "flex items-start gap-4 p-4 rounded-lg border transition-all",
+                "flex items-start gap-4 p-4 rounded-lg border-2 transition-all animate-fade-in",
                 item.status === "completed" && "bg-accent/30 border-accent",
                 item.status === "in-progress" && "bg-secondary/50 border-secondary",
-                item.status === "pending" && "bg-muted/50 border-muted"
+                item.status === "pending" && "bg-muted/50 border-muted hover:bg-muted/70"
               )}
+              style={{ animationDelay: `${index * 100}ms`, animationFillMode: "backwards" }}
             >
               {/* Status Icon */}
               <div className="mt-0.5">
                 {item.status === "completed" && (
-                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center animate-scale-in">
                     <Check className="w-4 h-4 text-primary-foreground" />
                   </div>
                 )}
                 {item.status === "in-progress" && (
-                  <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
-                    <Circle className="w-4 h-4 text-secondary-foreground animate-pulse" />
+                  <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-accent-foreground animate-spin" />
                   </div>
                 )}
                 {item.status === "pending" && (
-                  <div className="w-6 h-6 bg-muted-foreground/30 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                     <Circle className="w-4 h-4 text-muted-foreground" />
                   </div>
                 )}
@@ -232,6 +265,18 @@ export function DashboardEmptyState({
               </div>
             </div>
           ))}
+
+          {/* All Complete CTA */}
+          {allCompleted && (
+            <div className="pt-4">
+              <Button size="lg" className="w-full" asChild>
+                <Link to="/upload-rfp">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Create Your First Proposal
+                </Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

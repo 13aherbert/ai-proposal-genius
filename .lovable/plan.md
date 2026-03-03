@@ -1,36 +1,48 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Restructure Navbar with Grouped Navigation
 
-### Changes
+### Overview
+Replace the flat 6-item nav with grouped dropdown menus (Create, Manage, Discover) using Radix NavigationMenu, add a profile avatar dropdown, and convert mobile menu to Sheet component.
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+### Modified File: `src/components/navigation/Navbar.tsx` — Full rewrite
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+**Desktop Navigation (hidden on mobile, flex on md+):**
+- Logo stays as-is (links to `/dashboard`)
+- `NavigationMenu` with 3 groups:
+  - **Create** trigger → dropdown with featured "Upload RFP" card (gradient bg, larger) + "New Project" link (`/upload-rfp`)
+  - **Manage** trigger → dropdown with "Projects" (`/projects`), "Knowledge Base" (`/knowledge-base`), and conditionally "Organization" (`/organization`) for enterprise/white_label users
+  - **Discover** → direct link to `/opportunities` using `navigationMenuTriggerStyle()`
+- **Dashboard** stays as a standalone top-level link (first item, before Create) since it's the home route
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+**Profile Dropdown (far right, desktop):**
+- `Avatar` with `AvatarFallback` showing initials from `profileData.first_name` + `profileData.last_name`
+- `DropdownMenu` containing: user name/email label, Account Settings link, Subscription link, separator, Sign Out
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+**Mobile Navigation:**
+- Replace toggle div with `Sheet` (side="left", w-[300px])
+- Grouped sections with headers: "Create" (Upload RFP, New Project), "Manage" (Dashboard, Projects, Knowledge Base, Organization), "Discover" (Opportunities)
+- Each link wrapped in `SheetClose` for auto-close on navigate
+- Account/Sign Out at bottom separated by `Separator`
+- Icons for each item: Upload, Plus, LayoutDashboard, Folder, Database, Search, Building2, User, LogOut
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+**Active state:** Use `useLocation()` to detect current path, apply `font-semibold text-foreground` to active NavigationMenu links
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+**ListItem helper:** Local component (standard shadcn pattern) rendering `NavigationMenuLink` with title + description, used inside dropdown content grids
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+### Imports needed
+- From `@/components/ui/navigation-menu`: NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink, navigationMenuTriggerStyle
+- From `@/components/ui/dropdown-menu`: DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator
+- From `@/components/ui/avatar`: Avatar, AvatarFallback
+- From `@/components/ui/sheet`: Sheet, SheetTrigger, SheetContent, SheetClose
+- From `@/components/ui/separator`: Separator
+- `useLocation` from react-router-dom
+- Lucide icons: Menu, Upload, Plus, LayoutDashboard, Folder, Database, Search, Building2, User, LogOut
+
+### Files Summary
+| File | Action |
+|------|--------|
+| `src/components/navigation/Navbar.tsx` | Rewrite — grouped nav, avatar dropdown, Sheet mobile |
+
+No new files needed. All UI primitives already exist in the project.
 

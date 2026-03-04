@@ -1,42 +1,36 @@
 
 
-## Plan: First-RFP Upload Wizard (3-Step)
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Overview
-Create a `FirstRFPWizard` dialog component with 3 steps (Welcome → Upload → Processing/Success) that triggers for new users who haven't uploaded their first RFP. Integrates with the existing `useRFPUpload` hook for real file processing and navigates to the created project on completion.
+### Changes
 
-### New File: `src/components/onboarding/FirstRFPWizard.tsx`
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-A dialog-based wizard with internal state machine (`step`: welcome → upload → processing, plus `isComplete` for success screen):
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-- **Step 1 — Welcome**: Hero illustration, "Let's create your first proposal" copy, "Get Started" primary CTA, "Skip for now" ghost link
-- **Step 2 — Upload**: Drag-and-drop zone (reusing patterns from `UploadDropzone`), file input for PDF/DOCX/TXT, plus 3 sample RFP cards (IT Services, Construction, Consulting) as click-to-select alternatives. "Back" button returns to step 1
-- **Step 3 — Processing**: Animated checklist (Analyzing → Matching KB → Drafting → Formatting) with a `Progress` bar. For real uploads, hooks into `useRFPUpload`'s `uploadProgress`. For sample selections, simulates progress over ~6 seconds
-- **Success Screen**: Confetti burst, "Your first proposal is ready!" heading, stats cards (time generated, time saved), "Edit & Export" primary CTA navigating to `/project/:id`, "Create Another" secondary CTA
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-Key behaviors:
-- Uses `useRFPUpload` hook for actual file upload and project creation
-- Sample RFPs trigger navigation to `/upload-rfp?sample=true` (existing route) or create a project with a bundled sample — whichever is simpler given the existing infra
-- `localStorage` keys: `optirfp_wizard_skipped`, `optirfp_first_rfp_complete`
-- Analytics events via existing `useAnalytics` hook: wizard started/skipped/completed, upload method (file vs sample)
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### Modified: `src/pages/Dashboard.tsx`
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-- Import `FirstRFPWizard`
-- Add state `showFirstRFPWizard` initialized from: `!dashboardStats.hasProjects && !localStorage.getItem('optirfp_first_rfp_complete') && !localStorage.getItem('optirfp_wizard_skipped')`
-- Render `<FirstRFPWizard open={showFirstRFPWizard} onOpenChange={setShowFirstRFPWizard} />` alongside the existing onboarding components
-- Only show when user is not enterprise and has no projects (same condition as `DashboardEmptyState`)
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Modified: `src/components/dashboard/DashboardEmptyState.tsx`
-
-- Wire the "Upload Your First RFP" hero button to open the wizard (via a new `onWizardOpen` prop) instead of the quick upload modal
-- Keep the "Try with Sample RFP" link as-is for users who dismiss the wizard
-
-### Files Summary
-
-| File | Action |
-|------|--------|
-| `src/components/onboarding/FirstRFPWizard.tsx` | Create — 3-step wizard dialog |
-| `src/pages/Dashboard.tsx` | Modify — add wizard trigger logic |
-| `src/components/dashboard/DashboardEmptyState.tsx` | Modify — wire hero CTA to wizard |
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

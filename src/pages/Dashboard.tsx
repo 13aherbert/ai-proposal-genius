@@ -8,6 +8,7 @@ import { QuickUploadZone } from "@/components/dashboard/QuickUploadZone";
 import { QuickUploadModal } from "@/components/rfp/QuickUploadModal";
 import { KnowledgeBaseReadiness } from "@/components/dashboard/KnowledgeBaseReadiness";
 import { KnowledgeSetupWizard } from "@/components/knowledge-base/KnowledgeSetupWizard";
+import { FirstRFPWizard } from "@/components/onboarding/FirstRFPWizard";
 import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const { organization } = useCurrentOrganization();
   const knowledgeReadiness = useKnowledgeReadiness();
   const [showKBWizard, setShowKBWizard] = useState(false);
+  const [showFirstRFPWizard, setShowFirstRFPWizard] = useState(false);
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';
@@ -59,6 +61,16 @@ export default function Dashboard() {
       setShowKBWizard(true);
     }
   }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
+
+  // Show first RFP wizard for new users without projects
+  useEffect(() => {
+    if (dashboardStats.hasProjects) return;
+    const completed = localStorage.getItem('optirfp_first_rfp_complete');
+    const skipped = localStorage.getItem('optirfp_wizard_skipped');
+    if (!completed && !skipped && session?.user) {
+      setShowFirstRFPWizard(true);
+    }
+  }, [dashboardStats.hasProjects, session]);
 
   const handleKBWizardClose = (open: boolean) => {
     setShowKBWizard(open);
@@ -165,8 +177,12 @@ export default function Dashboard() {
           hasProjects={dashboardStats.hasProjects}
           knowledgeReadiness={knowledgeReadiness}
           onUploadClick={quickUpload.openModal}
+          onWizardOpen={() => setShowFirstRFPWizard(true)}
         />
       )}
+
+      {/* First RFP Wizard */}
+      <FirstRFPWizard open={showFirstRFPWizard} onOpenChange={setShowFirstRFPWizard} />
 
       {/* Knowledge Base Setup Wizard */}
       {showKBWizard && (

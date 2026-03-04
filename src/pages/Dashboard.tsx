@@ -173,7 +173,7 @@ export default function Dashboard() {
       )}
 
       {/* Empty state for new users */}
-      {!isEstablished && !isEnterprise && (
+      {!isEstablished && !isEnterprise && !checklistDismissed && (
         <DashboardEmptyState
           profileComplete={profileComplete}
           hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
@@ -181,6 +181,10 @@ export default function Dashboard() {
           knowledgeReadiness={knowledgeReadiness}
           onUploadClick={quickUpload.openModal}
           onWizardOpen={() => setShowFirstRFPWizard(true)}
+          onDismiss={() => {
+            setChecklistDismissed(true);
+            localStorage.setItem('onboarding_checklist_dismissed', 'true');
+          }}
         />
       )}
 

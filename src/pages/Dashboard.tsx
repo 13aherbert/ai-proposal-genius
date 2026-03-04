@@ -47,6 +47,9 @@ export default function Dashboard() {
   const knowledgeReadiness = useKnowledgeReadiness();
   const [showKBWizard, setShowKBWizard] = useState(false);
   const [showFirstRFPWizard, setShowFirstRFPWizard] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(
+    () => localStorage.getItem('onboarding_checklist_dismissed') === 'true'
+  );
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
+import { Check, Star, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -123,6 +123,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300"
             )}
           >
+            <Calendar className="h-4 w-4" />
             Schedule Demo
           </button>
           <a

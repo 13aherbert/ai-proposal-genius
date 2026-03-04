@@ -1,36 +1,36 @@
 
 
-## Plan: Embed Calendly in Enterprise Sales Modal
-
-### Overview
-Replace the current lead-capture form in `EnterpriseSalesModal` with a two-tab experience: a Calendly inline embed for instant demo booking (default view) and a fallback contact form tab for those who prefer email.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-#### 1. `src/components/blocks/pricing/EnterpriseSalesModal.tsx` — Rewrite modal content
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**New layout:**
-- Two-state view controlled by a `view` state: `"calendly"` (default) | `"form"`
-- **Calendly view:**
-  - Header: "Schedule Your OptiRFP Demo" + "30-minute call with our enterprise team"
-  - Calendly inline widget via `<iframe>` pointing to a placeholder URL (`https://calendly.com/optirfp/enterprise-demo`) — easily swapped for the real URL later
-  - iframe sized `w-full h-[500px]` with `border-0`
-  - Small link below: "Prefer email? Contact us instead" toggles to form view
-- **Form view:** Keep existing form (company, email, team size, message) as-is, with a "Back to scheduling" link to return to Calendly view
-- **Booking confirmed state:** After Calendly `message` event fires with `calendly.event_scheduled`, show a confirmation UI with green checkmark, "Demo Scheduled!" heading, and a "Close" button
-- Listen for Calendly postMessage events in a `useEffect` to detect booking completion
-- Widen dialog to `sm:max-w-2xl` to accommodate Calendly embed
-- Track `enterprise_demo_scheduled` event via the existing analytics service on booking confirmation
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-#### 2. `src/components/blocks/pricing/PricingCard.tsx` — Add Calendar icon to Schedule Demo button
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-- Import `Calendar` from lucide-react
-- Add `<Calendar className="h-4 w-4" />` inside the "Schedule Demo" button (line 126)
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### Files Summary
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-| File | Action |
-|------|--------|
-| `src/components/blocks/pricing/EnterpriseSalesModal.tsx` | Rewrite — Calendly embed + fallback form |
-| `src/components/blocks/pricing/PricingCard.tsx` | Minor — add Calendar icon to button |
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

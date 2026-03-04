@@ -1,36 +1,40 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Refine Sonner Toast Configuration
 
-### Changes
+### Current State
+Sonner is already installed, imported, and actively used across **109 files** in the codebase. The `<Toaster>` is rendered in `App.tsx` with `position="top-right" richColors closeButton`.
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+The existing setup already covers:
+- Success, error, warning, info, and loading toasts used throughout
+- Action buttons in toasts (retry, view, etc.)
+- Descriptions on most toasts
+- Theme-aware styling via `richColors`
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+### What Actually Needs Changing
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+Only the `<Toaster>` configuration in `src/App.tsx` needs a small update to match the spec:
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+1. **Position**: Change from `top-right` to `bottom-right` on desktop (spec requirement)
+2. **Max visible toasts**: Add `visibleToasts={3}` (spec: max 3)
+3. **Default duration**: Add `duration={4000}` (spec: 4s default)
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+That's it — one line change. Everything else requested (toast types, usage patterns, action buttons, loading states) is already implemented throughout the codebase.
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+### Change
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+**`src/App.tsx` (line ~102)**
+
+Update the Toaster props:
+```tsx
+// Before
+<Toaster position="top-right" richColors closeButton />
+
+// After
+<Toaster position="bottom-right" richColors closeButton visibleToasts={3} duration={4000} />
+```
+
+| File | Action |
+|------|--------|
+| `src/App.tsx` | Modify — update Toaster props (position, visibleToasts, duration) |
 

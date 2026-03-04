@@ -123,6 +123,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300"
             )}
           >
+            <Calendar className="h-4 w-4" />
             Schedule Demo
           </button>
           <a

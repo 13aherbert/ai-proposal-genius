@@ -1,34 +1,36 @@
 
 
-## Plan: Enhance Mobile Navigation Touch Targets & Polish
-
-### Analysis
-The Navbar already has a functional mobile Sheet navigation with section headers, icons, active states, and sign-out. The main gaps compared to the requirements are:
-
-1. **Touch targets too small** — current `py-3` (~44px) needs to be `min-h-[56px] py-4` for comfortable thumb tapping
-2. **Icon sizes too small** — `h-4 w-4` should be `h-5 w-5` for mobile
-3. **Missing subscription link** in mobile nav footer
-4. **Active states lack tap feedback** — need `active:bg-muted/70` for immediate touch response
-5. **Sign out lacks red styling** as specified
-6. **User profile info missing** from mobile nav header (name + email)
-7. **Hamburger button too small** — needs `h-11 w-11` minimum touch target
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-#### `src/components/navigation/Navbar.tsx`
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**Mobile Sheet section (lines 238-384):**
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-- **Hamburger button**: Change `size="icon"` to explicit `h-11 w-11` and bump icon to `h-6 w-6`
-- **Sheet header**: Add user avatar, name, and email at top of the sheet (before nav items), styled like the desktop dropdown label
-- **All nav links**: Change from `py-3` to `min-h-[56px] py-4`, icons from `h-4 w-4` to `h-5 w-5`, add `active:bg-muted/70` for tap feedback, text from `text-sm` to `text-base`
-- **Sign out button**: Add `text-destructive` styling with red icon
-- **Add subscription link**: Insert a "Subscription" link (`/account-settings#subscription`) with a `Settings` icon in the account footer section
-- **Section spacing**: Increase gap between sections with `py-3` on section wrappers
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-No new files needed — this is a refinement of the existing mobile nav in `Navbar.tsx`.
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-| File | Action |
-|------|--------|
-| `src/components/navigation/Navbar.tsx` | Modify — enlarge touch targets, add profile header, subscription link, red sign-out, tap feedback |
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

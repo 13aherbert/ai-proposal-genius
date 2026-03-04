@@ -100,7 +100,7 @@ export default function App() {
                   <ErrorBoundary>
                     <AppContent />
                   </ErrorBoundary>
-                  <Toaster position="top-right" richColors closeButton />
+                  <Toaster position="bottom-right" richColors closeButton visibleToasts={3} duration={4000} />
                   <NetworkStatusIndicator />
                 </SubscriptionProvider>
               </SecurityProvider>

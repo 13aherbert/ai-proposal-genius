@@ -47,6 +47,9 @@ export default function Dashboard() {
   const knowledgeReadiness = useKnowledgeReadiness();
   const [showKBWizard, setShowKBWizard] = useState(false);
   const [showFirstRFPWizard, setShowFirstRFPWizard] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(
+    () => localStorage.getItem('onboarding_checklist_dismissed') === 'true'
+  );
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';
@@ -170,7 +173,7 @@ export default function Dashboard() {
       )}
 
       {/* Empty state for new users */}
-      {!isEstablished && !isEnterprise && (
+      {!isEstablished && !isEnterprise && !checklistDismissed && (
         <DashboardEmptyState
           profileComplete={profileComplete}
           hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
@@ -178,6 +181,10 @@ export default function Dashboard() {
           knowledgeReadiness={knowledgeReadiness}
           onUploadClick={quickUpload.openModal}
           onWizardOpen={() => setShowFirstRFPWizard(true)}
+          onDismiss={() => {
+            setChecklistDismissed(true);
+            localStorage.setItem('onboarding_checklist_dismissed', 'true');
+          }}
         />
       )}
 

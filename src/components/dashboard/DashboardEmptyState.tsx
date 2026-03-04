@@ -20,6 +20,7 @@ interface DashboardEmptyStateProps {
     essentialScore: number;
   };
   onUploadClick: () => void;
+  onWizardOpen?: () => void;
 }
 
 interface ChecklistItem {
@@ -38,6 +39,7 @@ export function DashboardEmptyState({
   hasProjects,
   knowledgeReadiness,
   onUploadClick,
+  onWizardOpen,
 }: DashboardEmptyStateProps) {
   const checklistItems = useMemo<ChecklistItem[]>(() => {
     const essentialTotal = knowledgeReadiness.missingEssential.length + Math.round((knowledgeReadiness.essentialScore / 100) * (knowledgeReadiness.missingEssential.length / (1 - knowledgeReadiness.essentialScore / 100 || 1)));
@@ -114,7 +116,7 @@ export function DashboardEmptyState({
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="w-full sm:w-auto" onClick={onUploadClick}>
+                <Button size="lg" className="w-full sm:w-auto" onClick={onWizardOpen ?? onUploadClick}>
                   <Upload className="mr-2 h-5 w-5" />
                   Upload Your First RFP
                 </Button>

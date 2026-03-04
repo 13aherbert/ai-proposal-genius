@@ -3,15 +3,30 @@ insert into storage.buckets (id, name)
 values ('knowledge-files', 'knowledge-files')
 on conflict (id) do nothing;
 
-create policy "Users can upload files"
-on storage.objects for insert
-to authenticated
-with check (bucket_id = 'knowledge-files');
-
-create policy "Users can view their own files"
+-- Knowledge files: org-scoped access via user folder path ({userId}/{filename})
+create policy "Org members can view knowledge files"
 on storage.objects for select
 to authenticated
-using (bucket_id = 'knowledge-files');
+using (
+  bucket_id = 'knowledge-files'
+  AND public.storage_user_in_same_org(((storage.foldername(name))[1])::uuid)
+);
+
+create policy "Users can upload own knowledge files"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'knowledge-files'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Users can delete own knowledge files"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'knowledge-files'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
 
 -- RFP files bucket
 insert into storage.buckets (id, name)
@@ -23,33 +38,56 @@ insert into storage.buckets (id, name)
 values ('rfp_documents', 'rfp_documents')
 on conflict (id) do nothing;
 
-create policy "Users can upload RFP files"
-on storage.objects for insert
-to authenticated
-with check (bucket_id = 'rfp-files');
-
-create policy "Users can view their own RFP files"
+-- RFP files: org-scoped access via org folder path ({orgId}/{userId}/{file})
+create policy "Org members can view RFP files"
 on storage.objects for select
 to authenticated
-using (bucket_id = 'rfp-files');
+using (
+  bucket_id = 'rfp-files'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+);
 
-create policy "Users can delete their own RFP files"
-on storage.objects for delete
-to authenticated
-using (bucket_id = 'rfp-files');
-
--- Add policies for rfp_documents bucket too
-create policy "Users can upload RFP documents"
+create policy "Org members can upload RFP files"
 on storage.objects for insert
 to authenticated
-with check (bucket_id = 'rfp_documents');
+with check (
+  bucket_id = 'rfp-files'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
 
-create policy "Users can view their own RFP documents"
-on storage.objects for select
-to authenticated
-using (bucket_id = 'rfp_documents');
-
-create policy "Users can delete their own RFP documents"
+create policy "Org members can delete own RFP files"
 on storage.objects for delete
 to authenticated
-using (bucket_id = 'rfp_documents');
+using (
+  bucket_id = 'rfp-files'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
+
+-- Policies for rfp_documents bucket (same pattern)
+create policy "Org members can view RFP documents"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'rfp_documents'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+);
+
+create policy "Org members can upload RFP documents"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'rfp_documents'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
+
+create policy "Org members can delete own RFP documents"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'rfp_documents'
+  AND public.storage_user_in_org((storage.foldername(name))[1])
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);

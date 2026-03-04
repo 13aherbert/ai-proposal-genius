@@ -2449,6 +2449,11 @@ export type Database = {
         }
         Returns: string
       }
+      storage_user_in_org: { Args: { org_id_text: string }; Returns: boolean }
+      storage_user_in_same_org: {
+        Args: { file_owner_id: string }
+        Returns: boolean
+      }
       switch_user_organization: {
         Args: { org_id_param: string; user_id_param: string }
         Returns: boolean

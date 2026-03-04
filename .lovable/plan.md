@@ -1,40 +1,36 @@
 
 
-## Plan: Update Enterprise Tier Pricing & Value Presentation
-
-### Overview
-Update Enterprise from $299 to $499/month ($5,388/year → effectively $449/mo annual) across both the public pricing page and the internal subscription page. Enhance the Enterprise card with richer feature list, annual savings badge, subtitle, and multi-CTA layout.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-#### 1. `src/components/blocks/pricing-demo.tsx` — Update Enterprise plan data
-- Change `price` from `"299"` to `"499"`
-- Change `yearlyPrice` from `"2988"` to `"5388"` ($449/mo * 12)
-- Update features list to the enhanced 11-item set (unlimited everything, SOC 2 & FedRAMP, dedicated CSM, 4-hour SLA, custom AI training, API & webhooks, SSO/SAML specifics, on-premise option, custom integrations, quarterly reviews, team training)
-- Update `description` to "Custom solutions for organizations with 50+ users"
-- Change `buttonText` to `"Schedule Demo"`
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-#### 2. `src/components/blocks/pricing/PricingCard.tsx` — Enhanced Enterprise rendering
-- Update badge text from "For teams & gov contractors" to "For Enterprise Teams & Government"
-- Add annual savings display: when `isEnterprise && isMonthly`, show "or $449/month billed annually" with a "Save $600/year" badge below the price
-- Update `renderCTA` for Enterprise to show 3 buttons stacked:
-  1. Primary filled blue button: "Schedule Demo" (opens `EnterpriseSalesModal`)
-  2. Outline button: "Download Security Whitepaper" (links to `/security-whitepaper.pdf` or `#`)
-  3. Ghost text link: "Contact Sales" (mailto:sales@optirfp.ai)
-- Add a "Trusted by" section with 3 placeholder gray rectangles below features
-- Upgrade Enterprise card shadow from `shadow-lg` to `shadow-xl`
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-#### 3. `src/components/subscription/SubscriptionPlans.tsx` — Update internal Enterprise card
-- Change displayed price from "Custom Pricing" to `$499/mo` / `$5,388/yr` based on billing interval
-- Update feature list to match the enhanced 11-item set
-- Update CardDescription to "Custom solutions for organizations with 50+ users"
-- Change CTA button text from "Contact Sales" to "Schedule Demo"
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-### Files Summary
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-| File | Action |
-|------|--------|
-| `src/components/blocks/pricing-demo.tsx` | Modify — update Enterprise plan object |
-| `src/components/blocks/pricing/PricingCard.tsx` | Modify — enhanced Enterprise card UI |
-| `src/components/subscription/SubscriptionPlans.tsx` | Modify — update Enterprise pricing & features |
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

@@ -192,34 +192,42 @@ export function SubscriptionPlans() {
           <CardHeader className="relative">
             <div className="flex items-center gap-2">
               <CardTitle>Enterprise</CardTitle>
-              <Badge variant="outline" className="border-purple-500 text-purple-700">Custom</Badge>
+              <Badge variant="outline" className="border-purple-500 text-purple-700">Premium</Badge>
             </div>
-            <CardDescription>For large organizations</CardDescription>
+            <CardDescription>Custom solutions for organizations with 50+ users</CardDescription>
           </CardHeader>
           <CardContent className="relative">
-            <div className="text-3xl font-bold mb-4">
-              Custom Pricing
+            <div className="text-3xl font-bold mb-1">
+              ${billingInterval === 'monthly' ? '499' : '5,388'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
             </div>
+            {billingInterval === 'monthly' && (
+              <p className="text-xs text-muted-foreground mb-4">or $449/mo billed annually — <span className="text-green-600 font-medium">Save $600/year</span></p>
+            )}
+            {billingInterval === 'annual' && (
+              <p className="text-xs text-muted-foreground mb-4">$449/month effective rate</p>
+            )}
             <ul className="space-y-2">
-              <li>✓ Unlimited projects</li>
-              <li>✓ White-label branding</li>
-              <li>✓ Custom domain</li>
-              <li>✓ Advanced analytics</li>
-              <li>✓ SSO integration</li>
-              <li>✓ Priority support</li>
-              <li>✓ API access</li>
+              <li>✓ Unlimited everything (projects, users, storage)</li>
+              <li>✓ SOC 2 Type II & FedRAMP compliance</li>
+              <li>✓ Dedicated Customer Success Manager</li>
+              <li>✓ 4-hour SLA support</li>
+              <li>✓ Custom AI model training</li>
+              <li>✓ API access & webhooks</li>
+              <li>✓ SSO/SAML (Okta, Azure AD, Google)</li>
+              <li>✓ On-premise deployment option</li>
               <li>✓ Custom integrations</li>
-              <li>✓ Dedicated account manager</li>
+              <li>✓ Quarterly business reviews</li>
+              <li>✓ Team training sessions</li>
             </ul>
           </CardContent>
           <CardFooter className="relative">
             <Button 
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" 
               onClick={() => {
-                toast.success("Enterprise inquiry sent! Our team will contact you within 24 hours.");
+                toast.success("Demo request sent! Our team will contact you within 24 hours.");
               }}
             >
-              Contact Sales
+              Schedule Demo
             </Button>
           </CardFooter>
         </Card>

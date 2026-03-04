@@ -114,19 +114,38 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const renderCTA = () => {
     if (isEnterprise) {
       return (
-        <>
+        <div className="flex flex-col gap-2 w-full">
           <button
             onClick={() => setEnterpriseOpen(true)}
             className={cn(
-              buttonVariants({ variant: "outline" }),
-              "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-              "border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white transition-all duration-300"
+              buttonVariants({ variant: "default" }),
+              "w-full gap-2 text-base font-semibold",
+              "bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300"
             )}
           >
-            {plan.buttonText}
+            Schedule Demo
           </button>
+          <a
+            href="#"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "w-full gap-2 text-sm font-medium",
+              "border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all duration-300"
+            )}
+          >
+            Download Security Whitepaper
+          </a>
+          <a
+            href="mailto:sales@optirfp.ai?subject=Enterprise%20Inquiry"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-full text-sm text-[#C8C8C9] hover:text-[#F1F1F1] transition-all duration-300"
+            )}
+          >
+            Contact Sales
+          </a>
           <EnterpriseSalesModal open={enterpriseOpen} onOpenChange={setEnterpriseOpen} />
-        </>
+        </div>
       );
     }
 
@@ -198,7 +217,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       className={cn(
         `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
         plan.isPopular ? "border-[#34D399] border-2" : "border-border",
-        isEnterprise && "shadow-lg border-l-4 border-l-blue-500",
+        isEnterprise && "shadow-xl border-l-4 border-l-blue-500",
         "flex flex-col",
         !plan.isPopular && !isEnterprise && "mt-5",
       )}
@@ -215,7 +234,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       {isEnterprise && (
         <div className="absolute top-0 left-0 bg-blue-500 py-0.5 px-2 rounded-br-xl rounded-tl-xl">
           <span className="text-white text-xs font-semibold">
-            For teams & gov contractors
+            For Enterprise Teams & Government
           </span>
         </div>
       )}
@@ -262,6 +281,15 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
            isMonthly ? "billed monthly" : "billed annually"}
         </p>
 
+        {isEnterprise && isMonthly && (
+          <div className="mt-1 text-xs text-[#C8C8C9]">
+            or <span className="font-semibold text-[#F1F1F1]">$449/month</span> billed annually
+            <span className="ml-1.5 inline-block rounded bg-green-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-green-400">
+              Save $600/year
+            </span>
+          </div>
+        )}
+
         <ul className="mt-5 gap-2 flex flex-col">
           {plan.features.map((feature, idx) => (
             <li key={idx} className="flex items-start gap-2">
@@ -270,6 +298,17 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             </li>
           ))}
         </ul>
+
+        {isEnterprise && (
+          <div className="mt-4 pt-3 border-t border-[#4B4F54]">
+            <p className="text-[10px] uppercase tracking-wider text-[#C8C8C9] mb-2">Trusted by</p>
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
+              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
+              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
+            </div>
+          </div>
+        )}
 
         <hr className="w-full my-4 border-[#4B4F54]" />
 

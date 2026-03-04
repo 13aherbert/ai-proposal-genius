@@ -239,22 +239,40 @@ export function Navbar() {
           {session && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
+                <Button variant="ghost" className="md:hidden h-11 w-11 p-0" aria-label="Open menu">
+                  <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[350px]">
-                <nav className="flex flex-col gap-2 mt-6">
+                {/* User profile header */}
+                <div className="flex items-center gap-3 px-4 py-4 mt-4 mb-2">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="text-sm">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <p className="text-sm font-medium leading-none truncate">
+                      {profileData.first_name || profileData.username || "User"}{" "}
+                      {profileData.last_name || ""}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground truncate mt-1">
+                      {session.user.email}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <nav className="flex flex-col gap-1 mt-2">
                   {/* Dashboard */}
                   <SheetClose asChild>
                     <Link
                       to="/dashboard"
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                        isActive("/dashboard") && "font-semibold text-foreground bg-muted"
+                        "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                        isActive("/dashboard") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                       )}
                     >
-                      <LayoutDashboard className="h-4 w-4" />
+                      <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
                       Dashboard
                     </Link>
                   </SheetClose>
@@ -262,8 +280,8 @@ export function Navbar() {
                   <Separator />
 
                   {/* Create */}
-                  <div className="px-2 py-2">
-                    <h3 className="mb-1 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="px-2 py-3">
+                    <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Create
                     </h3>
                     <div className="space-y-1">
@@ -271,20 +289,20 @@ export function Navbar() {
                         <Link
                           to="/upload-rfp"
                           className={cn(
-                            "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                            isActive("/upload-rfp") && "font-semibold text-foreground bg-muted"
+                            "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                            isActive("/upload-rfp") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                           )}
                         >
-                          <Upload className="h-4 w-4" />
+                          <Upload className="h-5 w-5 text-muted-foreground" />
                           Upload RFP
                         </Link>
                       </SheetClose>
                       <SheetClose asChild>
                         <Link
                           to="/projects"
-                          className="flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted"
+                          className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-5 w-5 text-muted-foreground" />
                           New Project
                         </Link>
                       </SheetClose>
@@ -294,8 +312,8 @@ export function Navbar() {
                   <Separator />
 
                   {/* Manage */}
-                  <div className="px-2 py-2">
-                    <h3 className="mb-1 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="px-2 py-3">
+                    <h3 className="mb-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Manage
                     </h3>
                     <div className="space-y-1">
@@ -303,11 +321,11 @@ export function Navbar() {
                         <Link
                           to="/projects"
                           className={cn(
-                            "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                            isActive("/projects") && "font-semibold text-foreground bg-muted"
+                            "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                            isActive("/projects") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                           )}
                         >
-                          <Folder className="h-4 w-4" />
+                          <Folder className="h-5 w-5 text-muted-foreground" />
                           Projects
                         </Link>
                       </SheetClose>
@@ -315,11 +333,11 @@ export function Navbar() {
                         <Link
                           to="/knowledge-base"
                           className={cn(
-                            "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                            isActive("/knowledge-base") && "font-semibold text-foreground bg-muted"
+                            "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                            isActive("/knowledge-base") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                           )}
                         >
-                          <Database className="h-4 w-4" />
+                          <Database className="h-5 w-5 text-muted-foreground" />
                           Knowledge Base
                         </Link>
                       </SheetClose>
@@ -328,11 +346,11 @@ export function Navbar() {
                           <Link
                             to="/organization"
                             className={cn(
-                              "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                              isActive("/organization") && "font-semibold text-foreground bg-muted"
+                              "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                              isActive("/organization") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                             )}
                           >
-                            <Building2 className="h-4 w-4" />
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
                             Organization
                           </Link>
                         </SheetClose>
@@ -347,11 +365,11 @@ export function Navbar() {
                     <Link
                       to="/opportunities"
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted",
-                        isActive("/opportunities") && "font-semibold text-foreground bg-muted"
+                        "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                        isActive("/opportunities") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
                       )}
                     >
-                      <Search className="h-4 w-4" />
+                      <Search className="h-5 w-5 text-muted-foreground" />
                       Discover
                     </Link>
                   </SheetClose>
@@ -359,22 +377,31 @@ export function Navbar() {
                   <Separator />
 
                   {/* Account */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 mt-1">
                     <SheetClose asChild>
                       <Link
                         to="/account-settings"
-                        className="flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted"
+                        className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"
                       >
-                        <User className="h-4 w-4" />
+                        <User className="h-5 w-5 text-muted-foreground" />
                         Account Settings
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/account-settings#subscription"
+                        className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"
+                      >
+                        <Settings className="h-5 w-5 text-muted-foreground" />
+                        Subscription
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center gap-3 px-4 py-3 text-sm rounded-md hover:bg-muted w-full text-left"
+                        className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-destructive/10 active:bg-destructive/20 transition-colors w-full text-left text-destructive"
                       >
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="h-5 w-5" />
                         Sign Out
                       </button>
                     </SheetClose>

@@ -36,6 +36,7 @@ import {
   Building2,
   User,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<

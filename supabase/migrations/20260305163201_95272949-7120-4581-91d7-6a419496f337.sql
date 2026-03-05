@@ -1,0 +1,1 @@
+ALTER TABLE public.organization_api_keys ADD COLUMN IF NOT EXISTS rate_limit_rpm INTEGER DEFAULT 100;

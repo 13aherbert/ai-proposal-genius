@@ -505,6 +505,7 @@ export type Database = {
           last_used_at: string | null
           organization_id: string
           permissions: Json | null
+          rate_limit_rpm: number | null
           updated_at: string | null
         }
         Insert: {
@@ -518,6 +519,7 @@ export type Database = {
           last_used_at?: string | null
           organization_id: string
           permissions?: Json | null
+          rate_limit_rpm?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -531,6 +533,7 @@ export type Database = {
           last_used_at?: string | null
           organization_id?: string
           permissions?: Json | null
+          rate_limit_rpm?: number | null
           updated_at?: string | null
         }
         Relationships: [

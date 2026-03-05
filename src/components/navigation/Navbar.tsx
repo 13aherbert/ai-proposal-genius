@@ -37,6 +37,7 @@ import {
   User,
   LogOut,
   Settings,
+  Code2,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<
@@ -168,6 +169,11 @@ export function Navbar() {
                         {showOrg && (
                           <ListItem href="/organization" title="Organization">
                             Manage team settings and members
+                          </ListItem>
+                        )}
+                        {showOrg && (
+                          <ListItem href="/api-docs" title="API Documentation">
+                            Programmatic access to your data
                           </ListItem>
                         )}
                       </ul>
@@ -353,6 +359,20 @@ export function Navbar() {
                           >
                             <Building2 className="h-5 w-5 text-muted-foreground" />
                             Organization
+                          </Link>
+                        </SheetClose>
+                      )}
+                      {showOrg && (
+                        <SheetClose asChild>
+                          <Link
+                            to="/api-docs"
+                            className={cn(
+                              "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                              isActive("/api-docs") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
+                            )}
+                          >
+                            <Code2 className="h-5 w-5 text-muted-foreground" />
+                            API Docs
                           </Link>
                         </SheetClose>
                       )}

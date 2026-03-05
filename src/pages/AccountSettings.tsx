@@ -63,15 +63,7 @@ export default function AccountSettings() {
     }
   };
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      import('../scripts/update-specific-user')
-        .catch(() => {});
-      if (typeof window !== 'undefined') {
-        window.updateRivalProSubscription = updateRivalProSubscription;
-      }
-    }
-  }, []);
+  // Dev-only admin scripts removed for security
 
   return (
     <div className="flex flex-col gap-8">

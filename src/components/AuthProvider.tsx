@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { emailService } from "@/services/EmailService";
 import { SessionSecurity, SecureTokenStorage } from "@/utils/security/auth-security";
+import { clearAuthData } from "@/utils/network";
 
 type AuthContextType = {
   session: Session | null;

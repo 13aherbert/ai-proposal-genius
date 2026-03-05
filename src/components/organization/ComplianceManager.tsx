@@ -97,15 +97,25 @@ export const ComplianceManager = () => {
     }
   };
 
+  const [generating, setGenerating] = useState(false);
+
   const generateComplianceReport = async (reportType: string) => {
     if (!currentOrganization?.id) return;
 
     try {
-      // This would typically trigger an edge function to generate the report
-      toast.success('Compliance report generation started');
+      setGenerating(true);
+      const { data, error } = await supabase.functions.invoke('generate-compliance-report', {
+        body: { organization_id: currentOrganization.id, report_type: reportType },
+      });
+      if (error) throw error;
+      
+      toast.success(`${reportType.toUpperCase()} compliance report generated — Score: ${data?.report?.report_data?.summary?.compliance_score}%`);
+      fetchComplianceData();
     } catch (error) {
       console.error('Error generating compliance report:', error);
       toast.error('Failed to generate compliance report');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -249,11 +259,14 @@ export const ComplianceManager = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Compliance Reports</h3>
               <div className="space-x-2">
-                <Button variant="outline" onClick={() => generateComplianceReport('gdpr')}>
-                  Generate GDPR Report
+                <Button variant="outline" onClick={() => generateComplianceReport('gdpr')} disabled={generating}>
+                  {generating ? 'Generating...' : 'Generate GDPR Report'}
                 </Button>
-                <Button variant="outline" onClick={() => generateComplianceReport('audit')}>
-                  Generate Audit Report
+                <Button variant="outline" onClick={() => generateComplianceReport('soc2')} disabled={generating}>
+                  {generating ? 'Generating...' : 'Generate SOC 2 Report'}
+                </Button>
+                <Button variant="outline" onClick={() => generateComplianceReport('audit')} disabled={generating}>
+                  {generating ? 'Generating...' : 'Generate Audit Report'}
                 </Button>
               </div>
             </div>
@@ -264,31 +277,45 @@ export const ComplianceManager = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {complianceReports.map((report) => (
-                  <Card key={report.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span className="font-medium">{report.report_type}</span>
+                {complianceReports.map((report) => {
+                  const reportData = report.report_data as any;
+                  const score = reportData?.summary?.compliance_score;
+                  return (
+                    <Card key={report.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span className="font-medium">{report.report_type?.toUpperCase()}</span>
+                              {score != null && (
+                                <Badge className={score >= 80 ? 'bg-green-100 text-green-800' : score >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}>
+                                  Score: {score}%
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Generated {new Date(report.created_at).toLocaleDateString()}
+                              {reportData?.summary && ` — ${reportData.summary.passed}/${reportData.summary.total_checks} checks passed`}
+                            </p>
+                            {reportData?.checklist && (
+                              <div className="mt-2 space-y-1">
+                                {(reportData.checklist as any[]).map((item: any, i: number) => (
+                                  <div key={i} className="flex items-center gap-2 text-xs">
+                                    <span className={item.status === 'pass' ? 'text-green-600' : item.status === 'warning' ? 'text-yellow-600' : 'text-blue-600'}>
+                                      {item.status === 'pass' ? '✓' : item.status === 'warning' ? '⚠' : 'ℹ'}
+                                    </span>
+                                    <span>{item.item}: {item.detail}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Generated {new Date(report.created_at).toLocaleDateString()}
-                          </p>
                         </div>
-                        {report.report_url && (
-                          <Button size="sm" asChild>
-                            <a href={report.report_url} download>
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

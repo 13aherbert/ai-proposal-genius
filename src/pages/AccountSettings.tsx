@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
-import { updateRivalProSubscription } from "../scripts/update-specific-user";
 import { toSubscriptionPlan } from "@/types/subscription";
 
 import { ProfileCard } from "@/components/account/ProfileCard";

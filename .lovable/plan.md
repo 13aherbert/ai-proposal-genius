@@ -1,36 +1,46 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Standalone API Documentation Page for Enterprise Users
+
+### Context
+An `ApiDocumentation` component already exists inside the Organization Dashboard's API tab, but it documents placeholder endpoints (`/api/v1/organizations/{org_id}/...`) that don't match the actual `public-api` edge function routes (`/projects`, `/projects/:id`, `/projects/:id/sections`, `/knowledge-base`, `/knowledge-base/:id`). The goal is to create a dedicated, routable documentation page that accurately reflects the real API gateway and is accessible from the dashboard sidebar.
 
 ### Changes
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+**1. Create `src/pages/ApiDocs.tsx`** -- New standalone page
+- Wraps a new `ApiDocsContent` component inside a clean layout with back navigation
+- Protected route -- redirects non-Enterprise/Pro users with an upgrade prompt
+- Uses `useSubscription` to gate access
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+**2. Create `src/components/api-docs/ApiDocsContent.tsx`** -- Main documentation component
+- **Authentication section**: Shows how to use `Authorization: Bearer oak_...` header, where to generate keys (link to Organization > API tab), key format details
+- **Base URL section**: Dynamic display of the Supabase edge function URL (`{SUPABASE_URL}/functions/v1/public-api`)
+- **Endpoints section**: Documents the 7 actual routes from the edge function:
+  - `GET /projects` (list, with pagination params `page`, `per_page`)
+  - `POST /projects` (create, with `title` required body field)
+  - `GET /projects/:id` (single project)
+  - `GET /projects/:id/sections` (proposal sections)
+  - `GET /knowledge-base` (list KB entries)
+  - `POST /knowledge-base` (create, with `title`+`content` body)
+  - `GET /knowledge-base/:id` (single KB entry)
+- **Response format section**: Standard `{ data, meta }` wrapper and error `{ error: { code, message } }` format
+- **Error codes table**: `UNAUTHORIZED`, `FORBIDDEN`, `RATE_LIMITED`, `NOT_FOUND`, `VALIDATION_ERROR`, `INTERNAL_ERROR` with HTTP status codes and descriptions
+- **Rate limiting section**: Explains 100 RPM default, `429` response, `Retry-After` header
+- **cURL examples**: Copy-to-clipboard for each endpoint
+- Reuses existing UI patterns: `Card`, `Badge`, `Tabs`, `Collapsible`, code blocks with copy buttons
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+**3. Add route to `src/App.tsx`**
+- Add `/api-docs` route inside the `DashboardLayout` protected route group
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+**4. Add sidebar link in `src/layouts/DashboardLayout.tsx`** (or equivalent nav)
+- Add "API Documentation" link visible to Enterprise/Pro users, gated by subscription tier
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+### Files
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
-
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+| File | Action |
+|------|--------|
+| `src/pages/ApiDocs.tsx` | Create -- route page with subscription gating |
+| `src/components/api-docs/ApiDocsContent.tsx` | Create -- full documentation content |
+| `src/App.tsx` | Modify -- add `/api-docs` route |
+| `src/layouts/DashboardLayout.tsx` | Modify -- add nav link for API Docs |
 

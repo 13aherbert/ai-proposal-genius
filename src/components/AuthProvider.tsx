@@ -104,71 +104,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       toast.loading("Deleting your account...");
 
-      const userId = session.user.id;
-      
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (subscriptionError) {
-        throw new Error(`Failed to remove subscription data: ${subscriptionError.message}`);
-      }
-      
-      const { error: documentsError } = await supabase
-        .from('project_documents')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (documentsError) {
-        throw new Error(`Failed to remove document data: ${documentsError.message}`);
-      }
-      
-      const { error: sectionsError } = await supabase
-        .from('proposal_sections')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (sectionsError) {
-        throw new Error(`Failed to remove proposal sections: ${sectionsError.message}`);
-      }
-      
-      const { error: projectsError } = await supabase
-        .from('projects')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (projectsError) {
-        throw new Error(`Failed to remove projects: ${projectsError.message}`);
-      }
-      
-      const { error: entriesError } = await supabase
-        .from('knowledge_entries')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (entriesError) {
-        throw new Error(`Failed to remove knowledge entries: ${entriesError.message}`);
-      }
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('profile_id', userId);
-        
-      if (profileError) {
-        throw new Error(`Failed to remove profile: ${profileError.message}`);
+      const { data, error } = await supabase.functions.invoke('delete-own-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to delete account');
       }
 
-      const { error: authError } = await supabase.auth.admin.deleteUser(
-        userId
-      );
-
-      if (authError) {
-        throw new Error(`Failed to delete user: ${authError.message}`);
+      if (!data?.success) {
+        throw new Error('Failed to delete account');
       }
 
       toast.dismiss();
+      clearAuthData();
       toast.success("Account successfully deleted");
       navigate("/");
     } catch (error: any) {

@@ -27,6 +27,7 @@ import UserManagementPage from "@/pages/admin/UserManagementPage";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
+import ApiDocs from "@/pages/ApiDocs";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -70,6 +71,7 @@ function AppContent() {
         <Route path="/organization" element={<Organization />} />
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/api-docs" element={<ApiDocs />} />
         
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />

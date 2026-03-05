@@ -270,6 +270,41 @@ export function SSOConfiguration() {
         </CardContent>
       </Card>
 
+      {/* Provider Templates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quick Setup Templates</CardTitle>
+          <CardDescription>Use a pre-configured template to set up SSO faster</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { name: 'Okta', type: 'saml' as const, config: { entity_id: `https://{your-domain}.okta.com`, sso_url: `https://{your-domain}.okta.com/app/{app-id}/sso/saml`, certificate: '', acs_url: `${window.location.origin}/auth/saml/callback`, sp_entity_id: `${window.location.origin}` } },
+              { name: 'Azure AD', type: 'saml' as const, config: { entity_id: `https://sts.windows.net/{tenant-id}/`, sso_url: `https://login.microsoftonline.com/{tenant-id}/saml2`, certificate: '', acs_url: `${window.location.origin}/auth/saml/callback`, sp_entity_id: `${window.location.origin}` } },
+              { name: 'Google Workspace', type: 'saml' as const, config: { entity_id: 'https://accounts.google.com/o/saml2?idpid={idp-id}', sso_url: 'https://accounts.google.com/o/saml2/idp?idpid={idp-id}', certificate: '', acs_url: `${window.location.origin}/auth/saml/callback`, sp_entity_id: `${window.location.origin}` } },
+            ].map((template) => (
+              <Card key={template.name} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                setNewConfig({ provider_type: template.type, provider_name: template.name, configuration: template.config, is_active: false });
+                setShowCreateForm(true);
+              }}>
+                <CardContent className="p-4 text-center">
+                  <Key className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <h4 className="font-medium">{template.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">SAML 2.0</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            Note: After configuring here, complete the SAML provider setup in your{' '}
+            <a href="https://supabase.com/dashboard/project/bmopbbkfxkgzlbmhhgox/auth/providers" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+              Supabase Auth dashboard
+            </a>{' '}
+            to enable the authentication flow.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Create SSO Provider Form */}
       {showCreateForm && (
         <Card>

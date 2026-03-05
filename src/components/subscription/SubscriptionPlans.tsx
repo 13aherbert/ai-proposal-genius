@@ -208,10 +208,10 @@ export function SubscriptionPlans() {
             )}
             <ul className="space-y-2">
               <li>✓ Unlimited everything (projects, users, storage)</li>
-              <li>✓ SOC 2 Type II & FedRAMP compliance</li>
+              <li>✓ SOC 2 Type II ready (compliance reports)</li>
               <li>✓ Dedicated Customer Success Manager</li>
-              <li>✓ 4-hour SLA support</li>
-              <li>✓ Custom AI model training</li>
+              <li>✓ 4-hour SLA support (high/critical tickets)</li>
+              <li>✓ Custom AI configuration via knowledge base</li>
               <li>✓ API access & webhooks</li>
               <li>✓ SSO/SAML (Okta, Azure AD, Google)</li>
               <li>✓ On-premise deployment option</li>

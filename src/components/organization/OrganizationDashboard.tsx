@@ -19,6 +19,7 @@ import { UserProvisioning } from './UserProvisioning';
 import { WebhookManager } from './WebhookManager';
 import { IntegrationManager } from './IntegrationManager';
 import { ApiDocumentation } from './ApiDocumentation';
+import { SupportTickets } from './SupportTickets';
 import { useOrganizationPermissions } from '@/hooks/useOrganizationPermissions';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,7 +97,7 @@ export function OrganizationDashboard() {
 
       {/* Organization Management Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {canViewTeam && <TabsTrigger value="team">Team</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="provisioning">Provisioning</TabsTrigger>}
@@ -107,6 +108,7 @@ export function OrganizationDashboard() {
           {canManageSettings && <TabsTrigger value="security">Security</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="domains">Domains</TabsTrigger>}
           {canManageSettings && <TabsTrigger value="audit">Audit</TabsTrigger>}
+          <TabsTrigger value="support">Support</TabsTrigger>
           {canViewSettings && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
@@ -252,6 +254,10 @@ export function OrganizationDashboard() {
             <AuditLogger />
           </TabsContent>
         )}
+
+        <TabsContent value="support" className="space-y-4">
+          <SupportTickets />
+        </TabsContent>
 
         {canViewSettings && (
           <TabsContent value="settings" className="space-y-4">

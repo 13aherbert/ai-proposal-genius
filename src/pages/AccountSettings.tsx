@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
-import { updateRivalProSubscription } from "../scripts/update-specific-user";
 import { toSubscriptionPlan } from "@/types/subscription";
 
 import { ProfileCard } from "@/components/account/ProfileCard";
@@ -64,15 +63,7 @@ export default function AccountSettings() {
     }
   };
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      import('../scripts/update-specific-user')
-        .catch(() => {});
-      if (typeof window !== 'undefined') {
-        window.updateRivalProSubscription = updateRivalProSubscription;
-      }
-    }
-  }, []);
+  // Dev-only admin scripts removed for security
 
   return (
     <div className="flex flex-col gap-8">

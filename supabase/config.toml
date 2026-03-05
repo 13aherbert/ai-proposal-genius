@@ -140,4 +140,8 @@ verify_jwt = false
 name = "manage-sso-config"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "public-api"
+verify_jwt = false
 import_map = "import_map.json"

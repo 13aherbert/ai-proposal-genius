@@ -1335,6 +1335,68 @@ export type Database = {
           },
         ]
       }
+      organization_webhooks: {
+        Row: {
+          created_at: string
+          events: string[]
+          failure_count: number
+          headers: Json
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          name: string
+          organization_id: string
+          retry_count: number
+          secret_key: string
+          success_count: number
+          timeout_seconds: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          headers?: Json
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name: string
+          organization_id: string
+          retry_count?: number
+          secret_key: string
+          success_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          headers?: Json
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          name?: string
+          organization_id?: string
+          retry_count?: number
+          secret_key?: string
+          success_count?: number
+          timeout_seconds?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_webhooks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -2071,6 +2133,91 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_staff_reply: boolean | null
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_staff_reply?: boolean | null
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_staff_reply?: boolean | null
+          message?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          organization_id: string
+          priority: string
+          resolved_at: string | null
+          sla_deadline_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          organization_id: string
+          priority?: string
+          resolved_at?: string | null
+          sla_deadline_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          organization_id?: string
+          priority?: string
+          resolved_at?: string | null
+          sla_deadline_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2127,6 +2274,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          attempts: number | null
+          created_at: string
+          delivered_at: string | null
+          event_type: string
+          id: string
+          organization_id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          webhook_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          event_type: string
+          id?: string
+          organization_id: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          webhook_id: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          event_type?: string
+          id?: string
+          organization_id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "organization_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

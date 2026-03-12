@@ -1,31 +1,36 @@
 
 
-## Fix: Onboarding Modal Close/Skip Behavior
-
-### Problem
-The X button, ESC key, and backdrop click on the onboarding wizard may advance to Step 2 instead of closing. The root cause is in `ProgressiveOnboarding.tsx` — the `handleDialogChange` correctly calls `onSkip()`, but there may be timing issues with Radix Dialog's close animation and the `onSkip` flow. Additionally, `document.body` pointer-events cleanup needs hardening.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. `src/components/onboarding/ProgressiveOnboarding.tsx`**
-- Rewrite `handleDialogChange` to explicitly close the modal and persist skip state, preventing any step advancement
-- Add `useEffect` cleanup that forcibly removes `pointer-events` and `overflow` styles from `document.body` whenever `isOpen` changes to `false` (not just on unmount)
-- Ensure the Dialog does NOT set `modal={true}` behaviors that block body interaction — or override with explicit body style management
-- Add an explicit "Skip onboarding" button in the footer area of every step (not just Step 1) for discoverability
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. `src/components/ui/dialog.tsx`**
-- Ensure `DialogOverlay` click propagation closes the dialog (already handled by Radix, but verify no `e.stopPropagation()` interference)
-- Add body pointer-events cleanup in `DialogContent` unmount effect — set `document.body.style.pointerEvents = ''` to prevent stuck states
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. `src/hooks/use-onboarding-flow.ts`**
-- Harden the `skip` callback to also call `setIsOpen(false)` explicitly (currently only sets `isSkipped` and `isOpen`)
-- No logic changes needed — just ensure `skip()` is idempotent
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-### Key behavioral guarantees after fix
-- X button → closes modal, sets `onboarding_skipped=true` in localStorage
-- ESC key → same as X
-- Backdrop click → same as X  
-- Skip button → same as X
-- After any close: `document.body` has no `pointer-events` or `overflow` restrictions
-- On refresh: modal stays closed if previously skipped
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
+
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

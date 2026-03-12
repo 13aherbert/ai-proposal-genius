@@ -376,30 +376,54 @@ export function ProgressiveOnboarding({
     }
   }, [quickUpload, goToStep]);
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    onSkip();
+    // Force cleanup body styles immediately
+    document.body.style.removeProperty('pointer-events');
+    document.body.style.removeProperty('overflow');
+  }, [setIsOpen, onSkip]);
+
   const handleDialogChange = (open: boolean) => {
-    if (!open) onSkip();
-    else setIsOpen(open);
+    if (!open) {
+      handleClose();
+    }
   };
 
-  // Safety net: clean up pointer-events on unmount
+  // Clean up body styles whenever modal closes or on unmount
   useEffect(() => {
+    if (!isOpen) {
+      document.body.style.removeProperty('pointer-events');
+      document.body.style.removeProperty('overflow');
+    }
     return () => {
       document.body.style.removeProperty('pointer-events');
+      document.body.style.removeProperty('overflow');
     };
-  }, []);
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogTitle className="sr-only">Onboarding</DialogTitle>
         <DialogDescription className="sr-only">Get started with OptiRFP</DialogDescription>
-        {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={onSkip} />}
+        {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={handleClose} />}
         {currentStep === 2 && <QuickProfileStep onNext={onNext} onBack={onBack} />}
         {currentStep === 3 && <KnowledgeBaseTourStep onNext={onNext} onBack={onBack} />}
         {currentStep === 4 && <RFPUploadStep onNext={() => { goToStep(5); setTimeout(() => goToStep(6), 7000); }} onBack={onBack} onFileUploaded={handleFileUploaded} />}
         {currentStep === 5 && <AIGeneratingStep onNext={() => goToStep(6)} isUploading={isUploading} />}
         {currentStep === 6 && <SuccessStep onComplete={onComplete} projectId={uploadedProjectId} />}
         <ProgressDots current={currentStep - 1} total={6} />
+        {currentStep !== 1 && currentStep !== 6 && (
+          <div className="flex justify-center pt-2 pb-1">
+            <button
+              onClick={handleClose}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            >
+              Skip onboarding
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

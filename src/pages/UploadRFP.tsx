@@ -264,7 +264,7 @@ const UploadRFP = () => {
                 setBusinessName={setBusinessName}
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
-                disabled={hasReachedLimit || isUserTrialExpired}
+                disabled={hasReachedLimit}
                 autoGenerate={autoGenerate}
                 setAutoGenerate={handleAutoGenerateChange}
               />

@@ -16,6 +16,7 @@ import { BillingHistory } from "@/components/account/BillingHistory";
 import { ProfileLoading } from "@/components/account/ProfileLoading";
 import { AccountActionButtons } from "@/components/account/AccountActionButtons";
 import { BrandGuidelinesCard } from "@/components/account/BrandGuidelinesCard";
+import { ReferralCard } from "@/components/account/ReferralCard";
 import { useProfile } from "@/hooks/use-profile";
 
 export default function AccountSettings() {

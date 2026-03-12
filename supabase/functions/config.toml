@@ -112,3 +112,18 @@ import_map = "import_map.json"
 name = "export-proposal-pdf"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "hubspot-oauth-init"
+verify_jwt = false
+import_map = "import_map.json"
+
+[[functions]]
+name = "hubspot-oauth-callback"
+verify_jwt = false
+import_map = "import_map.json"
+
+[[functions]]
+name = "hubspot-sync"
+verify_jwt = false
+import_map = "import_map.json"

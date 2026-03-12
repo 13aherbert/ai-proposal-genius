@@ -28,6 +28,8 @@ import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
 import ApiDocs from "@/pages/ApiDocs";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -87,6 +89,8 @@ function AppContent() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/docs" element={<Documentation />} />
       <Route path="/docs/:docId" element={<Documentation />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

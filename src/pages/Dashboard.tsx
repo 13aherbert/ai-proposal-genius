@@ -29,6 +29,9 @@ import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";
 
 import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { FeatureGate } from "@/components/subscription/FeatureGate";
+import { UsageWarning } from "@/components/subscription/UsageWarning";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -53,6 +56,8 @@ export default function Dashboard() {
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';
+  const { getProjectLimit } = useSubscriptionFeatures();
+  const projectLimit = getProjectLimit();
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
 
@@ -230,10 +235,17 @@ export default function Dashboard() {
             }} />
             <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
             <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
-            {hasOpportunities && (
+            {hasOpportunities ? (
               <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+            ) : (
+              <FeatureGate feature="opportunity_search" label="Pro">
+                <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+              </FeatureGate>
             )}
           </div>
+
+          {/* Usage Warning */}
+          <UsageWarning projectCount={dashboardStats.projectCount} projectLimit={projectLimit} />
 
           {/* Recent Activity */}
           <div className="space-y-3">

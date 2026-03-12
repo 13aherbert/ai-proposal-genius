@@ -407,13 +407,23 @@ export function ProgressiveOnboarding({
       <DialogContent className="sm:max-w-lg">
         <DialogTitle className="sr-only">Onboarding</DialogTitle>
         <DialogDescription className="sr-only">Get started with OptiRFP</DialogDescription>
-        {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={onSkip} />}
+        {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={handleClose} />}
         {currentStep === 2 && <QuickProfileStep onNext={onNext} onBack={onBack} />}
         {currentStep === 3 && <KnowledgeBaseTourStep onNext={onNext} onBack={onBack} />}
         {currentStep === 4 && <RFPUploadStep onNext={() => { goToStep(5); setTimeout(() => goToStep(6), 7000); }} onBack={onBack} onFileUploaded={handleFileUploaded} />}
         {currentStep === 5 && <AIGeneratingStep onNext={() => goToStep(6)} isUploading={isUploading} />}
         {currentStep === 6 && <SuccessStep onComplete={onComplete} projectId={uploadedProjectId} />}
         <ProgressDots current={currentStep - 1} total={6} />
+        {currentStep !== 1 && currentStep !== 6 && (
+          <div className="flex justify-center pt-2 pb-1">
+            <button
+              onClick={handleClose}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            >
+              Skip onboarding
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

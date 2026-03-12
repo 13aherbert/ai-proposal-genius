@@ -52,6 +52,8 @@ const DialogContent = React.forwardRef<
     return () => {
       clearTimeout(timer);
       node?.setAttribute('data-ready', 'false');
+      // Ensure body pointer-events are restored on unmount
+      document.body.style.removeProperty('pointer-events');
     };
   }, [onReady]);
 

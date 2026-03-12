@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { formatDistanceToNow } from 'date-fns';
+import { HubSpotIntegration } from './HubSpotIntegration';
 
 interface Integration {
   id: string;

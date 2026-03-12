@@ -381,9 +381,18 @@ export function ProgressiveOnboarding({
     else setIsOpen(open);
   };
 
+  // Safety net: clean up pointer-events on unmount
+  useEffect(() => {
+    return () => {
+      document.body.style.removeProperty('pointer-events');
+    };
+  }, []);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-lg">
+        <DialogTitle className="sr-only">Onboarding</DialogTitle>
+        <DialogDescription className="sr-only">Get started with OptiRFP</DialogDescription>
         {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={onSkip} />}
         {currentStep === 2 && <QuickProfileStep onNext={onNext} onBack={onBack} />}
         {currentStep === 3 && <KnowledgeBaseTourStep onNext={onNext} onBack={onBack} />}

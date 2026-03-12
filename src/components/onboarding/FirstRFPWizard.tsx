@@ -237,9 +237,15 @@ function WelcomeStep({
           Get Started
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onSkip}>
+        <Button variant="outline" size="sm" onClick={onSkip}>
           Skip for now
         </Button>
+        <button
+          onClick={onSkip}
+          className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+        >
+          Explore Dashboard First
+        </button>
       </div>
     </div>
   );

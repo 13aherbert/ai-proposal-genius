@@ -108,6 +108,7 @@ export function useOnboardingFlow() {
     skip,
     complete,
     resume,
+    reopen,
     dismiss,
     goToStep,
   };

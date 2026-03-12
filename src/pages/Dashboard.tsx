@@ -56,6 +56,13 @@ export default function Dashboard() {
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
 
+  // Listen for reopen-onboarding event from Navbar
+  useEffect(() => {
+    const handler = () => onboarding.reopen();
+    window.addEventListener('reopen-onboarding', handler);
+    return () => window.removeEventListener('reopen-onboarding', handler);
+  }, [onboarding.reopen]);
+
   // Show KB wizard for users with empty knowledge base who haven't dismissed it
   useEffect(() => {
     if (knowledgeReadiness.isLoading) return;

@@ -489,11 +489,15 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           <p className="text-sm text-muted-foreground">
             Status: <span className="font-medium">{getStatusDescription(currentStatus)}</span>
           </p>
-          {subscription?.current_period_end && (
+          {currentStatus === 'trialing' && subscription?.current_period_end && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Tag className="h-3 w-3" />
+              Trial expires in {Math.max(0, Math.ceil((new Date(subscription.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days
+            </div>
+          )}
+          {subscription?.current_period_end && currentStatus !== 'trialing' && (
             <p className="text-sm text-muted-foreground">
-              {currentPlanType !== 'trial' 
-                ? `Next billing date: ${format(new Date(subscription.current_period_end), 'MMMM dd, yyyy')}`
-                : 'Starter plan'}
+              Next billing date: {format(new Date(subscription.current_period_end), 'MMMM dd, yyyy')}
             </p>
           )}
           

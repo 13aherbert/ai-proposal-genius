@@ -35,6 +35,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
+import { Navigate } from "react-router-dom";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Layouts
@@ -67,7 +68,7 @@ function AppContent() {
         <Route path="/subscription" element={<Subscription />} />
         <Route path="/subscription/success" element={<SubscriptionSuccess />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
-        <Route path="/account-settings" element={<AccountSettings />} />
+        <Route path="/account" element={<AccountSettings />} />
         <Route path="/organization" element={<Organization />} />
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />
@@ -76,6 +77,7 @@ function AppContent() {
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />
         <Route path="/project/:projectId" element={<ProjectDetailsRedirect />} />
+        <Route path="/account-settings" element={<Navigate to="/account" replace />} />
       </Route>
       
       {/* Admin Routes */}

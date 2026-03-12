@@ -66,7 +66,14 @@ export default function AccountSettings() {
   // Dev-only admin scripts removed for security
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full py-8 px-4">
+          {/* Breadcrumb */}
+          <nav className="text-sm text-muted-foreground">
+            <button onClick={() => navigate("/dashboard")} className="hover:text-foreground transition-colors">Dashboard</button>
+            <span className="mx-2">/</span>
+            <span className="text-foreground font-medium">Account</span>
+          </nav>
+
           <header className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -78,7 +85,7 @@ export default function AccountSettings() {
             <h1 className="text-3xl font-bold">Account Settings</h1>
           </header>
 
-          <div className="grid gap-6 max-w-2xl mx-auto w-full">
+          <div className="grid gap-6 w-full">
             <ProfileLoading 
               isLoading={isLoadingProfile && !profileData.username} 
               fetchError={fetchError}

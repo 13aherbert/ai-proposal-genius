@@ -1,66 +1,36 @@
 
 
-## Plan: Enhanced Account Settings at `/account`
-
-### Current State
-A fully functional `AccountSettings` page already exists at `/account-settings` with ProfileCard, EmailCard, PasswordCard, SubscriptionCard, BillingHistory, BrandGuidelinesCard, and DeleteAccountSection. Most of what's requested is already built.
-
-### What's Missing (gaps to fill)
-
-| Feature | Status |
-|---------|--------|
-| `/account` route | Missing — currently `/account-settings` |
-| Email preference toggles (product updates, marketing, digest) | Missing |
-| Password strength indicator | Missing |
-| Current password field | Missing |
-| Trial countdown ("expires in X days") | Missing from SubscriptionCard |
-| "Add Payment Method" button | Missing |
-| Brand Guidelines collapsible wrapper | Missing |
-| Logo drag-and-drop upload | Missing (only color/font config exists) |
-| Branded output preview | Missing |
-| Breadcrumb (Dashboard > Account) | Missing |
-| Styling updates (max-w-4xl, section borders) | Needs update (currently max-w-2xl) |
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. Add `/account` route + redirect legacy path**
-- Add `/account` to `App.tsx` inside the DashboardLayout group pointing to the same `AccountSettings` component
-- Add redirect from `/account-settings` → `/account`
-- Update Navbar "Account" link to point to `/account`
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. Enhance `EmailCard.tsx`**
-- Show current email as read-only with a "Change Email" button that reveals the edit input
-- Add three Switch toggles: Product Updates, Marketing Emails, Weekly Digest
-- Store preferences in the `profiles` table (add `email_preferences` JSONB column or use existing fields)
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. Enhance `PasswordCard.tsx`**
-- Add "Current Password" input field
-- Add password strength indicator bar (weak/medium/strong) with color coding
-- Add "Update Password" button scoped to just the password section
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**4. Enhance `SubscriptionCard.tsx`**
-- Add trial countdown badge: "Trial expires in X days" using `current_period_end` for trialing status
-- Add "Add Payment Method" button that opens the Stripe billing portal
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**5. Enhance `BrandGuidelinesCard.tsx`**
-- Wrap in `Collapsible` component (collapsed by default)
-- Add logo drag-and-drop upload using `react-dropzone` (upload to Supabase Storage)
-- Add a small preview section showing logo + colors applied to a mini proposal header
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-**6. Update `AccountSettings.tsx` layout**
-- Change `max-w-2xl` → `max-w-4xl`
-- Add breadcrumb: Dashboard > Account
-- Add section header borders (`text-xl font-semibold border-b`)
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Files to Modify
-
-| File | Action |
-|------|--------|
-| `src/App.tsx` | Add `/account` route, redirect `/account-settings` |
-| `src/pages/AccountSettings.tsx` | Update layout (max-w-4xl, breadcrumb, section styling) |
-| `src/components/account/EmailCard.tsx` | Add read-only display, Change Email button, preference toggles |
-| `src/components/account/PasswordCard.tsx` | Add current password, strength indicator, Update Password button |
-| `src/components/account/SubscriptionCard.tsx` | Add trial countdown, Add Payment Method button |
-| `src/components/account/BrandGuidelinesCard.tsx` | Wrap in Collapsible, add logo upload + preview |
-| `src/components/navigation/Navbar.tsx` | Update Account link to `/account` |
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

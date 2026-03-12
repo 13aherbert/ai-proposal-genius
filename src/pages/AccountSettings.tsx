@@ -121,6 +121,8 @@ export default function AccountSettings() {
                 <BillingHistory />
 
                 <BrandGuidelinesCard />
+
+                <ReferralCard />
                 
                 {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
                   <div className="p-6 border rounded-lg bg-card">

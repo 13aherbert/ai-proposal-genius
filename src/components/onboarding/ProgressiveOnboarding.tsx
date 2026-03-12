@@ -58,10 +58,16 @@ function WelcomeStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
           Start Setup
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-        <Button variant="ghost" onClick={onSkip} className="flex-1">
+        <Button variant="outline" onClick={onSkip} className="flex-1">
           Skip for now
         </Button>
       </div>
+      <button
+        onClick={onSkip}
+        className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+      >
+        Explore Dashboard First
+      </button>
     </div>
   );
 }

@@ -10,7 +10,6 @@ import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { 
   getStoredSubscriptionData, 
   isUserOfPlanType,
-  isTrialExpired,
   normalizePlanType,
   getProjectLimitForPlan
 } from "./subscription/feature-access";

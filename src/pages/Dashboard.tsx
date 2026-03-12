@@ -29,6 +29,9 @@ import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";
 
 import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { FeatureGate } from "@/components/subscription/FeatureGate";
+import { UsageWarning } from "@/components/subscription/UsageWarning";
 
 export default function Dashboard() {
   const { session } = useAuth();

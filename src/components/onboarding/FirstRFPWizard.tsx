@@ -38,6 +38,12 @@ interface FirstRFPWizardProps {
 }
 
 export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
+  // Safety net: clean up pointer-events on unmount
+  useEffect(() => {
+    return () => {
+      document.body.style.removeProperty('pointer-events');
+    };
+  }, []);
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [simulatedProgress, setSimulatedProgress] = useState(0);

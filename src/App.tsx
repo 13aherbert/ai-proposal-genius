@@ -89,6 +89,8 @@ function AppContent() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/docs" element={<Documentation />} />
       <Route path="/docs/:docId" element={<Documentation />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

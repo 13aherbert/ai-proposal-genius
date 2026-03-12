@@ -111,9 +111,12 @@ export function SubscriptionPlans() {
             <CardDescription>For small teams</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-4">
-              ${billingInterval === 'monthly' ? '49' : '470'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+            <div className="text-3xl font-bold mb-1">
+              ${billingInterval === 'monthly' ? '49' : '39'}/mo
             </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $470/yr'}
+            </p>
             <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.basic} projects</li>
               <li>✓ Enhanced AI RFP Summary</li>

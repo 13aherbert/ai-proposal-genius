@@ -77,7 +77,7 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
       bgClass: "bg-muted border-border",
       textClass: "text-muted-foreground",
       message: `Free Plan — ${count} of ${projectLimit} projects used`,
-      description: "Upgrade anytime for more projects and features.",
+      description: "Upgrade anytime for more projects and features. See all plans.",
     };
   };
 

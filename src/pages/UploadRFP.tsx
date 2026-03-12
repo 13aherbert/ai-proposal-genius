@@ -111,8 +111,7 @@ const UploadRFP = () => {
       rfpFilePath && 
       autoGenerate && 
       !hasAutoStarted &&
-      !hasReachedLimit && 
-      !isUserTrialExpired
+      !hasReachedLimit
     ) {
       // Mark as started to prevent multiple triggers
       setHasAutoStarted(true);
@@ -134,7 +133,7 @@ const UploadRFP = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [projectId, rfpFilePath, autoGenerate, hasAutoStarted, hasReachedLimit, isUserTrialExpired]);
+  }, [projectId, rfpFilePath, autoGenerate, hasAutoStarted, hasReachedLimit]);
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];

@@ -1,44 +1,36 @@
 
 
-## Plan: Fix Onboarding Modals Blocking Dashboard
-
-### Problem
-Two onboarding modals (`ProgressiveOnboarding` and `FirstRFPWizard`) use Radix Dialog which is modal by default -- it sets `pointer-events: none` on `<body>` and traps focus. Both can auto-open for new users, blocking all dashboard interaction.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. Fix `ProgressiveOnboarding.tsx`**
-- Dialog already has `onOpenChange` wired to `onSkip` -- ESC and X button should work. Verify the X button from `DialogContent` is visible and functional.
-- Add explicit "Explore Dashboard First" text link below the skip button in `WelcomeStep`
-- Ensure closing the dialog properly calls `onSkip` which sets localStorage flag
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. Fix `FirstRFPWizard.tsx`**
-- Already has `onOpenChange` and a "Skip for now" button in `WelcomeStep`. The Radix Dialog X button from `DialogContent` handles close.
-- Add "Explore Dashboard First" link in `WelcomeStep`
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. Fix `useOnboardingFlow.ts`**
-- The `skip` function sets `onboarding_skipped` in localStorage and closes the modal. This already works.
-- Add a `reopen` method that clears the skipped flag and opens the modal (for Help menu access)
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**4. Add "Restart Onboarding" to Navbar user dropdown**
-- Add a menu item in the user dropdown in `Navbar.tsx` that calls `onboarding.resume()` or dispatches a custom event
-- Gate visibility: only show if onboarding was skipped and not completed
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**5. Fix `dialog.tsx` -- prevent `pointer-events: none` persistence**
-- Add `modal={false}` is NOT the right fix (breaks overlay). Instead, the real fix is ensuring dialogs close cleanly. The current `DialogContent` already has an X button.
-- Add a cleanup `useEffect` in `ProgressiveOnboarding` and `FirstRFPWizard` that removes `pointer-events: none` from `document.body` on unmount, as a safety net against Radix cleanup race conditions.
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-**6. Prevent both modals opening simultaneously**
-- In `Dashboard.tsx`, skip opening `FirstRFPWizard` if `ProgressiveOnboarding` is already open (`onboarding.isOpen`)
-- This prevents stacked modals and double `pointer-events: none`
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Files
-
-| File | Action |
-|------|--------|
-| `src/components/onboarding/ProgressiveOnboarding.tsx` | Add "Explore Dashboard First" link, body cleanup on unmount |
-| `src/components/onboarding/FirstRFPWizard.tsx` | Add "Explore Dashboard First" link, body cleanup on unmount |
-| `src/pages/Dashboard.tsx` | Prevent both modals opening simultaneously |
-| `src/hooks/use-onboarding-flow.ts` | Add `reopen` method for Help menu |
-| `src/components/navigation/Navbar.tsx` | Add "Restart Onboarding" menu item |
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

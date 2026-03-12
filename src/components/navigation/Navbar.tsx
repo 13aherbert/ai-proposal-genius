@@ -38,6 +38,7 @@ import {
   LogOut,
   Settings,
   Code2,
+  RotateCcw,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<
@@ -228,6 +229,17 @@ export function Navbar() {
                       Account Settings
                     </Link>
                   </DropdownMenuItem>
+                  {(localStorage.getItem('onboarding_skipped') === 'true' || localStorage.getItem('onboarding_completed') !== 'true') && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('reopen-onboarding'));
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Restart Onboarding
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />

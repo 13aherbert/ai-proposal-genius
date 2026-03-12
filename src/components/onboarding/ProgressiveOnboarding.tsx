@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,10 +58,16 @@ function WelcomeStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
           Start Setup
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-        <Button variant="ghost" onClick={onSkip} className="flex-1">
+        <Button variant="outline" onClick={onSkip} className="flex-1">
           Skip for now
         </Button>
       </div>
+      <button
+        onClick={onSkip}
+        className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+      >
+        Explore Dashboard First
+      </button>
     </div>
   );
 }
@@ -375,9 +381,18 @@ export function ProgressiveOnboarding({
     else setIsOpen(open);
   };
 
+  // Safety net: clean up pointer-events on unmount
+  useEffect(() => {
+    return () => {
+      document.body.style.removeProperty('pointer-events');
+    };
+  }, []);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-lg">
+        <DialogTitle className="sr-only">Onboarding</DialogTitle>
+        <DialogDescription className="sr-only">Get started with OptiRFP</DialogDescription>
         {currentStep === 1 && <WelcomeStep onNext={onNext} onSkip={onSkip} />}
         {currentStep === 2 && <QuickProfileStep onNext={onNext} onBack={onBack} />}
         {currentStep === 3 && <KnowledgeBaseTourStep onNext={onNext} onBack={onBack} />}

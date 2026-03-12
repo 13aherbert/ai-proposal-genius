@@ -66,9 +66,23 @@ export function useOnboardingFlow() {
 
   const resume = useCallback(() => {
     setIsSkipped(false);
+    setIsDismissed(false);
     localStorage.removeItem(STORAGE_KEYS.skipped);
+    localStorage.removeItem(STORAGE_KEYS.dismissed);
     setIsOpen(true);
   }, []);
+
+  const reopen = useCallback(() => {
+    setIsSkipped(false);
+    setIsCompleted(false);
+    setIsDismissed(false);
+    localStorage.removeItem(STORAGE_KEYS.skipped);
+    localStorage.removeItem(STORAGE_KEYS.completed);
+    localStorage.removeItem(STORAGE_KEYS.dismissed);
+    setCurrentStep(1);
+    persistStep(1);
+    setIsOpen(true);
+  }, [persistStep]);
 
   const dismiss = useCallback(() => {
     setIsDismissed(true);
@@ -94,6 +108,7 @@ export function useOnboardingFlow() {
     skip,
     complete,
     resume,
+    reopen,
     dismiss,
     goToStep,
   };

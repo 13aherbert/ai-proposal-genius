@@ -38,6 +38,12 @@ interface FirstRFPWizardProps {
 }
 
 export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
+  // Safety net: clean up pointer-events on unmount
+  useEffect(() => {
+    return () => {
+      document.body.style.removeProperty('pointer-events');
+    };
+  }, []);
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [simulatedProgress, setSimulatedProgress] = useState(0);
@@ -231,9 +237,15 @@ function WelcomeStep({
           Get Started
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={onSkip}>
+        <Button variant="outline" size="sm" onClick={onSkip}>
           Skip for now
         </Button>
+        <button
+          onClick={onSkip}
+          className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+        >
+          Explore Dashboard First
+        </button>
       </div>
     </div>
   );

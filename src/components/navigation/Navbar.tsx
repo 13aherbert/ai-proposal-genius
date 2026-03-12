@@ -39,6 +39,7 @@ import {
   Settings,
   Code2,
   RotateCcw,
+  DollarSign,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<

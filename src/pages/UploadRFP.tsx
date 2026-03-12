@@ -13,6 +13,12 @@ import { toast } from "sonner";
 import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
 import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
 
+  // Route-level gate: show upgrade modal if at limit and no project created yet
+  useEffect(() => {
+    if (!isLoading && hasReachedLimit && !projectId && !isUserTrialExpired) {
+      setShowUpgradeGate(true);
+    }
+  }, [isLoading, hasReachedLimit, projectId, isUserTrialExpired]);
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 

@@ -230,6 +230,12 @@ export function Navbar() {
                       Account Settings
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/subscription" className="w-full cursor-pointer">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Plans & Pricing
+                    </Link>
+                  </DropdownMenuItem>
                   {(localStorage.getItem('onboarding_skipped') === 'true' || localStorage.getItem('onboarding_completed') !== 'true') && (
                     <DropdownMenuItem
                       onClick={() => {

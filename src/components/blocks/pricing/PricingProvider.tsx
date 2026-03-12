@@ -6,7 +6,7 @@ interface PricingProviderProps {
 }
 
 export function PricingProvider({ children }: PricingProviderProps) {
-  const [isMonthly, setIsMonthly] = useState(true);
+  const [isMonthly, setIsMonthly] = useState(false);
 
   return (
     <PricingContext.Provider value={{ isMonthly, setIsMonthly }}>

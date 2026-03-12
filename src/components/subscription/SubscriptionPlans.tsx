@@ -21,7 +21,7 @@ export function SubscriptionPlans() {
   const subscription = subContext ? toSubscriptionPlan(subContext) : null;
   const { session } = useAuth();
   const navigate = useNavigate();
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('annual');
   const [creatingFreeSubscription, setCreatingFreeSubscription] = useState(false);
 
   const currentPlanType = subscription?.plan_type || 'starter';

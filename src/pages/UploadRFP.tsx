@@ -39,6 +39,7 @@ const UploadRFP = () => {
     return localStorage.getItem('auto-generate-preference') !== 'false';
   });
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
   const automationRef = useRef<HTMLDivElement>(null);
   const automationComponentRef = useRef<AutomatedProposalCreationRef>(null);
   

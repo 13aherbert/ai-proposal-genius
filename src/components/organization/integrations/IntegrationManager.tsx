@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { formatDistanceToNow } from 'date-fns';
+import { HubSpotIntegration } from './HubSpotIntegration';
 
 interface Integration {
   id: string;
@@ -42,11 +43,20 @@ interface Integration {
 }
 
 const integrationTemplates = {
+  hubspot: {
+    name: 'HubSpot',
+    type: 'oauth',
+    icon: '🟠',
+    description: 'Sync proposals to HubSpot CRM deals',
+    isCustom: true, // Uses dedicated HubSpotIntegration component
+    fields: []
+  },
   slack: {
     name: 'Slack',
     type: 'oauth',
     icon: '💬',
     description: 'Send notifications to Slack channels',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Webhook URL', type: 'url', required: true },
       { key: 'channel', label: 'Default Channel', type: 'text', required: false },
@@ -57,6 +67,7 @@ const integrationTemplates = {
     type: 'oauth',
     icon: '🎮',
     description: 'Send notifications to Discord servers',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Webhook URL', type: 'url', required: true },
       { key: 'username', label: 'Bot Username', type: 'text', required: false },
@@ -67,6 +78,7 @@ const integrationTemplates = {
     type: 'api_key',
     icon: '⚡',
     description: 'Trigger Zaps with your data',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Zap Webhook URL', type: 'url', required: true },
     ]
@@ -76,6 +88,7 @@ const integrationTemplates = {
     type: 'oauth',
     icon: '📊',
     description: 'Export data to Google Sheets',
+    isCustom: false,
     fields: [
       { key: 'sheet_id', label: 'Sheet ID', type: 'text', required: true },
       { key: 'worksheet_name', label: 'Worksheet Name', type: 'text', required: false },
@@ -86,6 +99,7 @@ const integrationTemplates = {
     type: 'api_key',
     icon: '🔧',
     description: 'Connect to your custom API endpoints',
+    isCustom: false,
     fields: [
       { key: 'api_url', label: 'API Base URL', type: 'url', required: true },
       { key: 'api_key', label: 'API Key', type: 'password', required: true },
@@ -102,6 +116,8 @@ export function IntegrationManager() {
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [formData, setFormData] = useState<Record<string, any>>({});
+  
+  const [showHubSpot, setShowHubSpot] = useState(false);
   
   const { organization } = useCurrentOrganization();
 
@@ -275,11 +291,15 @@ export function IntegrationManager() {
                   size="sm" 
                   className="w-full"
                   onClick={() => {
-                    setSelectedTemplate(key);
-                    setShowCreateDialog(true);
+                    if ((template as any).isCustom && key === 'hubspot') {
+                      setShowHubSpot(true);
+                    } else {
+                      setSelectedTemplate(key);
+                      setShowCreateDialog(true);
+                    }
                   }}
                 >
-                  {hasIntegration ? 'Add Another' : 'Connect'}
+                  {hasIntegration ? 'Configure' : 'Connect'}
                 </Button>
               </CardContent>
             </Card>
@@ -485,6 +505,19 @@ export function IntegrationManager() {
               Delete Integration
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* HubSpot Integration Dialog */}
+      <Dialog open={showHubSpot} onOpenChange={setShowHubSpot}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>HubSpot CRM Integration</DialogTitle>
+            <DialogDescription>
+              Connect and manage your HubSpot CRM integration
+            </DialogDescription>
+          </DialogHeader>
+          <HubSpotIntegration />
         </DialogContent>
       </Dialog>
     </div>

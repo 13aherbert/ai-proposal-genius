@@ -65,15 +65,16 @@ export default function Dashboard() {
     }
   }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
 
-  // Show first RFP wizard for new users without projects
+  // Show first RFP wizard for new users without projects (only if progressive onboarding isn't open)
   useEffect(() => {
     if (dashboardStats.hasProjects) return;
+    if (onboarding.isOpen) return;
     const completed = localStorage.getItem('optirfp_first_rfp_complete');
     const skipped = localStorage.getItem('optirfp_wizard_skipped');
     if (!completed && !skipped && session?.user) {
       setShowFirstRFPWizard(true);
     }
-  }, [dashboardStats.hasProjects, session]);
+  }, [dashboardStats.hasProjects, session, onboarding.isOpen]);
 
   const handleKBWizardClose = (open: boolean) => {
     setShowKBWizard(open);

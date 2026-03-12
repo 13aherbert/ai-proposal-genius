@@ -283,7 +283,7 @@ const UploadRFP = () => {
           </div>
 
           {/* Automated Proposal Creation */}
-          {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
+          {projectId && rfpFilePath && !hasReachedLimit && (
             <div ref={automationRef} className="mt-8">
               <AutomatedProposalCreation 
                 ref={automationComponentRef}

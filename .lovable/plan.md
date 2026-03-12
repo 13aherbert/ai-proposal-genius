@@ -1,38 +1,36 @@
 
 
-## Plan: Referral Program Interface
+## Plan: Add Social Proof Elements to OptiRFP
 
-### What to Build
-A referral dashboard page (`/referral`) and a reusable referral card component for embedding in Account Settings and other placements.
+### Changes
 
-### Files to Create
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**1. `src/pages/Referral.tsx`** — Full referral dashboard
-- Hero: "Give $50, Get 1 Month Free" with gradient background
-- Unique referral link (generated from user ID) with copy button
-- Stats cards: Total Referrals, Converted, Credits Earned
-- Progress tracker toward next reward milestone
-- Share buttons: Email, Twitter/X, LinkedIn, Copy Link
-- How It Works section (3 steps)
-- SEO title via `useEffect`
-- All data is mock/local for now (no DB table)
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**2. `src/components/account/ReferralCard.tsx`** — Compact card for Account Settings
-- Shows referral link + copy button
-- Quick stats inline
-- "View Full Dashboard" link to `/referral`
-- Prominent "Share & Earn" CTA
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-### Files to Modify
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**3. `src/App.tsx`** — Add `/referral` as authenticated route inside DashboardLayout
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-**4. `src/pages/AccountSettings.tsx`** — Add `<ReferralCard />` between BillingHistory and Organization Management sections
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Technical Notes
-- No database tables needed yet — stats are placeholder/mock
-- Referral link format: `https://ai-proposal-genius.lovable.app/?ref={userId}`
-- Share buttons use `window.open` for social and `navigator.clipboard` for copy
-- Progress tracker uses existing `Progress` component
-- Reuses `Card`, `Button`, `Badge`, `Progress` UI components
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

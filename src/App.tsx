@@ -21,6 +21,7 @@ import KnowledgeBase from "@/pages/KnowledgeBase";
 import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
 import AccountSettings from "@/pages/AccountSettings";
+import Referral from "@/pages/Referral";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
@@ -76,6 +77,7 @@ function AppContent() {
         <Route path="/organization" element={<Organization />} />
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/referral" element={<Referral />} />
         <Route path="/api-docs" element={<ApiDocs />} />
         
         {/* Legacy route redirects */}

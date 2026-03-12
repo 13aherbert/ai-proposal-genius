@@ -67,7 +67,7 @@ function AppContent() {
         <Route path="/subscription" element={<Subscription />} />
         <Route path="/subscription/success" element={<SubscriptionSuccess />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
-        <Route path="/account-settings" element={<AccountSettings />} />
+        <Route path="/account" element={<AccountSettings />} />
         <Route path="/organization" element={<Organization />} />
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />

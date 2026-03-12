@@ -38,6 +38,7 @@ import {
   LogOut,
   Settings,
   Code2,
+  RotateCcw,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<

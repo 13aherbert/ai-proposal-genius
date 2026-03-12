@@ -1,37 +1,36 @@
 
 
-## Plan: Display Actual Prices with Annual-by-Default Toggle
-
-### Problem
-Prices show without "/month" labels, and billing defaults to monthly instead of annual.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. `src/components/blocks/pricing/PricingProvider.tsx`**
-- Change default state from `useState(true)` to `useState(false)` so `isMonthly` starts as `false` (annual by default)
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. `src/components/blocks/pricing/PricingCard.tsx`**
-- When annual is selected, display the per-month equivalent (yearlyPrice / 12) instead of the total annual price
-- Update the period label: always show "/month", with "billed annually" or "billed monthly" subtitle
-- For Starter: show "$0" with "Always free"
-- For Enterprise annual: show "$449/month" with "billed annually"
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. `src/components/subscription/SubscriptionPlans.tsx`**
-- Change default `billingInterval` from `'monthly'` to `'annual'`
-- When annual is selected, show per-month equivalent prices:
-  - Basic: $39/mo (billed annually at $470/yr)
-  - Pro: $79/mo (billed annually at $950/yr)
-  - Enterprise: $449/mo (billed annually at $5,388/yr)
-- Add "billed annually" / "billed monthly" subtitle under each price
-- Starter stays "$0/forever"
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**4. `src/components/blocks/pricing/BillingToggle.tsx`**
-- Update save text: "Annual (Save 20%)" — already correct, no change needed
-- Confetti fires on annual toggle — already works since annual is `checked=true`
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### Price display logic (both components)
-```
-Monthly selected:   $49/month  — "billed monthly"
-Annual selected:    $39/month  — "billed annually at $470/yr"
-```
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

@@ -255,7 +255,13 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         <div className="mt-6 flex items-center justify-center gap-x-2">
           <span className="text-5xl font-bold tracking-tight text-[#F1F1F1]">
             <NumberFlow
-              value={isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)}
+              value={
+                plan.period === "Forever"
+                  ? 0
+                  : isMonthly
+                  ? Number(plan.price)
+                  : Math.round(Number(plan.yearlyPrice) / 12)
+              }
               format={{
                 style: "currency",
                 currency: "USD",
@@ -270,26 +276,20 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               className="font-variant-numeric: tabular-nums"
             />
           </span>
-          {plan.period !== "Forever" && plan.period !== "Next 3 months" && (
-            <span className="text-sm font-semibold leading-6 tracking-wide text-[#C8C8C9]">
-              / {isMonthly ? "month" : "year"}
+          {plan.period !== "Forever" && (
+            <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
+              / month
             </span>
           )}
         </div>
 
-        <p className="text-xs leading-5 text-[#C8C8C9]">
-          {plan.period === "Forever" ? "Always free" : 
-           isMonthly ? "billed monthly" : "billed annually"}
+        <p className="text-xs leading-5 text-muted-foreground">
+          {plan.period === "Forever"
+            ? "Always free"
+            : isMonthly
+            ? "billed monthly"
+            : `billed annually at $${Number(plan.yearlyPrice).toLocaleString()}/yr`}
         </p>
-
-        {isEnterprise && isMonthly && (
-          <div className="mt-1 text-xs text-[#C8C8C9]">
-            or <span className="font-semibold text-[#F1F1F1]">$449/month</span> billed annually
-            <span className="ml-1.5 inline-block rounded bg-green-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-green-400">
-              Save $600/year
-            </span>
-          </div>
-        )}
 
         <ul className="mt-5 gap-2 flex flex-col">
           {plan.features.map((feature, idx) => (

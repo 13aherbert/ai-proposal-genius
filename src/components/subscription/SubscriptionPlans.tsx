@@ -21,7 +21,7 @@ export function SubscriptionPlans() {
   const subscription = subContext ? toSubscriptionPlan(subContext) : null;
   const { session } = useAuth();
   const navigate = useNavigate();
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly');
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('annual');
   const [creatingFreeSubscription, setCreatingFreeSubscription] = useState(false);
 
   const currentPlanType = subscription?.plan_type || 'starter';
@@ -111,9 +111,12 @@ export function SubscriptionPlans() {
             <CardDescription>For small teams</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-4">
-              ${billingInterval === 'monthly' ? '49' : '470'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+            <div className="text-3xl font-bold mb-1">
+              ${billingInterval === 'monthly' ? '49' : '39'}/mo
             </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $470/yr'}
+            </p>
             <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.basic} projects</li>
               <li>✓ Enhanced AI RFP Summary</li>
@@ -153,9 +156,12 @@ export function SubscriptionPlans() {
             <CardDescription>For growing businesses</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-4">
-              ${billingInterval === 'monthly' ? '99' : '950'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+            <div className="text-3xl font-bold mb-1">
+              ${billingInterval === 'monthly' ? '99' : '79'}/mo
             </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $950/yr'}
+            </p>
             <ul className="space-y-2 mb-4">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.pro} projects</li>
               <li>✓ Advanced AI RFP Summary</li>
@@ -198,14 +204,11 @@ export function SubscriptionPlans() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold mb-1">
-              ${billingInterval === 'monthly' ? '499' : '5,388'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+              ${billingInterval === 'monthly' ? '499' : '449'}/mo
             </div>
-            {billingInterval === 'monthly' && (
-              <p className="text-xs text-muted-foreground mb-4">or $449/mo billed annually — <span className="text-green-600 font-medium">Save $600/year</span></p>
-            )}
-            {billingInterval === 'annual' && (
-              <p className="text-xs text-muted-foreground mb-4">$449/month effective rate</p>
-            )}
+            <p className="text-xs text-muted-foreground mb-4">
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $5,388/yr'}
+            </p>
             <ul className="space-y-2">
               <li>✓ Unlimited everything (projects, users, storage)</li>
               <li>✓ SOC 2 Type II ready (compliance reports)</li>

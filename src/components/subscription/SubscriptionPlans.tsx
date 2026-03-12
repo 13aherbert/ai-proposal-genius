@@ -204,14 +204,11 @@ export function SubscriptionPlans() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold mb-1">
-              ${billingInterval === 'monthly' ? '499' : '5,388'}/{billingInterval === 'monthly' ? 'mo' : 'yr'}
+              ${billingInterval === 'monthly' ? '499' : '449'}/mo
             </div>
-            {billingInterval === 'monthly' && (
-              <p className="text-xs text-muted-foreground mb-4">or $449/mo billed annually — <span className="text-green-600 font-medium">Save $600/year</span></p>
-            )}
-            {billingInterval === 'annual' && (
-              <p className="text-xs text-muted-foreground mb-4">$449/month effective rate</p>
-            )}
+            <p className="text-xs text-muted-foreground mb-4">
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $5,388/yr'}
+            </p>
             <ul className="space-y-2">
               <li>✓ Unlimited everything (projects, users, storage)</li>
               <li>✓ SOC 2 Type II ready (compliance reports)</li>

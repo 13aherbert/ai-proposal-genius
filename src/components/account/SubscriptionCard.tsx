@@ -370,7 +370,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const getStatusDescription = (status: string) => {
     switch(status) {
       case 'active': return 'Active';
-      case 'trialing': return 'Trial Active';
+      case 'trialing': return 'Free Plan';
       case 'past_due': return 'Payment Failed';
       case 'unpaid': return 'Unpaid';
       case 'canceled': return 'Canceled';

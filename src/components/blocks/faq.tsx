@@ -11,12 +11,12 @@ const faqData = [
     category: "Pricing & Subscription",
     items: [
       {
-        question: "What's included in the free trial?",
+        question: "What's included in the free plan?",
         answer: (
           <ul className="list-disc pl-6 space-y-1">
-            <li>14-day access to try core features</li>
-            <li>Up to 3 projects</li>
+            <li>The Starter plan is free forever with up to 3 projects</li>
             <li>Access to AI RFP Summary, Proposal Outline, and Basic Proposal Draft features</li>
+            <li>No credit card required</li>
           </ul>
         ),
       },

@@ -94,8 +94,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         const defaultTrial: SubscriptionPlan = {
           subscription_id: crypto.randomUUID(),
           user_id: sessionData.session.user.id,
-          status: 'trialing',
-          plan_type: 'trial',
+          status: 'active',
+          plan_type: 'starter',
           project_limit: 3,
           features: {},
           current_period_end: null,

@@ -194,29 +194,6 @@ const UploadRFP = () => {
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
           
-          {isUserTrialExpired && (
-            <Card className="bg-amber-50 border-amber-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-2 text-amber-800">
-                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium">Your free trial has expired</p>
-                    <p className="text-sm">
-                      Please upgrade your subscription to continue creating new projects.
-                    </p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleUpgradeClick}
-                    className="flex-shrink-0 bg-amber-600 text-white hover:bg-amber-700 hover:text-white"
-                  >
-                    Upgrade Now
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
           
           {!isLoading && hasReachedLimit && !isUserTrialExpired && (
             <Card className="bg-amber-50 border-amber-200">

@@ -1,50 +1,36 @@
 
 
-## Plan: Add SEO Metadata to All Pages
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Approach
-1. **Create a reusable `useSEO` hook** (`src/hooks/use-seo.ts`) that sets `document.title`, meta description, OG tags, canonical URL, and injects JSON-LD structured data via `useEffect`. This replaces scattered inline `useEffect` blocks.
+### Changes
 
-2. **Update all pages** to use the hook:
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-| Page | Title | Description |
-|------|-------|-------------|
-| Index | "OptiRFP — AI RFP Response Software \| Win More Contracts" | "AI-powered RFP response platform. Reduce proposal time by 93%. Free plan with 3 projects." |
-| Blog | "RFP Tips & Best Practices \| OptiRFP Blog" | "Expert advice on writing winning RFPs, AI tools, and proposal best practices." |
-| BlogPost | `{post.title} \| OptiRFP Blog` | post.excerpt |
-| CompareLoopio | keep current | keep current |
-| CompareAutoRFP | keep current | keep current |
-| Referral | keep current | keep current |
-| Documentation | keep current | keep current |
-| Dashboard | "Dashboard \| OptiRFP" | generic |
-| AccountSettings | "Account Settings \| OptiRFP" | generic |
-| Subscription | "OptiRFP Pricing — Free to $449/mo \| Start Free" | "Start free with 3 projects. Upgrade to Basic ($49), Pro ($99), or Enterprise ($449)." |
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-3. **OG tags** managed by the hook: `og:title`, `og:description`, `og:url`, `og:image`, `og:type`.
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-4. **Canonical URLs** set dynamically based on `window.location.pathname` using the published domain.
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-5. **Structured data** (JSON-LD): `WebSite` schema on Index, `BlogPosting` on BlogPost, `FAQPage` on Index (FAQ section).
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-### Files to Create
-- `src/hooks/use-seo.ts` — reusable hook accepting title, description, canonical, OG image, structured data
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Files to Modify
-- `src/pages/Index.tsx` — add `useSEO` with home metadata + WebSite structured data
-- `src/pages/Blog.tsx` — replace `useEffect` with `useSEO`
-- `src/pages/BlogPost.tsx` — replace `useEffect` with `useSEO` + BlogPosting schema
-- `src/pages/CompareLoopio.tsx` — replace inline SEO with `useSEO` + add OG/canonical
-- `src/pages/CompareAutoRFP.tsx` — same
-- `src/pages/Referral.tsx` — same
-- `src/pages/Documentation.tsx` — same
-- `src/pages/Subscription.tsx` — add `useSEO` with pricing metadata
-- `src/pages/Dashboard.tsx` — add `useSEO` (basic title)
-- `src/pages/AccountSettings.tsx` — add `useSEO` (basic title)
-- `index.html` — add default OG tags as fallbacks
-
-### Technical Notes
-- Hook creates/updates meta tags on mount, cleans up on unmount
-- Canonical base: `https://ai-proposal-genius.lovable.app`
-- OG image: existing `/og-image.png`
-- Structured data injected as `<script type="application/ld+json">` in `<head>`
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

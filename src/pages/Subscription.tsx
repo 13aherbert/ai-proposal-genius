@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSubscription } from "@/hooks/subscription";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 import { LoadingState } from "@/components/subscription/LoadingState";
 import { RenewalPrompt } from "@/components/subscription/RenewalPrompt";
 import { PaymentFailedView } from "@/components/subscription/PaymentFailedView";
@@ -29,6 +30,11 @@ export default function Subscription() {
   const [showRenewalPrompt, setShowRenewalPrompt] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  useSEO({
+    title: "OptiRFP Pricing — Free to $449/mo | Start Free",
+    description: "Start free with 3 projects. Upgrade to Basic ($49), Pro ($99), or Enterprise ($449).",
+  });
 
   // Check for payment status in URL params (redirected from payment provider)
   useEffect(() => {

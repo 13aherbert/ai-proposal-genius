@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Gift, Users, DollarSign, Copy, Mail, Twitter, Linkedin, Check, ArrowRight } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 const REFERRAL_BASE = "https://ai-proposal-genius.lovable.app/?ref=";
 
@@ -21,11 +22,10 @@ export default function Referral() {
 
   const referralLink = `${REFERRAL_BASE}${session?.user?.id?.slice(0, 8) || "demo"}`;
 
-  useEffect(() => {
-    document.title = "Referral Program | OptiRFP";
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Give $50, Get 1 Month Free. Share OptiRFP with your network and earn rewards.");
-  }, []);
+  useSEO({
+    title: "Referral Program | OptiRFP",
+    description: "Give $50, Get 1 Month Free. Share OptiRFP with your network and earn rewards.",
+  });
 
   const handleCopy = async () => {
     try {

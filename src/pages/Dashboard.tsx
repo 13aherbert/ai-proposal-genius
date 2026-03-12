@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
@@ -35,6 +36,7 @@ import { UsageWarning } from "@/components/subscription/UsageWarning";
 
 export default function Dashboard() {
   const { session } = useAuth();
+  useSEO({ title: "Dashboard | OptiRFP", description: "Manage your RFP projects and proposals." });
   const { profileData } = useProfile();
   const navigate = useNavigate();
   const [dashboardStats, setDashboardStats] = useState({

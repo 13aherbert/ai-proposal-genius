@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { blogPosts } from "@/data/blog-posts";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/navigation/Footer";
+import { useSEO } from "@/hooks/use-seo";
 
 const categories = ["All", "RFP Tips", "AI", "Sales"] as const;
 
@@ -17,9 +18,10 @@ const Blog = () => {
   const [category, setCategory] = useState<string>("All");
   const [email, setEmail] = useState("");
 
-  useEffect(() => {
-    document.title = "Blog — RFP Insights & Best Practices | OptiRFP";
-  }, []);
+  useSEO({
+    title: "RFP Tips & Best Practices | OptiRFP Blog",
+    description: "Expert advice on writing winning RFPs, AI tools, and proposal best practices.",
+  });
 
   const filtered = useMemo(() => {
     return blogPosts.filter((post) => {

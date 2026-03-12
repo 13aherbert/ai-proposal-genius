@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,6 +17,7 @@ import {
 import { ArrowLeft, Share2, Twitter, Linkedin, Copy, User } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/navigation/Footer";
+import { useSEO } from "@/hooks/use-seo";
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -24,23 +25,23 @@ const BlogPost = () => {
   const post = slug ? getBlogPost(slug) : undefined;
   const related = slug ? getRelatedPosts(slug, 3) : [];
 
-  useEffect(() => {
-    if (post) {
-      document.title = `${post.title} | OptiRFP Blog`;
-      const meta = document.querySelector('meta[name="description"]');
-      if (meta) {
-        meta.setAttribute("content", post.excerpt);
-      } else {
-        const tag = document.createElement("meta");
-        tag.name = "description";
-        tag.content = post.excerpt;
-        document.head.appendChild(tag);
-      }
-    }
-    return () => {
-      document.title = "OptiRFP";
-    };
-  }, [post]);
+  const structuredData = useMemo(() => post ? ({
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "description": post.excerpt,
+    "author": { "@type": "Person", "name": post.author.name },
+    "datePublished": post.date,
+    "image": post.image,
+    "url": `https://ai-proposal-genius.lovable.app/blog/${slug}`,
+  }) : undefined, [post, slug]);
+
+  useSEO({
+    title: post ? `${post.title} | OptiRFP Blog` : "OptiRFP Blog",
+    description: post?.excerpt || "OptiRFP Blog",
+    ogType: "article",
+    structuredData,
+  });
 
   if (!post) {
     return (

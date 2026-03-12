@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -13,12 +13,32 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useExitIntent } from "@/hooks/use-exit-intent";
 import { ExitIntentModal } from "@/components/blocks/ExitIntentModal";
 import { useAuth } from "@/components/AuthProvider";
+import { useSEO } from "@/hooks/use-seo";
 
 const Index = () => {
   const isMobile = useIsMobile();
   const { session } = useAuth();
   const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const [exitSignupOpen, setExitSignupOpen] = useState(false);
+
+  const structuredData = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "OptiRFP",
+    "url": "https://ai-proposal-genius.lovable.app",
+    "description": "AI-powered RFP response platform. Reduce proposal time by 93%.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://ai-proposal-genius.lovable.app/blog?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }), []);
+
+  useSEO({
+    title: "OptiRFP — AI RFP Response Software | Win More Contracts",
+    description: "AI-powered RFP response platform. Reduce proposal time by 93%. Free plan with 3 projects.",
+    structuredData,
+  });
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

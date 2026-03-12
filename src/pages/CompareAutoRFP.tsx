@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Footer } from "@/components/navigation/Footer";
 import { CheckCircle, ArrowRight } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 const comparisonRows = [
   { feature: "Starting Price", optirfp: "Free / $49/mo", competitor: "Custom quotes only", winner: "optirfp" },
@@ -17,18 +18,10 @@ const comparisonRows = [
 ];
 
 const CompareAutoRFP = () => {
-  useEffect(() => {
-    document.title = "OptiRFP vs AutoRFP 2026 | Comparison";
-    const meta = document.querySelector('meta[name="description"]');
-    const desc = "Compare OptiRFP and AutoRFP side by side. Transparent pricing from $0/mo vs custom quotes. See why teams choose OptiRFP's free tier and AI-native approach.";
-    if (meta) meta.setAttribute("content", desc);
-    else {
-      const tag = document.createElement("meta");
-      tag.name = "description";
-      tag.content = desc;
-      document.head.appendChild(tag);
-    }
-  }, []);
+  useSEO({
+    title: "OptiRFP vs AutoRFP 2026 | Comparison",
+    description: "Compare OptiRFP and AutoRFP side by side. Transparent pricing from $0/mo vs custom quotes. See why teams choose OptiRFP's free tier and AI-native approach.",
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

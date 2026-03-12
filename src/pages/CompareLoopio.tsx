@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Footer } from "@/components/navigation/Footer";
 import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 const comparisonRows = [
   { feature: "Starting Price", optirfp: "Free / $49/mo", competitor: "$20,000+/year", winner: "optirfp" },
@@ -17,18 +18,10 @@ const comparisonRows = [
 ];
 
 const CompareLoopio = () => {
-  useEffect(() => {
-    document.title = "OptiRFP vs Loopio 2026 | Modern AI Alternative Comparison";
-    const meta = document.querySelector('meta[name="description"]');
-    const desc = "Compare OptiRFP and Loopio side by side. See why teams switch from Loopio's $20K/year plans to OptiRFP's AI-native platform — start free, no credit card required.";
-    if (meta) meta.setAttribute("content", desc);
-    else {
-      const tag = document.createElement("meta");
-      tag.name = "description";
-      tag.content = desc;
-      document.head.appendChild(tag);
-    }
-  }, []);
+  useSEO({
+    title: "OptiRFP vs Loopio 2026 | Modern AI Alternative Comparison",
+    description: "Compare OptiRFP and Loopio side by side. See why teams switch from Loopio's $20K/year plans to OptiRFP's AI-native platform — start free, no credit card required.",
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

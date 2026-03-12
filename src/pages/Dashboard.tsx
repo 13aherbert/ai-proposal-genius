@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { RecentActivityList } from "@/components/dashboard/RecentActivityList";

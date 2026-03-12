@@ -1,24 +1,19 @@
 
 import { DocsViewer } from "@/components/documentation/DocsViewer";
-import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 const Documentation = () => {
   const { docId = "onboarding" } = useParams<{ docId?: string }>();
   const navigate = useNavigate();
-  
-  // Custom hook for document title - implemented inline since it's simple
-  useEffect(() => {
-    const prevTitle = document.title;
-    const titleText = docId.charAt(0).toUpperCase() + docId.slice(1);
-    document.title = `${titleText} | OptiRFP Documentation`;
-    
-    return () => {
-      document.title = prevTitle;
-    };
-  }, [docId]);
+  const titleText = docId.charAt(0).toUpperCase() + docId.slice(1);
+
+  useSEO({
+    title: `${titleText} | OptiRFP Documentation`,
+    description: `OptiRFP documentation — ${titleText.toLowerCase()} guide and reference.`,
+  });
   
   return (
     <div className="container mx-auto px-4 py-8">

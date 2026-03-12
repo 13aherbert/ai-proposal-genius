@@ -246,7 +246,7 @@ const UploadRFP = () => {
                 onDrop={handleDrop}
                 isUploading={isUploading}
                 uploadProgress={uploadProgress}
-                disabled={hasReachedLimit || isUserTrialExpired}
+                disabled={hasReachedLimit}
               />
               
               

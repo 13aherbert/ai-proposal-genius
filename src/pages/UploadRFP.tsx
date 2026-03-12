@@ -317,6 +317,11 @@ const UploadRFP = () => {
               />
             </div>
           )}
+      <UpgradeGateModal
+        open={showUpgradeGate}
+        onOpenChange={setShowUpgradeGate}
+        currentLimit={projectLimit ?? 3}
+      />
     </div>
   );
 };

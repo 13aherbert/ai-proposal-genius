@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSubscription } from "@/hooks/subscription";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 import { LoadingState } from "@/components/subscription/LoadingState";
 import { RenewalPrompt } from "@/components/subscription/RenewalPrompt";
 import { PaymentFailedView } from "@/components/subscription/PaymentFailedView";

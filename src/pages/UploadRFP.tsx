@@ -72,7 +72,6 @@ const UploadRFP = () => {
   }, [fetchProjectCount, session, subscription]);
   
   const planType = normalizePlanType(subscription?.plan_type);
-  const isUserTrialExpired = planType === 'trial' && session?.user ? isTrialExpired(session.user) : false;
   
   // Calculate limits early so they can be used in effects
   const hasReachedLimit = 

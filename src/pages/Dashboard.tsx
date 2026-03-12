@@ -36,6 +36,7 @@ import { UsageWarning } from "@/components/subscription/UsageWarning";
 
 export default function Dashboard() {
   const { session } = useAuth();
+  useSEO({ title: "Dashboard | OptiRFP", description: "Manage your RFP projects and proposals." });
   const { profileData } = useProfile();
   const navigate = useNavigate();
   const [dashboardStats, setDashboardStats] = useState({

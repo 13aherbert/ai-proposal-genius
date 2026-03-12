@@ -23,6 +23,7 @@ import { useProfile } from "@/hooks/use-profile";
 export default function AccountSettings() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  useSEO({ title: "Account Settings | OptiRFP", description: "Manage your OptiRFP account, profile, and billing." });
   const { data: subscription } = useSubscription();
   const [hasCredentialChanges, setHasCredentialChanges] = useState(false);
   const credentialsSectionRef = useRef<{ saveCredentials: () => Promise<boolean> } | null>(null);

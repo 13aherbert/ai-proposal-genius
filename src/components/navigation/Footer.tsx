@@ -21,6 +21,9 @@ export function Footer() {
             <Link to="/blog" className="hover:text-foreground">
               Blog
             </Link>
+            <Link to="/compare/loopio" className="hover:text-foreground">
+              Compare
+            </Link>
             <Link to="/subscription" className="hover:text-foreground">
               Pricing
             </Link>

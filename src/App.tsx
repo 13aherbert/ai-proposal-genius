@@ -93,6 +93,8 @@ function AppContent() {
       <Route path="/docs/:docId" element={<Documentation />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/compare/loopio" element={<CompareLoopio />} />
+      <Route path="/compare/autorfp" element={<CompareAutoRFP />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

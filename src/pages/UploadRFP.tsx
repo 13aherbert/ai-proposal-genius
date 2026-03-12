@@ -93,10 +93,10 @@ const UploadRFP = () => {
 
   // Route-level gate: show upgrade modal if at limit and no project created yet
   useEffect(() => {
-    if (!isLoading && hasReachedLimit && !projectId && !isUserTrialExpired) {
+    if (!isLoading && hasReachedLimit && !projectId) {
       setShowUpgradeGate(true);
     }
-  }, [isLoading, hasReachedLimit, projectId, isUserTrialExpired]);
+  }, [isLoading, hasReachedLimit, projectId]);
 
   // Save auto-generate preference to localStorage
   const handleAutoGenerateChange = useCallback((value: boolean) => {

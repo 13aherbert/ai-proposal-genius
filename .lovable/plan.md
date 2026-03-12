@@ -1,36 +1,36 @@
 
 
-## Plan: SEO Comparison Pages
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Files to Create
+### Changes
 
-**1. `src/pages/CompareLoopio.tsx`** — `/compare/loopio`
-- SEO title: "OptiRFP vs Loopio 2026 | Comparison"
-- Hero with logos ("OptiRFP" text + "VS" + "Loopio" text), gradient background
-- 3-bullet quick verdict (free vs $20K, 3 free projects vs none, AI-native vs legacy)
-- Comparison table using existing `Table` components — rows: Pricing, Free Tier, AI Capabilities, Ease of Use, Setup Time, Support — with winner badges (green checkmark) on OptiRFP advantages
-- Sections: Pricing, Ease of Use, AI Features, Why Switch — each with heading + short paragraph
-- Sticky bottom CTA bar: "Start Free — No Credit Card Required"
-- Footer included
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. `src/pages/CompareAutoRFP.tsx`** — `/compare/autorfp`
-- SEO title: "OptiRFP vs AutoRFP 2026 | Comparison"
-- Same layout pattern as Loopio page
-- Focus on: free tier advantage, transparent pricing ($49/mo vs custom quotes), AI-native approach
-- Same comparison table structure, sticky CTA, footer
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-### Files to Modify
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**3. `src/App.tsx`** — Add routes
-- `/compare/loopio` and `/compare/autorfp` as public routes next to `/blog`
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**4. `src/components/navigation/Footer.tsx`** — Add "Compare" links or a "Compare" section
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-### Technical Notes
-- Both pages are static/public, no auth required
-- SEO meta set via `useEffect` (same pattern as Blog)
-- Sticky CTA: `fixed bottom-0` bar with `z-50`, semi-transparent background
-- Winner badges: green `Badge` variant on OptiRFP column cells
-- Reuse existing `Table`, `Badge`, `Button`, `Card` components
-- Each page ~200-250 lines
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

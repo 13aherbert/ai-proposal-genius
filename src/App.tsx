@@ -28,6 +28,8 @@ import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
 import ApiDocs from "@/pages/ApiDocs";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

@@ -35,6 +35,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
+import { Navigate } from "react-router-dom";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Layouts

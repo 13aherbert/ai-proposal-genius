@@ -1,36 +1,41 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Usage Progress Banner
 
-### Changes
+### What to Build
+A `UsageProgressBanner` component that replaces the three trial-focused banners (`TrialCountdown`, `TrialExpiredBanner`, `UpgradeBanner`) in `DashboardLayout`. It shows project usage with color-coded progress bar and contextual upgrade CTA -- no trial language.
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+### New Component: `src/components/subscription/UsageProgressBanner.tsx`
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+**Data sources**: Uses `useSubscriptionFeatures()` for plan/limit and queries `projects` table via org for count (same pattern as existing `UsageStats`).
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+**Layout (banner style, ~48px)**:
+- Left: Plan badge + "Free Plan — 2 of 3 projects used"  
+- Center: Progress bar (h-2, rounded-full, animated width transition)
+- Right: "Upgrade" button (visible when ≥70% or at limit)
+- Mobile: stacks vertically, simplified "2/3 projects used"
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+**Color logic on the progress fill**:
+- `< 70%`: `bg-green-500`
+- `70–90%`: `bg-orange-500`  
+- `> 90%`: `bg-red-500`
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+**At-limit state**: Banner changes to urgent messaging — "You've reached your 3-project limit. Upgrade to Basic for 10 projects." with prominent CTA.
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+**Plan name mapping**: `starter` → "Free Plan", `basic` → "Basic Plan", `pro` → "Pro Plan". No "trial", "expires", or "days left" language.
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+### Modify: `src/layouts/DashboardLayout.tsx`
+- Remove imports/renders of `TrialCountdown`, `TrialExpiredBanner`, `UpgradeBanner`
+- Add `UsageProgressBanner` in their place
+- Remove `useSubscription` import (banner handles its own data)
+
+### Modify: `src/types/subscription.ts`
+- Fix inconsistency: `SUBSCRIPTION_PLAN_LIMITS.starter` says 3 but `use-project-limits.ts` logs say 10. The canonical limit is **3** per `subscription-limits.ts` and `DEFAULT_STARTER_SUBSCRIPTION`. The log messages in `use-project-limits.ts` are wrong — will note but not change in this task (separate concern).
+
+### Files
+
+| File | Action |
+|------|--------|
+| `src/components/subscription/UsageProgressBanner.tsx` | Create |
+| `src/layouts/DashboardLayout.tsx` | Replace 3 banners with `UsageProgressBanner` |
 

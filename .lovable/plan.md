@@ -1,36 +1,45 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Blog Section with List and Post Pages
 
-### Changes
+### What to Build
+A public blog section with a list page (`/blog`) and individual post pages (`/blog/:slug`), seeded with 3 articles. Public routes (no auth required), similar to `/docs`.
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+### Files to Create
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+**1. `src/data/blog-posts.ts`** — Seed data
+- 3 articles with: slug, title, excerpt, category, author, date, image (placeholder), full markdown content
+- Categories: "RFP Tips", "AI", "Sales"
+- Export `blogPosts` array and a `getBlogPost(slug)` helper
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+**2. `src/pages/Blog.tsx`** — List page
+- Hero section: "RFP Insights & Best Practices" heading
+- Filter tabs: All | RFP Tips | AI | Sales
+- Search bar filtering by title/excerpt
+- 3-column grid (desktop), 1-column (mobile) of cards with image, category badge, title, excerpt, author, date
+- Email capture section at bottom: "Subscribe for weekly tips" with input + button (toast on submit, no backend)
+- Sets `document.title` for SEO
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+**3. `src/pages/BlogPost.tsx`** — Individual post
+- Back button + breadcrumbs (Home > Blog > Post Title)
+- Full-width hero image, title, meta (author, date, category)
+- Content rendered via `react-markdown` + `remark-gfm` in a `max-w-[720px]` container with `text-lg leading-[1.8]`
+- Share buttons (copy link, open Twitter/LinkedIn — using `window.open`)
+- Author bio card
+- Related articles grid (3 cards, same category or random)
+- Sets `document.title` + meta description for SEO
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+### Files to Modify
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+**4. `src/App.tsx`** — Add routes
+- Add `/blog` and `/blog/:slug` as public routes (outside `ProtectedRoute`, next to `/docs`)
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+**5. `src/components/navigation/Footer.tsx`** — Add Blog link
+- Add `<Link to="/blog">Blog</Link>` to the footer links
+
+### Technical Notes
+- Uses existing `react-markdown` and `remark-gfm` (already installed)
+- Uses existing UI components: `Badge`, `Button`, `Input`, `Tabs`, `Breadcrumb`, `Card`
+- No database needed — static seed data in TypeScript
+- OG meta tags set via `document.title` and dynamic meta tag insertion in `useEffect`
 

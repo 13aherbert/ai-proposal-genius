@@ -30,6 +30,8 @@ import Opportunities from "@/pages/Opportunities";
 import ApiDocs from "@/pages/ApiDocs";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
+import CompareLoopio from "@/pages/CompareLoopio";
+import CompareAutoRFP from "@/pages/CompareAutoRFP";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

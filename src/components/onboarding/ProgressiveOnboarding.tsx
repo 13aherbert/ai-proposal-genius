@@ -376,17 +376,31 @@ export function ProgressiveOnboarding({
     }
   }, [quickUpload, goToStep]);
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    onSkip();
+    // Force cleanup body styles immediately
+    document.body.style.removeProperty('pointer-events');
+    document.body.style.removeProperty('overflow');
+  }, [setIsOpen, onSkip]);
+
   const handleDialogChange = (open: boolean) => {
-    if (!open) onSkip();
-    else setIsOpen(open);
+    if (!open) {
+      handleClose();
+    }
   };
 
-  // Safety net: clean up pointer-events on unmount
+  // Clean up body styles whenever modal closes or on unmount
   useEffect(() => {
+    if (!isOpen) {
+      document.body.style.removeProperty('pointer-events');
+      document.body.style.removeProperty('overflow');
+    }
     return () => {
       document.body.style.removeProperty('pointer-events');
+      document.body.style.removeProperty('overflow');
     };
-  }, []);
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>

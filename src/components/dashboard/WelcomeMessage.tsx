@@ -5,7 +5,7 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 export function WelcomeMessage() {
   const { session } = useAuth();
   const { plan } = useSubscriptionFeatures();
-  const isSubscriptionActive = plan && plan !== 'trial';
+  const displayPlan = (!plan || plan === 'trial') ? 'Free Plan' : plan;
 
   return (
     <div>
@@ -13,13 +13,7 @@ export function WelcomeMessage() {
         Welcome{session?.user?.user_metadata?.first_name ? `, ${session.user.user_metadata.first_name}` : ''}
       </h1>
       <p className="text-muted-foreground mt-0.5 text-sm">
-        {isSubscriptionActive ? (
-          <>
-            You're on the <Badge variant="outline" className="ml-1 font-semibold text-xs">{plan}</Badge> plan
-          </>
-        ) : (
-          "Start creating AI-powered RFP responses"
-        )}
+        You're on the <Badge variant="outline" className="ml-1 font-semibold text-xs">{displayPlan}</Badge> plan
       </p>
     </div>
   );

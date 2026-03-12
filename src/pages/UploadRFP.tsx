@@ -8,7 +8,7 @@ import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
-import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
+import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
 import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
@@ -72,7 +72,6 @@ const UploadRFP = () => {
   }, [fetchProjectCount, session, subscription]);
   
   const planType = normalizePlanType(subscription?.plan_type);
-  const isUserTrialExpired = planType === 'trial' && session?.user ? isTrialExpired(session.user) : false;
   
   // Calculate limits early so they can be used in effects
   const hasReachedLimit = 
@@ -94,10 +93,10 @@ const UploadRFP = () => {
 
   // Route-level gate: show upgrade modal if at limit and no project created yet
   useEffect(() => {
-    if (!isLoading && hasReachedLimit && !projectId && !isUserTrialExpired) {
+    if (!isLoading && hasReachedLimit && !projectId) {
       setShowUpgradeGate(true);
     }
-  }, [isLoading, hasReachedLimit, projectId, isUserTrialExpired]);
+  }, [isLoading, hasReachedLimit, projectId]);
 
   // Save auto-generate preference to localStorage
   const handleAutoGenerateChange = useCallback((value: boolean) => {
@@ -112,8 +111,7 @@ const UploadRFP = () => {
       rfpFilePath && 
       autoGenerate && 
       !hasAutoStarted &&
-      !hasReachedLimit && 
-      !isUserTrialExpired
+      !hasReachedLimit
     ) {
       // Mark as started to prevent multiple triggers
       setHasAutoStarted(true);
@@ -135,7 +133,7 @@ const UploadRFP = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [projectId, rfpFilePath, autoGenerate, hasAutoStarted, hasReachedLimit, isUserTrialExpired]);
+  }, [projectId, rfpFilePath, autoGenerate, hasAutoStarted, hasReachedLimit]);
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -196,31 +194,8 @@ const UploadRFP = () => {
             <h1 className="text-3xl font-bold">Upload RFP</h1>
           </header>
           
-          {isUserTrialExpired && (
-            <Card className="bg-amber-50 border-amber-300">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-2 text-amber-800">
-                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium">Your free trial has expired</p>
-                    <p className="text-sm">
-                      Please upgrade your subscription to continue creating new projects.
-                    </p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={handleUpgradeClick}
-                    className="flex-shrink-0 bg-amber-600 text-white hover:bg-amber-700 hover:text-white"
-                  >
-                    Upgrade Now
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
           
-          {!isLoading && hasReachedLimit && !isUserTrialExpired && (
+          {!isLoading && hasReachedLimit && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">
@@ -271,7 +246,7 @@ const UploadRFP = () => {
                 onDrop={handleDrop}
                 isUploading={isUploading}
                 uploadProgress={uploadProgress}
-                disabled={hasReachedLimit || isUserTrialExpired}
+                disabled={hasReachedLimit}
               />
               
               
@@ -289,7 +264,7 @@ const UploadRFP = () => {
                 setBusinessName={setBusinessName}
                 onSubmit={handleUpdateProject}
                 isProcessing={isUploading}
-                disabled={hasReachedLimit || isUserTrialExpired}
+                disabled={hasReachedLimit}
                 autoGenerate={autoGenerate}
                 setAutoGenerate={handleAutoGenerateChange}
               />
@@ -308,7 +283,7 @@ const UploadRFP = () => {
           </div>
 
           {/* Automated Proposal Creation */}
-          {projectId && rfpFilePath && !hasReachedLimit && !isUserTrialExpired && (
+          {projectId && rfpFilePath && !hasReachedLimit && (
             <div ref={automationRef} className="mt-8">
               <AutomatedProposalCreation 
                 ref={automationComponentRef}

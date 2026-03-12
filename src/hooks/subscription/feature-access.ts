@@ -120,34 +120,6 @@ export function getStoredSubscriptionData(): any | null {
   }
 }
 
-// Check if trial has expired (2 weeks after signup)
-export function isTrialExpired(user: any): boolean {
-  if (!user) return false;
-  
-  try {
-    // If user isn't on trial plan, return false
-    const subscriptionData = getStoredSubscriptionData();
-    if (subscriptionData && subscriptionData.plan_type?.toLowerCase() !== 'trial') {
-      return false;
-    }
-    
-    const createdAt = new Date(user.created_at);
-    const now = new Date();
-    
-    // Calculate time difference in milliseconds
-    const timeDiff = now.getTime() - createdAt.getTime();
-    
-    // Convert to days (2 weeks = 14 days)
-    const daysDiff = timeDiff / (1000 * 3600 * 24);
-    
-    console.log(`Trial check: User created ${daysDiff.toFixed(1)} days ago, expires after 14 days`);
-    
-    return daysDiff > 14;
-  } catch (e) {
-    console.error("Error checking trial expiration:", e);
-    return false;
-  }
-}
 
 // Feature mapping based on plan type
 const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {

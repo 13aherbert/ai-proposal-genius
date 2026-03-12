@@ -10,7 +10,6 @@ import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { 
   getStoredSubscriptionData, 
   isUserOfPlanType,
-  isTrialExpired,
   normalizePlanType,
   getProjectLimitForPlan
 } from "./subscription/feature-access";
@@ -128,16 +127,6 @@ export const useRFPUpload = () => {
       return;
     }
     
-    if (
-      planType === 'trial' && 
-      isTrialExpired(session.user)
-    ) {
-      toast.error("Your free trial has expired", { 
-        description: "Please upgrade your subscription to continue.",
-      });
-      navigate('/subscription', { state: { fromTrialExpired: true } });
-      return;
-    }
     
     console.log('Fetching fresh project count before upload');
     await fetchProjectCount();

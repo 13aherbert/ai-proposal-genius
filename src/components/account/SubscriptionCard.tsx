@@ -94,8 +94,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         const defaultTrial: SubscriptionPlan = {
           subscription_id: crypto.randomUUID(),
           user_id: sessionData.session.user.id,
-          status: 'trialing',
-          plan_type: 'trial',
+          status: 'active',
+          plan_type: 'starter',
           project_limit: 3,
           features: {},
           current_period_end: null,
@@ -370,7 +370,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
   const getStatusDescription = (status: string) => {
     switch(status) {
       case 'active': return 'Active';
-      case 'trialing': return 'Trial Active';
+      case 'trialing': return 'Free Plan';
       case 'past_due': return 'Payment Failed';
       case 'unpaid': return 'Unpaid';
       case 'canceled': return 'Canceled';
@@ -489,11 +489,10 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
           <p className="text-sm text-muted-foreground">
             Status: <span className="font-medium">{getStatusDescription(currentStatus)}</span>
           </p>
-          {currentStatus === 'trialing' && subscription?.current_period_end && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-              <Tag className="h-3 w-3" />
-              Trial expires in {Math.max(0, Math.ceil((new Date(subscription.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days
-            </div>
+          {(currentPlanType === 'trial' || currentPlanType === 'starter') && !hasActiveSubscription && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Projects: 0 of {subscription?.project_limit || 3} used · Upgrade anytime
+            </p>
           )}
           {subscription?.current_period_end && currentStatus !== 'trialing' && (
             <p className="text-sm text-muted-foreground">

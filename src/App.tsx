@@ -86,9 +86,11 @@ function AppContent() {
         <Route path="/account-settings" element={<Navigate to="/account" replace />} />
       </Route>
       
-      {/* Admin Routes */}
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/users" element={<UserManagementPage />} />
+      {/* Admin Routes - wrapped in ProtectedRoute for authentication */}
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagementPage />} />
+      </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/docs" element={<Documentation />} />

@@ -224,7 +224,7 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/account-settings" className="w-full cursor-pointer">
+                    <Link to="/account" className="w-full cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       Account Settings
                     </Link>

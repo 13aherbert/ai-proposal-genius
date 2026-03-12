@@ -39,6 +39,7 @@ import {
   Settings,
   Code2,
   RotateCcw,
+  DollarSign,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<
@@ -227,6 +228,12 @@ export function Navbar() {
                     <Link to="/account" className="w-full cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       Account Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/subscription" className="w-full cursor-pointer">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Plans & Pricing
                     </Link>
                   </DropdownMenuItem>
                   {(localStorage.getItem('onboarding_skipped') === 'true' || localStorage.getItem('onboarding_completed') !== 'true') && (
@@ -422,11 +429,11 @@ export function Navbar() {
                     </SheetClose>
                     <SheetClose asChild>
                       <Link
-                        to="/account-settings#subscription"
+                        to="/subscription"
                         className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"
                       >
-                        <Settings className="h-5 w-5 text-muted-foreground" />
-                        Subscription
+                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                        Plans & Pricing
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>

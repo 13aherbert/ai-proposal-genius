@@ -77,7 +77,7 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
       bgClass: "bg-muted border-border",
       textClass: "text-muted-foreground",
       message: `Free Plan — ${count} of ${projectLimit} projects used`,
-      description: "Upgrade anytime for more projects and features.",
+      description: "Upgrade anytime for more projects and features. See all plans.",
     };
   };
 
@@ -112,9 +112,14 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
         <p className={cn("font-medium", config.textClass)}>{config.message}</p>
         <p className={cn("text-sm opacity-80", config.textClass)}>{config.description}</p>
       </div>
-      <Button onClick={handleUpgradeClick} size="sm" variant="secondary" className="shrink-0">
-        Upgrade
-      </Button>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button onClick={handleUpgradeClick} size="sm" variant="secondary">
+          Upgrade
+        </Button>
+        <Button onClick={handleUpgradeClick} size="sm" variant="link" className="text-xs px-0">
+          See all plans
+        </Button>
+      </div>
     </div>
   );
 }

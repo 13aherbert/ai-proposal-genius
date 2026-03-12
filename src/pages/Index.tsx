@@ -48,6 +48,14 @@ const Index = () => {
     }
     return () => document.body.classList.remove('reduce-motion');
   }, []);
+
+  useEffect(() => {
+    if (window.location.hash === '#pricing') {
+      setTimeout(() => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, []);
   
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);

@@ -33,6 +33,7 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import CompareLoopio from "@/pages/CompareLoopio";
 import CompareAutoRFP from "@/pages/CompareAutoRFP";
+import PricingRedirect from "@/pages/Pricing";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -99,6 +100,7 @@ function AppContent() {
       <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="/compare/loopio" element={<CompareLoopio />} />
       <Route path="/compare/autorfp" element={<CompareAutoRFP />} />
+      <Route path="/pricing" element={<PricingRedirect />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

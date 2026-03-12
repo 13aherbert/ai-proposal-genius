@@ -117,6 +117,8 @@ export function IntegrationManager() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [formData, setFormData] = useState<Record<string, any>>({});
   
+  const [showHubSpot, setShowHubSpot] = useState(false);
+  
   const { organization } = useCurrentOrganization();
 
   const loadIntegrations = async () => {

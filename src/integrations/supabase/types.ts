@@ -343,6 +343,91 @@ export type Database = {
           },
         ]
       }
+      integration_field_mappings: {
+        Row: {
+          created_at: string | null
+          id: string
+          integration_id: string
+          is_active: boolean | null
+          source_field: string
+          target_field: string
+          transform_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          integration_id: string
+          is_active?: boolean | null
+          source_field: string
+          target_field: string
+          transform_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          integration_id?: string
+          is_active?: boolean | null
+          source_field?: string
+          target_field?: string
+          transform_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_field_mappings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "organization_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_logs: {
+        Row: {
+          completed_at: string | null
+          direction: string
+          error_details: Json | null
+          id: string
+          integration_id: string
+          records_failed: number | null
+          records_processed: number | null
+          started_at: string | null
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          direction?: string
+          error_details?: Json | null
+          id?: string
+          integration_id: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          sync_type?: string
+        }
+        Update: {
+          completed_at?: string | null
+          direction?: string
+          error_details?: Json | null
+          id?: string
+          integration_id?: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_logs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "organization_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_entries: {
         Row: {
           category: string
@@ -861,6 +946,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "organization_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_integrations: {
+        Row: {
+          configuration: Json | null
+          created_at: string | null
+          credentials: Json | null
+          error_message: string | null
+          id: string
+          integration_name: string
+          integration_type: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          organization_id: string
+          sync_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          configuration?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          error_message?: string | null
+          id?: string
+          integration_name: string
+          integration_type: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id: string
+          sync_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          configuration?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          error_message?: string | null
+          id?: string
+          integration_name?: string
+          integration_type?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          organization_id?: string
+          sync_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_integrations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

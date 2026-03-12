@@ -76,6 +76,7 @@ function AppContent() {
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />
         <Route path="/project/:projectId" element={<ProjectDetailsRedirect />} />
+        <Route path="/account-settings" element={<Navigate to="/account" replace />} />
       </Route>
       
       {/* Admin Routes */}

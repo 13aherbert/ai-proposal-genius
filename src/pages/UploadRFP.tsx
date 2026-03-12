@@ -8,7 +8,7 @@ import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
-import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
+import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
 import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";

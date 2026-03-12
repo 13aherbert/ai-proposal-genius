@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
@@ -49,13 +48,11 @@ export function UsageProgressBanner() {
 
   if (loading || featuresLoading || projectCount === null) return null;
 
-  // Hide for pro users not near limit
   const count = projectCount;
   const percentage = projectLimit > 0 ? Math.min((count / projectLimit) * 100, 100) : 0;
   const isNearLimit = percentage >= 70;
   const isAtLimit = count >= projectLimit;
 
-  // Don't show banner if pro plan and under 70%
   if (plan === "pro" && !isNearLimit) return null;
 
   const planName = PLAN_DISPLAY_NAMES[plan] || "Free Plan";
@@ -71,10 +68,9 @@ export function UsageProgressBanner() {
     navigate("/subscription", { state: { fromUpgradeButton: true } });
   };
 
-  return (
-    <div className="bg-card border border-border rounded-lg px-4 py-3 mb-4">
-      {isAtLimit ? (
-        {/* At-limit urgent state */}
+  if (isAtLimit) {
+    return (
+      <div className="bg-card border border-border rounded-lg px-4 py-3 mb-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-sm text-destructive font-medium text-center sm:text-left">
             You've reached your {projectLimit}-project limit. Upgrade to{" "}
@@ -85,45 +81,46 @@ export function UsageProgressBanner() {
             Upgrade Now
           </Button>
         </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-          {/* Left: plan + usage text */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="secondary" className="text-xs font-medium">
-              {planName}
-            </Badge>
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {count} of {projectLimit} projects used
-            </span>
-            <span className="text-sm text-muted-foreground sm:hidden">
-              {count}/{projectLimit} projects
-            </span>
-          </div>
+      </div>
+    );
+  }
 
-          {/* Center: progress bar */}
-          <div className="flex-1 w-full sm:w-auto">
-            <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ease-out ${progressColor}`}
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Right: upgrade CTA when near limit */}
-          {isNearLimit && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleUpgrade}
-              className="shrink-0"
-            >
-              <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
-              Upgrade
-            </Button>
-          )}
+  return (
+    <div className="bg-card border border-border rounded-lg px-4 py-3 mb-4">
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant="secondary" className="text-xs font-medium">
+            {planName}
+          </Badge>
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            {count} of {projectLimit} projects used
+          </span>
+          <span className="text-sm text-muted-foreground sm:hidden">
+            {count}/{projectLimit} projects
+          </span>
         </div>
-      )}
+
+        <div className="flex-1 w-full sm:w-auto">
+          <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${progressColor}`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+
+        {isNearLimit && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleUpgrade}
+            className="shrink-0"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
+            Upgrade
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

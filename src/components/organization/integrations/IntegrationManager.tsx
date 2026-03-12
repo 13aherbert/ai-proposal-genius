@@ -507,6 +507,19 @@ export function IntegrationManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* HubSpot Integration Dialog */}
+      <Dialog open={showHubSpot} onOpenChange={setShowHubSpot}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>HubSpot CRM Integration</DialogTitle>
+            <DialogDescription>
+              Connect and manage your HubSpot CRM integration
+            </DialogDescription>
+          </DialogHeader>
+          <HubSpotIntegration />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

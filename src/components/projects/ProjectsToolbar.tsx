@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { ProjectsHeader } from "@/components/projects/ProjectsHeader";
 import { useNavigate } from "react-router-dom";
-import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
+import { PlanComparisonModal } from "@/components/subscription/PlanComparisonModal";
 
 interface ProjectsToolbarProps {
   canCreateProject: boolean;

@@ -429,11 +429,11 @@ export function Navbar() {
                     </SheetClose>
                     <SheetClose asChild>
                       <Link
-                        to="/account-settings#subscription"
+                        to="/subscription"
                         className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"
                       >
-                        <Settings className="h-5 w-5 text-muted-foreground" />
-                        Subscription
+                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                        Plans & Pricing
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>

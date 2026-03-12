@@ -1,9 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { TrustBadges } from "@/components/blocks/TrustBadges";
+import { useAuth } from "@/components/AuthProvider";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { session } = useAuth();
   
   return (
     <footer className="bg-background border-t mt-auto">
@@ -24,9 +26,15 @@ export function Footer() {
             <Link to="/compare/loopio" className="hover:text-foreground">
               Compare
             </Link>
-            <Link to="/subscription" className="hover:text-foreground">
-              Pricing
-            </Link>
+            {session ? (
+              <Link to="/subscription" className="hover:text-foreground">
+                Pricing
+              </Link>
+            ) : (
+              <a href="/#pricing" className="hover:text-foreground">
+                Pricing
+              </a>
+            )}
             <a href="mailto:support@optirfp.ai" className="hover:text-foreground">
               Support
             </a>

@@ -11,7 +11,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { isTrialExpired, normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
-
+import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
@@ -38,6 +38,7 @@ const UploadRFP = () => {
     return localStorage.getItem('auto-generate-preference') !== 'false';
   });
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
   const automationRef = useRef<HTMLDivElement>(null);
   const automationComponentRef = useRef<AutomatedProposalCreationRef>(null);
   
@@ -90,6 +91,13 @@ const UploadRFP = () => {
     
     return () => clearInterval(interval);
   }, [fetchProjectCount, session]);
+
+  // Route-level gate: show upgrade modal if at limit and no project created yet
+  useEffect(() => {
+    if (!isLoading && hasReachedLimit && !projectId && !isUserTrialExpired) {
+      setShowUpgradeGate(true);
+    }
+  }, [isLoading, hasReachedLimit, projectId, isUserTrialExpired]);
 
   // Save auto-generate preference to localStorage
   const handleAutoGenerateChange = useCallback((value: boolean) => {
@@ -309,6 +317,11 @@ const UploadRFP = () => {
               />
             </div>
           )}
+      <UpgradeGateModal
+        open={showUpgradeGate}
+        onOpenChange={setShowUpgradeGate}
+        currentLimit={projectLimit ?? 3}
+      />
     </div>
   );
 };

@@ -1,36 +1,36 @@
 
 
-## Plan: Project Creation Gate for Free Plan Limit
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Approach
-Instead of just disabling the "New Project" button (current behavior), intercept the click and show an upgrade modal with plan comparison when at limit. Also gate the `/upload-rfp` route itself.
+### Changes
 
-### New Component: `src/components/subscription/UpgradeGateModal.tsx`
-- Dialog with `max-w-2xl` for side-by-side plan comparison
-- **Left column** (Current — Starter): 3 projects, basic AI analysis, community support — greyed/muted styling
-- **Right column** (Recommended — Basic): 10 projects, enhanced AI, email support, priority processing — highlighted with border
-- Headline: "You've reached your free plan limit"
-- Subheadline: "Your Free Plan includes 3 projects. Upgrade to unlock more."
-- Social proof line: "Most users save 20+ hours/month"
-- CTA: "Upgrade to Basic — $49/month" → navigates to `/subscription`
-- Secondary: "See all plans" → navigates to `/subscription`
-- Tertiary: "Maybe later" → dismisses
-- Alternative: "Or archive an existing project to free up a slot" with link to `/projects`
-- No countdown timers, no urgency language
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-### Modify: `src/components/projects/ProjectsToolbar.tsx`
-- When `!canCreateProject`, clicking "New Project" opens `UpgradeGateModal` instead of navigating to `/upload-rfp`
-- Add state for modal open/close
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-### Modify: `src/pages/UploadRFP.tsx`
-- Add a limit check near the top: if user is at/over limit and no `projectId` yet, redirect back or show the upgrade modal inline
-- Prevents direct URL navigation to `/upload-rfp` to bypass the gate
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-### Files
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-| File | Action |
-|------|--------|
-| `src/components/subscription/UpgradeGateModal.tsx` | Create — upgrade modal with plan comparison |
-| `src/components/projects/ProjectsToolbar.tsx` | Modify — show modal instead of navigating when at limit |
-| `src/pages/UploadRFP.tsx` | Modify — add limit guard at route level |
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

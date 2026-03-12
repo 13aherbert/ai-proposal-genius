@@ -235,10 +235,17 @@ export default function Dashboard() {
             }} />
             <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
             <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
-            {hasOpportunities && (
+            {hasOpportunities ? (
               <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+            ) : (
+              <FeatureGate feature="opportunity_search" label="Pro">
+                <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
+              </FeatureGate>
             )}
           </div>
+
+          {/* Usage Warning */}
+          <UsageWarning projectCount={dashboardStats.projectCount} projectLimit={projectLimit} />
 
           {/* Recent Activity */}
           <div className="space-y-3">

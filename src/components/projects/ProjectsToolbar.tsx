@@ -58,10 +58,9 @@ export function ProjectsToolbar({
           </Button>
         </div>
       </div>
-      <UpgradeGateModal
+      <PlanComparisonModal
         open={gateOpen}
         onOpenChange={setGateOpen}
-        currentLimit={displayProjectLimit}
       />
     </>
   );

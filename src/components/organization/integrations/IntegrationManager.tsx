@@ -291,11 +291,15 @@ export function IntegrationManager() {
                   size="sm" 
                   className="w-full"
                   onClick={() => {
-                    setSelectedTemplate(key);
-                    setShowCreateDialog(true);
+                    if ((template as any).isCustom && key === 'hubspot') {
+                      setShowHubSpot(true);
+                    } else {
+                      setSelectedTemplate(key);
+                      setShowCreateDialog(true);
+                    }
                   }}
                 >
-                  {hasIntegration ? 'Add Another' : 'Connect'}
+                  {hasIntegration ? 'Configure' : 'Connect'}
                 </Button>
               </CardContent>
             </Card>

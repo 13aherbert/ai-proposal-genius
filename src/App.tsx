@@ -33,6 +33,7 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import CompareLoopio from "@/pages/CompareLoopio";
 import CompareAutoRFP from "@/pages/CompareAutoRFP";
+import PricingRedirect from "@/pages/Pricing";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

@@ -43,11 +43,20 @@ interface Integration {
 }
 
 const integrationTemplates = {
+  hubspot: {
+    name: 'HubSpot',
+    type: 'oauth',
+    icon: '🟠',
+    description: 'Sync proposals to HubSpot CRM deals',
+    isCustom: true, // Uses dedicated HubSpotIntegration component
+    fields: []
+  },
   slack: {
     name: 'Slack',
     type: 'oauth',
     icon: '💬',
     description: 'Send notifications to Slack channels',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Webhook URL', type: 'url', required: true },
       { key: 'channel', label: 'Default Channel', type: 'text', required: false },
@@ -58,6 +67,7 @@ const integrationTemplates = {
     type: 'oauth',
     icon: '🎮',
     description: 'Send notifications to Discord servers',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Webhook URL', type: 'url', required: true },
       { key: 'username', label: 'Bot Username', type: 'text', required: false },
@@ -68,6 +78,7 @@ const integrationTemplates = {
     type: 'api_key',
     icon: '⚡',
     description: 'Trigger Zaps with your data',
+    isCustom: false,
     fields: [
       { key: 'webhook_url', label: 'Zap Webhook URL', type: 'url', required: true },
     ]
@@ -77,6 +88,7 @@ const integrationTemplates = {
     type: 'oauth',
     icon: '📊',
     description: 'Export data to Google Sheets',
+    isCustom: false,
     fields: [
       { key: 'sheet_id', label: 'Sheet ID', type: 'text', required: true },
       { key: 'worksheet_name', label: 'Worksheet Name', type: 'text', required: false },
@@ -87,6 +99,7 @@ const integrationTemplates = {
     type: 'api_key',
     icon: '🔧',
     description: 'Connect to your custom API endpoints',
+    isCustom: false,
     fields: [
       { key: 'api_url', label: 'API Base URL', type: 'url', required: true },
       { key: 'api_key', label: 'API Key', type: 'password', required: true },

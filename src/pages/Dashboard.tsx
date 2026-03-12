@@ -56,6 +56,8 @@ export default function Dashboard() {
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const hasOpportunities = planType === 'pro' || planType === 'enterprise';
+  const { getProjectLimit } = useSubscriptionFeatures();
+  const projectLimit = getProjectLimit();
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
 

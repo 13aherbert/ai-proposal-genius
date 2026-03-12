@@ -195,7 +195,7 @@ const UploadRFP = () => {
           </header>
           
           
-          {!isLoading && hasReachedLimit && !isUserTrialExpired && (
+          {!isLoading && hasReachedLimit && (
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2 text-amber-800">

@@ -310,11 +310,21 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </p>
 
         {/* Annual savings badge */}
-        {showStrikethrough && (
-          <span className="mt-2 inline-block mx-auto text-xs font-semibold bg-brand-green/15 text-brand-green px-2 py-0.5 rounded-full">
-            Save 10% annually
-          </span>
-        )}
+        {showStrikethrough && (() => {
+          const yearlySavings = (monthlyPrice * 12) - Number(plan.yearlyPrice);
+          return (
+            <div className="mt-2 flex flex-col items-center gap-1">
+              <span className="inline-block text-xs font-semibold bg-brand-green/15 text-brand-green px-2 py-0.5 rounded-full">
+                Save 10% annually
+              </span>
+              {yearlySavings > 0 && (
+                <span className="text-xs font-bold text-brand-green">
+                  Save ${yearlySavings.toLocaleString()}/year
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         <ul className="mt-5 gap-2 flex flex-col">
           {plan.features.map((feature, idx) => {

@@ -6,7 +6,7 @@ interface PricingProviderProps {
 }
 
 export function PricingProvider({ children }: PricingProviderProps) {
-  const [isMonthly, setIsMonthly] = useState(false);
+  const [isMonthly, setIsMonthly] = useState(false); // Default to annual (higher LTV)
 
   return (
     <PricingContext.Provider value={{ isMonthly, setIsMonthly }}>

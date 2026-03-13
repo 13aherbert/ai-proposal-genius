@@ -127,3 +127,8 @@ import_map = "import_map.json"
 name = "hubspot-sync"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "annual-renewal-reminder"
+verify_jwt = false
+import_map = "import_map.json"

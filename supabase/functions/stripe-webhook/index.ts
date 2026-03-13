@@ -19,7 +19,6 @@ const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
 
 /** Resolve plan slug from Stripe subscription nickname or metadata */
 function resolvePlanSlug(subscription: any): string {
-  // Prefer metadata.plan_slug set during checkout
   const metaSlug = subscription.metadata?.plan_slug;
   if (metaSlug) return metaSlug.toLowerCase();
 
@@ -30,6 +29,12 @@ function resolvePlanSlug(subscription: any): string {
   if (lower.includes('business')) return 'business';
   if (lower.includes('growth')) return 'growth';
   return 'starter';
+}
+
+/** Resolve billing interval from Stripe subscription */
+function resolveBillingInterval(subscription: any): 'monthly' | 'annual' {
+  const interval = subscription.items?.data?.[0]?.plan?.interval;
+  return interval === 'year' ? 'annual' : 'monthly';
 }
 
 /** Look up pricing_tiers row for a given slug */
@@ -161,6 +166,8 @@ serve(async (req) => {
 
         console.log('Checkout completed – plan:', planSlug, 'projects:', projectLimit, 'users:', usersLimit);
 
+        const billingInterval = resolveBillingInterval(subscription);
+
         const { error } = await supabase.from('subscriptions').upsert({
           user_id: session.client_reference_id,
           stripe_customer_id: session.customer,
@@ -168,6 +175,7 @@ serve(async (req) => {
           status: subscription.status,
           plan_type: planSlug,
           project_limit: projectLimit === -1 ? 999999 : projectLimit,
+          billing_interval: billingInterval,
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
@@ -217,12 +225,15 @@ serve(async (req) => {
 
         console.log('Subscription updated – plan:', planSlug, 'status:', subscription.status);
 
+        const billingInterval = resolveBillingInterval(subscription);
+
         const { error } = await supabase
           .from('subscriptions')
           .update({
             status: subscription.status,
             plan_type: planSlug,
             project_limit: projectLimit === -1 ? 999999 : projectLimit,
+            billing_interval: billingInterval,
             cancel_at_period_end: subscription.cancel_at_period_end,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString(),

@@ -68,19 +68,19 @@ export function MemberInvitation({ organizationId, onInviteSent, teamSize }: Mem
         },
       });
 
+      // functions.invoke returns error for non-2xx, with data containing the response body
       if (error) {
-        // Parse the error response from the edge function
-        const errorBody = typeof error === 'object' && 'context' in error
-          ? await (error as any).context?.json?.() ?? {}
-          : {};
-
-        if (errorBody?.error === 'User limit reached') {
+        // The response body is in data when there's an error
+        if (data?.error === 'User limit reached') {
           setOpen(false);
           setShowUpgradeGate(true);
           return;
         }
+        throw new Error(data?.error || error.message || 'Failed to send invitation');
+      }
 
-        throw new Error(errorBody?.error || 'Failed to send invitation');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send invitation');
       }
 
       toast({

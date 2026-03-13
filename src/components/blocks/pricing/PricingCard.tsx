@@ -180,8 +180,8 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
               "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
               plan.isPopular
-                ? "bg-[#34D399] text-white"
-                : plan.name === "Free Trial"
+                ? "bg-brand-green text-white"
+                : plan.name === "Starter"
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-[#f3f3f3] text-[#4B4F54]"
             )}

@@ -1,53 +1,36 @@
 
 
-## Plan: Implement Project Limit Enforcement and Upgrade Gates
-
-### Current State
-- `use-rfp-upload.ts` already checks project count vs limit and `UploadRFP.tsx` shows `UpgradeGateModal` when at limit
-- `UsageWarning` component exists on Dashboard but is text-only (no progress bar)
-- `UpgradeGateModal` shows generic Growth-only content with stale limits (12 instead of 6)
-- `check_project_limit` DB function exists and is called via trigger `enforce_project_limit`
-- `get_plan_limits` DB function is stale (returns 3/10/30 for starter/basic/pro)
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. Fix `get_plan_limits` DB function** — New migration
-- Return 6/36/120/-1 for starter/growth/business/enterprise instead of stale 3/10/30
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. Redesign `UpgradeGateModal` to be tier-aware**
-- Accept `currentPlan` prop (starter/growth/business) to show different content per tier
-- **Starter at limit**: headline "You've used all 6 projects", bullets about Growth features (36 projects, unlimited team, no watermarks, Opportunity Search, email support), CTAs: "Upgrade to Growth — $199/month" + "Explore Business Plan"
-- **Growth at limit**: headline "You've reached your Growth plan limit", bullets about Business features (120 projects, unlimited Opportunity Search, API access, AI Evaluation, priority support), CTA: "Upgrade to Business — $499/month"
-- Microcopy: "14-day free trial · Cancel anytime"
-- Fix stale `currentLimit` default from 12 to 6, update comparison rows
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. Add "last project" warning toast in `use-rfp-upload.ts`**
-- After successful project creation, if `currentProjectCount === projectLimit - 1`, show warning toast: "This is your last project slot. Upgrade for more."
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**4. Replace `UsageWarning` with `UsageProgressWidget`** — new component
-- Visual progress bar using existing `Progress` component
-- Shows "4 of 6 projects used" with color coding: green (<70%), yellow (70-90%), red (>=100%)
-- At 5+ of 6: yellow warning state
-- At 6 of 6: red + "Upgrade" button that opens `UpgradeGateModal`
-- Clicking the bar also opens the upgrade modal when at limit
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-**5. Update Dashboard to use `UsageProgressWidget`**
-- Replace `<UsageWarning>` with `<UsageProgressWidget>` in Dashboard.tsx
-- Pass `currentPlan` for tier-aware modal content
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-**6. Update `ProjectsToolbar` to show last-project warning**
-- When `projectCount === displayProjectLimit - 1`, show yellow badge "1 slot left"
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-**7. Ensure project count excludes archived**
-- Update `use-rfp-upload.ts` `fetchProjectCount` to add `.neq('status', 'archived')` filter
-- Update `UsageStats`, `UsageProgressWidget`, and `check_project_limit` DB function to exclude archived projects
-
-### Files touched
-- **New migration**: `supabase/migrations/[timestamp]_fix_get_plan_limits.sql`
-- **Modified**: `src/components/subscription/UpgradeGateModal.tsx`
-- **New**: `src/components/subscription/UsageProgressWidget.tsx`
-- **Modified**: `src/components/subscription/UsageWarning.tsx` (keep for backward compat, but dashboard switches to widget)
-- **Modified**: `src/pages/Dashboard.tsx`
-- **Modified**: `src/hooks/use-rfp-upload.ts`
-- **Modified**: `src/components/projects/ProjectsToolbar.tsx`
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

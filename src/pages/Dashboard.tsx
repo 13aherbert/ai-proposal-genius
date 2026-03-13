@@ -32,7 +32,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { FeatureGate } from "@/components/subscription/FeatureGate";
-import { UsageWarning } from "@/components/subscription/UsageWarning";
+import { UsageProgressWidget } from "@/components/subscription/UsageProgressWidget";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -246,8 +246,12 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Usage Warning */}
-          <UsageWarning projectCount={dashboardStats.projectCount} projectLimit={projectLimit} />
+          {/* Usage Progress */}
+          <UsageProgressWidget
+            projectCount={dashboardStats.projectCount}
+            projectLimit={projectLimit}
+            currentPlan={(['starter', 'growth', 'business'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business'}
+          />
 
           {/* Recent Activity */}
           <div className="space-y-3">

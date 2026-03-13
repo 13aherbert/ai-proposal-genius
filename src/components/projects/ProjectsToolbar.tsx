@@ -42,6 +42,11 @@ export function ProjectsToolbar({
           isSubscriptionLoading={isSubscriptionLoading}
         />
         <div className="flex items-center gap-3">
+          {projectCount !== undefined && projectCount === displayProjectLimit - 1 && (
+            <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 rounded">
+              1 slot left
+            </span>
+          )}
           <Button 
             onClick={handleNewProject}
             className="bg-brand-green hover:bg-brand-green-dark"

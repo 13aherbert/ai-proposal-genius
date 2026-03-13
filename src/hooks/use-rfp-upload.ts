@@ -64,7 +64,8 @@ export const useRFPUpload = () => {
       const { count, error } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .neq('status', 'archived');
       
       if (error) throw error;
       
@@ -211,6 +212,13 @@ export const useRFPUpload = () => {
       
       setUploadProgress(100);
       toast.success("RFP uploaded successfully");
+      
+      // Warn if this was the last available slot
+      if (currentProjectCount !== null && projectLimit !== null && currentProjectCount === projectLimit - 1) {
+        toast.warning("This is your last project slot. Upgrade for more.", {
+          duration: 6000,
+        });
+      }
       
     } catch (error: any) {
       console.error("Upload error:", error);

@@ -166,6 +166,8 @@ serve(async (req) => {
 
         console.log('Checkout completed – plan:', planSlug, 'projects:', projectLimit, 'users:', usersLimit);
 
+        const billingInterval = resolveBillingInterval(subscription);
+
         const { error } = await supabase.from('subscriptions').upsert({
           user_id: session.client_reference_id,
           stripe_customer_id: session.customer,
@@ -173,6 +175,7 @@ serve(async (req) => {
           status: subscription.status,
           plan_type: planSlug,
           project_limit: projectLimit === -1 ? 999999 : projectLimit,
+          billing_interval: billingInterval,
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });

@@ -312,7 +312,7 @@ Deno.serve(async (req: Request) => {
     }
     const userId = claimsData.user.id;
 
-    const { designId } = await req.json();
+    const { designId, plan } = await req.json();
     if (!designId) {
       return new Response(JSON.stringify({ error: "Missing designId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

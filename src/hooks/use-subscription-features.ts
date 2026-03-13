@@ -5,6 +5,7 @@ import {
   FeatureName, 
   SubscriptionFeaturesResult 
 } from "./subscription/subscription-features-types";
+import { usePricingTier } from "./use-pricing-tier";
 import { 
   featureCache, 
   projectLimitCache, 

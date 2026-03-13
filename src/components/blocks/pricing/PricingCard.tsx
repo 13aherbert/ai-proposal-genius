@@ -186,7 +186,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
                 : "bg-[#f3f3f3] text-[#4B4F54]"
             )}
           >
-            {plan.name === "Free Trial" ? "Start Free" : "Sign Up"}
+            {plan.name === "Starter" ? "Start Free" : "Sign Up"}
           </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">

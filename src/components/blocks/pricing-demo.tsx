@@ -1,5 +1,6 @@
 import { Pricing } from "./pricing";
 import { ROICalculator } from "./ROICalculator";
+import { CompetitorComparison } from "./CompetitorComparison";
 
 const plans = [
   {
@@ -8,74 +9,79 @@ const plans = [
     yearlyPrice: "0",
     period: "Forever",
     features: [
-      "Up to 3 projects",
+      "Up to 12 projects",
+      "1 user",
       "AI RFP Summary",
       "AI Proposal Outline",
       "Basic AI Proposal Draft",
       "Community support",
     ],
-    description: "Perfect for getting started - no credit card required",
-    buttonText: "Get Started Free",
+    description: "Perfect for getting started — no credit card required",
+    buttonText: "Start Free",
     href: "/#signup",
     isPopular: false,
+    badge: "",
     priceId: {
       monthly: "",
-      annual: ""
-    }
+      annual: "",
+    },
   },
   {
-    name: "Basic",
-    price: "49",
-    yearlyPrice: "470",
+    name: "Growth",
+    price: "199",
+    yearlyPrice: "2148",
     period: "month",
     features: [
-      "Up to 10 projects",
+      "Up to 36 projects",
+      "Unlimited team members",
       "Enhanced AI RFP Summary",
       "Advanced AI Proposal Outline",
       "Enhanced AI Proposal Draft",
-      "24-hour support response time",
       "Email support",
     ],
-    description: "Perfect for small teams and growing businesses",
-    buttonText: "Upgrade to Basic",
+    description: "Best for small teams ready to scale",
+    buttonText: "Start Free Trial",
     href: "/subscription",
     isPopular: false,
+    badge: "Best for small teams",
     priceId: {
       monthly: "prod_Rn5Qc3JRlG2dP5",
-      annual: "prod_Rn5Qc3JRlG2dP5"
-    }
+      annual: "prod_Rn5Qc3JRlG2dP5",
+    },
   },
   {
-    name: "Pro",
-    price: "99",
-    yearlyPrice: "950",
-    period: "month",
-    features: [
-      "Up to 30 projects",
-      "Advanced AI RFP Summary",
-      "Enhanced AI Proposal Outline",
-      "Advanced AI Proposal Draft",
-      "Compiled Draft Preview",
-      "AI Proposal Evaluation",
-      "Priority support",
-      "Team collaboration",
-    ],
-    description: "Best for large teams and enterprises",
-    buttonText: "Upgrade to Pro",
-    href: "/subscription",
-    isPopular: true,
-    priceId: {
-      monthly: "prod_Rn5STkpd7teaIR",
-      annual: "prod_Rn5STkpd7teaIR"
-    }
-  },
-  {
-    name: "Enterprise",
+    name: "Business",
     price: "499",
     yearlyPrice: "5388",
     period: "month",
     features: [
-      "Unlimited everything (projects, users, storage)",
+      "Up to 120 projects",
+      "Unlimited team members",
+      "Advanced AI RFP Summary",
+      "Advanced AI Proposal Draft",
+      "Compiled Draft Preview",
+      "AI Proposal Evaluation",
+      "API access",
+      "Priority support",
+    ],
+    description: "For growing teams that need more power",
+    buttonText: "Start Free Trial",
+    href: "/subscription",
+    isPopular: true,
+    badge: "Most Popular",
+    priceId: {
+      monthly: "prod_Rn5STkpd7teaIR",
+      annual: "prod_Rn5STkpd7teaIR",
+    },
+  },
+  {
+    name: "Enterprise",
+    price: "1499",
+    yearlyPrice: "17988",
+    period: "month",
+    features: [
+      "Unlimited projects",
+      "Unlimited team members",
       "SOC 2 Type II & FedRAMP compliance",
       "Dedicated Customer Success Manager",
       "4-hour SLA support",
@@ -84,29 +90,29 @@ const plans = [
       "SSO/SAML (Okta, Azure AD, Google)",
       "On-premise deployment option",
       "Custom integrations",
-      "Quarterly business reviews",
-      "Team training sessions",
     ],
     description: "Custom solutions for organizations with 50+ users",
-    buttonText: "Schedule Demo",
+    buttonText: "Contact Sales",
     href: "#",
     isPopular: false,
+    badge: "",
     priceId: {
       monthly: "",
-      annual: ""
-    }
+      annual: "",
+    },
   },
 ];
 
 export function PricingDemo() {
   return (
     <>
-    <ROICalculator />
-    <Pricing
-      plans={plans}
-      title="Choose Your Plan"
-      description="Start free and upgrade when you're ready for more features"
-    />
+      <ROICalculator />
+      <Pricing
+        plans={plans}
+        title="Unlimited Team Members on All Paid Plans"
+        description="Pay for RFPs, not seats. Add your entire team for one flat price."
+      />
+      <CompetitorComparison />
     </>
   );
 }

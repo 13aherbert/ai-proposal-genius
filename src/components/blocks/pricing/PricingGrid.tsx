@@ -1,4 +1,3 @@
-
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { PricingCard } from "./PricingCard";
 
@@ -13,6 +12,7 @@ interface PricingGridProps {
     buttonText: string;
     href: string;
     isPopular: boolean;
+    badge?: string;
   }>;
 }
 

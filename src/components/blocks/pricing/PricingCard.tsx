@@ -25,6 +25,7 @@ interface PricingPlan {
   buttonText: string;
   href: string;
   isPopular: boolean;
+  badge?: string;
   priceId?: {
     monthly: string;
     annual: string;

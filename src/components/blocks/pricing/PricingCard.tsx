@@ -293,12 +293,19 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </p>
 
         <ul className="mt-5 gap-2 flex flex-col">
-          {plan.features.map((feature, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-[#34D399] mt-1 flex-shrink-0" />
-              <span className="text-[#F1F1F1] text-left">{feature}</span>
-            </li>
-          ))}
+          {plan.features.map((feature, idx) => {
+            const isUnlimited = feature.toLowerCase().includes("unlimited team members");
+            return (
+              <li key={idx} className={`flex items-start gap-2 ${isUnlimited ? "bg-brand-green/10 -mx-2 px-2 py-1 rounded-lg" : ""}`}>
+                {isUnlimited ? (
+                  <Users className="h-4 w-4 text-brand-green mt-1 flex-shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 text-brand-green mt-1 flex-shrink-0" />
+                )}
+                <span className={`text-[#F1F1F1] text-left ${isUnlimited ? "font-bold text-brand-green" : ""}`}>{feature}</span>
+              </li>
+            );
+          })}
         </ul>
 
         {isEnterprise && (

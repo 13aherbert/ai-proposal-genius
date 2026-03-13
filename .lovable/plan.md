@@ -1,34 +1,36 @@
 
 
-## Plan: Revamp UpgradeGateModal with Comparison Table and Value Calculation
+## Plan: Add Social Proof Elements to OptiRFP
 
-### Changes to `src/components/subscription/UpgradeGateModal.tsx`
+### Changes
 
-Replace the current two-column feature-list layout with:
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**For `user_limit` reason:**
-- Headline: "Add Your Entire Team"
-- Subheadline: "Upgrade to invite unlimited team members"
-- Comparison table (4 rows): Price ($0 → $199/mo), Projects (12 → 36), Team Members (1 user → Unlimited 🚀 highlighted), Support (Community → Email 24hr)
-- Value calculation block: "For a 12-person team:" — OptiRFP $16.50/person vs Loopio $1,667/person — "Save 99% per user"
-- Primary CTA: "Upgrade to Growth — $199/month"
-- Secondary CTA: "Start with 14-day free trial"
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**For `project_limit` reason:**
-- Headline: "You've used 12 of 12 projects"
-- Subheadline: "Upgrade for 3x more projects + unlimited team"
-- Same comparison table as above
-- Keep archive-project footnote
-- Primary CTA: "Upgrade to Growth — $199/month"
-- Secondary CTA: "Start with 14-day free trial"
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**Implementation details:**
-- Replace the two-card grid with a styled HTML table (using existing Table components or simple markup)
-- Highlight the "Unlimited 🚀" cell in the Team Members row with `text-brand-green font-bold`
-- Add a value calculation `div` with a muted background showing the per-user cost comparison
-- Keep "See all plans" and "Maybe later" buttons
-- Import `Users` icon from lucide-react for the headline area
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### File touched
-- **Modified**: `src/components/subscription/UpgradeGateModal.tsx`
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
+
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
+
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

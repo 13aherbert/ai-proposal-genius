@@ -42,9 +42,9 @@ const comparisonData = [
 function CellValue({ value }: { value: string | boolean }) {
   if (typeof value === "boolean") {
     return value ? (
-      <X className="h-5 w-5 text-destructive mx-auto" />
+      <span className="text-destructive font-medium">Yes</span>
     ) : (
-      <Check className="h-5 w-5 text-brand-green mx-auto" />
+      <span className="text-brand-green font-bold">No ✓</span>
     );
   }
   return <span>{value}</span>;

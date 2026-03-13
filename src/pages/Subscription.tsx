@@ -32,8 +32,8 @@ export default function Subscription() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useSEO({
-    title: "OptiRFP Pricing — Free to $449/mo | Start Free",
-    description: "Start free with 3 projects. Upgrade to Basic ($49), Pro ($99), or Enterprise ($449).",
+    title: "OptiRFP Pricing — Free Tier + Unlimited Users | Start Free",
+    description: "Start free with 6 projects. Scale to Growth ($199), Business ($499), or Enterprise ($1,499+). Unlimited team members on all paid plans.",
   });
 
   // Check for payment status in URL params (redirected from payment provider)

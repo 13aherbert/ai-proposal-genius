@@ -1,6 +1,7 @@
 import { Pricing } from "./pricing";
 import { ROICalculator } from "./ROICalculator";
 import { CompetitorComparison } from "./CompetitorComparison";
+import { PricingFAQ } from "./PricingFAQ";
 
 const plans = [
   {
@@ -9,15 +10,17 @@ const plans = [
     yearlyPrice: "0",
     period: "Forever",
     features: [
-      "Up to 12 projects",
+      "6 projects per year",
       "1 user",
-      "AI RFP Summary",
+      "Basic AI RFP Summary",
       "AI Proposal Outline",
-      "Basic AI Proposal Draft",
+      "Standard AI Draft (watermarked)",
       "Community support",
     ],
     description: "Perfect for getting started — no credit card required",
-    buttonText: "Start Free",
+    subtitle: "Free forever",
+    microcopy: "No credit card required",
+    buttonText: "Get Started Free",
     href: "/#signup",
     isPopular: false,
     badge: "",
@@ -32,15 +35,19 @@ const plans = [
     yearlyPrice: "2148",
     period: "month",
     features: [
-      "Up to 36 projects",
+      "36 projects per year (6× more)",
       "Unlimited team members",
-      "Enhanced AI RFP Summary",
-      "Advanced AI Proposal Outline",
-      "Enhanced AI Proposal Draft",
-      "Email support",
+      "Enhanced AI analysis",
+      "Opportunity Search (10/mo)",
+      "No watermarks",
+      "Email support (24hr)",
+      "Google Drive, SharePoint, Dropbox",
     ],
     description: "Best for small teams ready to scale",
-    buttonText: "Start Free Trial",
+    subtitle: "",
+    microcopy: "",
+    comparison: "4× cheaper than AutoRFP.ai",
+    buttonText: "Start 14-Day Trial",
     href: "/subscription",
     isPopular: false,
     badge: "Best for small teams",
@@ -55,17 +62,21 @@ const plans = [
     yearlyPrice: "5388",
     period: "month",
     features: [
-      "Up to 120 projects",
+      "120 projects per year (20× more)",
       "Unlimited team members",
-      "Advanced AI RFP Summary",
-      "Advanced AI Proposal Draft",
-      "Compiled Draft Preview",
+      "Advanced AI with compliance checking",
+      "Unlimited Opportunity Search",
       "AI Proposal Evaluation",
-      "API access",
-      "Priority support",
+      "API access (5,000 calls/mo)",
+      "Priority support (4hr)",
+      "Salesforce, HubSpot, Slack, Teams",
+      "Custom AI training (1/year)",
     ],
     description: "For growing teams that need more power",
-    buttonText: "Start Free Trial",
+    subtitle: "",
+    microcopy: "",
+    comparison: "10× cheaper than Loopio",
+    buttonText: "Start 14-Day Trial",
     href: "/subscription",
     isPopular: true,
     badge: "Most Popular",
@@ -82,16 +93,17 @@ const plans = [
     features: [
       "Unlimited projects",
       "Unlimited team members",
-      "SOC 2 Type II & FedRAMP compliance",
+      "Unlimited API calls",
+      "SOC 2 Type II & FedRAMP",
       "Dedicated Customer Success Manager",
-      "4-hour SLA support",
-      "Custom AI model training",
-      "API access & webhooks",
       "SSO/SAML (Okta, Azure AD, Google)",
       "On-premise deployment option",
       "Custom integrations",
+      "Custom SLAs",
     ],
     description: "Custom solutions for organizations with 50+ users",
+    subtitle: "Starting at $1,499/month",
+    microcopy: "",
     buttonText: "Contact Sales",
     href: "#",
     isPopular: false,
@@ -113,6 +125,7 @@ export function PricingDemo() {
         description="Pay for RFPs, not seats. Add your entire team for one flat price."
       />
       <CompetitorComparison />
+      <PricingFAQ />
     </>
   );
 }

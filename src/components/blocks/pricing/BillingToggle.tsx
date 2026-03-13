@@ -39,7 +39,7 @@ export function BillingToggle() {
         </Label>
       </label>
       <span className="font-semibold">
-        Annual <span className="text-brand-green">(Save up to 20%)</span>
+        Annual <span className="text-brand-green">(Save 10%)</span>
       </span>
     </div>;
 }

@@ -112,6 +112,7 @@ export function TeamManagement() {
             <MemberInvitation 
               organizationId={organization.id} 
               onInviteSent={fetchMembers}
+              teamSize={members.length}
             />
           )}
         </div>

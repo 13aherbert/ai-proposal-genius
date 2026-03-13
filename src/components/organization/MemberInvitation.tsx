@@ -5,17 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { UserPlus, Mail, User, Briefcase, Building } from 'lucide-react';
+import { UserPlus, Mail, Briefcase, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscriptionFeatures } from '@/hooks/use-subscription-features';
+import { UpgradeGateModal } from '@/components/subscription/UpgradeGateModal';
 
 interface MemberInvitationProps {
   organizationId: string;
   onInviteSent: () => void;
+  teamSize: number;
 }
 
-export function MemberInvitation({ organizationId, onInviteSent }: MemberInvitationProps) {
+export function MemberInvitation({ organizationId, onInviteSent, teamSize }: MemberInvitationProps) {
   const [open, setOpen] = useState(false);
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,21 +29,39 @@ export function MemberInvitation({ organizationId, onInviteSent }: MemberInvitat
     message: ''
   });
   const { toast } = useToast();
+  const { canAddUser, getUserLimitDisplay, pricingTier } = useSubscriptionFeatures();
+
+  const isUnlimited = pricingTier?.users_limit === -1;
+  const isStarter = pricingTier?.slug === 'starter';
+
+  const handleInviteClick = () => {
+    if (canAddUser(teamSize)) {
+      setOpen(true);
+    } else {
+      setShowUpgradeGate(true);
+    }
+  };
+
+  const getButtonText = () => {
+    if (isUnlimited) {
+      return 'Invite Team Member';
+    }
+    const limit = pricingTier?.users_limit ?? 1;
+    return `Invite (${teamSize}/${limit})`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Generate invitation token
       const invitationToken = crypto.randomUUID();
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Create invitation record
       const { error } = await supabase
         .from('organization_member_invitations')
         .insert({
@@ -54,17 +76,6 @@ export function MemberInvitation({ organizationId, onInviteSent }: MemberInvitat
         });
 
       if (error) throw error;
-
-      // TODO: Send invitation email via edge function
-      // await supabase.functions.invoke('send-invitation-email', {
-      //   body: {
-      //     email: formData.email,
-      //     invitationToken,
-      //     organizationName: organization.name,
-      //     inviterName: user.user_metadata?.full_name || user.email,
-      //     message: formData.message
-      //   }
-      // });
 
       toast({
         title: 'Invitation sent',
@@ -92,104 +103,118 @@ export function MemberInvitation({ organizationId, onInviteSent }: MemberInvitat
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="flex items-center gap-2">
+    <>
+      <div className="flex flex-col items-end gap-1">
+        <Button size="sm" className="flex items-center gap-2" onClick={handleInviteClick}>
           <UserPlus className="h-4 w-4" />
-          Invite Member
+          {getButtonText()}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Invite Team Member</DialogTitle>
-          <DialogDescription>
-            Send an invitation to join your organization. The invitation will expire in 7 days.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="colleague@company.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="pl-10"
-                required
+        {isStarter && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            Free plan: 1 user only. Upgrade for unlimited team members.
+          </p>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Invite Team Member</DialogTitle>
+            <DialogDescription>
+              Send an invitation to join your organization. The invitation will expire in 7 days.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="colleague@company.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
+                  <SelectItem value="editor">Editor - Can create and edit content</SelectItem>
+                  <SelectItem value="manager">Manager - Team management access</SelectItem>
+                  <SelectItem value="admin">Admin - Full administrative access</SelectItem>
+                  <SelectItem value="billing_admin">Billing Admin - Billing management only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="department"
+                    placeholder="Engineering"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Job Title</Label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="title"
+                    placeholder="Software Engineer"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message">Personal Message (Optional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Welcome to our team! Looking forward to working with you."
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                rows={3}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
-                <SelectItem value="editor">Editor - Can create and edit content</SelectItem>
-                <SelectItem value="manager">Manager - Team management access</SelectItem>
-                <SelectItem value="admin">Admin - Full administrative access</SelectItem>
-                <SelectItem value="billing_admin">Billing Admin - Billing management only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Sending...' : 'Send Invitation'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="department"
-                  placeholder="Engineering"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="title">Job Title</Label>
-              <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="title"
-                  placeholder="Software Engineer"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="message">Personal Message (Optional)</Label>
-            <Textarea
-              id="message"
-              placeholder="Welcome to our team! Looking forward to working with you."
-              value={formData.message}
-              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              rows={3}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Sending...' : 'Send Invitation'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <UpgradeGateModal
+        open={showUpgradeGate}
+        onOpenChange={setShowUpgradeGate}
+        reason="user_limit"
+      />
+    </>
   );
 }

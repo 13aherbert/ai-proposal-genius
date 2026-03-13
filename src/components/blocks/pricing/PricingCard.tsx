@@ -53,7 +53,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       return;
     }
 
-    if (plan.name === "Free Trial" || plan.price === "0") {
+    if (plan.name === "Starter" || plan.price === "0") {
       if (session) {
         toast.success("You're all set with the free plan!", {
           description: "Continue exploring and upgrade when you're ready"

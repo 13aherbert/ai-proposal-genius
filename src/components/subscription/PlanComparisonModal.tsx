@@ -27,30 +27,31 @@ interface PlanComparisonModalProps {
 
 const PLANS = [
   { key: "starter", name: "Starter", price: "Free", cta: null },
-  { key: "basic", name: "Basic", price: "$49/mo", cta: "Upgrade to Basic" },
-  { key: "pro", name: "Pro", price: "$99/mo", cta: "Upgrade to Pro" },
-  { key: "enterprise", name: "Enterprise", price: "$499/mo", cta: "Contact Sales" },
+  { key: "growth", name: "Growth", price: "$199/mo", cta: "Upgrade to Growth" },
+  { key: "business", name: "Business", price: "$499/mo", cta: "Upgrade to Business" },
+  { key: "enterprise", name: "Enterprise", price: "$1,499/mo", cta: "Contact Sales" },
 ] as const;
 
 interface FeatureRow {
   label: string;
   starter: string | boolean;
-  basic: string | boolean;
-  pro: string | boolean;
+  growth: string | boolean;
+  business: string | boolean;
   enterprise: string | boolean;
 }
 
 const FEATURES: FeatureRow[] = [
-  { label: "Projects", starter: "3", basic: "10", pro: "30", enterprise: "Unlimited" },
-  { label: "AI Analysis", starter: "Basic", basic: "Enhanced", pro: "Advanced", enterprise: "Custom" },
-  { label: "Support", starter: "Community", basic: "Email", pro: "Priority", enterprise: "Dedicated" },
-  { label: "Data Export", starter: false, basic: true, pro: true, enterprise: true },
-  { label: "Team Collaboration", starter: false, basic: false, pro: true, enterprise: true },
-  { label: "Opportunity Search", starter: false, basic: false, pro: true, enterprise: true },
-  { label: "API Access", starter: false, basic: false, pro: false, enterprise: true },
-  { label: "Custom Templates", starter: false, basic: false, pro: true, enterprise: true },
-  { label: "White Labeling", starter: false, basic: false, pro: false, enterprise: true },
-  { label: "SSO / SAML", starter: false, basic: false, pro: false, enterprise: true },
+  { label: "Projects", starter: "12", growth: "36", business: "120", enterprise: "Unlimited" },
+  { label: "Team Members", starter: "1 user", growth: "Unlimited", business: "Unlimited", enterprise: "Unlimited" },
+  { label: "AI Analysis", starter: "Basic", growth: "Enhanced", business: "Advanced", enterprise: "Custom" },
+  { label: "Support", starter: "Community", growth: "Email", business: "Priority", enterprise: "Dedicated" },
+  { label: "Data Export", starter: false, growth: true, business: true, enterprise: true },
+  { label: "Team Collaboration", starter: false, growth: true, business: true, enterprise: true },
+  { label: "Opportunity Search", starter: false, growth: true, business: true, enterprise: true },
+  { label: "Custom Templates", starter: false, growth: true, business: true, enterprise: true },
+  { label: "API Access", starter: false, growth: false, business: true, enterprise: true },
+  { label: "White Labeling", starter: false, growth: false, business: false, enterprise: true },
+  { label: "SSO / SAML", starter: false, growth: false, business: false, enterprise: true },
 ];
 
 function CellContent({ value }: { value: string | boolean }) {
@@ -63,7 +64,7 @@ export function PlanComparisonModal({ open, onOpenChange, highlightPlan }: PlanC
   const navigate = useNavigate();
   const { plan: currentPlan } = useSubscriptionFeatures();
 
-  const recommended = highlightPlan || (currentPlan === "starter" ? "basic" : currentPlan === "basic" ? "pro" : undefined);
+  const recommended = highlightPlan || (currentPlan === "starter" ? "growth" : currentPlan === "growth" ? "business" : undefined);
 
   const handleCTA = (planKey: string) => {
     onOpenChange(false);

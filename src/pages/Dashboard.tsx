@@ -163,6 +163,12 @@ export default function Dashboard() {
         </div>
       )}
       
+      <UsageProgressWidget
+        projectCount={dashboardStats.projectCount}
+        projectLimit={projectLimit}
+        currentPlan={(['starter', 'growth', 'business'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business'}
+      />
+
       <DashboardHeader />
 
       {/* Progressive Onboarding Wizard */}
@@ -256,11 +262,6 @@ export default function Dashboard() {
           </div>
 
           {/* Usage Progress */}
-          <UsageProgressWidget
-            projectCount={dashboardStats.projectCount}
-            projectLimit={projectLimit}
-            currentPlan={(['starter', 'growth', 'business'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business'}
-          />
 
           {/* Recent Activity */}
           <div className="space-y-3">

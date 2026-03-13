@@ -60,7 +60,6 @@ export default function Dashboard() {
   const { getProjectLimit, hasFeature } = useSubscriptionFeatures();
   const hasOpportunities = hasFeature('opportunity_search');
   const projectLimit = getProjectLimit();
-  const projectLimit = getProjectLimit();
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
 

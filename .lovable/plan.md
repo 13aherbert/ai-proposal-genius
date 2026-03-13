@@ -1,48 +1,36 @@
 
 
-## Plan: Create `pricing_tiers` Table with Revised Seed Data
-
-### Context
-The project currently has a `subscription_plan_templates` table with old tier names (starter/basic/pro/enterprise/white_label) and outdated limits. The user wants a new `pricing_tiers` table with the revised OptiRFP pricing structure: Starter, Growth, Business, Enterprise — with unlimited users on all paid tiers.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. New migration: Create `pricing_tiers` table + seed data**
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-```sql
-CREATE TABLE public.pricing_tiers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  monthly_price INTEGER NOT NULL DEFAULT 0,  -- cents
-  annual_price INTEGER,                       -- cents, null = contact sales
-  projects_limit INTEGER NOT NULL,            -- -1 = unlimited
-  users_limit INTEGER NOT NULL DEFAULT -1,    -- -1 = unlimited
-  features JSONB NOT NULL DEFAULT '[]'::jsonb,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  CONSTRAINT free_tier_user_limit CHECK (users_limit = 1 OR monthly_price > 0)
-);
-```
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-- Enable RLS: public read, admin-only write (same pattern as `subscription_plan_templates`)
-- Seed the 4 tiers with exact data from the request
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-**2. Update `subscription_plan_templates` seed data**
-- Update existing rows to align with new tier names and limits (starter→12 projects, remove basic/pro, add growth/business)
-- Or leave the old table as-is since the new `pricing_tiers` table is the source of truth for pricing display
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-### Seed data summary
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-| Tier | Monthly | Annual | Projects | Users | Key Features |
-|------|---------|--------|----------|-------|-------------|
-| Starter | $0 | $0 | 12 | 1 | basic_ai, watermarked_exports, community_support |
-| Growth | $199 | $179/mo | 36 | ∞ | enhanced_ai, no_watermark, opportunity_search_10, email_support, team_collaboration |
-| Business | $499 | $449/mo | 120 | ∞ | advanced_ai, unlimited_opportunity_search, api_access, priority_support, ai_evaluation, team_collaboration |
-| Enterprise | $1499+ | contact | ∞ | ∞ | all_features, soc2_compliance, dedicated_csm, sso, on_premise, team_collaboration |
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-### Files
-- **New**: `supabase/migrations/[timestamp]_create_pricing_tiers.sql`
-- **Updated**: `src/integrations/supabase/types.ts` (auto-regenerated after migration)
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

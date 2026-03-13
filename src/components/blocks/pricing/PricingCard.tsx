@@ -241,10 +241,10 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </div>
       )}
       
-      {plan.name === "Free Trial" && (
-        <div className="absolute top-0 left-0 bg-blue-500 py-0.5 px-2 rounded-br-xl rounded-tl-xl">
+      {plan.badge && !plan.isPopular && !isEnterprise && (
+        <div className="absolute top-0 left-0 bg-brand-green py-0.5 px-2 rounded-br-xl rounded-tl-xl">
           <span className="text-white text-xs font-semibold">
-            No Credit Card
+            {plan.badge}
           </span>
         </div>
       )}

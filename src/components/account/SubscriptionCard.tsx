@@ -593,20 +593,11 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="grid gap-4 py-4">
-                  {currentPlanType === 'trial' && (
+                  {currentPlanType === 'starter' && (
                     <>
                       <div className="space-y-2">
                         <h3 className="font-medium">Keep Free Plan</h3>
-                        <p className="text-sm text-muted-foreground">Continue with 3 projects and basic features - no cost</p>
-                        <UpgradeButton 
-                          currentPlan={subscription} 
-                          targetPlan="trial" 
-                          variant="monthly" 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Starter Plan</h3>
-                        <p className="text-sm text-muted-foreground">Get access to 10 projects and enhanced features</p>
+                        <p className="text-sm text-muted-foreground">Continue with 6 projects and basic features - no cost</p>
                         <UpgradeButton 
                           currentPlan={subscription} 
                           targetPlan="starter" 
@@ -616,11 +607,20 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                     </>
                   )}
                   <div className="space-y-2">
-                    <h3 className="font-medium">Pro Plan</h3>
-                    <p className="text-sm text-muted-foreground">Get access to all premium features with 30 projects</p>
+                    <h3 className="font-medium">Growth Plan</h3>
+                    <p className="text-sm text-muted-foreground">Get 36 projects and unlimited users</p>
                     <UpgradeButton 
                       currentPlan={subscription} 
-                      targetPlan="pro" 
+                      targetPlan="growth" 
+                      variant="monthly" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Business Plan</h3>
+                    <p className="text-sm text-muted-foreground">Get 120 projects and all premium features</p>
+                    <UpgradeButton 
+                      currentPlan={subscription} 
+                      targetPlan="business" 
                       variant="monthly" 
                     />
                   </div>

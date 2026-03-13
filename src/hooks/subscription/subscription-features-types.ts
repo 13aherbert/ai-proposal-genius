@@ -1,12 +1,24 @@
 
+export interface PricingTier {
+  id: string;
+  name: string;
+  slug: string;
+  monthly_price: number;
+  annual_price: number | null;
+  projects_limit: number;
+  users_limit: number;
+  features: string[];
+  is_active: boolean;
+}
+
 export type FeatureName = 
   | 'rfp_summary'
   | 'proposal_outline'
   | 'proposal_draft'
-  | 'compiled_draft'  // Adding missing feature
-  | 'evaluation'      // Adding missing feature
-  | 'auto_proposal_generation' // New auto-generated proposal feature
-  | 'data_export'     // Adding missing feature
+  | 'compiled_draft'
+  | 'evaluation'
+  | 'auto_proposal_generation'
+  | 'data_export'
   | 'ai_editor'
   | 'team_collaboration'
   | 'advanced_analytics'
@@ -28,4 +40,9 @@ export interface SubscriptionFeaturesResult {
   enableTestMode: (planType?: 'starter' | 'basic' | 'pro') => void;
   disableTestMode: () => void;
   refreshSubscription: () => void;
+  // Pricing tier helpers
+  pricingTier: PricingTier | null;
+  canAddUser: (teamSize: number) => boolean;
+  getUserLimitDisplay: () => string;
+  getUpgradeValueProp: () => string;
 }

@@ -1,54 +1,36 @@
 
 
-## Plan: Extend useSubscription with Unlimited User Support
-
-### Overview
-Add tier-aware user limit functions to the existing subscription system by creating a new composable hook that fetches from the `pricing_tiers` table and exposes `canAddUser`, `getUserLimitDisplay`, and `getUpgradeValueProp`.
-
-### Approach
-Rather than replacing the existing `useSubscription` hook (used in 35+ files), create a new **`usePricingTier`** hook that:
-1. Fetches the current user's tier from `pricing_tiers` based on the subscription's `plan_type`
-2. Accepts a `teamSize` count (from org members)
-3. Exposes the requested helper functions
-
-Then extend the existing `useSubscriptionFeatures` hook to re-export these helpers so consuming components have a single import point.
+## Plan: Add Social Proof Elements to OptiRFP
 
 ### Changes
 
-**1. New file: `src/hooks/use-pricing-tier.ts`**
-- Define `Tier` and `PricingTierResult` interfaces
-- Fetch matching row from `pricing_tiers` table using the subscription's `plan_type` as slug
-- Cache result in state, refetch when subscription changes
-- Implement `canAddUser(teamSize)`, `getUserLimitDisplay()`, `getUpgradeValueProp()`
-- All functions treat `users_limit === -1` as unlimited
+**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
+- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
+- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
+- Responsive: 3 columns desktop, stacked mobile
 
-**2. Update: `src/hooks/use-subscription-features.ts`**
-- Import and compose `usePricingTier` internally
-- Re-export `canAddUser`, `getUserLimitDisplay`, `getUpgradeValueProp` from the features result
-- Update `SubscriptionFeaturesResult` type accordingly
+**2. `src/components/blocks/Testimonial.tsx`** — NEW
+- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
+- Quote text, attribution below, centered layout
+- Dark card style consistent with homepage
 
-**3. Update: `src/hooks/subscription/subscription-features-types.ts`**
-- Add `canAddUser`, `getUserLimitDisplay`, `getUpgradeValueProp` to `SubscriptionFeaturesResult`
-- Add `Tier` type export
+**3. `src/components/blocks/ROICalculator.tsx`** — NEW
+- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
+- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
+- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
+- Dark card style, placed above pricing grid
 
-### Key logic
+**4. `src/components/blocks/TrustBadges.tsx`** — NEW
+- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
+- Subtle styling, muted text with icons
 
-```text
-canAddUser(teamSize):
-  tier.users_limit === -1 → true (unlimited)
-  teamSize < tier.users_limit → true
-  else → false
+**5. `src/pages/Index.tsx`** — Modify
+- Insert `<SocialProofBar />` between hero and key benefits sections
+- Insert `<Testimonial />` between key benefits and pricing sections
 
-getUserLimitDisplay():
-  users_limit === -1 → "Unlimited team members"
-  else → "{n} user(s)"
+**6. `src/components/blocks/pricing-demo.tsx`** — Modify
+- Add `<ROICalculator />` above the `<Pricing>` component
 
-getUpgradeValueProp():
-  slug === 'starter' → "Add unlimited team members"
-  else → "Get more projects and features"
-```
-
-### Files touched
-- **New**: `src/hooks/use-pricing-tier.ts`
-- **Modified**: `src/hooks/subscription/subscription-features-types.ts`, `src/hooks/use-subscription-features.ts`
+**7. `src/components/navigation/Footer.tsx`** — Modify
+- Add `<TrustBadges />` row above the copyright/links section
 

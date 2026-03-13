@@ -310,9 +310,9 @@ export function LoadingState() {
     const defaultTrial: SubscriptionPlan = {
       subscription_id: crypto.randomUUID(),
       user_id: userId,
-      status: 'trialing',
-      plan_type: 'trial',
-      project_limit: 3,
+      status: 'active',
+      plan_type: 'starter',
+      project_limit: 6,
       features: {},
       current_period_end: null,
       stripe_customer_id: null,

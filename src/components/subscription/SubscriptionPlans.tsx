@@ -61,11 +61,11 @@ export function SubscriptionPlans() {
         <div className="flex items-center justify-center space-x-2">
           <Label htmlFor="billing-interval">Monthly</Label>
           <Switch id="billing-interval" checked={billingInterval === 'annual'} onCheckedChange={checked => setBillingInterval(checked ? 'annual' : 'monthly')} />
-          <Label htmlFor="billing-interval">Annual (Save ~20%)</Label>
+          <Label htmlFor="billing-interval">Annual (Save 10%)</Label>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Free Starter Plan */}
         <Card className={`relative ${isCurrentPlan('starter') ? 'ring-2 ring-green-500' : ''}`}>
           <CurrentPlanBadge isCurrentPlan={isCurrentPlan('starter')} />
@@ -80,11 +80,12 @@ export function SubscriptionPlans() {
             <div className="text-3xl font-bold mb-4">
               $0<span className="text-lg font-normal">/forever</span>
             </div>
-            <ul className="space-y-2 mb-4">
+            <ul className="space-y-2 mb-4 text-sm">
               <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.starter} projects</li>
-              <li>✓ AI RFP Summary</li>
+              <li>✓ 1 user</li>
+              <li>✓ AI RFP Summary (Basic)</li>
               <li>✓ AI Proposal Outline</li>
-              <li>✓ Basic AI Proposal Draft</li>
+              <li>✓ AI Draft (Watermarked)</li>
               <li>✓ Community support</li>
             </ul>
             {isCurrentPlan('starter') && (
@@ -103,92 +104,82 @@ export function SubscriptionPlans() {
           </CardFooter>
         </Card>
 
-        {/* Basic Plan */}
-        <Card className={`relative ${isCurrentPlan('basic') ? 'ring-2 ring-green-500' : ''}`}>
-          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('basic')} renewalDate={renewalDate} />
-          <CardHeader className={isCurrentPlan('basic') ? 'pt-8' : ''}>
-            <CardTitle>Basic</CardTitle>
-            <CardDescription>For small teams</CardDescription>
+        {/* Growth Plan */}
+        <Card className={`relative ${isCurrentPlan('growth') ? 'ring-2 ring-green-500' : ''}`}>
+          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('growth')} renewalDate={renewalDate} />
+          <CardHeader className={isCurrentPlan('growth') ? 'pt-8' : ''}>
+            <CardTitle>Growth</CardTitle>
+            <CardDescription>For growing teams</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold mb-1">
-              ${billingInterval === 'monthly' ? '49' : '39'}/mo
+              ${billingInterval === 'monthly' ? '199' : '179'}/mo
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $470/yr'}
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $2,148/yr'}
             </p>
-            <ul className="space-y-2 mb-4">
-              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.basic} projects</li>
-              <li>✓ Enhanced AI RFP Summary</li>
-              <li>✓ Advanced AI Proposal Outline</li>
-              <li>✓ Enhanced AI Proposal Draft</li>
-              <li>✓ 24-hour support response time</li>
+            <ul className="space-y-2 mb-4 text-sm">
+              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.growth} projects</li>
+              <li>✓ Unlimited users</li>
+              <li>✓ AI RFP Summary (Enhanced)</li>
+              <li>✓ AI Draft (No Watermark)</li>
+              <li>✓ Opportunity Search (10/mo)</li>
               <li>✓ Email support</li>
+              <li>✓ Google Drive, SharePoint, Dropbox</li>
             </ul>
-            {isCurrentPlan('basic') && (
+            {isCurrentPlan('growth') && (
               <>
-                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.basic} planType="basic" />
+                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.growth} planType="growth" />
                 {renewalDate && (
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Renews on {renewalDate}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-3">Renews on {renewalDate}</p>
                 )}
               </>
             )}
           </CardContent>
           <CardFooter>
-            <UpgradeButton 
-              currentPlan={subscription} 
-              targetPlan="basic" 
-              variant={billingInterval} 
-            />
+            <UpgradeButton currentPlan={subscription} targetPlan="growth" variant={billingInterval} />
           </CardFooter>
         </Card>
 
-        {/* Pro Plan */}
-        <Card className={`relative ${isCurrentPlan('pro') ? 'ring-2 ring-green-500' : 'border-primary'}`}>
-          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('pro')} renewalDate={renewalDate} />
-          <CardHeader className={isCurrentPlan('pro') ? 'pt-8' : ''}>
+        {/* Business Plan */}
+        <Card className={`relative ${isCurrentPlan('business') ? 'ring-2 ring-green-500' : 'border-primary'}`}>
+          <CurrentPlanBadge isCurrentPlan={isCurrentPlan('business')} renewalDate={renewalDate} />
+          <CardHeader className={isCurrentPlan('business') ? 'pt-8' : ''}>
             <div className="flex items-center gap-2">
-              <CardTitle>Pro</CardTitle>
-              {!isCurrentPlan('pro') && <Badge>Most Popular</Badge>}
+              <CardTitle>Business</CardTitle>
+              {!isCurrentPlan('business') && <Badge>Most Popular</Badge>}
             </div>
-            <CardDescription>For growing businesses</CardDescription>
+            <CardDescription>For professional teams</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold mb-1">
-              ${billingInterval === 'monthly' ? '99' : '79'}/mo
+              ${billingInterval === 'monthly' ? '499' : '449'}/mo
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $950/yr'}
+              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $5,388/yr'}
             </p>
-            <ul className="space-y-2 mb-4">
-              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.pro} projects</li>
-              <li>✓ Advanced AI RFP Summary</li>
-              <li>✓ Enhanced AI Proposal Outline</li>
-              <li>✓ Advanced AI Proposal Draft</li>
-              <li>✓ Compiled Draft Preview</li>
-              <li>✓ AI Proposal Evaluation</li>
+            <ul className="space-y-2 mb-4 text-sm">
+              <li>✓ Up to {SUBSCRIPTION_PLAN_LIMITS.business} projects</li>
+              <li>✓ Unlimited users</li>
+              <li>✓ AI RFP Summary (Advanced)</li>
+              <li>✓ AI Evaluation</li>
+              <li>✓ Opportunity Search (Unlimited)</li>
+              <li>✓ API Access (5,000 calls/mo)</li>
               <li>✓ Priority support</li>
-              <li>✓ Team collaboration</li>
+              <li>✓ Salesforce, HubSpot, Slack, Teams</li>
+              <li>✓ 1 Custom AI Training/yr</li>
             </ul>
-            {isCurrentPlan('pro') && (
+            {isCurrentPlan('business') && (
               <>
-                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.pro} planType="pro" />
+                <UsageStats projectLimit={SUBSCRIPTION_PLAN_LIMITS.business} planType="business" />
                 {renewalDate && (
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Renews on {renewalDate}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-3">Renews on {renewalDate}</p>
                 )}
               </>
             )}
           </CardContent>
           <CardFooter>
-            <UpgradeButton 
-              currentPlan={subscription} 
-              targetPlan="pro" 
-              variant={billingInterval} 
-            />
+            <UpgradeButton currentPlan={subscription} targetPlan="business" variant={billingInterval} />
           </CardFooter>
         </Card>
 
@@ -200,27 +191,25 @@ export function SubscriptionPlans() {
               <CardTitle>Enterprise</CardTitle>
               <Badge variant="outline" className="border-purple-500 text-purple-700">Premium</Badge>
             </div>
-            <CardDescription>Custom solutions for organizations with 50+ users</CardDescription>
+            <CardDescription>Custom solutions for large organizations</CardDescription>
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold mb-1">
-              ${billingInterval === 'monthly' ? '499' : '449'}/mo
+              $1,499+/mo
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              {billingInterval === 'monthly' ? 'billed monthly' : 'billed annually at $5,388/yr'}
+              Custom pricing available
             </p>
-            <ul className="space-y-2">
-              <li>✓ Unlimited everything (projects, users, storage)</li>
-              <li>✓ SOC 2 Type II ready (compliance reports)</li>
+            <ul className="space-y-2 text-sm">
+              <li>✓ Unlimited projects & users</li>
+              <li>✓ SOC 2 & FedRAMP compliance</li>
               <li>✓ Dedicated Customer Success Manager</li>
-              <li>✓ 4-hour SLA support (high/critical tickets)</li>
-              <li>✓ Custom AI configuration via knowledge base</li>
-              <li>✓ API access & webhooks</li>
+              <li>✓ 4-hour SLA support</li>
+              <li>✓ Custom AI configuration</li>
+              <li>✓ Unlimited API access</li>
               <li>✓ SSO/SAML (Okta, Azure AD, Google)</li>
-              <li>✓ On-premise deployment option</li>
-              <li>✓ Custom integrations</li>
-              <li>✓ Quarterly business reviews</li>
-              <li>✓ Team training sessions</li>
+              <li>✓ All integrations + custom</li>
+              <li>✓ Unlimited Custom AI Training</li>
             </ul>
           </CardContent>
           <CardFooter className="relative">

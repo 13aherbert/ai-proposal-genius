@@ -41,7 +41,7 @@ interface FeatureRow {
 }
 
 const FEATURES: FeatureRow[] = [
-  { label: "Projects", starter: "12", growth: "36", business: "120", enterprise: "Unlimited" },
+  { label: "Projects", starter: "6", growth: "36", business: "120", enterprise: "Unlimited" },
   { label: "Team Members", starter: "1 user", growth: "Unlimited", business: "Unlimited", enterprise: "Unlimited" },
   { label: "AI Analysis", starter: "Basic", growth: "Enhanced", business: "Advanced", enterprise: "Custom" },
   { label: "Support", starter: "Community", growth: "Email", business: "Priority", enterprise: "Dedicated" },

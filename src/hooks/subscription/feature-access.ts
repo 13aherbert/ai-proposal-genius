@@ -21,16 +21,21 @@ if (typeof window !== 'undefined') {
 
 // Normalize plan type to lowercase for consistent comparison
 export function normalizePlanType(planType: string | undefined): string {
-  if (!planType) return 'trial';
+  if (!planType) return 'starter';
   
-  // Trim, lowercase, and standardize plan types
   const normalized = planType.toLowerCase().trim();
   
   // Map possible variants to standard types
+  if (normalized.includes('enterprise')) return 'enterprise';
+  if (normalized.includes('business')) return 'business';
+  if (normalized.includes('growth')) return 'growth';
   if (normalized.includes('starter')) return 'starter';
-  if (normalized.includes('pro')) return 'pro';
+  // Legacy mappings
+  if (normalized.includes('pro')) return 'business';
+  if (normalized.includes('basic')) return 'growth';
+  if (normalized.includes('trial')) return 'starter';
   
-  return 'trial'; // Default to trial if unknown
+  return 'starter'; // Default to starter if unknown
 }
 
 // Clear all feature and project limit caches
@@ -38,7 +43,6 @@ export function clearFeatureCaches() {
   featureCache.clear();
   projectLimitCache.clear();
   
-  // Also clear localStorage caches
   try {
     localStorage.removeItem('projectLimit');
     localStorage.removeItem('subscriptionData');
@@ -46,49 +50,36 @@ export function clearFeatureCaches() {
     console.error("Error clearing local storage:", e);
   }
   
-  // Clear window caches
   if (typeof window !== 'undefined') {
-    if (window.featureCache) {
-      window.featureCache.clear();
-    }
-    
-    if (window.projectLimitCache) {
-      window.projectLimitCache.clear();
-    }
+    if (window.featureCache) window.featureCache.clear();
+    if (window.projectLimitCache) window.projectLimitCache.clear();
   }
 }
 
 // Get the correct project limit for a plan
 export function getProjectLimitForPlan(planType: string): number {
-  const normalizedPlanType = normalizePlanType(planType);
+  const normalized = normalizePlanType(planType);
   
-  console.log(`Getting project limit for normalized plan type: ${normalizedPlanType}`);
-  
-  if (normalizedPlanType === 'pro') {
-    console.log(`Returning pro limit: ${SUBSCRIPTION_PLAN_LIMITS.pro}`);
-    return SUBSCRIPTION_PLAN_LIMITS.pro;
+  switch (normalized) {
+    case 'enterprise': return SUBSCRIPTION_PLAN_LIMITS.enterprise;
+    case 'business': return SUBSCRIPTION_PLAN_LIMITS.business;
+    case 'growth': return SUBSCRIPTION_PLAN_LIMITS.growth;
+    case 'starter': return SUBSCRIPTION_PLAN_LIMITS.starter;
+    default: return SUBSCRIPTION_PLAN_LIMITS.starter;
   }
-  
-  if (normalizedPlanType === 'starter') {
-    console.log(`Returning starter limit: ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
-    return SUBSCRIPTION_PLAN_LIMITS.starter;
-  }
-  
-  console.log(`Returning starter limit: ${SUBSCRIPTION_PLAN_LIMITS.starter}`);
-  return SUBSCRIPTION_PLAN_LIMITS.starter;
 }
 
 // Get a safe project limit that respects the plan type
 export function getSafeProjectLimit(planType: string, storedLimit: number): number {
-  const normalizedPlanType = normalizePlanType(planType);
+  const normalized = normalizePlanType(planType);
   
-  // Override with correct limits
-  if (normalizedPlanType === 'starter') return SUBSCRIPTION_PLAN_LIMITS.starter;
-  if (normalizedPlanType === 'basic') return SUBSCRIPTION_PLAN_LIMITS.basic;
-  if (normalizedPlanType === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-  
-  // If plan type doesn't match known types, use provided limit with a fallback
-  return storedLimit || 3;
+  switch (normalized) {
+    case 'enterprise': return SUBSCRIPTION_PLAN_LIMITS.enterprise;
+    case 'business': return SUBSCRIPTION_PLAN_LIMITS.business;
+    case 'growth': return SUBSCRIPTION_PLAN_LIMITS.growth;
+    case 'starter': return SUBSCRIPTION_PLAN_LIMITS.starter;
+    default: return storedLimit || 6;
+  }
 }
 
 // Store subscription data in localStorage for faster access
@@ -98,7 +89,6 @@ export function storeSubscriptionDataLocally(subscription: any) {
   try {
     localStorage.setItem('subscriptionData', JSON.stringify(subscription));
     
-    // Also store just the project limit for even faster access
     const planType = normalizePlanType(subscription.plan_type);
     const safeLimit = getSafeProjectLimit(planType, subscription.project_limit);
     localStorage.setItem('projectLimit', String(safeLimit));
@@ -112,7 +102,6 @@ export function getStoredSubscriptionData(): any | null {
   try {
     const data = localStorage.getItem('subscriptionData');
     if (!data) return null;
-    
     return JSON.parse(data);
   } catch (e) {
     console.error("Error retrieving subscription data from localStorage:", e);
@@ -120,25 +109,24 @@ export function getStoredSubscriptionData(): any | null {
   }
 }
 
-
 // Feature mapping based on plan type
 const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
-  rfp_summary: ['trial', 'starter', 'pro'],  // All plans have access
-  proposal_outline: ['trial', 'starter', 'pro'],  // All plans have access
-  proposal_draft: ['trial', 'starter', 'pro'],  // All plans have access
-  compiled_draft: ['pro'],  // Only pro has access
-  evaluation: ['pro'],  // Only pro has access
-  auto_proposal_generation: ['pro'],  // Only pro has access - advanced feature
-  data_export: ['pro'],  // Only pro has access
-  ai_editor: ['starter', 'pro'],  // Only starter and pro have access
-  team_collaboration: ['pro'],  // Only pro has access
-  advanced_analytics: ['pro'],  // Only pro has access
-  api_access: ['pro'],  // Only pro has access
-  white_labeling: ['pro'],  // Only pro has access
-  priority_support: ['pro'],  // Only pro has access
-  custom_templates: ['pro'],  // Only pro has access
-  opportunity_search: ['pro'],  // Only pro has access - RFP opportunity search
-  design_studio: ['pro'],  // Only pro has access - Proposal Design Studio
+  rfp_summary: ['starter', 'growth', 'business', 'enterprise'],
+  proposal_outline: ['starter', 'growth', 'business', 'enterprise'],
+  proposal_draft: ['starter', 'growth', 'business', 'enterprise'],
+  compiled_draft: ['business', 'enterprise'],
+  evaluation: ['business', 'enterprise'],
+  auto_proposal_generation: ['business', 'enterprise'],
+  data_export: ['growth', 'business', 'enterprise'],
+  ai_editor: ['growth', 'business', 'enterprise'],
+  team_collaboration: ['growth', 'business', 'enterprise'],
+  advanced_analytics: ['business', 'enterprise'],
+  api_access: ['business', 'enterprise'],
+  white_labeling: ['enterprise'],
+  priority_support: ['business', 'enterprise'],
+  custom_templates: ['growth', 'business', 'enterprise'],
+  opportunity_search: ['growth', 'business', 'enterprise'],
+  design_studio: ['business', 'enterprise'],
 };
 
 // Check if user has a specific plan type based on subscription data
@@ -167,12 +155,10 @@ export function determineFeatureAccess(
 ): boolean {
   const normalizedPlanType = normalizePlanType(planType);
   
-  // Check if this feature exists in our mapping
   if (!(feature in FEATURE_ACCESS_MAP)) {
     return false;
   }
   
-  // Check if the user's plan is in the list of plans that have access to this feature
   return FEATURE_ACCESS_MAP[feature].includes(normalizedPlanType);
 }
 
@@ -183,20 +169,16 @@ export function getFeatureName(
 ): string {
   const normalizedPlanType = normalizePlanType(currentPlan);
   
-  // Check if user has access to this feature
   const hasAccess = determineFeatureAccess(feature, normalizedPlanType);
   
-  // Return plan name that has access to this feature
   if (hasAccess) {
     return "Current Plan";
   }
   
-  // If not, find the lowest tier plan that has access
-  if (FEATURE_ACCESS_MAP[feature].includes('trial')) {
-    return "Trial Plan";
-  } else if (FEATURE_ACCESS_MAP[feature].includes('starter')) {
-    return "Starter Plan";
-  } else {
-    return "Pro Plan";
-  }
+  // Find the lowest tier plan that has access
+  const accessPlans = FEATURE_ACCESS_MAP[feature];
+  if (accessPlans.includes('starter')) return "Starter Plan";
+  if (accessPlans.includes('growth')) return "Growth Plan";
+  if (accessPlans.includes('business')) return "Business Plan";
+  return "Enterprise Plan";
 }

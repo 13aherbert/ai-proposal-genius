@@ -98,7 +98,7 @@ export function toSubscriptionPlan(sub: any): SubscriptionPlan {
     status: sub.status as SubscriptionStatus,
     plan_type: sub.plan_type || 'trial',
     current_period_end: sub.current_period_end || null,
-    project_limit: sub.project_limit || 3,
+    project_limit: sub.project_limit || 6,
     features: sub.features || {},
     stripe_customer_id: sub.stripe_customer_id || null,
     stripe_subscription_id: sub.stripe_subscription_id || null,

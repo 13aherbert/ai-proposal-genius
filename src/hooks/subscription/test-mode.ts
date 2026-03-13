@@ -38,28 +38,28 @@ export function getTestProjectLimit(): number {
       return parseInt(storedLimit, 10);
     }
     
-    // If no stored limit, return the default for the current test plan
     const testPlan = getTestPlan();
-    if (testPlan === 'pro') return SUBSCRIPTION_PLAN_LIMITS.pro;
-    if (testPlan === 'basic') return SUBSCRIPTION_PLAN_LIMITS.basic;
+    if (testPlan === 'enterprise') return SUBSCRIPTION_PLAN_LIMITS.enterprise;
+    if (testPlan === 'business') return SUBSCRIPTION_PLAN_LIMITS.business;
+    if (testPlan === 'growth') return SUBSCRIPTION_PLAN_LIMITS.growth;
     return SUBSCRIPTION_PLAN_LIMITS.starter;
   } catch (e) {
-    return 3; // Default to starter limit
+    return 6; // Default to starter limit
   }
 }
 
 /**
  * Enable test mode with a specific plan type
  */
-export function enableTestMode(planType: 'starter' | 'basic' | 'pro' = 'starter'): void {
+export function enableTestMode(planType: 'starter' | 'growth' | 'business' | 'enterprise' = 'starter'): void {
   try {
     localStorage.setItem(TEST_MODE_KEY, 'true');
     localStorage.setItem(TEST_PLAN_KEY, planType);
     
-    // Set the corresponding project limit
     let projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
-    if (planType === 'basic') projectLimit = SUBSCRIPTION_PLAN_LIMITS.basic;
-    if (planType === 'pro') projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
+    if (planType === 'growth') projectLimit = SUBSCRIPTION_PLAN_LIMITS.growth;
+    if (planType === 'business') projectLimit = SUBSCRIPTION_PLAN_LIMITS.business;
+    if (planType === 'enterprise') projectLimit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
     
     localStorage.setItem(TEST_PROJECT_LIMIT_KEY, String(projectLimit));
     

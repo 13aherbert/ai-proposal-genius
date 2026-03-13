@@ -64,7 +64,8 @@ export const useRFPUpload = () => {
       const { count, error } = await supabase
         .from('projects')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .neq('status', 'archived');
       
       if (error) throw error;
       

@@ -16,7 +16,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
-import { Database, FolderOpen, Search } from "lucide-react";
+import { Database, FolderOpen, Search, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";

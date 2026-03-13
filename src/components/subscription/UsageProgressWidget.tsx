@@ -34,21 +34,21 @@ export function UsageProgressWidget({
   const [gateOpen, setGateOpen] = useState(false);
   const [animatedValue, setAnimatedValue] = useState(0);
 
-  if (projectCount <= 0 && projectLimit <= 0) return null;
-
   const ratio = projectLimit > 0 ? projectCount / projectLimit : 0;
   const percentage = Math.min(ratio * 100, 100);
-  const remaining = Math.max(projectLimit - projectCount, 0);
-
-  const isAtLimit = projectCount >= projectLimit;
-  const isNear = ratio > 0.5 && !isAtLimit; // >50% triggers yellow/CTA
-  const isWarning = ratio > 0.83; // >83% is red zone
 
   // Animate progress bar on mount
   useEffect(() => {
     const timer = setTimeout(() => setAnimatedValue(percentage), 100);
     return () => clearTimeout(timer);
   }, [percentage]);
+
+  if (projectCount <= 0 && projectLimit <= 0) return null;
+
+  const remaining = Math.max(projectLimit - projectCount, 0);
+  const isAtLimit = projectCount >= projectLimit;
+  const isNear = ratio > 0.5 && !isAtLimit;
+  const isWarning = ratio > 0.83;
 
   // Color logic: green 0-50%, yellow 51-83%, red 84-100%
   const progressColor = isAtLimit || isWarning

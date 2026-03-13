@@ -225,12 +225,15 @@ serve(async (req) => {
 
         console.log('Subscription updated – plan:', planSlug, 'status:', subscription.status);
 
+        const billingInterval = resolveBillingInterval(subscription);
+
         const { error } = await supabase
           .from('subscriptions')
           .update({
             status: subscription.status,
             plan_type: planSlug,
             project_limit: projectLimit === -1 ? 999999 : projectLimit,
+            billing_interval: billingInterval,
             cancel_at_period_end: subscription.cancel_at_period_end,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString(),

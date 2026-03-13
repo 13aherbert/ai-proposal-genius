@@ -19,7 +19,6 @@ const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
 
 /** Resolve plan slug from Stripe subscription nickname or metadata */
 function resolvePlanSlug(subscription: any): string {
-  // Prefer metadata.plan_slug set during checkout
   const metaSlug = subscription.metadata?.plan_slug;
   if (metaSlug) return metaSlug.toLowerCase();
 
@@ -30,6 +29,12 @@ function resolvePlanSlug(subscription: any): string {
   if (lower.includes('business')) return 'business';
   if (lower.includes('growth')) return 'growth';
   return 'starter';
+}
+
+/** Resolve billing interval from Stripe subscription */
+function resolveBillingInterval(subscription: any): 'monthly' | 'annual' {
+  const interval = subscription.items?.data?.[0]?.plan?.interval;
+  return interval === 'year' ? 'annual' : 'monthly';
 }
 
 /** Look up pricing_tiers row for a given slug */

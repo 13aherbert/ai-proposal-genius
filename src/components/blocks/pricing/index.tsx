@@ -13,6 +13,7 @@ interface PricingPlan {
   buttonText: string;
   href: string;
   isPopular: boolean;
+  badge?: string;
 }
 
 interface PricingProps {
@@ -23,8 +24,8 @@ interface PricingProps {
 
 export function Pricing({
   plans,
-  title = "Simple, Transparent Pricing",
-  description = "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support.",
+  title = "Unlimited Team Members on All Paid Plans",
+  description = "Pay for RFPs, not seats. Add your entire team for one flat price.",
 }: PricingProps) {
   return (
     <PricingProvider>

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Star, Calendar } from "lucide-react";
+import { Check, Star, Calendar, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,7 @@ interface PricingPlan {
   buttonText: string;
   href: string;
   isPopular: boolean;
+  badge?: string;
   priceId?: {
     monthly: string;
     annual: string;
@@ -52,7 +53,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       return;
     }
 
-    if (plan.name === "Free Trial" || plan.price === "0") {
+    if (plan.name === "Starter" || plan.price === "0") {
       if (session) {
         toast.success("You're all set with the free plan!", {
           description: "Continue exploring and upgrade when you're ready"
@@ -158,9 +159,9 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             buttonVariants({ variant: "outline" }),
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
             "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
-            plan.isPopular
-              ? "bg-[#34D399] text-white"
-              : plan.name === "Free Trial"
+              plan.isPopular
+              ? "bg-brand-green text-white"
+              : plan.name === "Starter"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-[#f3f3f3] text-[#4B4F54]"
           )}
@@ -179,13 +180,13 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
               "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
               plan.isPopular
-                ? "bg-[#34D399] text-white"
-                : plan.name === "Free Trial"
+                ? "bg-brand-green text-white"
+                : plan.name === "Starter"
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-[#f3f3f3] text-[#4B4F54]"
             )}
           >
-            {plan.name === "Free Trial" ? "Start Free" : "Sign Up"}
+            {plan.name === "Starter" ? "Start Free" : "Sign Up"}
           </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
@@ -240,10 +241,10 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </div>
       )}
       
-      {plan.name === "Free Trial" && (
-        <div className="absolute top-0 left-0 bg-blue-500 py-0.5 px-2 rounded-br-xl rounded-tl-xl">
+      {plan.badge && !plan.isPopular && !isEnterprise && (
+        <div className="absolute top-0 left-0 bg-brand-green py-0.5 px-2 rounded-br-xl rounded-tl-xl">
           <span className="text-white text-xs font-semibold">
-            No Credit Card
+            {plan.badge}
           </span>
         </div>
       )}
@@ -292,12 +293,19 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         </p>
 
         <ul className="mt-5 gap-2 flex flex-col">
-          {plan.features.map((feature, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <Check className="h-4 w-4 text-[#34D399] mt-1 flex-shrink-0" />
-              <span className="text-[#F1F1F1] text-left">{feature}</span>
-            </li>
-          ))}
+          {plan.features.map((feature, idx) => {
+            const isUnlimited = feature.toLowerCase().includes("unlimited team members");
+            return (
+              <li key={idx} className={`flex items-start gap-2 ${isUnlimited ? "bg-brand-green/10 -mx-2 px-2 py-1 rounded-lg" : ""}`}>
+                {isUnlimited ? (
+                  <Users className="h-4 w-4 text-brand-green mt-1 flex-shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 text-brand-green mt-1 flex-shrink-0" />
+                )}
+                <span className={`text-[#F1F1F1] text-left ${isUnlimited ? "font-bold text-brand-green" : ""}`}>{feature}</span>
+              </li>
+            );
+          })}
         </ul>
 
         {isEnterprise && (

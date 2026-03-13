@@ -26,6 +26,9 @@ interface PricingPlan {
   href: string;
   isPopular: boolean;
   badge?: string;
+  subtitle?: string;
+  microcopy?: string;
+  comparison?: string;
   priceId?: {
     monthly: string;
     annual: string;
@@ -46,6 +49,9 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
   const [enterpriseOpen, setEnterpriseOpen] = useState(false);
 
   const isEnterprise = plan.name === "Enterprise";
+  const monthlyPrice = Number(plan.price);
+  const annualMonthlyPrice = Math.round(Number(plan.yearlyPrice) / 12);
+  const showStrikethrough = !isMonthly && plan.period !== "Forever" && !isEnterprise && monthlyPrice > 0;
 
   const handleSubscribe = async () => {
     if (isEnterprise) {
@@ -128,20 +134,11 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             Schedule Demo
           </button>
           <a
-            href="#"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "w-full gap-2 text-sm font-medium",
-              "border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all duration-300"
-            )}
-          >
-            Download Security Whitepaper
-          </a>
-          <a
             href="mailto:sales@optirfp.ai?subject=Enterprise%20Inquiry"
             className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "w-full text-sm text-[#C8C8C9] hover:text-[#F1F1F1] transition-all duration-300"
+              buttonVariants({ variant: "outline" }),
+              "w-full text-sm font-medium",
+              "border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all duration-300"
             )}
           >
             Contact Sales
@@ -158,12 +155,12 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           className={cn(
             buttonVariants({ variant: "outline" }),
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+            "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-              ? "bg-brand-green text-white"
+              ? "bg-brand-green text-white text-xl py-6"
               : plan.name === "Starter"
               ? "bg-blue-500 text-white hover:bg-blue-600"
-              : "bg-[#f3f3f3] text-[#4B4F54]"
+              : "bg-foreground/10 text-foreground"
           )}
         >
           {plan.buttonText}
@@ -178,15 +175,15 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             className={cn(
               buttonVariants({ variant: "outline" }),
               "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-              "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-[#34D399] hover:ring-offset-1 hover:bg-[#34D399] hover:text-white",
+              "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-                ? "bg-brand-green text-white"
+                ? "bg-brand-green text-white text-xl py-6"
                 : plan.name === "Starter"
                 ? "bg-blue-500 text-white hover:bg-blue-600"
-                : "bg-[#f3f3f3] text-[#4B4F54]"
+                : "bg-foreground/10 text-foreground"
             )}
           >
-            {plan.name === "Starter" ? "Start Free" : "Sign Up"}
+            {plan.buttonText}
           </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
@@ -217,18 +214,22 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
         opacity: { duration: 0.5 },
       }}
       className={cn(
-        `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
-        plan.isPopular ? "border-[#34D399] border-2" : "border-border",
-        isEnterprise && "shadow-xl border-l-4 border-l-blue-500",
+        "rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative",
         "flex flex-col",
+        "hover:shadow-xl hover:scale-[1.02] transition-all duration-300",
+        plan.isPopular
+          ? "border-brand-green border-2 shadow-lg shadow-brand-green/10"
+          : isEnterprise
+          ? "shadow-xl border-l-4 border-l-blue-500 border-border"
+          : "border-border",
         !plan.isPopular && !isEnterprise && "mt-5",
       )}
     >
       {plan.isPopular && (
-        <div className="absolute top-0 right-0 bg-[#34D399] py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
+        <div className="absolute top-0 right-0 bg-brand-green py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
           <Star className="text-white h-4 w-4 fill-current" />
           <span className="text-white ml-1 font-sans font-semibold">
-            Popular
+            Most Popular
           </span>
         </div>
       )}
@@ -250,47 +251,70 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       )}
       
       <div className="flex-1 flex flex-col">
-        <p className="text-base font-semibold text-[#F1F0FB]">
+        <p className="text-base font-semibold text-foreground">
           {plan.name}
         </p>
+
+        {/* Price display */}
         <div className="mt-6 flex items-center justify-center gap-x-2">
-          <span className="text-5xl font-bold tracking-tight text-[#F1F1F1]">
-            <NumberFlow
-              value={
-                plan.period === "Forever"
-                  ? 0
-                  : isMonthly
-                  ? Number(plan.price)
-                  : Math.round(Number(plan.yearlyPrice) / 12)
-              }
-              format={{
-                style: "currency",
-                currency: "USD",
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }}
-              transformTiming={{
-                duration: 500,
-                easing: "ease-out",
-              }}
-              willChange
-              className="font-variant-numeric: tabular-nums"
-            />
-          </span>
-          {plan.period !== "Forever" && (
+          {isEnterprise ? (
+            <span className="text-5xl font-bold tracking-tight text-foreground">Custom</span>
+          ) : (
+            <>
+              {showStrikethrough && (
+                <span className="text-2xl font-semibold text-muted-foreground line-through mr-1">
+                  ${monthlyPrice}
+                </span>
+              )}
+              <span className="text-5xl font-bold tracking-tight text-foreground">
+                <NumberFlow
+                  value={
+                    plan.period === "Forever"
+                      ? 0
+                      : isMonthly
+                      ? monthlyPrice
+                      : annualMonthlyPrice
+                  }
+                  format={{
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }}
+                  transformTiming={{
+                    duration: 500,
+                    easing: "ease-out",
+                  }}
+                  willChange
+                  className="font-variant-numeric: tabular-nums"
+                />
+              </span>
+            </>
+          )}
+          {plan.period !== "Forever" && !isEnterprise && (
             <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
               / month
             </span>
           )}
         </div>
 
-        <p className="text-xs leading-5 text-muted-foreground">
-          {plan.period === "Forever"
+        {/* Subtitle / billing info */}
+        <p className="text-xs leading-5 text-muted-foreground mt-1">
+          {plan.subtitle
+            ? plan.subtitle
+            : plan.period === "Forever"
             ? "Always free"
             : isMonthly
             ? "billed monthly"
             : `billed annually at $${Number(plan.yearlyPrice).toLocaleString()}/yr`}
         </p>
+
+        {/* Annual savings badge */}
+        {showStrikethrough && (
+          <span className="mt-2 inline-block mx-auto text-xs font-semibold bg-brand-green/15 text-brand-green px-2 py-0.5 rounded-full">
+            Save 10% annually
+          </span>
+        )}
 
         <ul className="mt-5 gap-2 flex flex-col">
           {plan.features.map((feature, idx) => {
@@ -302,28 +326,38 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
                 ) : (
                   <Check className="h-4 w-4 text-brand-green mt-1 flex-shrink-0" />
                 )}
-                <span className={`text-[#F1F1F1] text-left ${isUnlimited ? "font-bold text-brand-green" : ""}`}>{feature}</span>
+                <span className={`text-foreground text-left ${isUnlimited ? "font-bold text-brand-green" : ""}`}>{feature}</span>
               </li>
             );
           })}
         </ul>
 
         {isEnterprise && (
-          <div className="mt-4 pt-3 border-t border-[#4B4F54]">
-            <p className="text-[10px] uppercase tracking-wider text-[#C8C8C9] mb-2">Trusted by</p>
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Trusted by</p>
             <div className="flex items-center gap-3">
-              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
-              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
-              <div className="h-6 w-16 rounded bg-[#4B4F54]/50" />
+              <div className="h-6 w-16 rounded bg-muted/50" />
+              <div className="h-6 w-16 rounded bg-muted/50" />
+              <div className="h-6 w-16 rounded bg-muted/50" />
             </div>
           </div>
         )}
 
-        <hr className="w-full my-4 border-[#4B4F54]" />
+        <hr className="w-full my-4 border-border" />
 
         {renderCTA()}
 
-        <p className="mt-6 text-xs leading-5 text-[#C8C8C9]">
+        {/* Microcopy */}
+        {plan.microcopy && (
+          <p className="mt-2 text-xs text-muted-foreground">{plan.microcopy}</p>
+        )}
+
+        {/* Comparison callout */}
+        {plan.comparison && (
+          <p className="mt-3 text-xs font-semibold text-brand-green">{plan.comparison}</p>
+        )}
+
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
           {plan.description}
         </p>
       </div>

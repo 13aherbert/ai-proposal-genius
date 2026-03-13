@@ -1,36 +1,46 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Add Server-Side User Limit Enforcement for Team Invitations
+
+### Problem
+User limit enforcement for team invitations is entirely client-side (`canAddUser` in `MemberInvitation.tsx`). There is no server-side check — a determined user could bypass the UI and insert invitations directly via the Supabase API.
+
+### Solution
+Create a Supabase edge function `team-invite` that:
+1. Authenticates the caller
+2. Looks up their organization and pricing tier
+3. Enforces the `users_limit` from `pricing_tiers` (only Starter has a limit of 1; paid tiers have `-1` = unlimited)
+4. Creates the invitation record if allowed
+5. Returns appropriate error messaging for Starter users hitting the limit, and "unlimited" confirmation for paid tiers
 
 ### Changes
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+**1. New edge function: `supabase/functions/team-invite/index.ts`**
+- Authenticate via `supabase.auth.getUser()`
+- Accept `{ organizationId, email, role, department?, message? }`
+- Query `organization_members` to get org membership + count current team size (members + pending invitations)
+- Query user's subscription → join to `pricing_tiers` to get `users_limit`
+- If `users_limit !== -1 && teamSize >= users_limit`: return 403 with structured error:
+  ```json
+  {
+    "error": "User limit reached",
+    "message": "Free plan allows 1 user. Upgrade for unlimited team members.",
+    "upgradeUrl": "/pricing",
+    "tier": "Starter",
+    "currentUsers": 1,
+    "limit": 1
+  }
+  ```
+- Otherwise, insert into `organization_member_invitations` and return success
+- For paid tiers (`users_limit === -1`), include in response: `"message": "Team member invited. You can invite unlimited users on your plan."`
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+**2. Update `src/components/organization/MemberInvitation.tsx`**
+- Replace the direct Supabase insert with a call to the `team-invite` edge function
+- Keep the client-side `canAddUser` check as a fast UI gate (prevents unnecessary network calls)
+- Handle the 403 response by showing the `UpgradeGateModal` with `reason="user_limit"`
+- Display the "unlimited users" confirmation message in the success toast for paid tiers
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
-
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
-
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
-
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
-
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
+### Files touched
+- **New**: `supabase/functions/team-invite/index.ts`
+- **Modified**: `src/components/organization/MemberInvitation.tsx`
 

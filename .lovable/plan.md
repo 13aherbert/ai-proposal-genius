@@ -1,36 +1,19 @@
 
 
-## Plan: Add Social Proof Elements to OptiRFP
+## Plan: Add Annual Billing with 10% Discount — COMPLETED
 
-### Changes
+### What Was Done
 
-**1. `src/components/blocks/SocialProofBar.tsx`** — NEW
-- Stats bar with 3 items in a row: "Trusted by 500+ proposal teams", "93% faster proposal creation", "$20K+ average yearly savings"
-- Dark card style matching hero (`bg-[#181818]/90`), icons for each stat (Users, Zap, DollarSign)
-- Responsive: 3 columns desktop, stacked mobile
+1. **Dollar savings on pricing cards** — `PricingCard.tsx` now shows "Save $240/year" for Growth and "Save $600/year" for Business when annual billing is selected, calculated dynamically.
 
-**2. `src/components/blocks/Testimonial.tsx`** — NEW
-- Featured testimonial card with quote, 5-star rating (Star icons), author name/title/company
-- Quote text, attribution below, centered layout
-- Dark card style consistent with homepage
+2. **14-day free trial** — `create-checkout-session` now includes `trial_period_days: 14` for all paid plans.
 
-**3. `src/components/blocks/ROICalculator.tsx`** — NEW
-- 3 inputs: RFPs/month (number), Hours per RFP (number), Hourly cost (number, $)
-- Live calculation: `annual savings = rfps * hours * cost * 12 * 0.93` (93% time saved)
-- Output: "Your annual savings: $X with OptiRFP" + "Most customers save $20,000+ per year"
-- Dark card style, placed above pricing grid
+3. **Annual pre-selected** — `PricingProvider.tsx` defaults `isMonthly` to `false` so annual billing is pre-selected.
 
-**4. `src/components/blocks/TrustBadges.tsx`** — NEW
-- 3 badges in a row: "SOC 2 Type II Certified" (Shield), "AES-256 Encryption" (Lock), "Your data never trains our AI" (Eye)
-- Subtle styling, muted text with icons
+4. **`billing_interval` column** — Migration added `billing_interval` ('monthly' | 'annual') to subscriptions table.
 
-**5. `src/pages/Index.tsx`** — Modify
-- Insert `<SocialProofBar />` between hero and key benefits sections
-- Insert `<Testimonial />` between key benefits and pricing sections
+5. **Webhook stores billing_interval** — `stripe-webhook` now reads the Stripe plan interval and writes `billing_interval` on checkout and subscription updates.
 
-**6. `src/components/blocks/pricing-demo.tsx`** — Modify
-- Add `<ROICalculator />` above the `<Pricing>` component
+6. **Annual renewal reminders** — New `annual-renewal-reminder` edge function queries annual subscriptions renewing in 30 or 7 days and sends reminder emails with savings info.
 
-**7. `src/components/navigation/Footer.tsx`** — Modify
-- Add `<TrustBadges />` row above the copyright/links section
-
+7. **Monthly↔Annual switches** — Handled by Stripe's default proration; no additional code needed.

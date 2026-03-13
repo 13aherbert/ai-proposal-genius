@@ -292,19 +292,27 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
     }
   }, [checkSubscription, subscription]);
   
+  const currentPlan = testMode ? getTestPlan() : 
+    subscription ? (subscription.plan_type || 'trial').toLowerCase() : 
+    fallbackSubscription ? (fallbackSubscription.plan_type || 'trial').toLowerCase() : 
+    'trial';
+
+  const { tier: pricingTier, canAddUser, getUserLimitDisplay, getUpgradeValueProp } = usePricingTier(currentPlan);
+
   return {
     hasFeature,
     getProjectLimit,
     getPlanName,
     isLoading: testMode ? false : (isLoading && !fallbackSubscription),
     error: testMode ? null : error,
-    plan: testMode ? getTestPlan() : 
-          subscription ? (subscription.plan_type || 'trial').toLowerCase() : 
-          fallbackSubscription ? (fallbackSubscription.plan_type || 'trial').toLowerCase() : 
-          'trial',
+    plan: currentPlan,
     isTestMode: testMode,
     enableTestMode,
     disableTestMode,
-    refreshSubscription
+    refreshSubscription,
+    pricingTier,
+    canAddUser,
+    getUserLimitDisplay,
+    getUpgradeValueProp,
   };
 }

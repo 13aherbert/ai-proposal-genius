@@ -1,18 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSubscriptionFeatures } from './use-subscription-features';
+import type { PricingTier } from './subscription/subscription-features-types';
 
-export interface PricingTier {
-  id: string;
-  name: string;
-  slug: string;
-  monthly_price: number;
-  annual_price: number | null;
-  projects_limit: number;
-  users_limit: number;
-  features: string[];
-  is_active: boolean;
-}
+export type { PricingTier } from './subscription/subscription-features-types';
 
 export interface PricingTierResult {
   tier: PricingTier | null;
@@ -26,8 +16,11 @@ export interface PricingTierResult {
 
 const tierCache = new Map<string, PricingTier>();
 
-export function usePricingTier(): PricingTierResult {
-  const { plan } = useSubscriptionFeatures();
+/**
+ * Fetches and exposes pricing tier data with user-limit helpers.
+ * Accepts `plan` as a parameter to avoid circular dependency with useSubscriptionFeatures.
+ */
+export function usePricingTier(plan: string): PricingTierResult {
   const [tier, setTier] = useState<PricingTier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -51,7 +44,6 @@ export function usePricingTier(): PricingTierResult {
     let cancelled = false;
 
     const fetchTier = async () => {
-      // Check cache first
       if (tierCache.has(tierSlug)) {
         setTier(tierCache.get(tierSlug)!);
         setIsLoading(false);

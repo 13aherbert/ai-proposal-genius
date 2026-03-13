@@ -1,4 +1,15 @@
-import type { PricingTier } from '../use-pricing-tier';
+
+export interface PricingTier {
+  id: string;
+  name: string;
+  slug: string;
+  monthly_price: number;
+  annual_price: number | null;
+  projects_limit: number;
+  users_limit: number;
+  features: string[];
+  is_active: boolean;
+}
 
 export type FeatureName = 
   | 'rfp_summary'

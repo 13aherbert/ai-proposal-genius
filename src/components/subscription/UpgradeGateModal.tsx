@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Rocket, Zap, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,65 +8,76 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
 
-type UpgradeReason = 'project_limit' | 'user_limit';
+type CurrentPlan = 'starter' | 'growth' | 'business';
 
 interface UpgradeGateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentLimit?: number;
-  reason?: UpgradeReason;
+  currentPlan?: CurrentPlan;
 }
 
-const COMPARISON_ROWS = [
-  { label: "Price", starter: "$0", growth: "$199/mo" },
-  { label: "Projects", starter: "12", growth: "36" },
-  { label: "Team Members", starter: "1 user", growth: "Unlimited 🚀", highlight: true },
-  { label: "Support", starter: "Community", growth: "Email (24hr)" },
+const STARTER_BULLETS = [
+  "36 projects per year (6× more)",
+  "Unlimited team members",
+  "No more watermarks on exports",
+  "Opportunity Search to find new RFPs",
+  "Email support",
+];
+
+const GROWTH_BULLETS = [
+  "120 projects per year (3× more)",
+  "Unlimited Opportunity Search",
+  "API access for integrations",
+  "AI Proposal Evaluation",
+  "Priority support (4-hour response)",
 ];
 
 export function UpgradeGateModal({
   open,
   onOpenChange,
-  currentLimit = 12,
-  reason = 'project_limit',
+  currentLimit = 6,
+  currentPlan = 'starter',
 }: UpgradeGateModalProps) {
   const navigate = useNavigate();
 
-  const headline =
-    reason === 'user_limit'
-      ? "Add Your Entire Team"
-      : `You've used ${currentLimit} of ${currentLimit} projects`;
+  const isGrowth = currentPlan === 'growth';
 
-  const subheadline =
-    reason === 'user_limit'
-      ? "Upgrade to invite unlimited team members"
-      : "Upgrade for 3x more projects + unlimited team";
+  const headline = isGrowth
+    ? "You've reached your Growth plan limit"
+    : `You've used all ${currentLimit} projects`;
+
+  const subheadline = isGrowth
+    ? "Upgrade to Business for $499/month:"
+    : "Upgrade to Growth for $199/month and get:";
+
+  const bullets = isGrowth ? GROWTH_BULLETS : STARTER_BULLETS;
+
+  const primaryCta = isGrowth
+    ? "Upgrade to Business — $499/month"
+    : "Upgrade to Growth — $199/month";
 
   const handleUpgrade = () => {
     onOpenChange(false);
     navigate("/subscription", { state: { fromUpgradeButton: true } });
   };
 
-  const handleSeePlans = () => {
+  const handleExploreBusiness = () => {
     onOpenChange(false);
-    navigate("/subscription");
+    navigate("/subscription", { state: { highlightPlan: "business" } });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader className="text-center sm:text-center">
           <div className="flex justify-center mb-2">
-            <Users className="h-8 w-8 text-brand-green" />
+            {isGrowth ? (
+              <Zap className="h-8 w-8 text-primary" />
+            ) : (
+              <Rocket className="h-8 w-8 text-brand-green" />
+            )}
           </div>
           <DialogTitle className="text-xl">{headline}</DialogTitle>
           <DialogDescription className="text-base">
@@ -74,61 +85,28 @@ export function UpgradeGateModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[140px]">Feature</TableHead>
-                <TableHead className="text-center text-muted-foreground">Starter</TableHead>
-                <TableHead className="text-center font-semibold">Growth</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {COMPARISON_ROWS.map((row) => (
-                <TableRow key={row.label}>
-                  <TableCell className="font-medium text-sm">{row.label}</TableCell>
-                  <TableCell className="text-center text-sm text-muted-foreground">
-                    {row.starter}
-                  </TableCell>
-                  <TableCell
-                    className={`text-center text-sm ${
-                      row.highlight
-                        ? "text-brand-green font-bold text-lg"
-                        : "font-medium"
-                    }`}
-                  >
-                    {row.growth}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {/* Feature bullets */}
+        <ul className="mt-4 space-y-2.5">
+          {bullets.map((item) => (
+            <li key={item} className="flex items-start gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-brand-green" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
 
-        {/* Value calculation */}
-        <div className="rounded-lg bg-muted/60 p-4 mt-3 space-y-1">
-          <p className="text-sm font-semibold">For a 12-person team:</p>
-          <div className="flex justify-between text-sm">
-            <span>OptiRFP Growth</span>
-            <span className="font-medium text-brand-green">$16.50/person</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Loopio</span>
-            <span className="text-muted-foreground line-through">$1,667/person</span>
-          </div>
-          <p className="text-xs text-muted-foreground pt-1">Save 99% per user</p>
-        </div>
-
-        <div className="flex flex-col gap-2 mt-4">
+        {/* CTAs */}
+        <div className="flex flex-col gap-2 mt-6">
           <Button onClick={handleUpgrade} className="w-full">
-            Upgrade to Growth — $199/month
+            {primaryCta}
           </Button>
-          <Button variant="outline" onClick={handleUpgrade} className="w-full">
-            Start with 14-day free trial
-          </Button>
-          <Button variant="ghost" onClick={handleSeePlans} className="w-full text-muted-foreground">
-            See all plans
-          </Button>
+
+          {!isGrowth && (
+            <Button variant="outline" onClick={handleExploreBusiness} className="w-full">
+              Explore Business Plan
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
@@ -138,13 +116,18 @@ export function UpgradeGateModal({
           </Button>
         </div>
 
-        {reason === 'project_limit' && (
+        {/* Microcopy */}
+        <p className="text-xs text-center text-muted-foreground mt-1">
+          14-day free trial · Cancel anytime
+        </p>
+
+        {currentPlan === 'starter' && (
           <p className="text-xs text-center text-muted-foreground mt-1">
             Or{" "}
             <button
               onClick={() => {
                 onOpenChange(false);
-                navigate("/dashboard");
+                navigate("/projects");
               }}
               className="underline hover:text-foreground transition-colors"
             >

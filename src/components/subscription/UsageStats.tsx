@@ -32,7 +32,8 @@ export function UsageStats({ projectLimit, planType }: UsageStatsProps) {
         const { count, error } = await supabase
           .from('projects')
           .select('*', { count: 'exact', head: true })
-          .eq('organization_id', organization.id);
+          .eq('organization_id', organization.id)
+          .neq('status', 'archived');
 
         if (error) {
           console.error('Error fetching project count:', error);

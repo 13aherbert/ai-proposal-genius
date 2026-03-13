@@ -213,6 +213,13 @@ export const useRFPUpload = () => {
       setUploadProgress(100);
       toast.success("RFP uploaded successfully");
       
+      // Warn if this was the last available slot
+      if (currentProjectCount !== null && projectLimit !== null && currentProjectCount === projectLimit - 1) {
+        toast.warning("This is your last project slot. Upgrade for more.", {
+          duration: 6000,
+        });
+      }
+      
     } catch (error: any) {
       console.error("Upload error:", error);
       toast.error("Upload failed", {

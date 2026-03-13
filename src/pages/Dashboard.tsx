@@ -246,8 +246,12 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Usage Warning */}
-          <UsageWarning projectCount={dashboardStats.projectCount} projectLimit={projectLimit} />
+          {/* Usage Progress */}
+          <UsageProgressWidget
+            projectCount={dashboardStats.projectCount}
+            projectLimit={projectLimit}
+            currentPlan={(['starter', 'growth', 'business'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business'}
+          />
 
           {/* Recent Activity */}
           <div className="space-y-3">

@@ -219,7 +219,6 @@ export function MemberInvitation({ organizationId, onInviteSent, teamSize }: Mem
       <UpgradeGateModal
         open={showUpgradeGate}
         onOpenChange={setShowUpgradeGate}
-        reason="user_limit"
       />
     </>
   );

@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Search, Bookmark, Lock } from "lucide-react";
+import { Search, Bookmark, Lock, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
 import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
 import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDetailModal";
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
-import { useSubscription } from "@/hooks/subscription";
-import { determineFeatureAccess, normalizePlanType } from "@/hooks/subscription/feature-access";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { useSearchUsage } from "@/hooks/use-search-usage";
+import { PlanComparisonModal } from "@/components/subscription/PlanComparisonModal";
 import type { Opportunity, SearchParams } from "@/hooks/use-opportunity-search";
 
 const PAGE_SIZE = 25;
 
 export default function Opportunities() {
-  const { subscription, isLoading } = useSubscription();
-  const planType = normalizePlanType(subscription?.plan_type);
-  const hasPro = determineFeatureAccess("opportunity_search" as any, planType);
+  const { hasFeature, isLoading, plan } = useSubscriptionFeatures();
+  const hasAccess = hasFeature("opportunity_search");
 
   const {
     results,
@@ -34,22 +35,30 @@ export default function Opportunities() {
     deleteOpportunity,
   } = useOpportunitySearch();
 
+  const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, incrementUsage } = useSearchUsage();
+
   const [tab, setTab] = useState("search");
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [lastSearchParams, setLastSearchParams] = useState<SearchParams | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {
-    if (hasPro) {
+    if (hasAccess) {
       loadSaved();
     }
-  }, [hasPro, loadSaved]);
+  }, [hasAccess, loadSaved]);
 
-  const handleSearch = (params: SearchParams) => {
+  const handleSearch = async (params: SearchParams) => {
+    if (isAtLimit) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setCurrentPage(0);
     setLastSearchParams(params);
     search({ ...params, limit: PAGE_SIZE, offset: 0 });
+    await incrementUsage();
   };
 
   const handlePageChange = (page: number) => {
@@ -70,29 +79,55 @@ export default function Opportunities() {
     );
   }
 
-  if (!hasPro) {
+  if (!hasAccess) {
     return (
-      <div className="py-16 text-center">
-        <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Pro Feature</h1>
-        <p className="text-muted-foreground mb-6">
-          Opportunity Search is available on Pro and Enterprise plans. Upgrade to search
-          government RFP databases and find new business opportunities.
-        </p>
-        <Button asChild>
-          <Link to="/subscription">Upgrade Plan</Link>
-        </Button>
-      </div>
+      <>
+        <div className="py-16 text-center">
+          <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Opportunity Search</h1>
+          <p className="text-muted-foreground mb-2">
+            Search government RFPs, contracts, and grant opportunities from SAM.gov and Grants.gov.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Available on Growth, Business &amp; Enterprise plans.
+          </p>
+          <div className="flex justify-center gap-3">
+            <Button onClick={() => setShowUpgradeModal(true)}>
+              Upgrade to Growth — $199/month
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            14-day free trial · Cancel anytime
+          </p>
+        </div>
+        <PlanComparisonModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} highlightPlan="growth" />
+      </>
     );
   }
 
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Opportunity Finder</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Search RFPs, contracts, and grant opportunities from SAM.gov and Grants.gov
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Opportunity Finder</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Search RFPs, contracts, and grant opportunities from SAM.gov and Grants.gov
+            </p>
+          </div>
+          {!isUnlimited && (
+            <Badge variant={isAtLimit ? "destructive" : searchesRemaining <= 3 ? "secondary" : "outline"} className="text-xs">
+              {isAtLimit ? (
+                <span className="flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Search limit reached
+                </span>
+              ) : (
+                `${searchesRemaining} of 10 searches remaining`
+              )}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -108,6 +143,16 @@ export default function Opportunities() {
         </TabsList>
 
         <TabsContent value="search" className="space-y-4">
+          {isAtLimit && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-center">
+              <p className="text-sm font-medium text-foreground mb-1">You've used all 10 searches this month</p>
+              <p className="text-xs text-muted-foreground mb-3">Upgrade to Business for unlimited searches</p>
+              <Button size="sm" onClick={() => setShowUpgradeModal(true)}>
+                Upgrade to Business — $499/month
+              </Button>
+            </div>
+          )}
+
           <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
 
           {results.length > 0 && (
@@ -152,7 +197,7 @@ export default function Opportunities() {
             </div>
           )}
 
-          {!isSearching && results.length === 0 && totalRecords === 0 && (
+          {!isSearching && results.length === 0 && totalRecords === 0 && !isAtLimit && (
             <div className="text-center py-12 text-muted-foreground">
               <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p>Enter a keyword to search for RFP and grant opportunities</p>
@@ -178,6 +223,8 @@ export default function Opportunities() {
         onSave={saveOpportunity}
         isSaved={selectedOpportunity ? savedIds.has(selectedOpportunity.external_id) : false}
       />
+
+      <PlanComparisonModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} highlightPlan="business" />
     </>
   );
 }

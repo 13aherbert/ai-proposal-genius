@@ -6,17 +6,17 @@ import { Loader2 } from "lucide-react";
 import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
 
 const PRICE_IDS = {
-  starterMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
-  starterAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
-  basicMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE', // Basic plan (former starter)
-  basicAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',  // Basic plan (former starter)
-  proMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
-  proAnnual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa'
+  // Growth plan (formerly basic/starter paid)
+  growthMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
+  growthAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
+  // Business plan (formerly pro)
+  businessMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
+  businessAnnual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa',
 };
 
 interface UpgradeButtonProps {
   currentPlan: SubscriptionPlan | null;
-  targetPlan: 'starter' | 'basic' | 'pro' | 'trial';
+  targetPlan: 'starter' | 'growth' | 'business' | 'enterprise';
   variant?: 'monthly' | 'annual';
 }
 
@@ -24,24 +24,25 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const [isLoading, setIsLoading] = useState(false);
 
   const getPriceId = () => {
-    if (targetPlan === 'starter') {
-      return variant === 'monthly' ? PRICE_IDS.starterMonthly : PRICE_IDS.starterAnnual;
+    if (targetPlan === 'growth') {
+      return variant === 'monthly' ? PRICE_IDS.growthMonthly : PRICE_IDS.growthAnnual;
     }
-    if (targetPlan === 'basic') {
-      return variant === 'monthly' ? PRICE_IDS.basicMonthly : PRICE_IDS.basicAnnual;
+    if (targetPlan === 'business') {
+      return variant === 'monthly' ? PRICE_IDS.businessMonthly : PRICE_IDS.businessAnnual;
     }
-    if (targetPlan === 'pro') {
-      return variant === 'monthly' ? PRICE_IDS.proMonthly : PRICE_IDS.proAnnual;
-    }
-    return null; // For trial plan
+    return null;
   };
 
   const handleUpgrade = async () => {
-    if (targetPlan === 'trial') {
-      // For keeping the trial, just show a success message and close any modal
+    if (targetPlan === 'starter') {
       toast.success("Great! You can continue using the free plan", {
         description: "You can upgrade anytime when you're ready for more features"
       });
+      return;
+    }
+
+    if (targetPlan === 'enterprise') {
+      toast.success("Demo request sent! Our team will contact you within 24 hours.");
       return;
     }
 
@@ -56,31 +57,22 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       
       console.log(`Upgrading to ${targetPlan} (${variant}) with price ID: ${priceId}`);
       
-      // Use the createCheckoutSession function from our actions
       const { url, error } = await createCheckoutSession(priceId);
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+      if (!url) throw new Error('No checkout URL returned');
 
-      if (!url) {
-        throw new Error('No checkout URL returned');
-      }
-
-      // Dismiss loading toast and show success message before redirecting
       toast.dismiss();
       toast.success("Redirecting to checkout", {
         description: "You'll be redirected to the payment page in a moment"
       });
 
-      // Short delay to allow the success toast to be seen
       setTimeout(() => {
-        // Redirect to Stripe Checkout
         window.location.href = url;
       }, 1000);
     } catch (error) {
       console.error('Error in upgrade process:', error);
-      toast.dismiss(); // Dismiss loading toast
+      toast.dismiss();
       toast.error(error instanceof Error ? error.message : "Failed to start upgrade process", {
         description: "Please try again or contact support if the issue persists"
       });
@@ -95,8 +87,9 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const getButtonText = () => {
     if (isLoading) return "Processing...";
     if (isCurrentPlan) return "Current Plan";
-    if (targetPlan === 'trial') return "Continue with Free Plan";
-    return `Upgrade to ${targetPlan.charAt(0).toUpperCase() + targetPlan.slice(1)}`;
+    if (targetPlan === 'starter') return "Continue with Free Plan";
+    const displayName = targetPlan.charAt(0).toUpperCase() + targetPlan.slice(1);
+    return `Upgrade to ${displayName}`;
   };
 
   return (
@@ -104,7 +97,7 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
       onClick={handleUpgrade} 
       disabled={isUpgradeDisabled}
       className="w-full"
-      variant={isCurrentPlan ? "outline" : targetPlan === 'trial' ? "outline" : "default"}
+      variant={isCurrentPlan ? "outline" : targetPlan === 'starter' ? "outline" : "default"}
     >
       {isLoading ? (
         <>

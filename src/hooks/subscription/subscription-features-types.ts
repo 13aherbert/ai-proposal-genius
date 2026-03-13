@@ -37,7 +37,7 @@ export interface SubscriptionFeaturesResult {
   error: Error | null;
   plan: string;
   isTestMode: boolean;
-  enableTestMode: (planType?: 'starter' | 'basic' | 'pro') => void;
+  enableTestMode: (planType?: 'starter' | 'growth' | 'business' | 'enterprise') => void;
   disableTestMode: () => void;
   refreshSubscription: () => void;
   // Pricing tier helpers

@@ -2597,7 +2597,7 @@ export type Database = {
         Args: { email_param: string }
         Returns: boolean
       }
-      check_project_limit: { Args: { user_id: string }; Returns: boolean }
+      check_project_limit: { Args: { p_user_id: string }; Returns: boolean }
       check_system_admin_role: {
         Args: { user_id_param: string }
         Returns: boolean

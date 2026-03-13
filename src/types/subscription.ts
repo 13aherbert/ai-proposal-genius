@@ -49,7 +49,7 @@ export interface SubscriptionContextType {
 export const DEFAULT_STARTER_SUBSCRIPTION: Partial<SubscriptionPlan> = {
   status: 'active',
   plan_type: 'starter',
-  project_limit: 3,  // Free starter users get 3 projects
+  project_limit: 6,  // Free starter users get 6 projects
   features: {},
   current_period_end: null, // No end date for free plan
   stripe_customer_id: null,
@@ -60,9 +60,14 @@ export const DEFAULT_STARTER_SUBSCRIPTION: Partial<SubscriptionPlan> = {
  * Project limits for each subscription plan
  */
 export const SUBSCRIPTION_PLAN_LIMITS = {
-  starter: 3,   // Free starter plan - 3 projects
-  basic: 10,    // Basic paid plan - 10 projects 
-  pro: 30       // Pro paid plan - 30 projects
+  starter: 6,       // Free starter plan - 6 projects
+  growth: 36,       // Growth paid plan - 36 projects
+  business: 120,    // Business paid plan - 120 projects
+  enterprise: -1,   // Enterprise plan - unlimited projects
+  // Legacy aliases for backward compatibility
+  basic: 36,
+  pro: 120,
+  trial: 6,
 };
 
 // Compatibility type to make Subscription from use-subscription.ts work with SubscriptionPlan
@@ -93,7 +98,7 @@ export function toSubscriptionPlan(sub: any): SubscriptionPlan {
     status: sub.status as SubscriptionStatus,
     plan_type: sub.plan_type || 'trial',
     current_period_end: sub.current_period_end || null,
-    project_limit: sub.project_limit || 3,
+    project_limit: sub.project_limit || 6,
     features: sub.features || {},
     stripe_customer_id: sub.stripe_customer_id || null,
     stripe_subscription_id: sub.stripe_subscription_id || null,

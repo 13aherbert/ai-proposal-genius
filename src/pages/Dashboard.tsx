@@ -16,7 +16,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { supabase } from "@/integrations/supabase/client";
-import { Database, FolderOpen, Search } from "lucide-react";
+import { Database, FolderOpen, Search, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
 import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
@@ -57,8 +57,8 @@ export default function Dashboard() {
   );
   const { data: subscriptionData } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
-  const hasOpportunities = planType === 'pro' || planType === 'enterprise';
-  const { getProjectLimit } = useSubscriptionFeatures();
+  const { getProjectLimit, hasFeature } = useSubscriptionFeatures();
+  const hasOpportunities = hasFeature('opportunity_search');
   const projectLimit = getProjectLimit();
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
@@ -153,6 +153,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+
+      {/* Enterprise CSM Badge */}
+      {planType === 'enterprise' && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
+          <Shield className="h-4 w-4 text-primary" />
+          <span className="font-medium text-foreground">Enterprise</span>
+          <span className="text-muted-foreground">— Dedicated CSM · Priority support · 4-hour SLA</span>
+        </div>
+      )}
       
       <DashboardHeader />
 

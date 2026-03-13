@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Lock, Users, type LucideIcon } from "lucide-react";
+import { Lock, Users, Search, Wand2, Key, Palette, Download, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSubscriptionFeatures, type FeatureName } from "@/hooks/use-subscription-features";
 import { PlanComparisonModal } from "./PlanComparisonModal";
@@ -10,17 +10,62 @@ interface FeatureGateConfig {
   description: string;
   status: string;
   cta: string;
+  requiredPlan: string;
   roi?: string;
+  trialCopy?: string;
 }
 
 const FEATURE_GATE_CONFIG: Partial<Record<FeatureName, FeatureGateConfig>> = {
+  opportunity_search: {
+    icon: Search,
+    title: "Opportunity Search",
+    description: "Search government RFPs, contracts, and grant opportunities",
+    status: "Available on Growth plan",
+    cta: "Upgrade to Growth — $199/month",
+    requiredPlan: "growth",
+    trialCopy: "14-day free trial · Cancel anytime",
+  },
+  evaluation: {
+    icon: Wand2,
+    title: "AI Proposal Evaluation",
+    description: "Get AI-powered scoring and improvement suggestions for your proposals",
+    status: "Available on Business plan",
+    cta: "Upgrade to Business — $499/month",
+    requiredPlan: "business",
+    trialCopy: "14-day free trial · Cancel anytime",
+  },
+  api_access: {
+    icon: Key,
+    title: "API Access",
+    description: "Programmatic access to your organization's data via REST API",
+    status: "Available on Business plan",
+    cta: "Upgrade to Business — $499/month",
+    requiredPlan: "business",
+  },
   team_collaboration: {
     icon: Users,
     title: "Invite Your Team",
     description: "Collaborate with unlimited team members on proposals",
     status: "Free plan: 1 user only",
-    cta: "Upgrade to Growth — $199/month for unlimited users",
+    cta: "Upgrade to Growth — $199/month",
+    requiredPlan: "growth",
     roi: "Less than $17/user for a 12-person team",
+  },
+  design_studio: {
+    icon: Palette,
+    title: "Design Studio",
+    description: "Create visually stunning, branded proposals with a drag-and-drop editor",
+    status: "Available on Business plan",
+    cta: "Upgrade to Business — $499/month",
+    requiredPlan: "business",
+  },
+  data_export: {
+    icon: Download,
+    title: "Data Export",
+    description: "Export your proposals and data in PDF, Word, and other formats",
+    status: "Available on Growth plan",
+    cta: "Upgrade to Growth — $199/month",
+    requiredPlan: "growth",
   },
 };
 
@@ -70,9 +115,14 @@ export function FeatureGate({ feature, children, label }: FeatureGateProps) {
                 {config.roi}
               </p>
             )}
+            {config.trialCopy && (
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {config.trialCopy}
+              </p>
+            )}
           </div>
         </div>
-        <PlanComparisonModal open={showComparison} onOpenChange={setShowComparison} />
+        <PlanComparisonModal open={showComparison} onOpenChange={setShowComparison} highlightPlan={config.requiredPlan} />
       </>
     );
   }

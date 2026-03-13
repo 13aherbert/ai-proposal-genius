@@ -55,31 +55,37 @@ export function MemberInvitation({ organizationId, onInviteSent, teamSize }: Mem
     setLoading(true);
 
     try {
-      const invitationToken = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('organization_member_invitations')
-        .insert({
-          organization_id: organizationId,
+      const { data, error } = await supabase.functions.invoke('team-invite', {
+        body: {
+          organizationId,
           email: formData.email,
           role: formData.role,
           department: formData.department || null,
-          invitation_token: invitationToken,
-          expires_at: expiresAt.toISOString(),
-          invited_by: user.id,
-          status: 'pending'
-        });
+          message: formData.message || null,
+        },
+      });
 
-      if (error) throw error;
+      if (error) {
+        // Parse the error response from the edge function
+        const errorBody = typeof error === 'object' && 'context' in error
+          ? await (error as any).context?.json?.() ?? {}
+          : {};
+
+        if (errorBody?.error === 'User limit reached') {
+          setOpen(false);
+          setShowUpgradeGate(true);
+          return;
+        }
+
+        throw new Error(errorBody?.error || 'Failed to send invitation');
+      }
 
       toast({
         title: 'Invitation sent',
-        description: `Invitation has been sent to ${formData.email}`,
+        description: data?.message || `Invitation has been sent to ${formData.email}`,
       });
 
       setFormData({

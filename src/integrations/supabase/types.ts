@@ -1634,6 +1634,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_tiers: {
+        Row: {
+          annual_price: number | null
+          created_at: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          monthly_price: number
+          name: string
+          projects_limit: number
+          slug: string
+          updated_at: string | null
+          users_limit: number
+        }
+        Insert: {
+          annual_price?: number | null
+          created_at?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_price?: number
+          name: string
+          projects_limit: number
+          slug: string
+          updated_at?: string | null
+          users_limit?: number
+        }
+        Update: {
+          annual_price?: number | null
+          created_at?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_price?: number
+          name?: string
+          projects_limit?: number
+          slug?: string
+          updated_at?: string | null
+          users_limit?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

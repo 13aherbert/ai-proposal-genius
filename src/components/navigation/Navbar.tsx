@@ -162,19 +162,19 @@ export function Navbar() {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <ul className="grid w-[400px] gap-3 p-4">
-                        <ListItem href="/projects" title="Projects">
+                        <ListItem to="/projects" title="Projects">
                           View and manage all your proposal projects
                         </ListItem>
-                        <ListItem href="/knowledge-base" title="Knowledge Base">
+                        <ListItem to="/knowledge-base" title="Knowledge Base">
                           Manage your content library and templates
                         </ListItem>
                         {showOrg && (
-                          <ListItem href="/organization" title="Organization">
+                          <ListItem to="/organization" title="Organization">
                             Manage team settings and members
                           </ListItem>
                         )}
                         {showOrg && (
-                          <ListItem href="/api-docs" title="API Documentation">
+                          <ListItem to="/api-docs" title="API Documentation">
                             Programmatic access to your data
                           </ListItem>
                         )}

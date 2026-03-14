@@ -143,7 +143,7 @@ export function Navbar() {
                             </Link>
                           </NavigationMenuLink>
                         </li>
-                        <ListItem href="/projects" title="New Project">
+                        <ListItem to="/projects" title="New Project">
                           Start a new proposal project from scratch
                         </ListItem>
                       </ul>

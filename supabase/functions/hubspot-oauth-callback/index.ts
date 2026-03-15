@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     // Redirect user back to settings page
-    const appUrl = Deno.env.get('APP_URL') || 'https://ai-proposal-genius.lovable.app'
+    const appUrl = Deno.env.get('APP_URL') || 'https://optirfp.ai'
     return new Response(null, {
       status: 302,
       headers: { Location: `${appUrl}/organization/settings?tab=integrations&hubspot=connected` },

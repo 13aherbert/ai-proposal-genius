@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Gift, Users, DollarSign, Copy, Mail, Twitter, Linkedin, Check, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 
-const REFERRAL_BASE = "https://ai-proposal-genius.lovable.app/?ref=";
+const REFERRAL_BASE = "https://optirfp.ai/?ref=";
 
 export default function Referral() {
   const { session } = useAuth();

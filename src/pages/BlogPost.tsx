@@ -33,7 +33,7 @@ const BlogPost = () => {
     "author": { "@type": "Person", "name": post.author.name },
     "datePublished": post.date,
     "image": post.image,
-    "url": `https://ai-proposal-genius.lovable.app/blog/${slug}`,
+    "url": `https://optirfp.ai/blog/${slug}`,
   }) : undefined, [post, slug]);
 
   useSEO({

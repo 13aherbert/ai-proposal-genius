@@ -35,6 +35,7 @@ export class AccountEmailService extends BaseEmailService {
     expiresIn = '1 hour'
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Reset Your Password',
       templateType: 'password_reset',

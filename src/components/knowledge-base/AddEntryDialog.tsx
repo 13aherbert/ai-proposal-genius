@@ -10,8 +10,9 @@ import { useAuth } from "@/components/AuthProvider";
 import { AddEntryDialogProps } from "./entry-dialog/types";
 import { FileUpload } from "./entry-dialog/FileUpload";
 import { useEntryForm } from "./entry-dialog/useEntryForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AIGenerator } from "./entry-dialog/AIGenerator";
+import { toast } from "sonner";
 
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const { session } = useAuth();
@@ -28,9 +29,29 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
     handleSubmit,
   } = useEntryForm(() => onOpenChange(false));
 
+  // Reset form state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setContentMode('manual');
+    }
+  }, [open]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && !session?.user?.id) {
+      toast.error("Please sign in to add entries");
+      return;
+    }
+    // Restore pointer-events when closing
+    if (!newOpen) {
+      document.body.style.removeProperty('pointer-events');
+    }
+    onOpenChange(newOpen);
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) {
+      toast.error("Please sign in to add entries");
       return;
     }
     await handleSubmit(session.user.id);
@@ -43,9 +64,9 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button type="button" className="gap-2">
           <FileText className="h-4 w-4" />
           Add New Entry
         </Button>
@@ -159,7 +180,7 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
           )}
           
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting || contentMode === 'ai'}>

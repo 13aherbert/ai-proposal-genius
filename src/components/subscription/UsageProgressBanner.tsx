@@ -74,7 +74,7 @@ export function UsageProgressBanner() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-sm text-destructive font-medium text-center sm:text-left">
             You've reached your {projectLimit}-project limit. Upgrade to{" "}
-            {plan === "starter" || plan === "trial" ? "Basic for 10" : "Pro for 30"} projects.
+            {plan === "starter" || plan === "trial" ? "Growth for 36" : "Business for 120"} projects.
           </div>
           <Button size="sm" onClick={handleUpgrade} className="shrink-0">
             <ArrowUpRight className="h-4 w-4 mr-1" />

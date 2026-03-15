@@ -17,7 +17,8 @@ export class SupportEmailService extends BaseEmailService {
     supportUrl?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
-      to: ['support@optirfp.com'], // Support team address
+      to: ['support@optirfp.com'],
+      from: this.fromSupport,
       subject: `Support Request #${ticketId}`,
       templateType: 'support',
       templateData: {
@@ -42,6 +43,7 @@ export class SupportEmailService extends BaseEmailService {
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
+      from: this.fromSupport,
       subject: `Re: Support Request #${ticketId}`,
       templateType: 'support_response',
       templateData: {
@@ -64,6 +66,7 @@ export class SupportEmailService extends BaseEmailService {
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
+      from: this.fromSupport,
       subject: `We've Received Your Support Request #${ticketId}`,
       templateType: 'support_confirmation',
       templateData: {
@@ -87,6 +90,7 @@ export class SupportEmailService extends BaseEmailService {
     errorId?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: ['support@optirfp.ai'],
       subject: `Feedback: ${feedbackType}`,
       templateType: 'support',

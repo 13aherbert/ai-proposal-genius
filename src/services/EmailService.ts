@@ -15,7 +15,8 @@ interface SendEmailResponse {
 class EmailService {
   // Company email configuration
   private readonly emailDomain = 'updates.optirfp.ai';
-  private readonly defaultFromEmail = `OptiRFP <team@${this.emailDomain}>`;
+  private readonly fromAccount = `OptiRFP <team@${this.emailDomain}>`;
+  private readonly fromSupport = `OptiRFP Support <support@${this.emailDomain}>`;
 
   /**
    * General function to send email through the edge function
@@ -27,7 +28,7 @@ class EmailService {
       
       // Set default from email address using verified domain
       if (!payload.from) {
-        payload.from = this.defaultFromEmail;
+        payload.from = this.fromAccount;
       }
       
       // Use rate limiting to prevent duplicate emails
@@ -83,6 +84,7 @@ class EmailService {
     appUrl = window.location.origin
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Welcome to OptiRFP!',
       templateType: 'welcome',
@@ -102,6 +104,7 @@ class EmailService {
     expiresIn = '1 hour'
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Reset Your Password',
       templateType: 'password_reset',
@@ -120,6 +123,7 @@ class EmailService {
     name: string = "User"
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: "Your OptiRFP Password Has Been Changed",
       templateType: 'password_changed',
@@ -140,7 +144,8 @@ class EmailService {
     supportUrl?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
-      to: ['support@optirfp.com'], // Support team address
+      to: ['support@optirfp.com'],
+      from: this.fromSupport,
       subject: `Support Request #${ticketId}`,
       templateType: 'support',
       templateData: {
@@ -164,6 +169,7 @@ class EmailService {
     supportUrl?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: [email],
       subject: `Re: Support Request #${ticketId}`,
       templateType: 'support_response',
@@ -186,6 +192,7 @@ class EmailService {
     ticketId: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: [email],
       subject: `We've Received Your Support Request #${ticketId}`,
       templateType: 'support_confirmation',
@@ -210,6 +217,7 @@ class EmailService {
     errorId?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: ['support@optirfp.ai'],
       subject: `Feedback: ${feedbackType}`,
       templateType: 'support',

@@ -15,6 +15,7 @@ export class AccountEmailService extends BaseEmailService {
     appUrl = window.location.origin
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Welcome to OptiRFP!',
       templateType: 'welcome',
@@ -34,6 +35,7 @@ export class AccountEmailService extends BaseEmailService {
     expiresIn = '1 hour'
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Reset Your Password',
       templateType: 'password_reset',
@@ -52,6 +54,7 @@ export class AccountEmailService extends BaseEmailService {
     name: string = "User"
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: "Your OptiRFP Password Has Been Changed",
       templateType: 'password_changed',

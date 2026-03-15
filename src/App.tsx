@@ -25,6 +25,7 @@ import Referral from "@/pages/Referral";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
+import BlogManagement from "@/pages/admin/BlogManagement";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";

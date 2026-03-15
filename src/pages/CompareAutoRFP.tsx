@@ -110,11 +110,20 @@ const CompareAutoRFP = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur border-t py-3">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between">
           <p className="text-sm font-medium hidden sm:block">Ready to try the modern alternative?</p>
-          <Button asChild>
-            <Link to="/">Start Free — No Credit Card <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Button onClick={() => setSignupOpen(true)}>
+            Start Free — No Credit Card <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {/* Signup Dialog */}
+      <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <ErrorBoundary name="CompareSignupModal">
+            <AuthForm defaultView="sign_up" variant="dialog" />
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
 
       <div className="pb-16" />
       <Footer />

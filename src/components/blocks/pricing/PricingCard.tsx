@@ -187,7 +187,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
-          <AuthForm defaultView="sign_up" />
+          <AuthForm defaultView="sign_up" variant="dialog" />
         </DialogContent>
       </Dialog>
     );

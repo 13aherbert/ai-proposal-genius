@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { blogPosts } from "@/data/blog-posts";
+import { usePublishedBlogPosts } from "@/hooks/use-blog-posts";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Mail } from "lucide-react";
+import { Search, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/navigation/Footer";
 import { useSEO } from "@/hooks/use-seo";
@@ -17,6 +17,7 @@ const Blog = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("All");
   const [email, setEmail] = useState("");
+  const { data: posts, isLoading } = usePublishedBlogPosts();
 
   useSEO({
     title: "RFP Tips & Best Practices | OptiRFP Blog",
@@ -24,7 +25,8 @@ const Blog = () => {
   });
 
   const filtered = useMemo(() => {
-    return blogPosts.filter((post) => {
+    if (!posts) return [];
+    return posts.filter((post) => {
       const matchesCategory = category === "All" || post.category === category;
       const q = search.toLowerCase();
       const matchesSearch =
@@ -33,7 +35,7 @@ const Blog = () => {
         post.excerpt.toLowerCase().includes(q);
       return matchesCategory && matchesSearch;
     });
-  }, [search, category]);
+  }, [search, category, posts]);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +83,11 @@ const Blog = () => {
         </div>
 
         {/* Grid */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">
             No articles found. Try a different search or category.
           </p>
@@ -90,12 +96,14 @@ const Blog = () => {
             {filtered.map((post) => (
               <Link key={post.slug} to={`/blog/${post.slug}`} className="group">
                 <Card className="overflow-hidden h-full transition-shadow hover:shadow-lg">
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-48 object-cover"
-                    loading="lazy"
-                  />
+                  {post.image_url && (
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="w-full h-48 object-cover"
+                      loading="lazy"
+                    />
+                  )}
                   <CardContent className="p-5 flex flex-col gap-3">
                     <Badge variant="secondary" className="w-fit text-xs">
                       {post.category}
@@ -107,15 +115,19 @@ const Blog = () => {
                       {post.excerpt}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-auto pt-2">
-                      <span>{post.author.name}</span>
-                      <span>·</span>
-                      <time dateTime={post.date}>
-                        {new Date(post.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </time>
+                      <span>{post.author_name}</span>
+                      {post.published_at && (
+                        <>
+                          <span>·</span>
+                          <time dateTime={post.published_at}>
+                            {new Date(post.published_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </time>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

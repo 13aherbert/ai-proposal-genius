@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getBlogPost, getRelatedPosts } from "@/data/blog-posts";
+import { useBlogPostBySlug, useRelatedPosts } from "@/hooks/use-blog-posts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Share2, Twitter, Linkedin, Copy, User } from "lucide-react";
+import { ArrowLeft, Share2, Twitter, Linkedin, Copy, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/navigation/Footer";
 import { useSEO } from "@/hooks/use-seo";
@@ -22,17 +22,17 @@ import { useSEO } from "@/hooks/use-seo";
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const post = slug ? getBlogPost(slug) : undefined;
-  const related = slug ? getRelatedPosts(slug, 3) : [];
+  const { data: post, isLoading } = useBlogPostBySlug(slug);
+  const { data: related = [] } = useRelatedPosts(slug, post?.category);
 
   const structuredData = useMemo(() => post ? ({
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": post.title,
     "description": post.excerpt,
-    "author": { "@type": "Person", "name": post.author.name },
-    "datePublished": post.date,
-    "image": post.image,
+    "author": { "@type": "Person", "name": post.author_name },
+    "datePublished": post.published_at,
+    "image": post.image_url,
     "url": `https://optirfp.ai/blog/${slug}`,
   }) : undefined, [post, slug]);
 
@@ -42,6 +42,14 @@ const BlogPost = () => {
     ogType: "article",
     structuredData,
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -105,11 +113,13 @@ const BlogPost = () => {
         </div>
 
         {/* Hero Image */}
-        <img
-          src={post.image}
-          alt={post.title}
-          className="w-full h-64 md:h-96 object-cover rounded-lg"
-        />
+        {post.image_url && (
+          <img
+            src={post.image_url}
+            alt={post.title}
+            className="w-full h-64 md:h-96 object-cover rounded-lg"
+          />
+        )}
 
         {/* Article Header */}
         <div className="max-w-[720px] mx-auto mt-8">
@@ -125,19 +135,27 @@ const BlogPost = () => {
                 <User className="h-4 w-4" />
               </div>
               <div>
-                <span className="font-medium text-foreground">{post.author.name}</span>
-                <span className="mx-1">·</span>
-                <span>{post.author.role}</span>
+                <span className="font-medium text-foreground">{post.author_name}</span>
+                {post.author_role && (
+                  <>
+                    <span className="mx-1">·</span>
+                    <span>{post.author_role}</span>
+                  </>
+                )}
               </div>
             </div>
-            <span>·</span>
-            <time dateTime={post.date}>
-              {new Date(post.date).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </time>
+            {post.published_at && (
+              <>
+                <span>·</span>
+                <time dateTime={post.published_at}>
+                  {new Date(post.published_at).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </time>
+              </>
+            )}
           </div>
 
           {/* Share */}
@@ -168,8 +186,8 @@ const BlogPost = () => {
               <User className="h-6 w-6" />
             </div>
             <div>
-              <p className="font-semibold">{post.author.name}</p>
-              <p className="text-sm text-muted-foreground">{post.author.role}</p>
+              <p className="font-semibold">{post.author_name}</p>
+              {post.author_role && <p className="text-sm text-muted-foreground">{post.author_role}</p>}
               <p className="text-sm text-muted-foreground mt-2">
                 Sharing insights on proposal strategy, AI-powered workflows, and winning more contracts.
               </p>
@@ -185,12 +203,14 @@ const BlogPost = () => {
               {related.map((r) => (
                 <Link key={r.slug} to={`/blog/${r.slug}`} className="group">
                   <Card className="overflow-hidden h-full transition-shadow hover:shadow-lg">
-                    <img
-                      src={r.image}
-                      alt={r.title}
-                      className="w-full h-40 object-cover"
-                      loading="lazy"
-                    />
+                    {r.image_url && (
+                      <img
+                        src={r.image_url}
+                        alt={r.title}
+                        className="w-full h-40 object-cover"
+                        loading="lazy"
+                      />
+                    )}
                     <CardContent className="p-4">
                       <Badge variant="secondary" className="mb-2 text-xs">
                         {r.category}

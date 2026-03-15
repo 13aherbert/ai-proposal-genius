@@ -1,12 +1,14 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Footer } from "@/components/navigation/Footer";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const comparisonRows = [
   { feature: "Starting Price", optirfp: "Free / $199/mo", competitor: "Custom quotes only", winner: "optirfp" },

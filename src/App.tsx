@@ -96,6 +96,7 @@ function AppContent() {
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagementPage />} />
+        <Route path="/admin/blog" element={<BlogManagement />} />
       </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />

@@ -45,6 +45,22 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Management</CardTitle>
+                <CardDescription>Manage blog posts and content</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => navigate("/admin/blog")}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Blog Posts
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>

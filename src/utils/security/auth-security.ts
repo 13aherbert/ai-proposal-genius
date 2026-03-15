@@ -104,8 +104,14 @@ export class SessionSecurity {
     const lastActivity = localStorage.getItem('last_activity');
     const secureLastActivity = SecureTokenStorage.getToken('last_activity_secure');
     
-    // If either is missing or they don't match, session is compromised
-    if (!lastActivity || !secureLastActivity || lastActivity !== secureLastActivity) {
+    // On fresh page load, last_activity won't exist yet — initialize it instead of treating as expired
+    if (!lastActivity || !secureLastActivity) {
+      this.updateLastActivity();
+      return false;
+    }
+    
+    // If timestamps don't match, session may be compromised
+    if (lastActivity !== secureLastActivity) {
       return true;
     }
     

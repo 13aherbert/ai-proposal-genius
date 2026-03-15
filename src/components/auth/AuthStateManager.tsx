@@ -45,6 +45,7 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         
         if (data.session) {
           console.log("Session found during initialization");
+          SessionSecurity.updateLastActivity();
           setAuthState({ status: 'authenticated', session: data.session });
         } else {
           console.log("No session found during initialization");

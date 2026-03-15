@@ -15,7 +15,7 @@ export function TrialExpiredBanner() {
   const [isAtLimit, setIsAtLimit] = useState(false);
 
   const isFreePlan = !plan || plan === 'trial' || plan === 'starter';
-  const projectLimit = 3;
+  const projectLimit = 6;
 
   useEffect(() => {
     const checkLimit = async () => {

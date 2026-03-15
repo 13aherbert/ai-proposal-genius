@@ -14,7 +14,7 @@ const faqData = [
         question: "What's included in the free plan?",
         answer: (
           <ul className="list-disc pl-6 space-y-1">
-            <li>The Starter plan is free forever with up to 3 projects</li>
+            <li>The Starter plan is free forever with 6 projects per year</li>
             <li>Access to AI RFP Summary, Proposal Outline, and Basic Proposal Draft features</li>
             <li>No credit card required</li>
           </ul>
@@ -25,18 +25,20 @@ const faqData = [
         answer: (
           <div className="space-y-4">
             <div>
-              <p className="font-semibold">Starter ($49/mo or $499/yr):</p>
+              <p className="font-semibold">Growth ($199/mo or $179/mo annually):</p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Up to 10 projects</li>
-                <li>Basic AI features</li>
-                <li>24-hour support response time</li>
+                <li>36 projects per year</li>
+                <li>Enhanced AI features</li>
+                <li>Unlimited users</li>
+                <li>Email support</li>
               </ul>
             </div>
             <div>
-              <p className="font-semibold">Pro ($99/mo or $950/yr):</p>
+              <p className="font-semibold">Business ($499/mo or $449/mo annually):</p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Up to 30 projects</li>
+                <li>120 projects per year</li>
                 <li>Advanced AI features including Proposal Evaluation</li>
+                <li>API access &amp; CRM integrations</li>
                 <li>Priority support</li>
               </ul>
             </div>

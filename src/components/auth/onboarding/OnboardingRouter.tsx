@@ -238,7 +238,7 @@ export function OnboardingRouter() {
           <div className="space-y-2 text-sm bg-green-50 p-3 rounded-lg">
             <p className="font-medium text-green-800">✨ Your Free Starter Plan includes:</p>
             <ul className="text-green-700 space-y-1">
-              <li>• Up to 3 projects</li>
+              <li>• 6 projects per year</li>
               <li>• AI RFP Summary & Proposal Outline</li>
               <li>• Basic AI Proposal Draft</li>
               <li>• Community support</li>

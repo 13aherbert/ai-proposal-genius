@@ -66,25 +66,29 @@ export default function SubscriptionSuccess() {
 
   const getPlanFeatures = (planType: string): string[] => {
     switch (planType) {
-      case 'pro':
+      case 'enterprise':
         return [
-          'Up to 30 projects',
-          'Advanced AI RFP Summary',
-          'Enhanced AI Proposal Outline',
-          'Advanced AI Proposal Draft',
-          'Compiled Draft Preview',
-          'AI Proposal Evaluation',
-          'Priority support',
-          'Team collaboration'
+          'Unlimited projects & users',
+          'SSO/SAML authentication',
+          'Dedicated CSM',
+          'SOC 2/FedRAMP compliance',
+          'Custom integrations'
         ];
-      case 'basic':
+      case 'business':
         return [
-          'Up to 10 projects',
-          'Enhanced AI RFP Summary',
-          'Advanced AI Proposal Outline',
-          'Enhanced AI Proposal Draft',
-          '24-hour support response time',
-          'Email support'
+          '120 projects per year',
+          'Advanced AI features & Proposal Evaluation',
+          'API access & CRM integrations',
+          'Priority support',
+          'Unlimited users'
+        ];
+      case 'growth':
+        return [
+          '36 projects per year',
+          'Enhanced AI features',
+          '10/mo Opportunity Searches',
+          'Email support',
+          'Unlimited users'
         ];
       default:
         return [];

@@ -84,6 +84,7 @@ class EmailService {
     appUrl = window.location.origin
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: 'Welcome to OptiRFP!',
       templateType: 'welcome',

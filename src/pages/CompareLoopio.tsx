@@ -44,7 +44,7 @@ const CompareLoopio = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               { label: "Start free vs $20K minimum" },
-              { label: "3 projects free vs no free plan" },
+              { label: "6 projects free vs no free plan" },
               { label: "AI-native vs legacy library" },
             ].map((item) => (
               <Card key={item.label} className="border-primary/20">

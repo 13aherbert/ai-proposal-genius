@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, AuthError } from "@supabase/supabase-js";
 import { clearAuthData } from "@/utils/network";
+import { SessionSecurity } from "@/utils/security/auth-security";
 
 // Auth state types
 type AuthState = 

@@ -25,7 +25,7 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
   const [projectCount, setProjectCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const projectLimit = 3;
+  const projectLimit = 6;
 
   // Only show for free/trial users
   const isFreePlan = !plan || plan === 'trial' || plan === 'starter';

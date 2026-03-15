@@ -567,11 +567,13 @@ export async function updateSubscriptionPlan(userId: string, plan: string, statu
       return false;
     }
 
-    let projectLimit = 3;
-    if (plan === 'pro') {
-      projectLimit = 30;
-    } else if (plan === 'starter') {
-      projectLimit = 10;
+    let projectLimit = 6;
+    if (plan === 'enterprise') {
+      projectLimit = -1;
+    } else if (plan === 'business') {
+      projectLimit = 120;
+    } else if (plan === 'growth') {
+      projectLimit = 36;
     }
 
     const now = new Date().toISOString();

@@ -36,7 +36,7 @@ const Index = () => {
 
   useSEO({
     title: "OptiRFP — AI RFP Response Software | Win More Contracts",
-    description: "AI-powered RFP response platform. Reduce proposal time by 93%. Free plan with 3 projects.",
+    description: "AI-powered RFP response platform. Reduce proposal time by 93%. Free plan with 6 projects per year.",
     structuredData,
   });
 

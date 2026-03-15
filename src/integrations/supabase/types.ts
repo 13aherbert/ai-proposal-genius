@@ -202,6 +202,57 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          author_name: string
+          author_role: string | null
+          category: string
+          content: string
+          created_at: string | null
+          created_by: string
+          excerpt: string
+          id: string
+          image_url: string | null
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_name: string
+          author_role?: string | null
+          category?: string
+          content?: string
+          created_at?: string | null
+          created_by: string
+          excerpt: string
+          id?: string
+          image_url?: string | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_name?: string
+          author_role?: string | null
+          category?: string
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          excerpt?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       compliance_reports: {
         Row: {
           created_at: string | null

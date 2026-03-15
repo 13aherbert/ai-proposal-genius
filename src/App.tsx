@@ -33,6 +33,10 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import CompareLoopio from "@/pages/CompareLoopio";
 import CompareAutoRFP from "@/pages/CompareAutoRFP";
+import CompareResponsive from "@/pages/CompareResponsive";
+import CompareProposify from "@/pages/CompareProposify";
+import CompareQvidian from "@/pages/CompareQvidian";
+import ComparePandaDoc from "@/pages/ComparePandaDoc";
 import PricingRedirect from "@/pages/Pricing";
 
 // Components

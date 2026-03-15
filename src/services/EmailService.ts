@@ -169,6 +169,7 @@ class EmailService {
     supportUrl?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: [email],
       subject: `Re: Support Request #${ticketId}`,
       templateType: 'support_response',

@@ -19,8 +19,8 @@ const costData = [{
   label: '$2,000'
 }, {
   name: 'OptiRFP',
-  value: 49,
-  label: '$49'
+  value: 50,
+  label: '$50/proposal'
 }];
 
 const chartConfig = {

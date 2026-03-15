@@ -43,6 +43,7 @@ export class SupportEmailService extends BaseEmailService {
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
       to: [email],
+      from: this.fromSupport,
       subject: `Re: Support Request #${ticketId}`,
       templateType: 'support_response',
       templateData: {

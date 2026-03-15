@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const CANONICAL_BASE = "https://ai-proposal-genius.lovable.app";
+const CANONICAL_BASE = "https://optirfp.ai";
 const DEFAULT_OG_IMAGE = "/og-image.png";
 
 interface SEOProps {

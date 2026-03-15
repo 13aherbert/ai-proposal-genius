@@ -57,8 +57,10 @@ export function DowngradeOption({ currentPlan, onDowngradeSuccess, onCancel }: D
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'starter' | null>(null);
 
   // Determine available downgrade options based on current plan
-  const downgradeOptions = currentPlan === 'pro' 
-    ? [{ plan: 'basic' as const, name: 'Basic', price: '$49/mo' }]
+  const downgradeOptions = currentPlan === 'enterprise'
+    ? [{ plan: 'business' as const, name: 'Business', price: '$499/mo' }, { plan: 'growth' as const, name: 'Growth', price: '$199/mo' }]
+    : currentPlan === 'business'
+    ? [{ plan: 'growth' as const, name: 'Growth', price: '$199/mo' }]
     : [];
 
   // Features that will be lost when downgrading

@@ -1,12 +1,14 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Footer } from "@/components/navigation/Footer";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const comparisonRows = [
   { feature: "Starting Price", optirfp: "Free / $199/mo", competitor: "Custom quotes only", winner: "optirfp" },
@@ -18,6 +20,7 @@ const comparisonRows = [
 ];
 
 const CompareAutoRFP = () => {
+  const [signupOpen, setSignupOpen] = useState(false);
   useSEO({
     title: "OptiRFP vs AutoRFP 2026 | Comparison",
     description: "Compare OptiRFP and AutoRFP side by side. Transparent pricing from $0/mo vs custom quotes. See why teams choose OptiRFP's free tier and AI-native approach.",
@@ -107,11 +110,20 @@ const CompareAutoRFP = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur border-t py-3">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between">
           <p className="text-sm font-medium hidden sm:block">Ready to try the modern alternative?</p>
-          <Button asChild>
-            <Link to="/">Start Free — No Credit Card <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Button onClick={() => setSignupOpen(true)}>
+            Start Free — No Credit Card <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {/* Signup Dialog */}
+      <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <ErrorBoundary name="CompareSignupModal">
+            <AuthForm defaultView="sign_up" variant="dialog" />
+          </ErrorBoundary>
+        </DialogContent>
+      </Dialog>
 
       <div className="pb-16" />
       <Footer />

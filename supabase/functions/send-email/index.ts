@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
     
     // Send the email via Resend
     const emailOptions = {
-      from: payload.from || DEFAULT_FROM_EMAIL, // Use our new verified domain
+      from: payload.from || TEMPLATE_SENDER_MAP[payload.templateType] || FROM_ACCOUNT,
       to: recipients,
       subject: payload.subject,
       html: html,

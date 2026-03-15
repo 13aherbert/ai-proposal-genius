@@ -15,7 +15,8 @@ interface SendEmailResponse {
 class EmailService {
   // Company email configuration
   private readonly emailDomain = 'updates.optirfp.ai';
-  private readonly defaultFromEmail = `OptiRFP <team@${this.emailDomain}>`;
+  private readonly fromAccount = `OptiRFP <team@${this.emailDomain}>`;
+  private readonly fromSupport = `OptiRFP Support <support@${this.emailDomain}>`;
 
   /**
    * General function to send email through the edge function

@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowLeft } from "lucide-react";
+import { Users, ArrowLeft, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
@@ -42,6 +42,22 @@ export default function AdminDashboard() {
                 >
                   <Users className="mr-2 h-4 w-4" />
                   User Accounts
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Management</CardTitle>
+                <CardDescription>Manage blog posts and content</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => navigate("/admin/blog")}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Blog Posts
                 </Button>
               </CardContent>
             </Card>

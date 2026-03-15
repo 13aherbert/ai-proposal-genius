@@ -71,7 +71,7 @@ export function DowngradeOption({ currentPlan, onDowngradeSuccess, onCancel }: D
     return currentFeatures.filter(feature => !targetFeatures.includes(feature));
   };
 
-  const handleDowngrade = async (targetPlan: 'basic' | 'starter') => {
+  const handleDowngrade = async (targetPlan: 'growth' | 'starter' | 'business') => {
     setIsDowngrading(true);
     setSelectedPlan(targetPlan);
 

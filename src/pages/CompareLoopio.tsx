@@ -20,6 +20,7 @@ const comparisonRows = [
 ];
 
 const CompareLoopio = () => {
+  const [signupOpen, setSignupOpen] = useState(false);
   useSEO({
     title: "OptiRFP vs Loopio 2026 | Modern AI Alternative Comparison",
     description: "Compare OptiRFP and Loopio side by side. See why teams switch from Loopio's $20K/year plans to OptiRFP's AI-native platform — start free, no credit card required.",

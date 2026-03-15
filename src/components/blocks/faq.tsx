@@ -14,7 +14,7 @@ const faqData = [
         question: "What's included in the free plan?",
         answer: (
           <ul className="list-disc pl-6 space-y-1">
-            <li>The Starter plan is free forever with up to 3 projects</li>
+            <li>The Starter plan is free forever with 6 projects per year</li>
             <li>Access to AI RFP Summary, Proposal Outline, and Basic Proposal Draft features</li>
             <li>No credit card required</li>
           </ul>

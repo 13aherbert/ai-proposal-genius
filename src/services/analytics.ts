@@ -25,10 +25,16 @@ class AnalyticsService {
   private initialize() {
     if (!this.measurementId || this.isInitialized) return;
 
+    // Dynamically load the gtag.js script
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${this.measurementId}`;
+    document.head.appendChild(script);
+
     // Initialize dataLayer
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag(...args: any[]) {
-      window.dataLayer.push(args);
+      window.dataLayer!.push(args);
     };
 
     // Configure GA4

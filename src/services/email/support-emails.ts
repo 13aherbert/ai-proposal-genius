@@ -17,7 +17,8 @@ export class SupportEmailService extends BaseEmailService {
     supportUrl?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
-      to: ['support@optirfp.com'], // Support team address
+      to: ['support@optirfp.com'],
+      from: this.fromSupport,
       subject: `Support Request #${ticketId}`,
       templateType: 'support',
       templateData: {

@@ -217,6 +217,7 @@ class EmailService {
     errorId?: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: ['support@optirfp.ai'],
       subject: `Feedback: ${feedbackType}`,
       templateType: 'support',

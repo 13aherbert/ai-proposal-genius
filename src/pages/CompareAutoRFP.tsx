@@ -43,7 +43,7 @@ const CompareAutoRFP = () => {
           {/* Quick Verdict */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
-              { label: "$49/mo vs custom quotes" },
+              { label: "$199/mo vs custom quotes" },
               { label: "Free tier vs no free plan" },
               { label: "Transparent vs opaque pricing" },
             ].map((item) => (

@@ -26,6 +26,11 @@ export function Footer() {
             <Link to="/compare/loopio" className="hover:text-foreground">
               Compare
             </Link>
+            {session && (
+              <Link to="/knowledge-base" className="hover:text-foreground">
+                Knowledge Base
+              </Link>
+            )}
             {session ? (
               <Link to="/subscription" className="hover:text-foreground">
                 Pricing

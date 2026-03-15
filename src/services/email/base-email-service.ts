@@ -10,7 +10,9 @@ import { SendEmailResponse } from './types';
 export class BaseEmailService {
   // Company email configuration
   protected readonly emailDomain = 'updates.optirfp.ai';
-  protected readonly defaultFromEmail = `OptiRFP <team@${this.emailDomain}>`;
+  protected readonly fromAccount = `OptiRFP <team@${this.emailDomain}>`;
+  protected readonly fromSupport = `OptiRFP Support <support@${this.emailDomain}>`;
+  protected readonly fromMarketing = `OptiRFP <marketing@${this.emailDomain}>`;
 
   /**
    * General function to send email through the edge function

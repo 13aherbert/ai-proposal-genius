@@ -25,7 +25,21 @@ const RESEND_VERIFIED_EMAIL = 'optirfp@gmail.com';
 
 // Company email configuration
 const COMPANY_EMAIL_DOMAIN = 'updates.optirfp.ai';
-const DEFAULT_FROM_EMAIL = `OptiRFP <team@${COMPANY_EMAIL_DOMAIN}>`;
+const FROM_ACCOUNT = `OptiRFP <team@${COMPANY_EMAIL_DOMAIN}>`;
+const FROM_SUPPORT = `OptiRFP Support <support@${COMPANY_EMAIL_DOMAIN}>`;
+const FROM_MARKETING = `OptiRFP <marketing@${COMPANY_EMAIL_DOMAIN}>`;
+
+// Map template types to sender addresses
+const TEMPLATE_SENDER_MAP: Record<string, string> = {
+  welcome: FROM_ACCOUNT,
+  password_reset: FROM_ACCOUNT,
+  password_changed: FROM_ACCOUNT,
+  support: FROM_SUPPORT,
+  support_response: FROM_SUPPORT,
+  support_confirmation: FROM_SUPPORT,
+  beta_invite: FROM_MARKETING,
+  beta_announcement: FROM_MARKETING,
+};
 
 // Track recently processed requests to prevent duplicates
 const processedRequests = new Map<string, number>();

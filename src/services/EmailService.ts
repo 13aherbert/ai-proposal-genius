@@ -192,6 +192,7 @@ class EmailService {
     ticketId: string
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromSupport,
       to: [email],
       subject: `We've Received Your Support Request #${ticketId}`,
       templateType: 'support_confirmation',

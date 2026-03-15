@@ -54,7 +54,7 @@ const PLAN_FEATURES = {
  */
 export function DowngradeOption({ currentPlan, onDowngradeSuccess, onCancel }: DowngradeOptionProps) {
   const [isDowngrading, setIsDowngrading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'starter' | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'growth' | 'starter' | 'business' | null>(null);
 
   // Determine available downgrade options based on current plan
   const downgradeOptions = currentPlan === 'enterprise'

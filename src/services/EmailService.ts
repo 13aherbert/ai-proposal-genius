@@ -123,6 +123,7 @@ class EmailService {
     name: string = "User"
   ): Promise<SendEmailResponse> {
     return this.sendEmail({
+      from: this.fromAccount,
       to: [email],
       subject: "Your OptiRFP Password Has Been Changed",
       templateType: 'password_changed',

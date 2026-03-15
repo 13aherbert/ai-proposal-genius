@@ -57,8 +57,9 @@ export default function SubscriptionSuccess() {
 
   const getPlanPrice = (planType: string) => {
     switch (planType) {
-      case 'pro': return '$99/month';
-      case 'basic': return '$49/month';
+      case 'enterprise': return 'Custom';
+      case 'business': return '$499/month';
+      case 'growth': return '$199/month';
       default: return '';
     }
   };

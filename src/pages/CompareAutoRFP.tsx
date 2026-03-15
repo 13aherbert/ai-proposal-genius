@@ -9,8 +9,8 @@ import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 
 const comparisonRows = [
-  { feature: "Starting Price", optirfp: "Free / $49/mo", competitor: "Custom quotes only", winner: "optirfp" },
-  { feature: "Free Tier", optirfp: "3 projects free forever", competitor: "No free tier", winner: "optirfp" },
+  { feature: "Starting Price", optirfp: "Free / $199/mo", competitor: "Custom quotes only", winner: "optirfp" },
+  { feature: "Free Tier", optirfp: "6 projects free per year", competitor: "No free tier", winner: "optirfp" },
   { feature: "Pricing Transparency", optirfp: "Published pricing, cancel anytime", competitor: "Sales call required", winner: "optirfp" },
   { feature: "AI Capabilities", optirfp: "Full AI pipeline: analyze, outline, draft", competitor: "AI-assisted with manual steps", winner: "optirfp" },
   { feature: "Setup Time", optirfp: "Under 5 minutes", competitor: "1–2 weeks onboarding", winner: "optirfp" },
@@ -43,7 +43,7 @@ const CompareAutoRFP = () => {
           {/* Quick Verdict */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
-              { label: "$49/mo vs custom quotes" },
+              { label: "$199/mo vs custom quotes" },
               { label: "Free tier vs no free plan" },
               { label: "Transparent vs opaque pricing" },
             ].map((item) => (
@@ -91,8 +91,8 @@ const CompareAutoRFP = () => {
       {/* Detail Sections */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-12 w-full">
         {[
-          { title: "Transparent Pricing You Can Trust", body: "AutoRFP requires a sales call just to learn what it costs. OptiRFP publishes its pricing openly — start free, upgrade to $49/mo when you're ready, cancel anytime with no contracts." },
-          { title: "A Free Tier That Actually Works", body: "With OptiRFP's free plan you get 3 full projects including AI analysis, proposal outlines, and document generation. No time limits, no credit card — just sign up and start winning proposals." },
+          { title: "Transparent Pricing You Can Trust", body: "AutoRFP requires a sales call just to learn what it costs. OptiRFP publishes its pricing openly — start free, upgrade to $199/mo when you're ready, cancel anytime with no contracts." },
+          { title: "A Free Tier That Actually Works", body: "With OptiRFP's free plan you get 6 projects per year including AI analysis, proposal outlines, and document generation. No credit card required — just sign up and start winning proposals." },
           { title: "AI That Does the Work", body: "Both platforms use AI, but OptiRFP's end-to-end pipeline handles analysis, outlining, and drafting automatically. AutoRFP still requires significant manual effort between AI-assisted steps." },
           { title: "Why Teams Choose OptiRFP", body: "Teams choose OptiRFP for its transparent pricing, zero-friction onboarding, and AI that handles the entire proposal workflow. No sales calls, no long contracts — just results." },
         ].map((s) => (

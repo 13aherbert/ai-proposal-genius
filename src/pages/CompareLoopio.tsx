@@ -9,8 +9,8 @@ import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 
 const comparisonRows = [
-  { feature: "Starting Price", optirfp: "Free / $49/mo", competitor: "$20,000+/year", winner: "optirfp" },
-  { feature: "Free Tier", optirfp: "3 projects free forever", competitor: "No free plan", winner: "optirfp" },
+  { feature: "Starting Price", optirfp: "Free / $199/mo", competitor: "$20,000+/year", winner: "optirfp" },
+  { feature: "Free Tier", optirfp: "6 projects free per year", competitor: "No free plan", winner: "optirfp" },
   { feature: "AI Capabilities", optirfp: "AI-native: analysis, drafting, evaluation", competitor: "Legacy content library with basic automation", winner: "optirfp" },
   { feature: "Ease of Use", optirfp: "Upload & go — proposals in minutes", competitor: "Weeks of onboarding & training", winner: "optirfp" },
   { feature: "Setup Time", optirfp: "Under 5 minutes", competitor: "4–8 weeks implementation", winner: "optirfp" },
@@ -44,7 +44,7 @@ const CompareLoopio = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               { label: "Start free vs $20K minimum" },
-              { label: "3 projects free vs no free plan" },
+              { label: "6 projects free vs no free plan" },
               { label: "AI-native vs legacy library" },
             ].map((item) => (
               <Card key={item.label} className="border-primary/20">
@@ -91,10 +91,10 @@ const CompareLoopio = () => {
       {/* Detail Sections */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-12 w-full">
         {[
-          { title: "Pricing That Makes Sense", body: "Loopio requires a minimum $20,000/year commitment with lengthy contracts. OptiRFP starts free with 3 projects, and paid plans begin at just $49/month — cancel anytime." },
+          { title: "Pricing That Makes Sense", body: "Loopio requires a minimum $20,000/year commitment with lengthy contracts. OptiRFP starts free with 6 projects per year, and paid plans begin at $199/month — cancel anytime." },
           { title: "Ease of Use", body: "Loopio requires weeks of onboarding, content library setup, and training. OptiRFP lets you upload an RFP and get a complete analysis in minutes — no setup required." },
           { title: "AI-Native, Not Bolted On", body: "While Loopio added AI features to its legacy content library, OptiRFP was built from the ground up with AI at its core. Every feature — from RFP analysis to proposal drafting — is powered by modern AI." },
-          { title: "Why Teams Switch from Loopio", body: "Teams switch to OptiRFP for transparent pricing, faster setup, and AI that actually drafts proposals instead of just searching a content library. The free tier lets you evaluate without risk." },
+          { title: "Why Teams Switch from Loopio", body: "Teams switch to OptiRFP for transparent pricing, faster setup, and AI that actually drafts proposals instead of just searching a content library. The free tier with 6 projects per year lets you evaluate without risk." },
         ].map((s) => (
           <div key={s.title}>
             <h2 className="text-xl font-semibold mb-3">{s.title}</h2>

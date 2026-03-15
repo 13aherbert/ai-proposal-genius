@@ -11,30 +11,40 @@ interface DowngradeOptionProps {
 }
 
 const PLAN_FEATURES = {
-  pro: [
-    'Up to 30 projects',
-    'Advanced AI RFP Summary',
-    'Enhanced AI Proposal Outline',
-    'Advanced AI Proposal Draft',
-    'Compiled Draft Preview',
-    'AI Proposal Evaluation',
-    'Priority support',
-    'Team collaboration'
+  enterprise: [
+    'Unlimited projects',
+    'Unlimited team members',
+    'SSO/SAML (Okta, Azure AD, Google)',
+    'SOC 2 Type II & FedRAMP',
+    'Dedicated Customer Success Manager',
+    'Custom SLAs',
+    'On-premise deployment option',
   ],
-  basic: [
-    'Up to 10 projects',
-    'Enhanced AI RFP Summary',
-    'Advanced AI Proposal Outline',
-    'Enhanced AI Proposal Draft',
-    '24-hour support response time',
-    'Email support'
+  business: [
+    '120 projects per year',
+    'Unlimited team members',
+    'Advanced AI with compliance checking',
+    'Unlimited Opportunity Search',
+    'AI Proposal Evaluation',
+    'API access (5,000 calls/mo)',
+    'Priority support (4hr)',
+    'Salesforce, HubSpot, Slack, Teams',
+  ],
+  growth: [
+    '36 projects per year',
+    'Unlimited team members',
+    'Enhanced AI analysis',
+    'Opportunity Search (10/mo)',
+    'No watermarks',
+    'Email support (24hr)',
+    'Google Drive, SharePoint, Dropbox',
   ],
   starter: [
-    'Up to 3 projects',
+    '6 projects per year',
     'Basic AI RFP Summary',
-    'Basic AI Proposal Outline',
-    'Basic AI Proposal Draft',
-    'Community support'
+    'AI Proposal Outline',
+    'Standard AI Draft (watermarked)',
+    'Community support',
   ]
 };
 
@@ -44,11 +54,13 @@ const PLAN_FEATURES = {
  */
 export function DowngradeOption({ currentPlan, onDowngradeSuccess, onCancel }: DowngradeOptionProps) {
   const [isDowngrading, setIsDowngrading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'starter' | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'growth' | 'starter' | 'business' | null>(null);
 
   // Determine available downgrade options based on current plan
-  const downgradeOptions = currentPlan === 'pro' 
-    ? [{ plan: 'basic' as const, name: 'Basic', price: '$49/mo' }]
+  const downgradeOptions = currentPlan === 'enterprise'
+    ? [{ plan: 'business' as const, name: 'Business', price: '$499/mo' }, { plan: 'growth' as const, name: 'Growth', price: '$199/mo' }]
+    : currentPlan === 'business'
+    ? [{ plan: 'growth' as const, name: 'Growth', price: '$199/mo' }]
     : [];
 
   // Features that will be lost when downgrading
@@ -59,7 +71,7 @@ export function DowngradeOption({ currentPlan, onDowngradeSuccess, onCancel }: D
     return currentFeatures.filter(feature => !targetFeatures.includes(feature));
   };
 
-  const handleDowngrade = async (targetPlan: 'basic' | 'starter') => {
+  const handleDowngrade = async (targetPlan: 'growth' | 'starter' | 'business') => {
     setIsDowngrading(true);
     setSelectedPlan(targetPlan);
 

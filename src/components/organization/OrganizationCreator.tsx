@@ -209,8 +209,8 @@ export function OrganizationCreator() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="starter">Starter (Free)</SelectItem>
-              <SelectItem value="basic">Basic ($49/month)</SelectItem>
-              <SelectItem value="pro">Pro ($99/month)</SelectItem>
+              <SelectItem value="growth">Growth ($199/month)</SelectItem>
+              <SelectItem value="business">Business ($499/month)</SelectItem>
               <SelectItem value="enterprise">Enterprise (Custom)</SelectItem>
             </SelectContent>
           </Select>

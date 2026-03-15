@@ -9,8 +9,8 @@ import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 
 const comparisonRows = [
-  { feature: "Starting Price", optirfp: "Free / $49/mo", competitor: "Custom quotes only", winner: "optirfp" },
-  { feature: "Free Tier", optirfp: "3 projects free forever", competitor: "No free tier", winner: "optirfp" },
+  { feature: "Starting Price", optirfp: "Free / $199/mo", competitor: "Custom quotes only", winner: "optirfp" },
+  { feature: "Free Tier", optirfp: "6 projects free per year", competitor: "No free tier", winner: "optirfp" },
   { feature: "Pricing Transparency", optirfp: "Published pricing, cancel anytime", competitor: "Sales call required", winner: "optirfp" },
   { feature: "AI Capabilities", optirfp: "Full AI pipeline: analyze, outline, draft", competitor: "AI-assisted with manual steps", winner: "optirfp" },
   { feature: "Setup Time", optirfp: "Under 5 minutes", competitor: "1–2 weeks onboarding", winner: "optirfp" },

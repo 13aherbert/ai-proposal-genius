@@ -121,7 +121,7 @@ async function notifyDowngradeWarning(userId: string, teamSize: number) {
       You currently have <strong>${teamSize} team members</strong>.</p>
       <p>You have <strong>30 days</strong> to either reduce your team size or upgrade to a paid plan.
       After that, additional team members will lose access.</p>
-      <p><a href="https://ai-proposal-genius.lovable.app/subscription" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Manage subscription →</a></p>
+      <p><a href="https://optirfp.ai/subscription" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Manage subscription →</a></p>
     </div>`,
   );
 }

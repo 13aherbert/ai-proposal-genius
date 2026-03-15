@@ -25,11 +25,11 @@ const Index = () => {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "OptiRFP",
-    "url": "https://ai-proposal-genius.lovable.app",
+    "url": "https://optirfp.ai",
     "description": "AI-powered RFP response platform. Reduce proposal time by 93%.",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://ai-proposal-genius.lovable.app/blog?q={search_term_string}",
+      "target": "https://optirfp.ai/blog?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   }), []);

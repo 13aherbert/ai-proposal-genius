@@ -87,7 +87,7 @@ serve(async () => {
             <strong>${new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>.</p>
             ${savingsLine}
             <p>No action needed — your subscription will renew automatically.</p>
-            <p><a href="https://ai-proposal-genius.lovable.app/subscription" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Manage subscription →</a></p>
+            <p><a href="https://optirfp.ai/subscription" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Manage subscription →</a></p>
           </div>`,
         );
 

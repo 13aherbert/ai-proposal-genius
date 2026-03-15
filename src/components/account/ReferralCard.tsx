@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Gift, Copy, Check, Users, ArrowRight } from "lucide-react";
 
-const REFERRAL_BASE = "https://ai-proposal-genius.lovable.app/?ref=";
+const REFERRAL_BASE = "https://optirfp.ai/?ref=";
 
 export function ReferralCard() {
   const { session } = useAuth();

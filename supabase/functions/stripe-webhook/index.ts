@@ -103,7 +103,7 @@ async function notifyTeamUnlocked(userId: string, tierName: string) {
       <h2>Your team just got bigger</h2>
       <p>You've upgraded to <strong>${tierName}</strong>. You can now invite
       <strong>unlimited team members</strong> to collaborate on proposals.</p>
-      <p><a href="https://ai-proposal-genius.lovable.app/settings" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Invite your team →</a></p>
+      <p><a href="https://optirfp.ai/settings" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Invite your team →</a></p>
     </div>`,
   );
 }

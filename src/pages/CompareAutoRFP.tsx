@@ -91,7 +91,7 @@ const CompareAutoRFP = () => {
       {/* Detail Sections */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-12 w-full">
         {[
-          { title: "Transparent Pricing You Can Trust", body: "AutoRFP requires a sales call just to learn what it costs. OptiRFP publishes its pricing openly — start free, upgrade to $49/mo when you're ready, cancel anytime with no contracts." },
+          { title: "Transparent Pricing You Can Trust", body: "AutoRFP requires a sales call just to learn what it costs. OptiRFP publishes its pricing openly — start free, upgrade to $199/mo when you're ready, cancel anytime with no contracts." },
           { title: "A Free Tier That Actually Works", body: "With OptiRFP's free plan you get 3 full projects including AI analysis, proposal outlines, and document generation. No time limits, no credit card — just sign up and start winning proposals." },
           { title: "AI That Does the Work", body: "Both platforms use AI, but OptiRFP's end-to-end pipeline handles analysis, outlining, and drafting automatically. AutoRFP still requires significant manual effort between AI-assisted steps." },
           { title: "Why Teams Choose OptiRFP", body: "Teams choose OptiRFP for its transparent pricing, zero-friction onboarding, and AI that handles the entire proposal workflow. No sales calls, no long contracts — just results." },

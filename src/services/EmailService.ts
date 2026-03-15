@@ -28,7 +28,7 @@ class EmailService {
       
       // Set default from email address using verified domain
       if (!payload.from) {
-        payload.from = this.defaultFromEmail;
+        payload.from = this.fromAccount;
       }
       
       // Use rate limiting to prevent duplicate emails

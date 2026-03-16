@@ -78,7 +78,7 @@ export function useSubscription(): SubscriptionResponse {
         .from('subscriptions')
         .select('*')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Error fetching subscription:", error);
@@ -120,7 +120,7 @@ export function useSubscription(): SubscriptionResponse {
         .from('subscriptions')
         .select('*')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Background refresh error:", error);

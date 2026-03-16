@@ -118,6 +118,7 @@ const enterpriseFeatures = [
 
 export function EnterpriseGettingStarted() {
   const { organization } = useCurrentOrganization();
+  const { csm } = useCSMContact();
 
   if (organization?.subscription_tier !== 'enterprise') {
     return null;

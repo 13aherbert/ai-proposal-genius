@@ -11,6 +11,8 @@ import { EnhancedSignupForm } from "./onboarding/EnhancedSignupForm";
 import { OnboardingRouter } from "./onboarding/OnboardingRouter";
 import { validateEmail, ClientRateLimit } from "@/utils/security/input-sanitizer";
 import { CSRFProtection } from "@/utils/security/auth-security";
+import { SSOLoginDialog } from "./SSOLoginDialog";
+import { Shield } from "lucide-react";
 
 interface AuthFormProps {
   defaultView?: 'sign_in' | 'sign_up';

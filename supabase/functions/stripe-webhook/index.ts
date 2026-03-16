@@ -353,7 +353,11 @@ serve(async (req) => {
 
         if (error) {
           console.error('Error downgrading to starter:', error);
-        } else if (subRow?.user_id) {
+        }
+        
+        // Sync org tier to starter
+        if (subRow?.user_id) {
+          await syncOrganizationTier(subRow.user_id, 'starter');
           const teamSize = await countOrgMembers(subRow.user_id);
           if (teamSize > 1) {
             await notifyDowngradeWarning(subRow.user_id, teamSize);

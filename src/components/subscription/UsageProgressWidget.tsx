@@ -15,7 +15,7 @@ import { ArrowUpRight, Circle } from "lucide-react";
 interface UsageProgressWidgetProps {
   projectCount: number;
   projectLimit: number;
-  currentPlan?: "starter" | "growth" | "business";
+  currentPlan?: "starter" | "growth" | "business" | "enterprise";
   className?: string;
 }
 

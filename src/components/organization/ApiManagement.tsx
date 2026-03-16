@@ -4,23 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { 
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { 
   Key, 
   Copy, 
   Trash2, 
   Plus, 
-  Eye, 
-  EyeOff,
   Activity,
   TrendingUp,
   Calendar,
-  Settings
+  Settings,
+  ExternalLink,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+
+const SUPABASE_URL = 'https://bmopbbkfxkgzlbmhhgox.supabase.co';
+const API_BASE_URL = `${SUPABASE_URL}/functions/v1/public-api`;
 
 interface ApiKey {
   id: string;
@@ -43,10 +56,12 @@ interface ApiUsageStats {
 export function ApiManagement() {
   const { organization } = useCurrentOrganization();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewKeyForm, setShowNewKeyForm] = useState(false);
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [createdKeyRaw, setCreatedKeyRaw] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [usageStats, setUsageStats] = useState<ApiUsageStats>({
     total_requests: 0,
     requests_today: 0,
@@ -54,7 +69,6 @@ export function ApiManagement() {
     error_rate: 0,
   });
   
-  // New API key form state
   const [newKeyData, setNewKeyData] = useState({
     name: '',
     permissions: {
@@ -96,8 +110,6 @@ export function ApiManagement() {
   };
 
   const loadUsageStats = async () => {
-    // In a real implementation, this would fetch from analytics tables
-    // For now, we'll use mock data
     setUsageStats({
       total_requests: 125043,
       requests_today: 1247,
@@ -106,11 +118,6 @@ export function ApiManagement() {
     });
   };
 
-  /**
-   * Hashes API key using bcrypt via server-side edge function.
-   * This provides protection against offline brute-force attacks
-   * if the database is compromised, unlike SHA-256 which is too fast.
-   */
   const hashApiKey = async (apiKey: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('hash-api-key', {
       body: { apiKey, action: 'hash' },
@@ -139,24 +146,23 @@ export function ApiManagement() {
         return;
       }
 
-      // Generate a cryptographically secure API key
+      // Generate key with oak_ prefix matching public-api edge function expectations
       const bytes = new Uint8Array(32);
       crypto.getRandomValues(bytes);
-      const apiKey = 'sk_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const apiKey = 'oak_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // Hash the API key using bcrypt before storing
       const apiKeyHash = await hashApiKey(apiKey);
 
       const expiresAt = newKeyData.expires_in_days > 0 
         ? new Date(Date.now() + newKeyData.expires_in_days * 24 * 60 * 60 * 1000).toISOString()
         : null;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('organization_api_keys')
         .insert({
           organization_id: organization?.id,
           key_name: newKeyData.name,
-          api_key_hash: apiKeyHash, // Securely hashed with bcrypt
+          api_key_hash: apiKeyHash,
           permissions: newKeyData.permissions,
           expires_at: expiresAt,
           created_by: (await supabase.auth.getUser()).data.user?.id,
@@ -166,14 +172,10 @@ export function ApiManagement() {
 
       if (error) throw error;
 
-      // Show the API key to the user (only time they'll see it)
-      navigator.clipboard.writeText(apiKey);
-      toast({
-        title: "API Key Created",
-        description: "API key has been copied to clipboard. This is the only time you'll see it!",
-      });
+      // Show the key in a dialog — this is the only time the user sees it
+      setCreatedKeyRaw(apiKey);
+      setCopiedKey(false);
 
-      // Reset form and reload keys
       setNewKeyData({
         name: '',
         permissions: { read: true, write: false, delete: false, admin: false },
@@ -191,16 +193,6 @@ export function ApiManagement() {
     }
   };
 
-  const toggleKeyVisibility = (keyId: string) => {
-    const newVisible = new Set(visibleKeys);
-    if (newVisible.has(keyId)) {
-      newVisible.delete(keyId);
-    } else {
-      newVisible.add(keyId);
-    }
-    setVisibleKeys(newVisible);
-  };
-
   const deleteApiKey = async (keyId: string) => {
     try {
       const { error } = await supabase
@@ -210,18 +202,11 @@ export function ApiManagement() {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "API key deleted successfully",
-      });
+      toast({ title: "Success", description: "API key deleted successfully" });
       loadApiKeys();
     } catch (error) {
       console.error('Error deleting API key:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete API key",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete API key", variant: "destructive" });
     }
   };
 
@@ -234,31 +219,26 @@ export function ApiManagement() {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `API key ${!isActive ? 'activated' : 'deactivated'}`,
-      });
+      toast({ title: "Success", description: `API key ${!isActive ? 'activated' : 'deactivated'}` });
       loadApiKeys();
     } catch (error) {
       console.error('Error updating API key:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update API key",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update API key", variant: "destructive" });
     }
   };
 
-  const maskApiKey = (key: string) => {
-    return key.substring(0, 7) + '...' + key.substring(key.length - 4);
+  const handleCopyCreatedKey = () => {
+    if (createdKeyRaw) {
+      navigator.clipboard.writeText(createdKeyRaw);
+      setCopiedKey(true);
+      toast({ title: "Copied", description: "API key copied to clipboard" });
+    }
   };
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>API Management</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>API Management</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="h-4 bg-muted rounded animate-pulse" />
@@ -272,6 +252,47 @@ export function ApiManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Show Key Once Dialog */}
+      <AlertDialog open={!!createdKeyRaw} onOpenChange={(open) => { if (!open) setCreatedKeyRaw(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              API Key Created
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p className="text-sm text-destructive font-medium">
+                  This is the only time you will see this key. Copy it now and store it securely.
+                </p>
+                <div className="relative">
+                  <code className="block bg-muted p-3 rounded text-xs font-mono break-all select-all">
+                    {createdKeyRaw}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-1 right-1"
+                    onClick={handleCopyCreatedKey}
+                  >
+                    {copiedKey ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                    {copiedKey ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Use this key in the <code className="bg-muted px-1 rounded">Authorization: Bearer</code> header for API requests.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setCreatedKeyRaw(null)}>
+              I've copied my key
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* API Usage Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -284,7 +305,6 @@ export function ApiManagement() {
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Requests</CardTitle>
@@ -295,7 +315,6 @@ export function ApiManagement() {
             <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
@@ -306,7 +325,6 @@ export function ApiManagement() {
             <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
@@ -339,7 +357,6 @@ export function ApiManagement() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* New API Key Form */}
           {showNewKeyForm && (
             <Card className="border-2 border-primary/20">
               <CardHeader>
@@ -371,9 +388,7 @@ export function ApiManagement() {
                             }))
                           }
                         />
-                        <Label htmlFor={permission} className="capitalize">
-                          {permission}
-                        </Label>
+                        <Label htmlFor={permission} className="capitalize">{permission}</Label>
                       </div>
                     ))}
                   </div>
@@ -391,33 +406,24 @@ export function ApiManagement() {
                     }))}
                     placeholder="365"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Set to 0 for no expiration
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Set to 0 for no expiration</p>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={generateApiKey}>
-                    Create API Key
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowNewKeyForm(false)}>
-                    Cancel
-                  </Button>
+                  <Button onClick={generateApiKey}>Create API Key</Button>
+                  <Button variant="outline" onClick={() => setShowNewKeyForm(false)}>Cancel</Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Existing API Keys */}
+          {/* Existing API Keys — hash is never shown/copyable */}
           <div className="space-y-3">
             {apiKeys.length === 0 ? (
               <div className="text-center py-8">
                 <Key className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No API keys created yet</p>
-                <Button 
-                  onClick={() => setShowNewKeyForm(true)}
-                  className="mt-4"
-                >
+                <Button onClick={() => setShowNewKeyForm(true)} className="mt-4">
                   Create your first API key
                 </Button>
               </div>
@@ -437,28 +443,10 @@ export function ApiManagement() {
                           )}
                         </div>
                         
-                        <div className="flex items-center gap-2 mt-2">
-                          <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                            {visibleKeys.has(apiKey.id) ? apiKey.api_key_hash : maskApiKey(apiKey.api_key_hash)}
+                        <div className="mt-2">
+                          <code className="bg-muted px-2 py-1 rounded text-sm font-mono text-muted-foreground">
+                            oak_••••••••••••{apiKey.id.slice(-4)}
                           </code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleKeyVisibility(apiKey.id)}
-                          >
-                            {visibleKeys.has(apiKey.id) ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigator.clipboard.writeText(apiKey.api_key_hash)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
                         </div>
 
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -473,7 +461,7 @@ export function ApiManagement() {
 
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-sm text-muted-foreground">Permissions:</span>
-                          {Object.entries(apiKey.permissions).map(([permission, enabled]) => 
+                          {apiKey.permissions && Object.entries(apiKey.permissions).map(([permission, enabled]) => 
                             enabled && (
                               <Badge key={permission} variant="outline" className="text-xs">
                                 {permission}
@@ -509,30 +497,36 @@ export function ApiManagement() {
       {/* API Documentation */}
       <Card>
         <CardHeader>
-          <CardTitle>API Documentation</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>API Documentation</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => navigate('/api-docs')}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Full Documentation
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="prose prose-sm max-w-none">
             <h4>Authentication</h4>
             <p>Include your API key in the Authorization header:</p>
             <pre className="bg-muted p-3 rounded text-sm">
-              {`Authorization: Bearer YOUR_API_KEY`}
+              {`Authorization: Bearer oak_your_api_key_here`}
             </pre>
 
             <h4>Base URL</h4>
             <pre className="bg-muted p-3 rounded text-sm">
-              {`https://api.yourapp.com/v1/`}
+              {API_BASE_URL}
             </pre>
 
             <h4>Example Request</h4>
             <pre className="bg-muted p-3 rounded text-sm">
-              {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
+              {`curl -H "Authorization: Bearer oak_your_api_key_here" \\
      -H "Content-Type: application/json" \\
-     https://api.yourapp.com/v1/projects`}
+     ${API_BASE_URL}/projects`}
             </pre>
 
             <h4>Rate Limits</h4>
-            <p>API requests are limited to 1000 requests per hour per API key.</p>
+            <p>API requests are limited to 100 requests per minute per API key (configurable).</p>
           </div>
         </CardContent>
       </Card>

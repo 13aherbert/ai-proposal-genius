@@ -493,7 +493,7 @@ export function SSOConfiguration() {
                         <h4 className="font-medium">{config.provider_name}</h4>
                         <Badge variant="secondary">{config.provider_type.toUpperCase()}</Badge>
                         {config.is_active && (
-                          <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                          <Badge variant="outline" className="text-primary border-primary">Active</Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">

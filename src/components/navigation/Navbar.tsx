@@ -209,7 +209,52 @@ export function Navbar() {
           </div>
 
           {/* Desktop profile dropdown */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-2">
+            {/* Enterprise Badge */}
+            {session && isEnterprise && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-semibold hover:bg-amber-500/20 transition-colors">
+                    <Crown className="h-3.5 w-3.5" />
+                    Enterprise
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-0">
+                  <div className="p-4 border-b bg-amber-500/5">
+                    <p className="text-sm font-semibold text-foreground">Your CSM: {csm.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{csm.email}</p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <a
+                      href={`mailto:${csm.email}`}
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    >
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      Email CSM
+                    </a>
+                    <a
+                      href={csm.calendlyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    >
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      Book a Call
+                    </a>
+                    <Link
+                      to="/enterprise-support"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    >
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                      Priority Support
+                    </Link>
+                  </div>
+                  <div className="px-4 py-2.5 border-t bg-muted/30">
+                    <p className="text-xs text-muted-foreground">4-hour email SLA · Dedicated support</p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

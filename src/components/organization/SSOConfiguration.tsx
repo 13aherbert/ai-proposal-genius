@@ -377,7 +377,7 @@ export function SSOConfiguration() {
                   testResult.success ? "bg-primary/10 border border-primary/20" : "bg-destructive/10 border border-destructive/20"
                 )}>
                   {testResult.success ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                   ) : (
                     <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
                   )}

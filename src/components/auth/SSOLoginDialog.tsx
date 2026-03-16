@@ -1,0 +1,87 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, Loader2, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface SSOLoginDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SSOLoginDialog({ open, onOpenChange }: SSOLoginDialogProps) {
+  const [email, setEmail] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleCheck = async () => {
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setIsChecking(true);
+    setError("");
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('check-sso-domain', {
+        body: { email },
+      });
+
+      if (fnError) throw fnError;
+
+      if (data?.ssoEnabled && data?.ssoUrl) {
+        // Redirect to the IdP SSO URL
+        window.location.href = data.ssoUrl;
+      } else {
+        setError("No SSO configured for this domain. Please use password login.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to check SSO configuration");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />Sign in with SSO
+          </DialogTitle>
+          <DialogDescription>
+            Enter your company email to sign in via your organization's identity provider.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label htmlFor="sso-email">Company Email</Label>
+            <Input
+              id="sso-email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <Button onClick={handleCheck} disabled={isChecking || !email} className="w-full">
+            {isChecking ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking...</> : 'Continue with SSO'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

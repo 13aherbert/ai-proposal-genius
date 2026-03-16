@@ -1589,6 +1589,10 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          csm_calendly_url: string | null
+          csm_email: string | null
+          csm_name: string | null
+          csm_phone: string | null
           custom_domain_enabled: boolean | null
           enterprise_features: Json | null
           id: string
@@ -1604,6 +1608,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          csm_calendly_url?: string | null
+          csm_email?: string | null
+          csm_name?: string | null
+          csm_phone?: string | null
           custom_domain_enabled?: boolean | null
           enterprise_features?: Json | null
           id?: string
@@ -1619,6 +1627,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          csm_calendly_url?: string | null
+          csm_email?: string | null
+          csm_name?: string | null
+          csm_phone?: string | null
           custom_domain_enabled?: boolean | null
           enterprise_features?: Json | null
           id?: string

@@ -159,7 +159,7 @@ export default function Dashboard() {
       <UsageProgressWidget
         projectCount={dashboardStats.projectCount}
         projectLimit={projectLimit}
-        currentPlan={(['starter', 'growth', 'business'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business'}
+        currentPlan={(['starter', 'growth', 'business', 'enterprise'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business' | 'enterprise'}
       />
 
       <DashboardHeader />

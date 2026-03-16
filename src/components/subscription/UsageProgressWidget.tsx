@@ -97,16 +97,25 @@ export function UsageProgressWidget({
               {/* Mobile compact view */}
               <div className="flex items-center gap-2 sm:hidden">
                 <Circle
-                  className={cn("h-2.5 w-2.5 fill-current", dotColor, isAtLimit && "animate-pulse")}
+                  className={cn("h-2.5 w-2.5 fill-current", isUnlimited ? "text-brand-green" : dotColor, isAtLimit && "animate-pulse")}
                 />
-                <span className="text-sm font-semibold text-foreground">
-                  {projectCount}/{projectLimit}
-                </span>
-                <span className="text-xs text-muted-foreground">projects</span>
-                {isAtLimit && (
-                  <Button size="sm" variant="default" className="ml-auto h-7 text-xs">
-                    Upgrade
-                  </Button>
+                {isUnlimited ? (
+                  <>
+                    <span className="text-sm font-semibold text-foreground">Unlimited</span>
+                    <span className="text-xs text-muted-foreground">projects</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-semibold text-foreground">
+                      {projectCount}/{projectLimit}
+                    </span>
+                    <span className="text-xs text-muted-foreground">projects</span>
+                    {isAtLimit && (
+                      <Button size="sm" variant="default" className="ml-auto h-7 text-xs">
+                        Upgrade
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -120,52 +129,69 @@ export function UsageProgressWidget({
                       {PLAN_LABELS[currentPlan] ?? currentPlan}
                     </Badge>
                   </div>
-                  {isAtLimit && (
+                  {isAtLimit && !isUnlimited && (
                     <Circle className="h-2.5 w-2.5 fill-current text-destructive animate-pulse" />
                   )}
                 </div>
 
-                {/* Large number */}
-                <p className="text-2xl font-bold text-foreground tracking-tight">
-                  {projectCount} <span className="text-base font-normal text-muted-foreground">of {projectLimit} used</span>
-                </p>
-
-                {/* Animated progress bar */}
-                <Progress
-                  value={animatedValue}
-                  className={cn("h-2 transition-all duration-700", progressColor)}
-                />
-
-                {/* Details row */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {isAtLimit
-                      ? "Limit reached"
-                      : `${remaining} remaining`}
-                  </span>
-                  <span>Resets Jan 1, {nextYear}</span>
-                </div>
-
-                {/* Upgrade CTA when >50% or at limit */}
-                {(isNear || isAtLimit) && (
-                  <div className="flex items-center justify-between pt-1">
-                    <p className={cn("text-xs", isAtLimit ? "text-destructive" : "text-muted-foreground")}>
-                      {isAtLimit
-                        ? "Upgrade to create more projects"
-                        : "Running low — consider upgrading"}
+                {isUnlimited ? (
+                  <>
+                    <p className="text-2xl font-bold text-foreground tracking-tight">
+                      {projectCount} <span className="text-base font-normal text-muted-foreground">projects — Unlimited</span>
                     </p>
-                    <Button
-                      size="sm"
-                      variant={isAtLimit ? "default" : "outline"}
-                      className="h-7 text-xs gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGateOpen(true);
-                      }}
-                    >
-                      Upgrade <ArrowUpRight className="h-3 w-3" />
-                    </Button>
-                  </div>
+                    <Progress
+                      value={0}
+                      className="h-2 [&>div]:bg-brand-green"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      No project limit on your Enterprise plan
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Large number */}
+                    <p className="text-2xl font-bold text-foreground tracking-tight">
+                      {projectCount} <span className="text-base font-normal text-muted-foreground">of {projectLimit} used</span>
+                    </p>
+
+                    {/* Animated progress bar */}
+                    <Progress
+                      value={animatedValue}
+                      className={cn("h-2 transition-all duration-700", progressColor)}
+                    />
+
+                    {/* Details row */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {isAtLimit
+                          ? "Limit reached"
+                          : `${remaining} remaining`}
+                      </span>
+                      <span>Resets Jan 1, {nextYear}</span>
+                    </div>
+
+                    {/* Upgrade CTA when >50% or at limit */}
+                    {(isNear || isAtLimit) && (
+                      <div className="flex items-center justify-between pt-1">
+                        <p className={cn("text-xs", isAtLimit ? "text-destructive" : "text-muted-foreground")}>
+                          {isAtLimit
+                            ? "Upgrade to create more projects"
+                            : "Running low — consider upgrading"}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant={isAtLimit ? "default" : "outline"}
+                          className="h-7 text-xs gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGateOpen(true);
+                          }}
+                        >
+                          Upgrade <ArrowUpRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

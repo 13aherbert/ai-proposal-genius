@@ -58,6 +58,7 @@ import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
+import AdminLayout from "@/layouts/AdminLayout";
 
 // Create a client
 const queryClient = new QueryClient({

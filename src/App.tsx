@@ -103,11 +103,15 @@ function AppContent() {
         <Route path="/account-settings" element={<Navigate to="/account" replace />} />
       </Route>
       
-      {/* Admin Routes - wrapped in ProtectedRoute for authentication */}
-      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+      {/* Admin Routes - wrapped in ProtectedRoute + AdminLayout with sidebar & role gate */}
+      <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagementPage />} />
         <Route path="/admin/blog" element={<BlogManagement />} />
+        <Route path="/admin/projects" element={<AdminProjects />} />
+        <Route path="/admin/security" element={<AdminSecurity />} />
+        <Route path="/admin/billing" element={<AdminBilling />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />

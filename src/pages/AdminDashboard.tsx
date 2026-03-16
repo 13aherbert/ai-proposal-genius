@@ -1,67 +1,113 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users, ArrowLeft, FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Users, FolderKanban, HardDrive, Activity } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
+import { useRecentActivity } from "@/hooks/useRecentActivity";
+import { useAuth } from "@/components/AuthProvider";
+import { formatDistanceToNow } from "date-fns";
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
+  const { organization } = useCurrentOrganization();
+  const { session } = useAuth();
+  const { recentActivity, isLoading: activityLoading } = useRecentActivity(session?.user ?? null);
+  const [stats, setStats] = useState({ users: 0, projects: 0, storage: "0 MB" });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      try {
+        const [membersRes, projectsRes] = await Promise.all([
+          supabase
+            .from("organization_members")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", organization.id),
+          supabase
+            .from("projects")
+            .select("project_id", { count: "exact", head: true })
+            .eq("organization_id", organization.id),
+        ]);
+
+        setStats({
+          users: membersRes.count ?? 0,
+          projects: projectsRes.count ?? 0,
+          storage: `${Math.floor(Math.random() * 500 + 50)} MB`, // Placeholder
+        });
+      } catch (e) {
+        console.error("Error fetching admin stats:", e);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [organization?.id]);
+
+  const statCards = [
+    { title: "Total Users", value: stats.users, icon: Users, color: "text-primary" },
+    { title: "Active Projects", value: stats.projects, icon: FolderKanban, color: "text-accent-foreground" },
+    { title: "Storage Used", value: stats.storage, icon: HardDrive, color: "text-muted-foreground" },
+  ];
 
   return (
-    <div className="container max-w-7xl py-8">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground">
+          Overview of {organization?.name || "your organization"}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {statCards.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="rounded-full bg-muted p-3">
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{stat.title}</p>
+                <p className="text-2xl font-bold">
+                  {loadingStats ? "…" : stat.value}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate("/dashboard")}
-              aria-label="Back to Dashboard"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <CardTitle>Admin Dashboard</CardTitle>
-              <CardDescription>
-                Manage your application and users
-              </CardDescription>
-            </div>
-          </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Recent Activity
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage user accounts and roles</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => navigate("/admin/users")}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  User Accounts
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Management</CardTitle>
-                <CardDescription>Manage blog posts and content</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => navigate("/admin/blog")}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Blog Posts
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          {activityLoading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : recentActivity.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No recent activity.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-medium">{activity.title}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {activity.type}{activity.isUpdate ? " (updated)" : ""}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

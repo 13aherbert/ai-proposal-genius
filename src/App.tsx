@@ -28,6 +28,10 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import BlogManagement from "@/pages/admin/BlogManagement";
+import AdminProjects from "@/pages/admin/AdminProjects";
+import AdminSecurity from "@/pages/admin/AdminSecurity";
+import AdminBilling from "@/pages/admin/AdminBilling";
+import AdminSettings from "@/pages/admin/AdminSettings";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
@@ -54,6 +58,7 @@ import { SecurityProvider } from "@/components/security/SecurityProvider";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
+import AdminLayout from "@/layouts/AdminLayout";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -98,11 +103,15 @@ function AppContent() {
         <Route path="/account-settings" element={<Navigate to="/account" replace />} />
       </Route>
       
-      {/* Admin Routes - wrapped in ProtectedRoute for authentication */}
-      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+      {/* Admin Routes - wrapped in ProtectedRoute + AdminLayout with sidebar & role gate */}
+      <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagementPage />} />
         <Route path="/admin/blog" element={<BlogManagement />} />
+        <Route path="/admin/projects" element={<AdminProjects />} />
+        <Route path="/admin/security" element={<AdminSecurity />} />
+        <Route path="/admin/billing" element={<AdminBilling />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />

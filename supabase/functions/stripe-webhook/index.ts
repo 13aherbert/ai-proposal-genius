@@ -126,6 +126,50 @@ async function notifyDowngradeWarning(userId: string, teamSize: number) {
   );
 }
 
+/** Sync organization subscription_tier to match the subscription plan */
+async function syncOrganizationTier(userId: string, planSlug: string) {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('current_organization_id')
+      .eq('profile_id', userId)
+      .maybeSingle();
+
+    if (!profile?.current_organization_id) {
+      console.log('No current_organization_id for user', userId);
+      return;
+    }
+
+    const orgId = profile.current_organization_id;
+    const isEnterprise = planSlug === 'enterprise';
+    const tier = await lookupPricingTier(planSlug);
+
+    const updatePayload: Record<string, any> = {
+      subscription_tier: planSlug,
+      max_projects: isEnterprise ? -1 : (tier?.projects_limit ?? getProjectLimit(planSlug)),
+      max_users: isEnterprise ? -1 : (tier?.users_limit ?? (hasUnlimitedUsers(planSlug) ? -1 : 1)),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isEnterprise) {
+      updatePayload.sso_enabled = true;
+    }
+
+    const { error } = await supabase
+      .from('organizations')
+      .update(updatePayload)
+      .eq('id', orgId);
+
+    if (error) {
+      console.error('Error syncing organization tier:', error);
+    } else {
+      console.log(`Synced org ${orgId} to tier ${planSlug}`);
+    }
+  } catch (e) {
+    console.error('syncOrganizationTier error:', e);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Webhook handler
 // ---------------------------------------------------------------------------
@@ -184,6 +228,10 @@ serve(async (req) => {
           console.error('Error storing subscription:', error);
         } else {
           console.log('Subscription stored successfully');
+          // Sync org tier
+          if (session.client_reference_id) {
+            await syncOrganizationTier(session.client_reference_id, planSlug);
+          }
           // Notify about unlimited team if applicable
           if (usersLimit === -1 && session.client_reference_id) {
             await notifyTeamUnlocked(session.client_reference_id, tier?.name ?? planSlug);
@@ -244,6 +292,18 @@ serve(async (req) => {
           console.error('Error updating subscription:', error);
         }
 
+        // Sync org tier
+        {
+          const { data: subRow2 } = await supabase
+            .from('subscriptions')
+            .select('user_id')
+            .eq('stripe_subscription_id', subscription.id)
+            .maybeSingle();
+          if (subRow2?.user_id) {
+            await syncOrganizationTier(subRow2.user_id, planSlug);
+          }
+        }
+
         // Downgrade warning: if moving to starter and team > 1
         if (usersLimit !== -1) {
           const { data: subRow } = await supabase
@@ -293,7 +353,11 @@ serve(async (req) => {
 
         if (error) {
           console.error('Error downgrading to starter:', error);
-        } else if (subRow?.user_id) {
+        }
+        
+        // Sync org tier to starter
+        if (subRow?.user_id) {
+          await syncOrganizationTier(subRow.user_id, 'starter');
           const teamSize = await countOrgMembers(subRow.user_id);
           if (teamSize > 1) {
             await notifyDowngradeWarning(subRow.user_id, teamSize);

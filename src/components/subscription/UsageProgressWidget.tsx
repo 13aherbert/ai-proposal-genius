@@ -15,7 +15,7 @@ import { ArrowUpRight, Circle } from "lucide-react";
 interface UsageProgressWidgetProps {
   projectCount: number;
   projectLimit: number;
-  currentPlan?: "starter" | "growth" | "business";
+  currentPlan?: "starter" | "growth" | "business" | "enterprise";
   className?: string;
 }
 
@@ -23,6 +23,7 @@ const PLAN_LABELS: Record<string, string> = {
   starter: "Starter (Free)",
   growth: "Growth",
   business: "Business",
+  enterprise: "Enterprise",
 };
 
 export function UsageProgressWidget({
@@ -43,12 +44,14 @@ export function UsageProgressWidget({
     return () => clearTimeout(timer);
   }, [percentage]);
 
-  if (projectCount <= 0 && projectLimit <= 0) return null;
+  const isUnlimited = currentPlan === "enterprise" || projectLimit === -1;
 
-  const remaining = Math.max(projectLimit - projectCount, 0);
-  const isAtLimit = projectCount >= projectLimit;
-  const isNear = ratio > 0.5 && !isAtLimit;
-  const isWarning = ratio > 0.83;
+  if (!isUnlimited && projectCount <= 0 && projectLimit <= 0) return null;
+
+  const remaining = isUnlimited ? Infinity : Math.max(projectLimit - projectCount, 0);
+  const isAtLimit = !isUnlimited && projectCount >= projectLimit;
+  const isNear = !isUnlimited && ratio > 0.5 && !isAtLimit;
+  const isWarning = !isUnlimited && ratio > 0.83;
 
   // Color logic: green 0-50%, yellow 51-83%, red 84-100%
   const progressColor = isAtLimit || isWarning
@@ -94,16 +97,25 @@ export function UsageProgressWidget({
               {/* Mobile compact view */}
               <div className="flex items-center gap-2 sm:hidden">
                 <Circle
-                  className={cn("h-2.5 w-2.5 fill-current", dotColor, isAtLimit && "animate-pulse")}
+                  className={cn("h-2.5 w-2.5 fill-current", isUnlimited ? "text-brand-green" : dotColor, isAtLimit && "animate-pulse")}
                 />
-                <span className="text-sm font-semibold text-foreground">
-                  {projectCount}/{projectLimit}
-                </span>
-                <span className="text-xs text-muted-foreground">projects</span>
-                {isAtLimit && (
-                  <Button size="sm" variant="default" className="ml-auto h-7 text-xs">
-                    Upgrade
-                  </Button>
+                {isUnlimited ? (
+                  <>
+                    <span className="text-sm font-semibold text-foreground">Unlimited</span>
+                    <span className="text-xs text-muted-foreground">projects</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-semibold text-foreground">
+                      {projectCount}/{projectLimit}
+                    </span>
+                    <span className="text-xs text-muted-foreground">projects</span>
+                    {isAtLimit && (
+                      <Button size="sm" variant="default" className="ml-auto h-7 text-xs">
+                        Upgrade
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -117,52 +129,69 @@ export function UsageProgressWidget({
                       {PLAN_LABELS[currentPlan] ?? currentPlan}
                     </Badge>
                   </div>
-                  {isAtLimit && (
+                  {isAtLimit && !isUnlimited && (
                     <Circle className="h-2.5 w-2.5 fill-current text-destructive animate-pulse" />
                   )}
                 </div>
 
-                {/* Large number */}
-                <p className="text-2xl font-bold text-foreground tracking-tight">
-                  {projectCount} <span className="text-base font-normal text-muted-foreground">of {projectLimit} used</span>
-                </p>
-
-                {/* Animated progress bar */}
-                <Progress
-                  value={animatedValue}
-                  className={cn("h-2 transition-all duration-700", progressColor)}
-                />
-
-                {/* Details row */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {isAtLimit
-                      ? "Limit reached"
-                      : `${remaining} remaining`}
-                  </span>
-                  <span>Resets Jan 1, {nextYear}</span>
-                </div>
-
-                {/* Upgrade CTA when >50% or at limit */}
-                {(isNear || isAtLimit) && (
-                  <div className="flex items-center justify-between pt-1">
-                    <p className={cn("text-xs", isAtLimit ? "text-destructive" : "text-muted-foreground")}>
-                      {isAtLimit
-                        ? "Upgrade to create more projects"
-                        : "Running low — consider upgrading"}
+                {isUnlimited ? (
+                  <>
+                    <p className="text-2xl font-bold text-foreground tracking-tight">
+                      {projectCount} <span className="text-base font-normal text-muted-foreground">projects — Unlimited</span>
                     </p>
-                    <Button
-                      size="sm"
-                      variant={isAtLimit ? "default" : "outline"}
-                      className="h-7 text-xs gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGateOpen(true);
-                      }}
-                    >
-                      Upgrade <ArrowUpRight className="h-3 w-3" />
-                    </Button>
-                  </div>
+                    <Progress
+                      value={0}
+                      className="h-2 [&>div]:bg-brand-green"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      No project limit on your Enterprise plan
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Large number */}
+                    <p className="text-2xl font-bold text-foreground tracking-tight">
+                      {projectCount} <span className="text-base font-normal text-muted-foreground">of {projectLimit} used</span>
+                    </p>
+
+                    {/* Animated progress bar */}
+                    <Progress
+                      value={animatedValue}
+                      className={cn("h-2 transition-all duration-700", progressColor)}
+                    />
+
+                    {/* Details row */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {isAtLimit
+                          ? "Limit reached"
+                          : `${remaining} remaining`}
+                      </span>
+                      <span>Resets Jan 1, {nextYear}</span>
+                    </div>
+
+                    {/* Upgrade CTA when >50% or at limit */}
+                    {(isNear || isAtLimit) && (
+                      <div className="flex items-center justify-between pt-1">
+                        <p className={cn("text-xs", isAtLimit ? "text-destructive" : "text-muted-foreground")}>
+                          {isAtLimit
+                            ? "Upgrade to create more projects"
+                            : "Running low — consider upgrading"}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant={isAtLimit ? "default" : "outline"}
+                          className="h-7 text-xs gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGateOpen(true);
+                          }}
+                        >
+                          Upgrade <ArrowUpRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

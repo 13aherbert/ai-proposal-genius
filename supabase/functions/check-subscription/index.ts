@@ -153,6 +153,9 @@ serve(async (req) => {
       }
     }
     
+    // Sync organization subscription_tier if mismatched
+    await syncOrgTier(supabase, user.id, normalizedPlanType);
+    
     console.log(`Returning subscription data for user ${user.id}: plan=${subscription.plan_type}, limit=${subscription.project_limit}`);
 
     return addCorsHeaders(new Response(
@@ -208,4 +211,54 @@ async function createSubscription(supabase: any, userId: string, planType: strin
   }
   
   return insertData?.[0] || newSubscription;
+}
+
+/** Sync organizations.subscription_tier to match the user's subscription plan */
+async function syncOrgTier(supabase: any, userId: string, planSlug: string) {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('current_organization_id')
+      .eq('profile_id', userId)
+      .maybeSingle();
+
+    if (!profile?.current_organization_id) return;
+
+    const orgId = profile.current_organization_id;
+
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('subscription_tier')
+      .eq('id', orgId)
+      .maybeSingle();
+
+    if (org?.subscription_tier === planSlug) return; // already in sync
+
+    const isEnterprise = planSlug === 'enterprise';
+    const updatePayload: Record<string, any> = {
+      subscription_tier: planSlug,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isEnterprise) {
+      updatePayload.max_projects = -1;
+      updatePayload.max_users = -1;
+      updatePayload.sso_enabled = true;
+    } else {
+      updatePayload.max_projects = getProjectLimit(planSlug);
+    }
+
+    const { error } = await supabase
+      .from('organizations')
+      .update(updatePayload)
+      .eq('id', orgId);
+
+    if (error) {
+      console.error(`Error syncing org tier: ${error.message}`);
+    } else {
+      console.log(`Synced org ${orgId} tier to ${planSlug}`);
+    }
+  } catch (e) {
+    console.error('syncOrgTier error:', e);
+  }
 }

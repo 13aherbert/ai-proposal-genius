@@ -3,6 +3,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
+import { useCSMContact } from "@/hooks/use-csm-contact";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -25,6 +26,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import {
   Menu,
   Upload,
@@ -40,6 +43,10 @@ import {
   Code2,
   RotateCcw,
   DollarSign,
+  Crown,
+  Mail,
+  Calendar,
+  Shield,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<

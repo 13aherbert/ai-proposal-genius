@@ -14,9 +14,13 @@ import {
   CheckCircle,
   ArrowRight,
   Rocket,
-  Star
+  Star,
+  Mail,
+  Calendar,
 } from 'lucide-react';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
+import { useCSMContact } from '@/hooks/use-csm-contact';
+import { Link } from 'react-router-dom';
 
 const quickActions = [
   {

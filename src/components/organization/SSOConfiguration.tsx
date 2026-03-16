@@ -129,8 +129,8 @@ export function SSOConfiguration() {
   const startWizard = (template?: ProviderTemplate) => {
     if (template) {
       setSelectedTemplate(template);
-      setConfigFields({ ...template.config });
-      setAttributeMappings({ ...template.attributeMappings });
+      setConfigFields({ entity_id: template.config.entity_id || '', sso_url: template.config.sso_url || '', certificate: template.config.certificate || '' });
+      setAttributeMappings({ email: template.attributeMappings.email || '', firstName: template.attributeMappings.firstName || '', lastName: template.attributeMappings.lastName || '' });
       setWizardStep(1); // skip to configure
     } else {
       setSelectedTemplate(null);

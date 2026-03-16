@@ -126,6 +126,50 @@ async function notifyDowngradeWarning(userId: string, teamSize: number) {
   );
 }
 
+/** Sync organization subscription_tier to match the subscription plan */
+async function syncOrganizationTier(userId: string, planSlug: string) {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('current_organization_id')
+      .eq('profile_id', userId)
+      .maybeSingle();
+
+    if (!profile?.current_organization_id) {
+      console.log('No current_organization_id for user', userId);
+      return;
+    }
+
+    const orgId = profile.current_organization_id;
+    const isEnterprise = planSlug === 'enterprise';
+    const tier = await lookupPricingTier(planSlug);
+
+    const updatePayload: Record<string, any> = {
+      subscription_tier: planSlug,
+      max_projects: isEnterprise ? -1 : (tier?.projects_limit ?? getProjectLimit(planSlug)),
+      max_users: isEnterprise ? -1 : (tier?.users_limit ?? (hasUnlimitedUsers(planSlug) ? -1 : 1)),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isEnterprise) {
+      updatePayload.sso_enabled = true;
+    }
+
+    const { error } = await supabase
+      .from('organizations')
+      .update(updatePayload)
+      .eq('id', orgId);
+
+    if (error) {
+      console.error('Error syncing organization tier:', error);
+    } else {
+      console.log(`Synced org ${orgId} to tier ${planSlug}`);
+    }
+  } catch (e) {
+    console.error('syncOrganizationTier error:', e);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Webhook handler
 // ---------------------------------------------------------------------------

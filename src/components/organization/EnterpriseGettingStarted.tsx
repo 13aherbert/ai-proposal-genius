@@ -298,17 +298,26 @@ export function EnterpriseGettingStarted() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Available Support Channels:</h4>
+                  <h4 className="font-medium">Your CSM: {csm.name}</h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>• 24/7 Priority Email Support</li>
                     <li>• Dedicated Account Manager</li>
                     <li>• Phone Support (Business Hours)</li>
-                    <li>• Video Consultation Sessions</li>
+                    <li>• 4-hour email SLA</li>
                   </ul>
                 </div>
-                <Button className="w-full">
-                  Contact Support
-                </Button>
+                <div className="flex gap-2">
+                  <Button className="flex-1" asChild>
+                    <a href={`mailto:${csm.email}`}>
+                      <Mail className="mr-2 h-4 w-4" /> Email CSM
+                    </a>
+                  </Button>
+                  <Button variant="outline" className="flex-1" asChild>
+                    <a href={csm.calendlyUrl} target="_blank" rel="noopener noreferrer">
+                      <Calendar className="mr-2 h-4 w-4" /> Book Call
+                    </a>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 

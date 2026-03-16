@@ -26,6 +26,7 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showSSODialog, setShowSSODialog] = useState(false);
 
   // If user just signed up, show onboarding
   if (showOnboarding && session) {

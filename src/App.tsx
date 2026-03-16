@@ -29,6 +29,7 @@ import BlogManagement from "@/pages/admin/BlogManagement";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
+import EnterpriseSupport from "@/pages/EnterpriseSupport";
 import ApiDocs from "@/pages/ApiDocs";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";

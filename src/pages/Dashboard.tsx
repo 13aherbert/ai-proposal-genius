@@ -24,6 +24,7 @@ import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
+import { CSMContactWidget } from "@/components/dashboard/CSMContactWidget";
 import { ProgressiveOnboarding } from "@/components/onboarding/ProgressiveOnboarding";
 import { OnboardingResumeBanner } from "@/components/onboarding/OnboardingResumeBanner";
 import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";

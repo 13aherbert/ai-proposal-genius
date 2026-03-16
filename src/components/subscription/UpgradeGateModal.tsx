@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-type CurrentPlan = 'starter' | 'growth' | 'business';
+type CurrentPlan = 'starter' | 'growth' | 'business' | 'enterprise';
 
 interface UpgradeGateModalProps {
   open: boolean;

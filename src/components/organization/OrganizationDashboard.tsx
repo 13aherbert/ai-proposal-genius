@@ -7,6 +7,7 @@ import { TeamManagement } from './TeamManagement';
 import { UsageAnalytics } from './UsageAnalytics';
 import { SecurityDashboard } from './SecurityDashboard';
 import { SSOConfiguration } from './SSOConfiguration';
+import { SSOSettings } from './SSOSettings';
 import { ComplianceManager } from './ComplianceManager';
 import { DomainManager } from './DomainManager';
 import { ApiManagement } from './ApiManagement';
@@ -213,6 +214,7 @@ export function OrganizationDashboard() {
             <div className="grid gap-6">
               <SecurityDashboard />
               <SSOConfiguration />
+              <SSOSettings />
               <ComplianceManager />
             </div>
           </TabsContent>

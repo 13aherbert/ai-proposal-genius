@@ -1602,7 +1602,10 @@ export type Database = {
           name: string
           settings: Json | null
           slug: string
+          sso_allow_password_fallback: boolean | null
+          sso_auto_redirect: boolean | null
           sso_enabled: boolean | null
+          sso_required: boolean | null
           subscription_tier: string | null
           updated_at: string
         }
@@ -1621,7 +1624,10 @@ export type Database = {
           name: string
           settings?: Json | null
           slug: string
+          sso_allow_password_fallback?: boolean | null
+          sso_auto_redirect?: boolean | null
           sso_enabled?: boolean | null
+          sso_required?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
         }
@@ -1640,7 +1646,10 @@ export type Database = {
           name?: string
           settings?: Json | null
           slug?: string
+          sso_allow_password_fallback?: boolean | null
+          sso_auto_redirect?: boolean | null
           sso_enabled?: boolean | null
+          sso_required?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
         }

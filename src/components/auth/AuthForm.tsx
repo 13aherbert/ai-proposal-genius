@@ -11,6 +11,8 @@ import { EnhancedSignupForm } from "./onboarding/EnhancedSignupForm";
 import { OnboardingRouter } from "./onboarding/OnboardingRouter";
 import { validateEmail, ClientRateLimit } from "@/utils/security/input-sanitizer";
 import { CSRFProtection } from "@/utils/security/auth-security";
+import { SSOLoginDialog } from "./SSOLoginDialog";
+import { Shield } from "lucide-react";
 
 interface AuthFormProps {
   defaultView?: 'sign_in' | 'sign_up';
@@ -24,6 +26,7 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showSSODialog, setShowSSODialog] = useState(false);
 
   // If user just signed up, show onboarding
   if (showOnboarding && session) {
@@ -132,13 +135,31 @@ export function AuthForm({ defaultView = 'sign_in', variant = 'page' }: AuthForm
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full flex items-center gap-2"
+            onClick={() => setShowSSODialog(true)}
+          >
+            <Shield className="h-4 w-4" />
+            Sign in with SSO
+          </Button>
+
+          <div className="mt-4 text-center">
             <Button variant="link" onClick={() => setIsLogin(false)}>
               Don't have an account? Sign up
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <SSOLoginDialog open={showSSODialog} onOpenChange={setShowSSODialog} />
     </div>
   );
 }

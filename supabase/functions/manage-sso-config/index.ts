@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Sensitive keys that should never be returned to the client
 const SENSITIVE_KEYS = [
   'client_secret', 'secret', 'private_key', 'signing_key',
   'refresh_token', 'certificate', 'cert', 'key', 'password',
@@ -31,47 +30,73 @@ function maskSensitiveFields(config: Record<string, unknown>): Record<string, un
   return masked;
 }
 
+function validateSSOConfig(configData: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const config = configData?.configuration || {};
+
+  if (!config.sso_url) errors.push('SSO URL is required');
+  else if (!config.sso_url.startsWith('https://')) errors.push('SSO URL must use HTTPS');
+
+  if (!config.entity_id) errors.push('Entity ID / Issuer is required');
+
+  if (config.certificate) {
+    const cert = config.certificate.trim();
+    if (!cert.includes('BEGIN CERTIFICATE') && !cert.includes('BEGIN X509')) {
+      errors.push('Certificate does not appear to be in valid X.509 PEM format');
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+async function authorizeRequest(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { authorized: false, userId: null, error: 'Unauthorized' };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return { authorized: false, userId: null, error: 'Unauthorized' };
+  }
+
+  return { authorized: true, userId: claimsData.claims.sub as string, error: null };
+}
+
+async function checkOrgAdmin(adminClient: any, organizationId: string, userId: string) {
+  const { data: membership } = await adminClient
+    .from('organization_members')
+    .select('role')
+    .eq('organization_id', organizationId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .single();
+
+  return membership && ['owner', 'admin'].includes(membership.role);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    const auth = await authorizeRequest(req);
+    if (!auth.authorized) {
+      return new Response(JSON.stringify({ error: auth.error }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
 
     const body = await req.json();
-    const { action, organizationId, configId, configData } = body as {
-      action: 'list' | 'create' | 'update' | 'delete' | 'toggle';
-      organizationId: string;
-      configId?: string;
-      configData?: {
-        provider_type: string;
-        provider_name: string;
-        configuration: Record<string, unknown>;
-        is_active: boolean;
-      };
-    };
+    const { action, organizationId, configId, configData } = body;
 
     if (!organizationId || !action) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -79,23 +104,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user is org owner/admin
-    const { data: membership } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', organizationId)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .single();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    const isAdmin = await checkOrgAdmin(adminClient, organizationId, auth.userId!);
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     switch (action) {
       case 'list': {
@@ -104,10 +122,8 @@ Deno.serve(async (req) => {
           .select('*')
           .eq('organization_id', organizationId)
           .order('created_at', { ascending: false });
-
         if (error) throw error;
 
-        // Mask sensitive fields before returning
         const masked = (data || []).map((config: any) => ({
           ...config,
           configuration: maskSensitiveFields(config.configuration || {}),
@@ -124,8 +140,6 @@ Deno.serve(async (req) => {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
-        // Validate provider_type
         if (!['saml', 'oauth', 'oidc'].includes(configData.provider_type)) {
           return new Response(JSON.stringify({ error: 'Invalid provider type' }), {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -141,10 +155,57 @@ Deno.serve(async (req) => {
             configuration: configData.configuration || {},
             is_active: configData.is_active || false,
           });
-
         if (error) throw error;
 
+        // Log audit event
+        try {
+          await adminClient.rpc('log_security_event', {
+            event_type_param: 'sso_config_created',
+            details_param: {
+              organization_id: organizationId,
+              provider: configData.provider_name,
+              admin_user: auth.userId,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        } catch (logErr) {
+          console.warn('Failed to log SSO audit event:', logErr);
+        }
+
         return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'test': {
+        const validation = validateSSOConfig(configData);
+
+        // Attempt connectivity check if URL is valid
+        if (validation.valid && configData?.configuration?.sso_url) {
+          try {
+            const ssoUrl = configData.configuration.sso_url;
+            if (ssoUrl.startsWith('https://') && !ssoUrl.includes('{')) {
+              const resp = await fetch(ssoUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+              if (!resp.ok && resp.status !== 405 && resp.status !== 302 && resp.status !== 301) {
+                validation.errors.push(`SSO URL returned status ${resp.status}`);
+                validation.valid = false;
+              }
+            }
+          } catch (fetchErr: any) {
+            if (!configData.configuration.sso_url.includes('{')) {
+              validation.errors.push(`Could not reach SSO URL: ${fetchErr.message}`);
+              validation.valid = false;
+            }
+          }
+        }
+
+        return new Response(JSON.stringify({
+          success: validation.valid,
+          message: validation.valid
+            ? 'Configuration validated successfully. SSO URL is reachable and certificate format is valid.'
+            : `Validation failed: ${validation.errors.join('; ')}`,
+          errors: validation.errors,
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -155,26 +216,34 @@ Deno.serve(async (req) => {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
-        // Verify config belongs to org
         const { data: existing } = await adminClient
           .from('organization_sso_config')
           .select('is_active, organization_id')
           .eq('id', configId)
           .single();
-
         if (!existing || existing.organization_id !== organizationId) {
           return new Response(JSON.stringify({ error: 'Config not found' }), {
             status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
         const { error } = await adminClient
           .from('organization_sso_config')
           .update({ is_active: !existing.is_active })
           .eq('id', configId);
-
         if (error) throw error;
+
+        try {
+          await adminClient.rpc('log_security_event', {
+            event_type_param: 'sso_config_toggled',
+            details_param: {
+              organization_id: organizationId,
+              config_id: configId,
+              new_state: !existing.is_active,
+              admin_user: auth.userId,
+              timestamp: new Date().toISOString(),
+            },
+          });
+        } catch (logErr) { console.warn('Audit log failed:', logErr); }
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -187,26 +256,59 @@ Deno.serve(async (req) => {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
-        // Verify config belongs to org
         const { data: existingDel } = await adminClient
           .from('organization_sso_config')
           .select('organization_id')
           .eq('id', configId)
           .single();
-
         if (!existingDel || existingDel.organization_id !== organizationId) {
           return new Response(JSON.stringify({ error: 'Config not found' }), {
             status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
         const { error } = await adminClient
           .from('organization_sso_config')
           .delete()
           .eq('id', configId);
-
         if (error) throw error;
+
+        try {
+          await adminClient.rpc('log_security_event', {
+            event_type_param: 'sso_config_deleted',
+            details_param: { organization_id: organizationId, config_id: configId, admin_user: auth.userId, timestamp: new Date().toISOString() },
+          });
+        } catch (logErr) { console.warn('Audit log failed:', logErr); }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'update-settings': {
+        if (!configData) {
+          return new Response(JSON.stringify({ error: 'Settings data required' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const updatePayload: Record<string, any> = {};
+        if (typeof configData.sso_enabled === 'boolean') updatePayload.sso_enabled = configData.sso_enabled;
+        if (typeof configData.sso_required === 'boolean') updatePayload.sso_required = configData.sso_required;
+        if (typeof configData.sso_allow_password_fallback === 'boolean') updatePayload.sso_allow_password_fallback = configData.sso_allow_password_fallback;
+        if (typeof configData.sso_auto_redirect === 'boolean') updatePayload.sso_auto_redirect = configData.sso_auto_redirect;
+
+        const { error } = await adminClient
+          .from('organizations')
+          .update(updatePayload)
+          .eq('id', organizationId);
+        if (error) throw error;
+
+        try {
+          await adminClient.rpc('log_security_event', {
+            event_type_param: 'sso_settings_updated',
+            details_param: { organization_id: organizationId, settings: updatePayload, admin_user: auth.userId, timestamp: new Date().toISOString() },
+          });
+        } catch (logErr) { console.warn('Audit log failed:', logErr); }
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

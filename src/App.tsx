@@ -29,6 +29,7 @@ import BlogManagement from "@/pages/admin/BlogManagement";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
+import EnterpriseSupport from "@/pages/EnterpriseSupport";
 import ApiDocs from "@/pages/ApiDocs";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
@@ -85,6 +86,7 @@ function AppContent() {
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/referral" element={<Referral />} />
         <Route path="/api-docs" element={<ApiDocs />} />
+        <Route path="/enterprise-support" element={<EnterpriseSupport />} />
         
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />

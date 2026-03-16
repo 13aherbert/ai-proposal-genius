@@ -24,6 +24,7 @@ import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
 import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
 import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
+import { CSMContactWidget } from "@/components/dashboard/CSMContactWidget";
 import { ProgressiveOnboarding } from "@/components/onboarding/ProgressiveOnboarding";
 import { OnboardingResumeBanner } from "@/components/onboarding/OnboardingResumeBanner";
 import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";
@@ -154,14 +155,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
 
-      {/* Enterprise CSM Badge */}
-      {planType === 'enterprise' && (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
-          <Shield className="h-4 w-4 text-primary" />
-          <span className="font-medium text-foreground">Enterprise</span>
-          <span className="text-muted-foreground">— Dedicated CSM · Priority support · 4-hour SLA</span>
-        </div>
-      )}
       
       <UsageProgressWidget
         projectCount={dashboardStats.projectCount}
@@ -273,6 +266,7 @@ export default function Dashboard() {
         {/* Sidebar - only renders when there's content to show */}
         {showSidebar && (
           <div className="space-y-4">
+            <CSMContactWidget />
             {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
               <KnowledgeBaseReadiness compact />
             )}

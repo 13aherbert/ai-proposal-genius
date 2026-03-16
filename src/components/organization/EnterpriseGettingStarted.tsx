@@ -341,8 +341,8 @@ export function EnterpriseGettingStarted() {
                     <li>• Best Practices Guides</li>
                   </ul>
                 </div>
-                <Button variant="outline" className="w-full">
-                  View Documentation
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/docs">View Documentation</Link>
                 </Button>
               </CardContent>
             </Card>

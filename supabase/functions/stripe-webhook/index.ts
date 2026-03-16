@@ -292,6 +292,18 @@ serve(async (req) => {
           console.error('Error updating subscription:', error);
         }
 
+        // Sync org tier
+        {
+          const { data: subRow2 } = await supabase
+            .from('subscriptions')
+            .select('user_id')
+            .eq('stripe_subscription_id', subscription.id)
+            .maybeSingle();
+          if (subRow2?.user_id) {
+            await syncOrganizationTier(subRow2.user_id, planSlug);
+          }
+        }
+
         // Downgrade warning: if moving to starter and team > 1
         if (usersLimit !== -1) {
           const { data: subRow } = await supabase

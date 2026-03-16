@@ -44,12 +44,14 @@ export function UsageProgressWidget({
     return () => clearTimeout(timer);
   }, [percentage]);
 
-  if (projectCount <= 0 && projectLimit <= 0) return null;
+  const isUnlimited = currentPlan === "enterprise" || projectLimit === -1;
 
-  const remaining = Math.max(projectLimit - projectCount, 0);
-  const isAtLimit = projectCount >= projectLimit;
-  const isNear = ratio > 0.5 && !isAtLimit;
-  const isWarning = ratio > 0.83;
+  if (!isUnlimited && projectCount <= 0 && projectLimit <= 0) return null;
+
+  const remaining = isUnlimited ? Infinity : Math.max(projectLimit - projectCount, 0);
+  const isAtLimit = !isUnlimited && projectCount >= projectLimit;
+  const isNear = !isUnlimited && ratio > 0.5 && !isAtLimit;
+  const isWarning = !isUnlimited && ratio > 0.83;
 
   // Color logic: green 0-50%, yellow 51-83%, red 84-100%
   const progressColor = isAtLimit || isWarning

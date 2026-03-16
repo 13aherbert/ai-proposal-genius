@@ -22,6 +22,8 @@ import ResetPassword from "@/pages/ResetPassword";
 import Documentation from "@/pages/Documentation";
 import AccountSettings from "@/pages/AccountSettings";
 import Referral from "@/pages/Referral";
+import Team from "@/pages/Team";
+import TeamInvite from "@/pages/TeamInvite";
 import AdminDashboard from "@/pages/AdminDashboard";
 import SetInitialAdmin from "@/pages/SetInitialAdmin";
 import UserManagementPage from "@/pages/admin/UserManagementPage";
@@ -85,6 +87,8 @@ function AppContent() {
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/referral" element={<Referral />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/team/invite" element={<TeamInvite />} />
         <Route path="/api-docs" element={<ApiDocs />} />
         <Route path="/enterprise-support" element={<EnterpriseSupport />} />
         

@@ -467,11 +467,29 @@ export function Navbar() {
                     </Link>
                   </SheetClose>
 
-                  <Separator />
+                   <Separator />
 
-                  {/* Account */}
-                  <div className="space-y-1 mt-1">
-                    <SheetClose asChild>
+                   {/* Enterprise Priority Support (mobile) */}
+                   {isEnterprise && (
+                     <SheetClose asChild>
+                       <Link
+                         to="/enterprise-support"
+                         className={cn(
+                           "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                           isActive("/enterprise-support") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
+                         )}
+                       >
+                         <Crown className="h-5 w-5 text-amber-600" />
+                         Priority Support
+                       </Link>
+                     </SheetClose>
+                   )}
+
+                   {isEnterprise && <Separator />}
+
+                   {/* Account */}
+                   <div className="space-y-1 mt-1">
+                     <SheetClose asChild>
                       <Link
                         to="/account"
                         className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors"

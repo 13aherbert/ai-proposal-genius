@@ -266,6 +266,7 @@ export default function Dashboard() {
         {/* Sidebar - only renders when there's content to show */}
         {showSidebar && (
           <div className="space-y-4">
+            <CSMContactWidget />
             {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
               <KnowledgeBaseReadiness compact />
             )}

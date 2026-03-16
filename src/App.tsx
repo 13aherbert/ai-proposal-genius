@@ -86,6 +86,7 @@ function AppContent() {
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/referral" element={<Referral />} />
         <Route path="/api-docs" element={<ApiDocs />} />
+        <Route path="/enterprise-support" element={<EnterpriseSupport />} />
         
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />

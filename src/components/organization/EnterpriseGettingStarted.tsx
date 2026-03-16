@@ -364,8 +364,10 @@ export function EnterpriseGettingStarted() {
                     Custom implementation, training, and ongoing support
                   </p>
                 </div>
-                <Button>
-                  Schedule Consultation
+                <Button asChild>
+                  <a href={csm.calendlyUrl} target="_blank" rel="noopener noreferrer">
+                    Schedule Consultation
+                  </a>
                 </Button>
               </div>
             </CardContent>

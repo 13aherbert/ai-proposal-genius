@@ -125,6 +125,24 @@ export default function AccountSettings() {
                 <BrandGuidelinesCard />
 
                 <ReferralCard />
+
+                {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
+                  <div className="p-6 border rounded-lg bg-card">
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <span>🔑</span> API Access
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Generate and manage API keys for programmatic access to your organization's data.
+                    </p>
+                    <Button
+                      onClick={() => navigate("/organization")}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Manage API Keys
+                    </Button>
+                  </div>
+                )}
                 
                 {(profileData.organization_size === 'enterprise' || profileData.organization_size === 'white_label') && (
                   <div className="p-6 border rounded-lg bg-card">

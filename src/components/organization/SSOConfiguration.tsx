@@ -374,7 +374,7 @@ export function SSOConfiguration() {
               {testResult && (
                 <div className={cn(
                   "flex items-center gap-3 p-4 rounded-lg text-left",
-                  testResult.success ? "bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800" : "bg-destructive/10 border border-destructive/20"
+                  testResult.success ? "bg-primary/10 border border-primary/20" : "bg-destructive/10 border border-destructive/20"
                 )}>
                   {testResult.success ? (
                     <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />

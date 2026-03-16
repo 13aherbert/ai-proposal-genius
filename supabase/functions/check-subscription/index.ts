@@ -153,6 +153,9 @@ serve(async (req) => {
       }
     }
     
+    // Sync organization subscription_tier if mismatched
+    await syncOrgTier(supabase, user.id, normalizedPlanType);
+    
     console.log(`Returning subscription data for user ${user.id}: plan=${subscription.plan_type}, limit=${subscription.project_limit}`);
 
     return addCorsHeaders(new Response(

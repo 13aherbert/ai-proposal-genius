@@ -165,3 +165,13 @@ import_map = "import_map.json"
 name = "team-invite"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "check-sso-domain"
+verify_jwt = false
+import_map = "import_map.json"
+
+[[functions]]
+name = "sso-auth-callback"
+verify_jwt = false
+import_map = "import_map.json"

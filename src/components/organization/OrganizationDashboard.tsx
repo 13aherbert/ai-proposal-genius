@@ -214,6 +214,7 @@ export function OrganizationDashboard() {
             <div className="grid gap-6">
               <SecurityDashboard />
               <SSOConfiguration />
+              <SSOSettings />
               <ComplianceManager />
             </div>
           </TabsContent>

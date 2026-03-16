@@ -76,6 +76,7 @@ ListItem.displayName = "ListItem";
 export function Navbar() {
   const { session, signOut } = useAuth();
   const { profileData } = useProfile();
+  const { csm, isEnterprise } = useCSMContact();
   const location = useLocation();
 
   const handleSignOut = async () => {

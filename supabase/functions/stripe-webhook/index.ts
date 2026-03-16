@@ -228,6 +228,10 @@ serve(async (req) => {
           console.error('Error storing subscription:', error);
         } else {
           console.log('Subscription stored successfully');
+          // Sync org tier
+          if (session.client_reference_id) {
+            await syncOrganizationTier(session.client_reference_id, planSlug);
+          }
           // Notify about unlimited team if applicable
           if (usersLimit === -1 && session.client_reference_id) {
             await notifyTeamUnlocked(session.client_reference_id, tier?.name ?? planSlug);

@@ -23,6 +23,7 @@ const PLAN_LABELS: Record<string, string> = {
   starter: "Starter (Free)",
   growth: "Growth",
   business: "Business",
+  enterprise: "Enterprise",
 };
 
 export function UsageProgressWidget({

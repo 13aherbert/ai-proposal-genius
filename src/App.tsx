@@ -87,6 +87,8 @@ function AppContent() {
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/referral" element={<Referral />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/team/invite" element={<TeamInvite />} />
         <Route path="/api-docs" element={<ApiDocs />} />
         <Route path="/enterprise-support" element={<EnterpriseSupport />} />
         

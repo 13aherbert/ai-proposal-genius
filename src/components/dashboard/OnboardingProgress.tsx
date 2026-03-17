@@ -59,40 +59,16 @@ const getOnboardingSteps = (
   ];
 
   // Add segment-specific steps
-  if (organizationSize === 'small_team' || organizationSize === 'enterprise') {
+  if (organizationSize === 'small_team' || organizationSize === 'medium_business') {
     baseSteps.push({
       id: 'team_setup',
       title: 'Set Up Team Access',
       description: 'Invite team members and configure permissions',
-      completed: false, // This would come from actual team data
+      completed: false,
       action: 'Invite Team',
       path: '/account-settings'
     });
   }
-
-  if (organizationSize === 'enterprise') {
-    baseSteps.push({
-      id: 'compliance',
-      title: 'Configure Compliance',
-      description: 'Set up approval workflows and brand guidelines',
-      completed: false,
-      action: 'Setup Compliance',
-      path: '/account-settings'
-    });
-  }
-
-  if (organizationSize === 'white_label') {
-    return [
-      {
-        id: 'demo',
-        title: 'Schedule Demo',
-        description: 'Book a technical demo with our team',
-        completed: false,
-        action: 'Book Demo',
-        path: '/beta'
-      },
-      {
-        id: 'api_review',
         title: 'Review API Documentation',
         description: 'Understand our integration capabilities',
         completed: false,

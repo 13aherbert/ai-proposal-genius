@@ -124,13 +124,7 @@ export function SegmentedWelcome({ firstName, organizationSize, useCase, industr
   const recommendations = getUseCaseRecommendations(useCase);
 
   const handlePrimaryAction = () => {
-    if (organizationSize === 'white_label') {
-      // For white label, show contact form or redirect to demo
-      navigate('/beta');
-    } else {
-      // For others, go to upload RFP
-      navigate('/upload-rfp');
-    }
+    navigate('/upload-rfp');
   };
 
   return (

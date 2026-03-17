@@ -214,8 +214,8 @@ export function OnboardingRouter() {
         return "Welcome! Your personal proposal workspace is ready.";
       case 'small_team':
         return "Welcome! Let's get your team set up for collaboration.";
-      case 'enterprise':
-        return "Welcome! Your enterprise solution is being prepared.";
+      case 'medium_business':
+        return "Welcome! Your organization workspace is ready.";
       default:
         return "Welcome to your proposal management platform!";
     }

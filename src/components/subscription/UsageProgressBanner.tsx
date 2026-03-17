@@ -53,6 +53,20 @@ export function UsageProgressBanner() {
   const isNearLimit = percentage >= 70;
   const isAtLimit = count >= projectLimit;
 
+  // Enterprise users have unlimited projects — no upgrade prompts
+  if (plan === "enterprise" || projectLimit === -1) {
+    return (
+      <div className="bg-card border border-border rounded-lg px-4 py-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs font-medium">
+            Enterprise Plan
+          </Badge>
+          <span className="text-sm text-muted-foreground">Unlimited projects</span>
+        </div>
+      </div>
+    );
+  }
+
   if (plan === "pro" && !isNearLimit) return null;
 
   const planName = PLAN_DISPLAY_NAMES[plan] || "Free Plan";

@@ -122,7 +122,9 @@ export function PlanComparisonModal({ open, onOpenChange, highlightPlan }: PlanC
                 <TableCell />
                 {PLANS.map((p) => (
                   <TableCell key={p.key} className="text-center pt-4">
-                    {p.cta && p.key !== currentPlan ? (
+                    {p.key === currentPlan ? (
+                      <span className="text-xs text-muted-foreground">Current plan</span>
+                    ) : p.cta && PLANS.findIndex(x => x.key === p.key) > PLANS.findIndex(x => x.key === currentPlan) ? (
                       <Button
                         size="sm"
                         variant={p.key === recommended ? "default" : "outline"}
@@ -131,8 +133,6 @@ export function PlanComparisonModal({ open, onOpenChange, highlightPlan }: PlanC
                       >
                         {p.cta}
                       </Button>
-                    ) : p.key === currentPlan ? (
-                      <span className="text-xs text-muted-foreground">Current plan</span>
                     ) : null}
                   </TableCell>
                 ))}

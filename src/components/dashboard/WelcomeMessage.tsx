@@ -5,7 +5,7 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 export function WelcomeMessage() {
   const { session } = useAuth();
   const { plan } = useSubscriptionFeatures();
-  const displayPlan = (!plan || plan === 'trial') ? 'Free Plan' : plan;
+  const displayPlan = (!plan || plan === 'trial') ? 'Free Plan' : plan === 'enterprise' ? 'Enterprise' : plan;
 
   return (
     <div>

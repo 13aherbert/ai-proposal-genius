@@ -10,7 +10,7 @@ import { CheckCircle, ArrowRight, Calendar, Mail } from "lucide-react";
 import type { OrganizationSize } from "./OrganizationSizeSelector";
 
 interface UserProfile {
-  organization_size: OrganizationSize | null;
+  organization_size: string | null;
   onboarding_segment: string | null;
   first_name: string | null;
   industry: string | null;

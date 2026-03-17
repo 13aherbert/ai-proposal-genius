@@ -68,6 +68,9 @@ export function UpgradeGateModal({
     navigate("/subscription", { state: { highlightPlan: "business" } });
   };
 
+  // Enterprise users have full access — never show upgrade modal
+  if (currentPlan === 'enterprise') return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">

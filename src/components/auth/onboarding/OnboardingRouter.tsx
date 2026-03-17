@@ -6,8 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight, Calendar, Mail } from "lucide-react";
-import type { OrganizationSize } from "./OrganizationSizeSelector";
+import { CheckCircle, ArrowRight } from "lucide-react";
 
 interface UserProfile {
   organization_size: string | null;

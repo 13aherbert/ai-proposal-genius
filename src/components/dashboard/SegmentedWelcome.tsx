@@ -7,7 +7,7 @@ import {
   User, 
   Users, 
   Building, 
-  Briefcase, 
+  // Briefcase removed — no longer used 
   FileText, 
   MessageSquare, 
   Zap,

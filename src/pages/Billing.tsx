@@ -1,8 +1,8 @@
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
+import { SubscriptionCard } from '@/components/account/SubscriptionCard';
 import { SubscriptionManager } from '@/components/organization/SubscriptionManager';
-import { BillingHistory } from '@/components/subscription/BillingHistory';
+import { BillingHistory } from '@/components/account/BillingHistory';
 
 export default function Billing() {
   return (

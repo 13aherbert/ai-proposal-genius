@@ -28,8 +28,7 @@ const getSegmentIcon = (size?: OrganizationSize) => {
   switch (size) {
     case 'solo': return User;
     case 'small_team': return Users;
-    case 'enterprise': return Building;
-    case 'white_label': return Briefcase;
+    case 'medium_business': return Building;
     default: return User;
   }
 };

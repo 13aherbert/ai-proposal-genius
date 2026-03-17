@@ -67,10 +67,8 @@ export function EnhancedSignupForm({ onSuccess, onSwitchToLogin }: EnhancedSignu
         return 'solo_professional';
       case 'small_team':
         return 'small_team';
-      case 'enterprise':
-        return 'enterprise';
-      case 'white_label':
-        return 'white_label_prospect';
+      case 'medium_business':
+        return 'medium_business';
       default:
         return 'general';
     }

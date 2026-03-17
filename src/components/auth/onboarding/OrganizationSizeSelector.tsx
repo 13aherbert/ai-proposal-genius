@@ -1,9 +1,10 @@
 
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Building, User, Users, Briefcase } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building, User, Users, ArrowRight } from "lucide-react";
 
-export type OrganizationSize = 'solo' | 'small_team' | 'enterprise' | 'white_label';
+export type OrganizationSize = 'solo' | 'small_team' | 'medium_business';
 
 interface OrganizationSizeSelectorProps {
   value: OrganizationSize | '';
@@ -13,33 +14,27 @@ interface OrganizationSizeSelectorProps {
 const organizationSizes = [
   {
     value: 'solo' as const,
-    label: 'Just me',
-    description: 'Individual professional',
+    label: 'Solo / Freelancer',
+    description: '1 person',
     icon: User,
   },
   {
     value: 'small_team' as const,
-    label: 'Small team',
+    label: 'Small Business',
     description: '2-10 people',
     icon: Users,
   },
   {
-    value: 'enterprise' as const,
-    label: 'Enterprise',
-    description: '11+ people',
+    value: 'medium_business' as const,
+    label: 'Medium Business',
+    description: '11-50 people',
     icon: Building,
-  },
-  {
-    value: 'white_label' as const,
-    label: 'White label solution',
-    description: 'Custom integration needs',
-    icon: Briefcase,
   },
 ];
 
 export function OrganizationSizeSelector({ value, onChange }: OrganizationSizeSelectorProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <Label className="text-sm font-medium">What describes your organization?</Label>
       <RadioGroup value={value} onValueChange={onChange} className="grid grid-cols-1 gap-3">
         {organizationSizes.map((size) => {
@@ -61,6 +56,41 @@ export function OrganizationSizeSelector({ value, onChange }: OrganizationSizeSe
           );
         })}
       </RadioGroup>
+
+      {/* Enterprise & White-label paths */}
+      <div className="space-y-3 pt-3 border-t">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <p className="text-sm font-medium mb-1">Need Enterprise features?</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            SSO, unlimited projects, dedicated CSM, and custom pricing for 50+ people.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() => window.open('mailto:sales@optirfp.ai?subject=Enterprise%20Inquiry', '_blank')}
+            >
+              Contact Sales <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-muted p-4">
+          <p className="text-sm font-medium mb-1">Want to offer OptiRFP to your clients?</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            White-label solution with custom branding, domains, and API access.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => window.open('mailto:sales@optirfp.ai?subject=White%20Label%20Inquiry', '_blank')}
+          >
+            Contact Sales <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -46,6 +46,7 @@ import CompareProposify from "@/pages/CompareProposify";
 import CompareQvidian from "@/pages/CompareQvidian";
 import ComparePandaDoc from "@/pages/ComparePandaDoc";
 import PricingRedirect from "@/pages/Pricing";
+import Billing from "@/pages/Billing";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

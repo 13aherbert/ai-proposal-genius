@@ -7,7 +7,7 @@ import {
   User, 
   Users, 
   Building, 
-  Briefcase, 
+  // Briefcase removed — no longer used 
   FileText, 
   MessageSquare, 
   Zap,
@@ -28,8 +28,7 @@ const getSegmentIcon = (size?: OrganizationSize) => {
   switch (size) {
     case 'solo': return User;
     case 'small_team': return Users;
-    case 'enterprise': return Building;
-    case 'white_label': return Briefcase;
+    case 'medium_business': return Building;
     default: return User;
   }
 };
@@ -56,24 +55,14 @@ const getSegmentConfig = (size?: OrganizationSize, useCase?: UseCase) => {
         { label: "Team Knowledge", icon: MessageSquare, path: "/knowledge-base" },
       ]
     },
-    enterprise: {
-      title: "Welcome to Your Enterprise Solution",
-      description: "Scale your proposal operations across your organization with enterprise-grade features.",
-      primaryAction: "Explore Enterprise Features",
-      features: ["Advanced analytics", "Custom workflows", "Enterprise security"],
+    medium_business: {
+      title: "Welcome to Your Organization Workspace",
+      description: "Scale your proposal operations with tools designed for growing teams.",
+      primaryAction: "Start Creating Proposals",
+      features: ["Team collaboration", "Shared knowledge base", "Review workflows"],
       quickActions: [
         { label: "Upload RFP", icon: FileText, path: "/upload-rfp" },
-        { label: "Analytics Dashboard", icon: Zap, path: "/projects" },
-      ]
-    },
-    white_label: {
-      title: "Welcome to Our Partnership Program",
-      description: "Let's discuss how to integrate our solution into your platform.",
-      primaryAction: "Schedule Integration Call",
-      features: ["Custom branding", "API access", "Dedicated support"],
-      quickActions: [
-        { label: "View Documentation", icon: FileText, path: "/docs" },
-        { label: "Contact Support", icon: MessageSquare, path: "/beta" },
+        { label: "Team Knowledge", icon: MessageSquare, path: "/knowledge-base" },
       ]
     }
   };
@@ -125,13 +114,7 @@ export function SegmentedWelcome({ firstName, organizationSize, useCase, industr
   const recommendations = getUseCaseRecommendations(useCase);
 
   const handlePrimaryAction = () => {
-    if (organizationSize === 'white_label') {
-      // For white label, show contact form or redirect to demo
-      navigate('/beta');
-    } else {
-      // For others, go to upload RFP
-      navigate('/upload-rfp');
-    }
+    navigate('/upload-rfp');
   };
 
   return (

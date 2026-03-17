@@ -62,43 +62,27 @@ const getSpotlightFeatures = (organizationSize?: OrganizationSize, useCase?: Use
         badge: "Team Resource"
       }
     },
-    enterprise: {
-      enterprise_solution: {
-        title: "Advanced Analytics",
-        description: "Track proposal success rates, team performance, and identify improvement opportunities.",
-        action: "View Analytics",
+    medium_business: {
+      team_collaboration: {
+        title: "Team Workspaces",
+        description: "Collaborate in real-time on proposals with version control and team comments.",
+        action: "Set Up Team",
         path: "/projects",
-        badge: "Insights"
+        badge: "Collaboration"
       },
       proposal_management: {
-        title: "Multi-Department Workflows",
-        description: "Configure complex approval chains and department-specific processes.",
-        action: "Configure Enterprise",
+        title: "Multi-Team Workflows",
+        description: "Configure review processes and approval workflows across departments.",
+        action: "Configure Workflows",
         path: "/projects",
         badge: "Scale"
       },
       other: {
-        title: "Compliance Tools",
-        description: "Ensure all proposals meet your organization's compliance and branding standards.",
-        action: "Setup Compliance",
-        path: "/account-settings",
-        badge: "Governance"
-      }
-    },
-    white_label: {
-      white_label_integration: {
-        title: "API Integration",
-        description: "Seamlessly integrate our proposal engine into your existing platform.",
-        action: "View API Docs",
-        path: "/docs",
-        badge: "Integration"
-      },
-      other: {
-        title: "Custom Branding",
-        description: "White-label our solution with your branding and custom domain.",
-        action: "Discuss Options",
-        path: "/beta",
-        badge: "Customization"
+        title: "Shared Knowledge",
+        description: "Create shared knowledge repositories that your entire organization can contribute to.",
+        action: "Create Repository",
+        path: "/knowledge-base",
+        badge: "Team Resource"
       }
     }
   };

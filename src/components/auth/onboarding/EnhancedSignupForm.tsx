@@ -58,12 +58,6 @@ export function EnhancedSignupForm({ onSuccess, onSwitchToLogin }: EnhancedSignu
   };
 
   const isStep3Valid = () => {
-    if (formData.organizationSize === 'white_label') {
-      return formData.companyName && formData.industry;
-    }
-    if (formData.organizationSize === 'enterprise') {
-      return formData.companyName && formData.jobTitle && formData.industry && formData.useCase;
-    }
     return formData.industry && formData.useCase;
   };
 
@@ -73,10 +67,8 @@ export function EnhancedSignupForm({ onSuccess, onSwitchToLogin }: EnhancedSignu
         return 'solo_professional';
       case 'small_team':
         return 'small_team';
-      case 'enterprise':
-        return 'enterprise';
-      case 'white_label':
-        return 'white_label_prospect';
+      case 'medium_business':
+        return 'medium_business';
       default:
         return 'general';
     }
@@ -188,57 +180,19 @@ export function EnhancedSignupForm({ onSuccess, onSwitchToLogin }: EnhancedSignu
   );
 
   const renderStep3 = () => {
-    const showCompanyFields = formData.organizationSize === 'enterprise' || formData.organizationSize === 'white_label';
-    const showJobTitle = formData.organizationSize === 'enterprise';
-    const showUseCase = formData.organizationSize !== 'white_label';
-
     return (
       <div className="space-y-4">
-        {showCompanyFields && (
-          <div className="space-y-2">
-            <Label htmlFor="companyName">Company Name *</Label>
-            <Input
-              id="companyName"
-              value={formData.companyName}
-              onChange={(e) => updateFormData('companyName', e.target.value)}
-              required
-            />
-          </div>
-        )}
-
-        {showJobTitle && (
-          <div className="space-y-2">
-            <Label htmlFor="jobTitle">Job Title *</Label>
-            <Input
-              id="jobTitle"
-              value={formData.jobTitle}
-              onChange={(e) => updateFormData('jobTitle', e.target.value)}
-              required
-            />
-          </div>
-        )}
-
         <IndustrySelector
           value={formData.industry}
           onChange={(value) => updateFormData('industry', value)}
           required
         />
 
-        {showUseCase && (
-          <UseCaseSelector
-            value={formData.useCase}
-            onChange={(value) => updateFormData('useCase', value)}
-            required
-          />
-        )}
-
-        {formData.organizationSize === 'white_label' && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>White Label Solution:</strong> Our team will contact you within 24 hours to discuss your custom integration needs and schedule a personalized demo.
-            </p>
-          </div>
-        )}
+        <UseCaseSelector
+          value={formData.useCase}
+          onChange={(value) => updateFormData('useCase', value)}
+          required
+        />
       </div>
     );
   };

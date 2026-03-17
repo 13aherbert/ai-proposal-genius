@@ -6,11 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight, Calendar, Mail } from "lucide-react";
-import type { OrganizationSize } from "./OrganizationSizeSelector";
+import { CheckCircle, ArrowRight } from "lucide-react";
 
 interface UserProfile {
-  organization_size: OrganizationSize | null;
+  organization_size: string | null;
   onboarding_segment: string | null;
   first_name: string | null;
   industry: string | null;
@@ -60,11 +59,6 @@ export function OnboardingRouter() {
     }
   }, [isLoading, profile, navigate]);
 
-  const handleScheduleDemo = () => {
-    // For white label prospects, we could integrate with a scheduling tool
-    toast.success("Demo request received! Our team will contact you within 24 hours.");
-    navigate('/dashboard');
-  };
 
   if (isLoading) {
     return (
@@ -97,116 +91,6 @@ export function OnboardingRouter() {
     );
   }
 
-  // White label prospects get a special demo request flow
-  if (profile.organization_size === 'white_label') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl">Welcome to Our White Label Program!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center space-y-2">
-              <p className="text-muted-foreground">
-                Thank you for your interest in our white label solution, {profile.first_name}!
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Our enterprise team will contact you within 24 hours to discuss your custom integration needs.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">Personalized Demo</p>
-                  <p className="text-sm text-blue-700">Custom solution walkthrough</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <Mail className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-900">Technical Consultation</p>
-                  <p className="text-sm text-green-700">Integration planning & requirements</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Button onClick={handleScheduleDemo} className="w-full" size="lg">
-                Schedule Demo Call
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              
-              <Button onClick={handleContinueToDashboard} variant="outline" className="w-full">
-                Continue to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Enterprise users get a specialized onboarding flow
-  if (profile.organization_size === 'enterprise') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
-        <Card className="w-full max-w-lg">
-          <CardHeader className="text-center">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl">Welcome to Enterprise!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center space-y-2">
-              <p className="text-muted-foreground">
-                Welcome, {profile.first_name}! Your enterprise account is ready.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Choose how you'd like to get started with our enterprise platform.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="font-medium text-purple-900">Schedule Demo</p>
-                  <p className="text-sm text-purple-700">See all enterprise features</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                <Mail className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">Custom Pricing</p>
-                  <p className="text-sm text-blue-700">Get a tailored enterprise quote</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Button onClick={handleScheduleDemo} className="w-full" size="lg">
-                Schedule Enterprise Demo
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              
-              <Button onClick={() => navigate('/subscription?enterprise=true')} variant="outline" className="w-full">
-                View Enterprise Plans
-              </Button>
-              
-              <Button onClick={handleContinueToDashboard} variant="ghost" className="w-full">
-                Continue to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Regular users get a welcome message and go to dashboard
   const getWelcomeMessage = () => {
     switch (profile.organization_size) {
@@ -214,8 +98,8 @@ export function OnboardingRouter() {
         return "Welcome! Your personal proposal workspace is ready.";
       case 'small_team':
         return "Welcome! Let's get your team set up for collaboration.";
-      case 'enterprise':
-        return "Welcome! Your enterprise solution is being prepared.";
+      case 'medium_business':
+        return "Welcome! Your organization workspace is ready.";
       default:
         return "Welcome to your proposal management platform!";
     }

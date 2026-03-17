@@ -69,22 +69,6 @@ const getOnboardingSteps = (
       path: '/account-settings'
     });
   }
-        title: 'Review API Documentation',
-        description: 'Understand our integration capabilities',
-        completed: false,
-        action: 'View Docs',
-        path: '/docs'
-      },
-      {
-        id: 'integration_plan',
-        title: 'Plan Integration',
-        description: 'Define your integration requirements',
-        completed: false,
-        action: 'Contact Sales',
-        path: '/beta'
-      }
-    ];
-  }
 
   return baseSteps;
 };

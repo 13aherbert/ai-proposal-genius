@@ -29,7 +29,7 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
 
   // Only show for free/trial users — never for enterprise
   const isFreePlan = !plan || plan === 'trial' || plan === 'starter';
-  if (plan === 'enterprise') return null;
+  const isEnterprise = plan === 'enterprise';
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -52,7 +52,7 @@ export function TrialCountdown({ className, variant = "banner" }: TrialCountdown
     fetchCount();
   }, [session?.user?.id, organization?.id]);
 
-  if (!isFreePlan || !session?.user) return null;
+  if (isEnterprise || !isFreePlan || !session?.user) return null;
   if (isLoading) return null;
 
   const count = projectCount ?? 0;

@@ -59,11 +59,6 @@ export function OnboardingRouter() {
     }
   }, [isLoading, profile, navigate]);
 
-  const handleScheduleDemo = () => {
-    // For white label prospects, we could integrate with a scheduling tool
-    toast.success("Demo request received! Our team will contact you within 24 hours.");
-    navigate('/dashboard');
-  };
 
   if (isLoading) {
     return (

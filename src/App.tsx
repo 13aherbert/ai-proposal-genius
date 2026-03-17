@@ -46,6 +46,7 @@ import CompareProposify from "@/pages/CompareProposify";
 import CompareQvidian from "@/pages/CompareQvidian";
 import ComparePandaDoc from "@/pages/ComparePandaDoc";
 import PricingRedirect from "@/pages/Pricing";
+import Billing from "@/pages/Billing";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -88,6 +89,8 @@ function AppContent() {
         <Route path="/subscription/success" element={<SubscriptionSuccess />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/account" element={<AccountSettings />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/settings" element={<Navigate to="/account" replace />} />
         <Route path="/organization" element={<Organization />} />
         <Route path="/white-label" element={<WhiteLabel />} />
         <Route path="/opportunities" element={<Opportunities />} />

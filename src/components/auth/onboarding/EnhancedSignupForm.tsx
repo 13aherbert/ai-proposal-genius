@@ -58,12 +58,6 @@ export function EnhancedSignupForm({ onSuccess, onSwitchToLogin }: EnhancedSignu
   };
 
   const isStep3Valid = () => {
-    if (formData.organizationSize === 'white_label') {
-      return formData.companyName && formData.industry;
-    }
-    if (formData.organizationSize === 'enterprise') {
-      return formData.companyName && formData.jobTitle && formData.industry && formData.useCase;
-    }
     return formData.industry && formData.useCase;
   };
 

@@ -49,6 +49,7 @@ import PricingRedirect from "@/pages/Pricing";
 import Billing from "@/pages/Billing";
 import FAQPage from "@/pages/FAQ";
 import SecurityPage from "@/pages/Security";
+import Demo from "@/pages/Demo";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -133,6 +134,7 @@ function AppContent() {
       <Route path="/pricing" element={<PricingRedirect />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/security" element={<SecurityPage />} />
+      <Route path="/demo" element={<Demo />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -132,6 +132,7 @@ function AppContent() {
       <Route path="/compare/pandadoc" element={<ComparePandaDoc />} />
       <Route path="/pricing" element={<PricingRedirect />} />
       <Route path="/faq" element={<FAQPage />} />
+      <Route path="/security" element={<SecurityPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

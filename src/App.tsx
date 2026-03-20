@@ -47,6 +47,7 @@ import CompareQvidian from "@/pages/CompareQvidian";
 import ComparePandaDoc from "@/pages/ComparePandaDoc";
 import PricingRedirect from "@/pages/Pricing";
 import Billing from "@/pages/Billing";
+import FAQPage from "@/pages/FAQ";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -129,6 +130,7 @@ function AppContent() {
       <Route path="/compare/qvidian" element={<CompareQvidian />} />
       <Route path="/compare/pandadoc" element={<ComparePandaDoc />} />
       <Route path="/pricing" element={<PricingRedirect />} />
+      <Route path="/faq" element={<FAQPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

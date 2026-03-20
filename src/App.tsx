@@ -130,6 +130,7 @@ function AppContent() {
       <Route path="/compare/qvidian" element={<CompareQvidian />} />
       <Route path="/compare/pandadoc" element={<ComparePandaDoc />} />
       <Route path="/pricing" element={<PricingRedirect />} />
+      <Route path="/faq" element={<FAQPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

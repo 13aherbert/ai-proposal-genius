@@ -49,6 +49,7 @@ import PricingRedirect from "@/pages/Pricing";
 import Billing from "@/pages/Billing";
 import FAQPage from "@/pages/FAQ";
 import SecurityPage from "@/pages/Security";
+import Demo from "@/pages/Demo";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

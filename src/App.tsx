@@ -47,6 +47,7 @@ import CompareQvidian from "@/pages/CompareQvidian";
 import ComparePandaDoc from "@/pages/ComparePandaDoc";
 import PricingRedirect from "@/pages/Pricing";
 import Billing from "@/pages/Billing";
+import FAQPage from "@/pages/FAQ";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";

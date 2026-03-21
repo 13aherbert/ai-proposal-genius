@@ -50,6 +50,7 @@ import Billing from "@/pages/Billing";
 import FAQPage from "@/pages/FAQ";
 import SecurityPage from "@/pages/Security";
 import Demo from "@/pages/Demo";
+import Contact from "@/pages/Contact";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -135,6 +136,7 @@ function AppContent() {
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/security" element={<SecurityPage />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

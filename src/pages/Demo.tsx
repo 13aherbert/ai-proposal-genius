@@ -1,5 +1,6 @@
 
 import { Calendar, Clock, Users, Shield, Play, CheckCircle2, ArrowRight, Presentation, Target, Handshake, Mail, Building2, UserCheck } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,24 @@ const attendees = [
 ];
 
 const ease = [0.16, 1, 0.3, 1];
+
+function TidyCalEmbed() {
+  useEffect(() => {
+    const existing = document.querySelector('script[src="https://asset-tidycal.b-cdn.net/js/embed.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://asset-tidycal.b-cdn.net/js/embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  return (
+    <div className="w-full min-h-[600px]">
+      <div className="tidycal-embed" data-path="apxherbert/30-minute-meeting" />
+    </div>
+  );
+}
 
 export default function Demo() {
   useSEO({
@@ -123,27 +142,7 @@ export default function Demo() {
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.6, ease }}
           >
-            {/* TidyCal embed placeholder — replace the src with your actual TidyCal booking URL */}
-            <div className="w-full min-h-[600px] flex items-center justify-center p-8">
-              <div className="text-center max-w-md">
-                <Calendar className="h-12 w-12 text-brand-green mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Schedule Your Demo</h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Our TidyCal booking widget will appear here once connected. In the meantime, you can book directly:
-                </p>
-                <Button size="lg" asChild>
-                  <a href="mailto:sales@optirfp.ai?subject=Demo%20Request&body=Hi%2C%20I'd%20like%20to%20schedule%20a%20demo%20of%20OptiRFP.%0A%0AName%3A%20%0ACompany%3A%20%0ATeam%20Size%3A%20%0APlan%20Interest%3A%20">
-                    <Mail className="mr-2 h-4 w-4" /> Request a Demo
-                  </a>
-                </Button>
-                <p className="text-xs text-muted-foreground mt-4">
-                  To embed TidyCal, replace this section with:
-                  <code className="block mt-1 bg-muted rounded px-2 py-1 text-[11px]">
-                    {'<iframe src="https://tidycal.com/your-link" width="100%" height="600" />'}
-                  </code>
-                </p>
-              </div>
-            </div>
+            <TidyCalEmbed />
           </motion.div>
         </div>
       </section>

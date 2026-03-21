@@ -136,6 +136,7 @@ function AppContent() {
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/security" element={<SecurityPage />} />
       <Route path="/demo" element={<Demo />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -1,5 +1,6 @@
 
 import { Calendar, Clock, Users, Shield, Play, CheckCircle2, ArrowRight, Presentation, Target, Handshake, Mail, Building2, UserCheck } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

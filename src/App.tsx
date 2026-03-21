@@ -51,6 +51,7 @@ import FAQPage from "@/pages/FAQ";
 import SecurityPage from "@/pages/Security";
 import Demo from "@/pages/Demo";
 import Contact from "@/pages/Contact";
+import Integrations from "@/pages/Integrations";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -137,6 +138,7 @@ function AppContent() {
       <Route path="/security" element={<SecurityPage />} />
       <Route path="/demo" element={<Demo />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/integrations" element={<Integrations />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

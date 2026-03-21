@@ -30,6 +30,24 @@ const attendees = [
 
 const ease = [0.16, 1, 0.3, 1];
 
+function TidyCalEmbed() {
+  useEffect(() => {
+    const existing = document.querySelector('script[src="https://asset-tidycal.b-cdn.net/js/embed.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://asset-tidycal.b-cdn.net/js/embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  return (
+    <div className="w-full min-h-[600px]">
+      <div className="tidycal-embed" data-path="apxherbert/30-minute-meeting" />
+    </div>
+  );
+}
+
 export default function Demo() {
   useSEO({
     title: "Book a Demo — OptiRFP",

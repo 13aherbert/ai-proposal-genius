@@ -155,13 +155,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
 
-      
-      <UsageProgressWidget
-        projectCount={dashboardStats.projectCount}
-        projectLimit={projectLimit}
-        currentPlan={(['starter', 'growth', 'business', 'enterprise'].includes(planType) ? planType : 'starter') as 'starter' | 'growth' | 'business' | 'enterprise'}
-      />
-
       <DashboardHeader />
 
       {/* Progressive Onboarding Wizard */}

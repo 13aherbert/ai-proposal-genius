@@ -144,6 +144,7 @@ function AppContent() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/about" element={<About />} />
+        <Route path="/help" element={<HelpCenter />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

@@ -53,6 +53,7 @@ import Demo from "@/pages/Demo";
 import Contact from "@/pages/Contact";
 import Integrations from "@/pages/Integrations";
 import About from "@/pages/About";
+import PublicLayout from "@/layouts/PublicLayout";
 
 // Components
 import { AuthProvider } from "@/components/AuthProvider";
@@ -124,23 +125,28 @@ function AppContent() {
       </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/docs" element={<Documentation />} />
-      <Route path="/docs/:docId" element={<Documentation />} />
-      <Route path="/blog" element={<Blog />} />
-      <Route path="/blog/:slug" element={<BlogPost />} />
-      <Route path="/compare/loopio" element={<CompareLoopio />} />
-      <Route path="/compare/autorfp" element={<CompareAutoRFP />} />
-      <Route path="/compare/responsive" element={<CompareResponsive />} />
-      <Route path="/compare/proposify" element={<CompareProposify />} />
-      <Route path="/compare/qvidian" element={<CompareQvidian />} />
-      <Route path="/compare/pandadoc" element={<ComparePandaDoc />} />
-      <Route path="/pricing" element={<PricingRedirect />} />
-      <Route path="/faq" element={<FAQPage />} />
-      <Route path="/security" element={<SecurityPage />} />
-      <Route path="/demo" element={<Demo />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/integrations" element={<Integrations />} />
-      <Route path="/about" element={<About />} />
+      
+      {/* Public pages with shared navbar + footer */}
+      <Route element={<PublicLayout />}>
+        <Route path="/docs" element={<Documentation />} />
+        <Route path="/docs/:docId" element={<Documentation />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/compare/loopio" element={<CompareLoopio />} />
+        <Route path="/compare/autorfp" element={<CompareAutoRFP />} />
+        <Route path="/compare/responsive" element={<CompareResponsive />} />
+        <Route path="/compare/proposify" element={<CompareProposify />} />
+        <Route path="/compare/qvidian" element={<CompareQvidian />} />
+        <Route path="/compare/pandadoc" element={<ComparePandaDoc />} />
+        <Route path="/pricing" element={<PricingRedirect />} />
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/security" element={<SecurityPage />} />
+        <Route path="/demo" element={<Demo />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/integrations" element={<Integrations />} />
+        <Route path="/about" element={<About />} />
+      </Route>
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

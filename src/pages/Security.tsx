@@ -184,14 +184,7 @@ export default function SecurityPage() {
                       <h3 className="font-semibold text-sm">{doc.title}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed flex-1">{doc.description}</p>
-                    {doc.href ? (
-                      <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
-                        <Link to={doc.href}>
-                          {doc.cta} <ArrowRight className="ml-1.5 h-3 w-3" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
+                    <Button
                         variant="outline"
                         size="sm"
                         className="mt-4 w-full"
@@ -199,7 +192,6 @@ export default function SecurityPage() {
                       >
                         {doc.cta} <ArrowRight className="ml-1.5 h-3 w-3" />
                       </Button>
-                    )}
                   </CardContent>
                 </Card>
               </motion.div>

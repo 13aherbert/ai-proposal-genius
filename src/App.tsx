@@ -25,7 +25,7 @@ import Referral from "@/pages/Referral";
 import Team from "@/pages/Team";
 import TeamInvite from "@/pages/TeamInvite";
 import AdminDashboard from "@/pages/AdminDashboard";
-import SetInitialAdmin from "@/pages/SetInitialAdmin";
+
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import AdminProjects from "@/pages/admin/AdminProjects";

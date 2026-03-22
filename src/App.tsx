@@ -126,6 +126,7 @@ function AppContent() {
       
       {/* Public pages with shared navbar + footer */}
       <Route element={<PublicLayout />}>
+        <Route path="/" element={<Index />} />
         <Route path="/docs" element={<Documentation />} />
         <Route path="/docs/:docId" element={<Documentation />} />
         <Route path="/blog" element={<Blog />} />

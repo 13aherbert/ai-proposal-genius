@@ -16,7 +16,7 @@ import { useSEO } from "@/hooks/use-seo";
 
 const Index = () => {
   const { session } = useAuth();
-  const { session } = useAuth();
+  const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const [exitSignupOpen, setExitSignupOpen] = useState(false);
 

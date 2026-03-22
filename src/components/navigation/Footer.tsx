@@ -32,8 +32,7 @@ const footerSections = [
   {
     title: "Legal",
     links: [
-      { label: "Privacy Policy", to: "/security" },
-      { label: "Terms of Service", to: "/security" },
+      { label: "Security & Privacy", to: "/security" },
       { label: "Support", href: "mailto:support@optirfp.ai" },
     ],
   },

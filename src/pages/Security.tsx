@@ -55,7 +55,7 @@ const sections = [
 const complianceDocs = [
   { title: "SOC 2 Type II Report", description: "Request our latest SOC 2 Type II audit report under NDA.", cta: "Request Report", gated: true },
   { title: "Penetration Testing", description: "Annual third-party penetration tests by independent security firms. Summary available on request.", cta: "Learn More", gated: true },
-  { title: "Privacy Policy", description: "Read our full data privacy and protection policy.", cta: "View Policy", gated: false, href: "/docs/privacy" },
+  { title: "Privacy Policy", description: "Read our full data privacy and protection policy.", cta: "Contact Us", gated: true },
 ];
 
 const ease = [0.16, 1, 0.3, 1];

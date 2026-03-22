@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 import { SocialProofBar } from "@/components/blocks/SocialProofBar";
 import { Testimonial } from "@/components/blocks/Testimonial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";

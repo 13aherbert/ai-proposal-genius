@@ -53,6 +53,7 @@ import Demo from "@/pages/Demo";
 import Contact from "@/pages/Contact";
 import Integrations from "@/pages/Integrations";
 import About from "@/pages/About";
+import HelpCenter from "@/pages/HelpCenter";
 import PublicLayout from "@/layouts/PublicLayout";
 
 // Components

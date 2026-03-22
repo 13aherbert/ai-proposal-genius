@@ -180,7 +180,7 @@ export default function SecurityPage() {
                 <Card className="h-full border-border/50 bg-card shadow-sm hover:shadow-md transition-shadow duration-300">
                   <CardContent className="p-6 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-3">
-                      {doc.gated ? <KeyRound className="h-4 w-4 text-muted-foreground" /> : <Download className="h-4 w-4 text-muted-foreground" />}
+                      <KeyRound className="h-4 w-4 text-muted-foreground" />
                       <h3 className="font-semibold text-sm">{doc.title}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed flex-1">{doc.description}</p>

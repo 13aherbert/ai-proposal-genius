@@ -70,31 +70,6 @@ const Index = () => {
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
-        {/* Navigation Buttons and Login */}
-        <div className="absolute top-4 right-4 flex items-center gap-4">
-          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('pricing')}>
-            <DollarSign className="h-4 w-4" />
-            {!isMobile && "Pricing"}
-          </Button>
-          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('faq')}>
-            <HelpCircle className="h-4 w-4" />
-            {!isMobile && "FAQ"}
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="secondary" data-testid="login-button" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70">
-                <LogIn className="h-4 w-4" />
-                {!isMobile && "Login"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <ErrorBoundary name="LoginModal">
-                <AuthForm defaultView="sign_in" variant="dialog" />
-              </ErrorBoundary>
-            </DialogContent>
-          </Dialog>
-        </div>
-        
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
           {/* Hero Section */}

@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { LogIn, DollarSign, HelpCircle } from "lucide-react";
 import { PricingDemo } from "@/components/blocks/pricing-demo";
 import { ComparisonCharts } from "@/components/blocks/comparison-charts";
 import { FAQ } from "@/components/blocks/faq";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 import { SocialProofBar } from "@/components/blocks/SocialProofBar";
 import { Testimonial } from "@/components/blocks/Testimonial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -16,7 +15,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { useSEO } from "@/hooks/use-seo";
 
 const Index = () => {
-  const isMobile = useIsMobile();
   const { session } = useAuth();
   const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const [exitSignupOpen, setExitSignupOpen] = useState(false);
@@ -70,31 +68,6 @@ const Index = () => {
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
-        {/* Navigation Buttons and Login */}
-        <div className="absolute top-4 right-4 flex items-center gap-4">
-          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('pricing')}>
-            <DollarSign className="h-4 w-4" />
-            {!isMobile && "Pricing"}
-          </Button>
-          <Button variant="secondary" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70" onClick={() => scrollToSection('faq')}>
-            <HelpCircle className="h-4 w-4" />
-            {!isMobile && "FAQ"}
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="secondary" data-testid="login-button" className="flex items-center gap-2 bg-secondary/50 backdrop-blur-sm hover:bg-secondary/70">
-                <LogIn className="h-4 w-4" />
-                {!isMobile && "Login"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <ErrorBoundary name="LoginModal">
-                <AuthForm defaultView="sign_in" variant="dialog" />
-              </ErrorBoundary>
-            </DialogContent>
-          </Dialog>
-        </div>
-        
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 min-h-screen">
           {/* Hero Section */}

@@ -1,4 +1,4 @@
-import { Shield, Lock, Server, Users, FileCheck, Mail, Download, CheckCircle2, Globe, Clock, Database, KeyRound, ArrowRight } from "lucide-react";
+import { Shield, Lock, Server, Users, FileCheck, Mail, CheckCircle2, Globe, KeyRound, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +55,7 @@ const sections = [
 const complianceDocs = [
   { title: "SOC 2 Type II Report", description: "Request our latest SOC 2 Type II audit report under NDA.", cta: "Request Report", gated: true },
   { title: "Penetration Testing", description: "Annual third-party penetration tests by independent security firms. Summary available on request.", cta: "Learn More", gated: true },
-  { title: "Privacy Policy", description: "Read our full data privacy and protection policy.", cta: "View Policy", gated: false, href: "/docs/privacy" },
+  { title: "Privacy Policy", description: "Read our full data privacy and protection policy.", cta: "Contact Us", gated: true },
 ];
 
 const ease = [0.16, 1, 0.3, 1];
@@ -180,18 +180,11 @@ export default function SecurityPage() {
                 <Card className="h-full border-border/50 bg-card shadow-sm hover:shadow-md transition-shadow duration-300">
                   <CardContent className="p-6 flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-3">
-                      {doc.gated ? <KeyRound className="h-4 w-4 text-muted-foreground" /> : <Download className="h-4 w-4 text-muted-foreground" />}
+                      <KeyRound className="h-4 w-4 text-muted-foreground" />
                       <h3 className="font-semibold text-sm">{doc.title}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed flex-1">{doc.description}</p>
-                    {doc.href ? (
-                      <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
-                        <Link to={doc.href}>
-                          {doc.cta} <ArrowRight className="ml-1.5 h-3 w-3" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
+                    <Button
                         variant="outline"
                         size="sm"
                         className="mt-4 w-full"
@@ -199,7 +192,6 @@ export default function SecurityPage() {
                       >
                         {doc.cta} <ArrowRight className="ml-1.5 h-3 w-3" />
                       </Button>
-                    )}
                   </CardContent>
                 </Card>
               </motion.div>

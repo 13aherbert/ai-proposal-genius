@@ -25,7 +25,7 @@ import Referral from "@/pages/Referral";
 import Team from "@/pages/Team";
 import TeamInvite from "@/pages/TeamInvite";
 import AdminDashboard from "@/pages/AdminDashboard";
-import SetInitialAdmin from "@/pages/SetInitialAdmin";
+
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import AdminProjects from "@/pages/admin/AdminProjects";
@@ -53,6 +53,7 @@ import Demo from "@/pages/Demo";
 import Contact from "@/pages/Contact";
 import Integrations from "@/pages/Integrations";
 import About from "@/pages/About";
+import HelpCenter from "@/pages/HelpCenter";
 import PublicLayout from "@/layouts/PublicLayout";
 
 // Components
@@ -84,8 +85,6 @@ function AppContent() {
   
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
-      
       {/* All authenticated routes share DashboardLayout */}
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
@@ -128,6 +127,7 @@ function AppContent() {
       
       {/* Public pages with shared navbar + footer */}
       <Route element={<PublicLayout />}>
+        <Route path="/" element={<Index />} />
         <Route path="/docs" element={<Documentation />} />
         <Route path="/docs/:docId" element={<Documentation />} />
         <Route path="/blog" element={<Blog />} />
@@ -145,6 +145,7 @@ function AppContent() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/about" element={<About />} />
+        <Route path="/help" element={<HelpCenter />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

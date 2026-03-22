@@ -61,14 +61,19 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSending(true);
+    const form = e.currentTarget;
+    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value;
+    const email = (form.elements.namedItem("email") as HTMLInputElement)?.value;
+    const company = (form.elements.namedItem("company") as HTMLInputElement)?.value;
+    const message = (form.elements.namedItem("message") as HTMLTextAreaElement)?.value;
 
-    // Simulate form submission delay
-    await new Promise((r) => setTimeout(r, 1200));
+    const subject = encodeURIComponent(`Contact from ${name}${company ? ` (${company})` : ""}`);
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\n\n${message}`);
+    window.open(`mailto:hello@optirfp.ai?subject=${subject}&body=${body}`, "_self");
 
     setSending(false);
     setSubmitted(true);
-    toast.success("Message sent! We'll get back to you within 24 hours.");
+    toast.success("Opening your email client. You can also email us directly at hello@optirfp.ai.");
   };
 
   return (

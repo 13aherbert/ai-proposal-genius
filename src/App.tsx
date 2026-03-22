@@ -84,8 +84,6 @@ function AppContent() {
   
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
-      
       {/* All authenticated routes share DashboardLayout */}
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />

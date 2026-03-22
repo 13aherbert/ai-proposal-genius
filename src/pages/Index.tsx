@@ -15,7 +15,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useSEO } from "@/hooks/use-seo";
 
 const Index = () => {
-  const isMobile = useIsMobile();
+  const { session } = useAuth();
   const { session } = useAuth();
   const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const [exitSignupOpen, setExitSignupOpen] = useState(false);

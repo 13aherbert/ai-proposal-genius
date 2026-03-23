@@ -86,11 +86,12 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     // Apply font family
     root.style.setProperty('font-family', config.font_family);
     
-    // Apply custom CSS if provided
+    // Apply custom CSS if provided (sanitized to prevent injection)
     if (config.custom_css) {
+      const sanitizedCss = sanitizeCustomCss(config.custom_css);
       const customStyleElement = document.getElementById('custom-branding-styles') || document.createElement('style');
       customStyleElement.id = 'custom-branding-styles';
-      customStyleElement.textContent = config.custom_css;
+      customStyleElement.textContent = sanitizedCss;
       if (!document.getElementById('custom-branding-styles')) {
         document.head.appendChild(customStyleElement);
       }

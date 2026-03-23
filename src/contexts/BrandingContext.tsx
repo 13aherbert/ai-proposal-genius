@@ -46,6 +46,14 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { organization } = useCurrentOrganization();
 
+  const sanitizeCustomCss = (css: string): string => {
+    // Remove @import rules (could load attacker-controlled stylesheets)
+    let sanitized = css.replace(/@import\s+[^;]+;/gi, '');
+    // Remove external url() calls (could exfiltrate data via side-channel)
+    sanitized = sanitized.replace(/url\s*\(\s*['"]?\s*https?:[^)]+\)/gi, '');
+    return sanitized;
+  };
+
   const applyBrandingToCSS = (config: BrandingConfig) => {
     const root = document.documentElement;
     
@@ -86,11 +94,12 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     // Apply font family
     root.style.setProperty('font-family', config.font_family);
     
-    // Apply custom CSS if provided
+    // Apply custom CSS if provided (sanitized to prevent injection)
     if (config.custom_css) {
+      const sanitizedCss = sanitizeCustomCss(config.custom_css);
       const customStyleElement = document.getElementById('custom-branding-styles') || document.createElement('style');
       customStyleElement.id = 'custom-branding-styles';
-      customStyleElement.textContent = config.custom_css;
+      customStyleElement.textContent = sanitizedCss;
       if (!document.getElementById('custom-branding-styles')) {
         document.head.appendChild(customStyleElement);
       }

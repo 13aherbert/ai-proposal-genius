@@ -21,7 +21,7 @@ interface WebhookEndpoint {
   url: string;
   events: string[];
   is_active: boolean;
-  secret_key: string;
+  secret_key?: string;
   retry_count: number;
   timeout_seconds: number;
   headers: Record<string, string>;
@@ -76,7 +76,7 @@ export function WebhookManager() {
     try {
       const { data, error } = await supabase
         .from('organization_webhooks')
-        .select('*')
+        .select('id, name, url, events, is_active, created_at, updated_at, organization_id, headers, timeout_seconds, retry_count, success_count, failure_count, last_triggered_at')
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false });
       if (error) throw error;

@@ -21,7 +21,7 @@ interface WebhookEndpoint {
   url: string;
   events: string[];
   is_active: boolean;
-  secret_key: string;
+  secret_key?: string;
   retry_count: number;
   timeout_seconds: number;
   headers: Record<string, string>;

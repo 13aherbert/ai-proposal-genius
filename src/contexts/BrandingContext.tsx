@@ -46,6 +46,14 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { organization } = useCurrentOrganization();
 
+  const sanitizeCustomCss = (css: string): string => {
+    // Remove @import rules (could load attacker-controlled stylesheets)
+    let sanitized = css.replace(/@import\s+[^;]+;/gi, '');
+    // Remove external url() calls (could exfiltrate data via side-channel)
+    sanitized = sanitized.replace(/url\s*\(\s*['"]?\s*https?:[^)]+\)/gi, '');
+    return sanitized;
+  };
+
   const applyBrandingToCSS = (config: BrandingConfig) => {
     const root = document.documentElement;
     

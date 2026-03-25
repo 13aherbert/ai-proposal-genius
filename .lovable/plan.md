@@ -1,73 +1,64 @@
 
 
-## UX Audit: Findings and Fix Plan
+## Full UX Audit: Findings and Fix Plan
 
-### Issues Found
+### Critical Bugs
 
-**1. Landing page (`/`) has no shared navigation**
-The Index page renders its own inline nav buttons (Pricing, FAQ, Login) floating in the top-right corner. It does not use the `PublicNavbar` and has no links to About, Contact, Demo, Integrations, Blog, Docs, or Security. Users arriving at the homepage cannot discover the rest of the site.
+**1. Dashboard navigates to wrong project route (`/project/` instead of `/projects/`)**
+In `Dashboard.tsx` line 140, `UploadRFP.tsx` line 155, `use-quick-upload.ts` lines 123/143, `use-draft-proposal.ts` line 71, `ProgressiveOnboarding.tsx` line 337, and `FirstRFPWizard.tsx` line 123 — all navigate to `/project/:id` (singular). The actual route is `/projects/:projectId`. There IS a redirect at `/project/:projectId`, but it causes an unnecessary extra navigation hop and briefly flashes the redirect. All these should navigate directly to `/projects/:id`.
 
-**Fix**: Wrap the Index page content with the `PublicNavbar` (and optionally the `Footer`). Remove the inline floating nav buttons since the PublicNavbar already provides Login, Get Started, Book Demo, and all dropdown navigation.
+**2. "Features" link (`/#features`) points to nonexistent anchor**
+The PublicNavbar and Footer both link to `/#features`, but `Index.tsx` has no element with `id="features"`. The link scrolls nowhere.
 
-**2. `/pricing` redirects via `window.location.replace("/#pricing")`**
-This causes a full page reload and navigates back to the landing page's dark theme. Since the landing page doesn't use PublicNavbar, users lose context. This is a jarring experience.
+### UX Issues
 
-**Fix**: Change the Pricing redirect to use React Router's `useNavigate` or `<Navigate>` so it stays in-app. Alternatively, create a standalone `/pricing` page under `PublicLayout` that mirrors the pricing content.
+**3. Landing page theme clash with PublicNavbar**
+The Index page uses a dark background (`bg-[#1a1a1a]`) but the PublicNavbar uses a light `bg-background` theme. The white navbar on a dark page creates a jarring visual mismatch.
 
-**3. Footer "Privacy Policy" and "Terms of Service" both link to `/security`**
-These are misleading — the Security page is about data encryption and compliance, not legal terms. There are no actual Privacy Policy or Terms of Service pages.
+**4. Contact form success state is misleading**
+After the `mailto:` opens, the form shows "Our team will get back to you within 24 hours. Check your inbox for a confirmation." — but nothing was actually submitted. The user only opened their email client. If they close it without sending, they still see the success message.
 
-**Fix**: Either create dedicated `/privacy` and `/terms` pages, or point these links to placeholder anchors on the Security page with appropriate sections added. At minimum, rename the labels to be accurate (e.g., "Security & Privacy") or add a legal section to the Security page.
+**5. NotFound page assumes authenticated user**
+The 404 page's primary CTA is "Return to Dashboard" — but unauthenticated users hitting a bad URL should be directed to `/` (homepage), not `/dashboard` which will redirect them through auth.
 
-**4. Security page links to `/docs/privacy` which likely 404s**
-The "Privacy Policy" download card on the Security page links to `/docs/privacy` — there's no route for this specific doc path unless the Documentation page handles it dynamically.
-
-**Fix**: Verify the `/docs/privacy` route works. If not, update the link to point to an existing resource or create the content.
-
-**5. `SetInitialAdmin` is imported but has no route**
-The component is imported in `App.tsx` but never mounted in any `<Route>`. Dead import.
-
-**Fix**: Either add a route (e.g., under admin routes) or remove the unused import.
-
-**6. `HelpCenter` page exists but has no route**
-`src/pages/HelpCenter.tsx` is an orphaned page with no route in `App.tsx`.
-
-**Fix**: Either wire it up as a route or remove the file.
-
-**7. Organization dashboard tab bar uses `grid-cols-12` with conditional tabs**
-When permissions hide tabs, the 12-column grid leaves awkward gaps. This makes the tab bar look broken for non-admin users.
-
-**Fix**: Change from `grid-cols-12` to a flexible layout (e.g., `flex flex-wrap` or remove the grid constraint) so tabs flow naturally.
-
-**8. Contact form is non-functional (mock `setTimeout`)**
-The contact form simulates submission with a `setTimeout` and doesn't actually send anything. Users get a "success" message but no email is sent.
-
-**Fix**: Add a note or connect to a real backend (e.g., Supabase Edge Function or `mailto` fallback). At minimum, document this as a known limitation.
+**6. `SetInitialAdmin.tsx` is orphaned**
+The file exists in `/pages` but is not imported or routed anywhere in `App.tsx`. Dead code.
 
 ---
 
 ### Implementation Steps
 
-1. **Add PublicNavbar + Footer to the landing page** — Either move `/` into the `PublicLayout` route group, or add the navbar/footer components directly to `Index.tsx`. Remove the inline floating nav buttons (lines 73-96 of Index.tsx).
+**Step 1: Fix all `/project/` navigations to `/projects/`**
+Update 6 files to use the canonical `/projects/:id` route:
+- `src/pages/Dashboard.tsx` line 140
+- `src/pages/UploadRFP.tsx` line 155
+- `src/hooks/use-quick-upload.ts` lines 123, 143
+- `src/hooks/use-draft-proposal.ts` line 71
+- `src/components/onboarding/ProgressiveOnboarding.tsx` line 337
+- `src/components/onboarding/FirstRFPWizard.tsx` line 123
 
-2. **Fix the Pricing redirect** — Replace `window.location.replace("/#pricing")` with proper client-side routing using `useNavigate` and scroll-to-element logic after navigation.
+**Step 2: Add `id="features"` to the landing page benefits section**
+In `Index.tsx`, add `id="features"` to the benefits grid container (around line 100) so `/#features` links scroll correctly.
 
-3. **Fix Footer legal links** — Update "Privacy Policy" and "Terms of Service" labels/targets to be accurate. Consider linking to `/security#privacy` or creating minimal legal pages.
+**Step 3: Fix landing page navbar theme**
+Make the PublicNavbar transparent with white text on the landing page, OR give the Index page's hero a dark navbar override by adding a dark variant class to the PublicNavbar when on `/`.
 
-4. **Fix orphaned routes** — Remove `SetInitialAdmin` import if no route is needed, or add the route. Remove `HelpCenter.tsx` or add its route.
+Simpler approach: Add a transparent/dark mode to PublicNavbar when rendered on the homepage. Use `useLocation` to detect `/` and apply `bg-transparent text-white` instead of the default light theme. Alternatively, change the Index page background to match the rest of the site theme (simpler but loses the dark brand aesthetic).
 
-5. **Fix Organization tabs layout** — Change `grid w-full grid-cols-12` to a flexible layout on the `TabsList`.
+Recommended: Keep the dark landing page but make the PublicNavbar respect it by conditionally applying transparent background and white text when `pathname === "/"`.
 
-6. **Fix Security page `/docs/privacy` link** — Update to a valid destination.
+**Step 4: Fix Contact form success messaging**
+Change the success toast and card text to be honest: "Your default email client should have opened. If it didn't, you can email us directly at hello@optirfp.ai." Remove the "Check your inbox for a confirmation" line.
 
-7. **Wire up contact form** — Add a `mailto` fallback or Supabase Edge Function so form submissions actually reach someone.
+**Step 5: Fix NotFound for unauthenticated users**
+Import `useAuth` and conditionally show "Return to Dashboard" (authenticated) or "Go to Homepage" (unauthenticated) with the appropriate route.
+
+**Step 6: Delete orphaned `SetInitialAdmin.tsx`**
+Remove the unused file.
 
 ### Technical Details
 
-- Index.tsx lines 70-96: Remove the `<div className="absolute top-4 right-4">` block with inline nav buttons
-- Index.tsx: Either wrap in `PublicLayout` by moving the `/` route inside the `<Route element={<PublicLayout />}>` group, or import and render `PublicNavbar` and `Footer` directly (keeping the dark theme may require the latter approach since PublicLayout adds a white background wrapper)
-- Pricing.tsx: Replace `window.location.replace("/#pricing")` with `navigate("/", { replace: true })` + scroll logic, or better yet, create a real pricing section page
-- Footer.tsx lines 35-36: Update legal links
-- OrganizationDashboard.tsx line 97: Change `grid w-full grid-cols-12` to `flex flex-wrap`
-- App.tsx: Remove `SetInitialAdmin` import (line 28) or add route
+- PublicNavbar dark mode: Add `useLocation()`, check `pathname === "/"`, conditionally apply `bg-transparent text-white border-transparent` to the header, and adjust button/link colors.
+- Features anchor: Wrap the benefits grid div at line 100 of Index.tsx with `id="features"`.
+- Project navigation: Simple find-and-replace of `` `/project/${`` with `` `/projects/${`` across all 6 files.
 

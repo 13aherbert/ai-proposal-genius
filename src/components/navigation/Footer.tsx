@@ -18,7 +18,12 @@ const footerSections = [
       { label: "Blog", to: "/blog" },
       { label: "Documentation", to: "/docs" },
       { label: "FAQ", to: "/faq" },
-      { label: "Compare", to: "/compare/loopio" },
+      { label: "Compare Loopio", to: "/compare/loopio" },
+      { label: "Compare AutoRFP", to: "/compare/autorfp" },
+      { label: "Compare Responsive", to: "/compare/responsive" },
+      { label: "Compare Proposify", to: "/compare/proposify" },
+      { label: "Compare Qvidian", to: "/compare/qvidian" },
+      { label: "Compare PandaDoc", to: "/compare/pandadoc" },
     ],
   },
   {

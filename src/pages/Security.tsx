@@ -1,4 +1,4 @@
-import { Shield, Lock, Server, Users, FileCheck, Mail, CheckCircle2, Globe, KeyRound, ArrowRight } from "lucide-react";
+import { Shield, Lock, Server, Users, FileCheck, Mail, CheckCircle2, Globe, KeyRound, ArrowRight, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +149,51 @@ export default function SecurityPage() {
               </Card>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* AI & Data Privacy */}
+      <section className="border-t border-border/40 bg-muted/20">
+        <div className="container max-w-5xl mx-auto px-4 py-20 md:py-28">
+          <motion.div
+            initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
+            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, ease }}
+          >
+            <Card className="border-primary/20 bg-primary/[0.03] shadow-md">
+              <CardContent className="p-8 md:p-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                    <EyeOff className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight">AI & Data Privacy</h2>
+                </div>
+
+                <Badge variant="outline" className="mb-6 text-sm font-semibold px-4 py-1.5 border-primary/30 text-primary bg-primary/5">
+                  Your data is never used to train AI models.
+                </Badge>
+
+                <ul className="mt-6 space-y-5">
+                  {[
+                    { label: "No AI training on your data", detail: "Your documents, proposals, and knowledge base content are never used to train, fine-tune, or improve any AI model." },
+                    { label: "Ephemeral processing", detail: "Data sent to AI providers is processed in real-time and not stored or retained after the response is generated." },
+                    { label: "Third-party provider policies", detail: "We use Google Gemini and Anthropic Claude, both of which contractually exclude API inputs from model training under their standard API terms." },
+                    { label: "Data isolation", detail: "Each organization's data is logically isolated via row-level security. No cross-tenant data access is possible." },
+                    { label: "You own your data", detail: "Export or delete your data at any time. We never claim ownership of your content." },
+                  ].map((item) => (
+                    <li key={item.label} className="flex gap-3">
+                      <CheckCircle2 className="h-4 w-4 mt-1 shrink-0 text-primary/70" />
+                      <div>
+                        <p className="font-medium text-sm">{item.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 

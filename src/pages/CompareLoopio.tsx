@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Footer } from "@/components/navigation/Footer";
-import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { CompareNav } from "@/components/navigation/CompareNav";
+import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -28,6 +28,8 @@ const CompareLoopio = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <CompareNav />
+
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
@@ -42,8 +44,6 @@ const CompareLoopio = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Stop paying enterprise prices for a content library. Get AI-powered proposal generation that actually writes your responses.
           </p>
-
-          {/* Quick Verdict */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               { label: "Start free vs $20K minimum" },
@@ -126,7 +126,6 @@ const CompareLoopio = () => {
       </Dialog>
 
       <div className="pb-16" />
-      <Footer />
     </div>
   );
 };

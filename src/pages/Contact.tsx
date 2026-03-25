@@ -150,8 +150,8 @@ export default function Contact() {
                 <Card className="border-brand-green/30 bg-brand-green/5">
                   <CardContent className="p-8 text-center">
                     <CheckCircle2 className="h-12 w-12 text-brand-green mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Thanks for reaching out!</h3>
-                    <p className="text-muted-foreground">Our team will get back to you within 24 hours. Check your inbox for a confirmation.</p>
+                    <h3 className="text-xl font-semibold mb-2">Almost there!</h3>
+                    <p className="text-muted-foreground">Your default email client should have opened with a pre-filled message. If it didn't, you can email us directly at <a href="mailto:hello@optirfp.ai" className="text-brand-green hover:underline">hello@optirfp.ai</a>.</p>
                     <Button className="mt-6" variant="outline" onClick={() => setSubmitted(false)}>
                       Send Another Message
                     </Button>

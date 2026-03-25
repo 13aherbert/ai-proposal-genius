@@ -152,7 +152,7 @@ const UploadRFP = () => {
 
   const handleViewProject = useCallback(() => {
     if (projectId) {
-      navigate(`/project/${projectId}`);
+      navigate(`/projects/${projectId}`);
     }
   }, [navigate, projectId]);
   

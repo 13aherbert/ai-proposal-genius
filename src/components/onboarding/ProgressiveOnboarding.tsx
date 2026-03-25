@@ -334,7 +334,7 @@ function SuccessStep({ onComplete, projectId }: { onComplete: () => void; projec
       </div>
       <div className="flex flex-col sm:flex-row gap-3 max-w-xs mx-auto">
         {projectId ? (
-          <Button className="flex-1" onClick={() => { onComplete(); navigate(`/project/${projectId}`); }}>
+          <Button className="flex-1" onClick={() => { onComplete(); navigate(`/projects/${projectId}`); }}>
             Edit & Export
           </Button>
         ) : (

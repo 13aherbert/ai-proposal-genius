@@ -137,7 +137,7 @@ export default function Dashboard() {
 
   const handleActivityClick = (activity: any) => {
     if (activity.type === 'project') {
-      navigate(`/project/${activity.id}`);
+      navigate(`/projects/${activity.id}`);
     } else if (activity.type === 'knowledge') {
       navigate('/knowledge-base');
     }

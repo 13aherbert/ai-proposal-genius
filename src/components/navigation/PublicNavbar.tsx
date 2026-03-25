@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -59,12 +59,19 @@ ListItem.displayName = "ListItem";
 
 export function PublicNavbar() {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const isHomePage = location.pathname === "/";
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
 
   return (
     <>
-      <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-50">
+      <header className={cn(
+        "backdrop-blur sticky top-0 z-50",
+        isHomePage
+          ? "bg-[#1a1a1a]/80 border-b border-white/10 text-white"
+          : "bg-background/95 supports-[backdrop-filter]:bg-background/60 border-b"
+      )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between items-center">
             {/* Logo */}

@@ -68,7 +68,7 @@ export function useDraftProposal() {
       }
 
       onClose?.();
-      navigate(`/project/${data.projectId}`, {
+      navigate(`/projects/${data.projectId}`, {
         state: { autoStart: true },
       });
     } catch (err: any) {

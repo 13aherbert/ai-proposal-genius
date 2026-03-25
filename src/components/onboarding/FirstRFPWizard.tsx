@@ -120,7 +120,7 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
     localStorage.setItem("optirfp_first_rfp_complete", "true");
     onOpenChange(false);
     if (quickUpload.projectId) {
-      navigate(`/project/${quickUpload.projectId}`);
+      navigate(`/projects/${quickUpload.projectId}`);
     } else {
       navigate("/upload-rfp");
     }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Footer } from "@/components/navigation/Footer";
+import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -29,6 +29,8 @@ const ComparePandaDoc = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <CompareNav />
+
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <div className="flex items-center justify-center gap-6 mb-8">
@@ -125,7 +127,6 @@ const ComparePandaDoc = () => {
       </Dialog>
 
       <div className="pb-16" />
-      <Footer />
     </div>
   );
 };

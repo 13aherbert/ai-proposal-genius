@@ -2,9 +2,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function NotFound() {
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
@@ -26,11 +28,11 @@ export default function NotFound() {
           </Button>
           
           <Button 
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(session ? "/dashboard" : "/")}
             className="gap-2"
           >
             <Home className="h-4 w-4" />
-            Return to Dashboard
+            {session ? "Return to Dashboard" : "Go to Homepage"}
           </Button>
         </div>
       </div>

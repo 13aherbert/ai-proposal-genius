@@ -120,7 +120,7 @@ export function useQuickUpload() {
       // The automation will start automatically there
       if (autoGenerate) {
         setTimeout(() => {
-          navigate(`/project/${project.project_id}`);
+          navigate(`/projects/${project.project_id}`);
           closeModal();
         }, 500);
       }
@@ -140,7 +140,7 @@ export function useQuickUpload() {
 
   const viewProject = useCallback(() => {
     if (state.projectId) {
-      navigate(`/project/${state.projectId}`);
+      navigate(`/projects/${state.projectId}`);
       closeModal();
     }
   }, [state.projectId, navigate, closeModal]);

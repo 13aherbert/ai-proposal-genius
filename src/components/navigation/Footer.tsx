@@ -39,6 +39,7 @@ const footerSections = [
     links: [
       { label: "Security & Privacy", to: "/security" },
       { label: "Support", href: "mailto:support@optirfp.ai" },
+      { label: "Keyboard Shortcuts", action: "open-keyboard-shortcuts" },
     ],
   },
 ];

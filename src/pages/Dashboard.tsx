@@ -248,7 +248,20 @@ export default function Dashboard() {
           </div>
 
           {/* Usage Progress */}
-
+          {!isEnterprise && (
+            <UsageProgressWidget
+              projectCount={dashboardStats.projectCount}
+              projectLimit={projectLimit}
+              currentPlan={planType as "starter" | "growth" | "business" | "enterprise"}
+            />
+          )}
+          {isEnterprise && (
+            <UsageProgressWidget
+              projectCount={dashboardStats.projectCount}
+              projectLimit={-1}
+              currentPlan="enterprise"
+            />
+          )}
           {/* Recent Activity */}
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>

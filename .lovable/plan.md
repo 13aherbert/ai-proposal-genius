@@ -1,126 +1,92 @@
 
-Root-cause investigation plan for the persistent Opportunity Finder failure
+Exact conclusion from the evidence:
 
-What I verified
-- The user’s auth/org setup looks valid:
-  - profile has `current_organization_id`
-  - organization membership is `active`
-  - organization subscription is `pro` and `active`
-- `SAM_GOV_API_KEY` exists as a configured secret.
-- The client hook does explicitly send `Authorization: Bearer ...`.
-- `search-opportunities` is configured with `verify_jwt = false`, so in-code token validation is expected and the current pattern is appropriate.
-- The current runtime observability is still insufficient:
-  - `supabase--edge_function_logs` returned no logs for `search-opportunities`
-  - analytics edge logs also showed no recent function invocations for that path
-  - this means we still do not have proof of what the live function is doing during the failing search
+1. The failure is not currently at SAM.gov.
+- The code is using the requested endpoint: `https://api.sam.gov/opportunities/v2/search`.
+- `SAM_GOV_API_KEY` exists.
+- The search function code is wired to send the bearer token and to call SAM only for NAICS-only searches.
 
-Most likely exact root causes
-1. The search request is likely not reliably reaching/executing the deployed edge function
-- There are no recent invocation logs for `search-opportunities`, despite the user reporting repeated searches.
-- I also tested the function endpoint directly and got `401 Unauthorized`, which confirms the function is enforcing auth but does not prove the browser request is arriving correctly.
-- Because logs are absent, there may be a deployment/runtime mismatch, request routing issue, or silent client-side failure before invocation.
+2. The failing searches are not reaching the `search-opportunities` edge function during the observed failure window.
+I can say this confidently because all of these are true at the same time:
+- `search-opportunities` edge logs show no invocation logs, only old shutdown events.
+- Edge analytics show no recent requests for that function.
+- The client network snapshot contains no function call to `functions/v1/search-opportunities`.
+- `organization_usage_metrics` has no fresh `opportunity_searches` row during the reported failing session.
 
-2. The NAICS retry logic is currently invalid for SAM.gov
-- The code retries NAICS-only searches with a 730-day window.
-- SAM.gov’s documented API says `postedFrom` to `postedTo` may only span 1 year.
-- So the retry path can produce invalid requests or provider errors even when the first request is fine.
-- For NAICS searches, this is a concrete bug.
+That means the timeout/no-results behavior the user sees is happening before the deployed search function executes.
 
-3. The search flow still depends on weak diagnostics for provider failures
-- Even though the code logs provider request shapes, there is no reliable evidence those logs are appearing in runtime.
-- Without that, the app cannot distinguish:
-  - request never reached function
-  - auth rejected
-  - SAM rejected API key
-  - SAM returned zero results
-  - SAM timed out
-  - invalid retry range caused failure
-
-4. There may be a live deploy mismatch
-- The repo code now includes explicit auth, provider statuses, and timeout logic.
-- But runtime logs are not showing those codepaths.
-- That strongly suggests the deployed function may not match the inspected source, or the function is failing before request-level logging is emitted.
-
-Important code-level findings
-- `use-opportunity-search.ts`
-  - sends auth header correctly
-  - has a 45s client timeout
-  - can only render good error states if it receives a structured response
-- `search-opportunities/index.ts`
-  - auth logic is structurally reasonable
-  - skips Grants.gov for NAICS-only searches
-  - but the fallback retry uses a 730-day posted date range, which conflicts with SAM.gov docs
-- `OpportunitySearchForm.tsx`
-  - passes NAICS raw input through; edge function sanitizes to 6 digits, which is fine for `512110`
-
-What I now understand about the failure
+3. The exact failure boundary is now narrowed to the client/runtime path before the outbound function request.
+The likely code boundary is:
 ```text
-User searches NAICS 512110
-→ client appears to spin
-→ we do not have runtime proof the deployed function is actually executing the expected code
-→ if it does execute, the first SAM query may return 0 or timeout
-→ the retry then uses an out-of-spec 2-year date range
-→ result may degrade into provider error / timeout / empty response
-→ UI cannot fully explain the true failure because runtime diagnostics are missing
+User submits form
+→ handleSearch()
+→ useOpportunitySearch.search()
+→ supabase.functions.invoke("search-opportunities", ...)
+→ expected network request never materializes
 ```
 
-Recommended next implementation steps
-1. Prove invocation first
-- Add guaranteed top-level structured logging at function entry and before every return path.
-- Include request id, auth phase result, and whether provider calls were reached.
-- Goal: confirm whether the live function is being invoked at all.
+4. There is also a separate confirmed edge-function failure in the app:
+- `get-user-roles` has a boot-time syntax error:
+  `Identifier 'supabaseUrl' has already been declared`
+- This is caused by the duplicate declaration inside `supabase/functions/get-user-roles/index.ts`.
+- AuthProvider triggers this function in the background on auth changes.
+- I cannot yet prove this is the direct blocker for opportunity search, but it is a real runtime defect in the same auth/session path and should be treated as high priority.
 
-2. Remove the invalid SAM retry strategy
-- Replace the 730-day retry with a retry that stays within SAM’s 1-year max range.
-- If broader discovery is needed, use a segmented strategy:
-  - last 365 days
-  - then prior 365-day segment in a second request
-- Do not send a single >1-year posted date window.
-
-3. Add phase-level response diagnostics
-- Return sanitized diagnostics to the client:
-  - `phase: auth | org_check | provider_fetch | completed`
-  - provider HTTP statuses
-  - actual date window used
-  - whether fallback retry ran
-- This will stop “still broken” from being opaque.
-
-4. Verify deployed/runtime parity
-- Confirm the deployed `search-opportunities` function matches the current repo version.
-- If not, redeploy or force a no-op code change to refresh the deployment artifact.
-
-5. Test the exact NAICS flow directly
-- After logging is fixed, test:
-  - `512110` with default dates
-  - `512110` with explicit 1-year range
-  - `512110` source=`sam_gov`
-- Compare runtime provider statuses before changing broader logic.
-
-Technical details
-- Confirmed from SAM docs:
-  - endpoint `https://api.sam.gov/opportunities/v2/search` is valid
-  - `postedFrom` and `postedTo` are mandatory
-  - allowed range between them is 1 year
-- Current bug in code:
-```ts
-const retryResult = await fetchSamGov(body, samApiKey, 730);
+What I now understand with certainty
+```text
+The Opportunity Finder problem is not currently “SAM returned 0 results.”
+The request is failing before search-opportunities is invoked.
+So changing SAM query params alone will not resolve the user-facing timeout.
 ```
-- This is incompatible with the SAM API contract and is the clearest concrete defect I found.
-- Secondary concern: absence of runtime invocation logs is too strong to ignore and must be validated before assuming provider-only failure.
 
-Files that should be touched next
-- `supabase/functions/search-opportunities/index.ts`
-- optionally `src/hooks/use-opportunity-search.ts`
-- optionally `src/pages/Opportunities.tsx`
+Recommended next implementation plan
+
+Step 1: Instrument the client invocation boundary
+- Add logs/state around:
+  - form submit
+  - `handleSearch`
+  - immediately before `supabase.functions.invoke`
+  - immediately after invoke resolves/rejects
+- Goal: prove whether the promise is never started, never resolves, or throws before network dispatch.
+
+Step 2: Remove the broken auth-side noise
+- Fix `supabase/functions/get-user-roles/index.ts` duplicate `supabaseUrl` declaration.
+- This will restore a broken background auth dependency and reduce false signals while debugging search.
+
+Step 3: Add a direct fallback request path for diagnosis
+- Temporarily test the same search using a direct `fetch` to the function URL with the same bearer token.
+- Goal: distinguish “Supabase client invoke problem” from “app-level state/problem before request.”
+
+Step 4: Add explicit client-visible diagnostics
+- Surface:
+  - `submit_started`
+  - `invoke_started`
+  - `invoke_failed`
+  - `response_received`
+- This prevents the UI from showing a generic spinner/timeout when no request was ever sent.
+
+Step 5: Re-test provider behavior only after invocation is proven
+- Once requests are definitely reaching the function, validate:
+  - NAICS `512110`
+  - default 90-day window
+  - SAM-only source
+- Only then revisit provider logic if results are still wrong.
+
+Files to inspect/change next
+- `src/hooks/use-opportunity-search.ts`
+- `src/pages/Opportunities.tsx`
+- `supabase/functions/get-user-roles/index.ts`
+
+Technical notes
+- `search-opportunities` itself currently has the correct SAM base URL and valid manual auth pattern.
+- The prior SAM date-window issues may still matter later, but they are not the current root cause of the observed “still broken” state because the function is not being invoked.
+- The strongest proven root cause right now is:
+  - pre-invocation failure in the client/runtime path
+  - plus a separate confirmed `get-user-roles` boot failure in the auth ecosystem
 
 Expected outcome after the next pass
-- We will know definitively whether the failure is:
-  - invocation/deployment mismatch
-  - auth rejection
-  - invalid SAM retry window
-  - API key rejection
-  - provider timeout
-  - or legitimate zero-result behavior
-- Right now, the strongest exact root cause is a combination of:
-  - missing reliable live invocation diagnostics
-  - and an invalid 730-day SAM fallback request in the NAICS path
+- We will know exactly whether the blocker is:
+  - `supabase.functions.invoke` hanging/failing client-side
+  - a session/auth runtime issue before request dispatch
+  - or another frontend state dependency preventing the request from being sent
+- Only after that should we make any SAM/provider changes.

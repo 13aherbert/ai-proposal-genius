@@ -73,7 +73,7 @@ export function useSearchUsage() {
 
       await supabase.rpc("update_organization_usage_metric", {
         org_id: profile.current_organization_id,
-        metric_type_param: "opportunity_search",
+        metric_type_param: "opportunity_searches",
         increment_value: 1,
       });
 

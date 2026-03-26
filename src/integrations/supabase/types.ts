@@ -1759,7 +1759,9 @@ export type Database = {
           industry: Database["public"]["Enums"]["industry_type"] | null
           job_title: string | null
           last_name: string | null
+          onboarding_completed: boolean | null
           onboarding_segment: string | null
+          onboarding_skipped_at: string | null
           organization_size:
             | Database["public"]["Enums"]["organization_size_type"]
             | null
@@ -1778,7 +1780,9 @@ export type Database = {
           industry?: Database["public"]["Enums"]["industry_type"] | null
           job_title?: string | null
           last_name?: string | null
+          onboarding_completed?: boolean | null
           onboarding_segment?: string | null
+          onboarding_skipped_at?: string | null
           organization_size?:
             | Database["public"]["Enums"]["organization_size_type"]
             | null
@@ -1797,7 +1801,9 @@ export type Database = {
           industry?: Database["public"]["Enums"]["industry_type"] | null
           job_title?: string | null
           last_name?: string | null
+          onboarding_completed?: boolean | null
           onboarding_segment?: string | null
+          onboarding_skipped_at?: string | null
           organization_size?:
             | Database["public"]["Enums"]["organization_size_type"]
             | null

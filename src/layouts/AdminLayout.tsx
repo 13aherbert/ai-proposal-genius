@@ -48,12 +48,24 @@ export default function AdminLayout() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <ShieldAlert className="h-12 w-12 text-destructive mx-auto" />
-            <h1 className="text-2xl font-bold">Access Denied</h1>
-            <p className="text-muted-foreground">You don't have permission to access the admin area.</p>
-            <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="mx-auto w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+              <Shield className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">Admin Access Required</h1>
+              <p className="text-muted-foreground leading-relaxed">
+                This area is reserved for team administrators. If you need admin access, please contact your organization's OptiRFP administrator or email{" "}
+                <a href="mailto:support@optirfp.ai" className="text-primary hover:underline">support@optirfp.ai</a>.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+              <Button variant="outline" asChild>
+                <a href="mailto:support@optirfp.ai">Contact Support</a>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

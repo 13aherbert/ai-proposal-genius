@@ -120,8 +120,8 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
 
         {/* Active filter warning */}
         {keyword && activeFilters.length > 0 && (
-          <div className="sm:col-span-2 lg:col-span-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-sm">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+          <div className="sm:col-span-2 lg:col-span-3 flex items-start gap-2 rounded-md border border-accent/30 bg-accent/5 px-3 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4 text-accent mt-0.5 shrink-0" />
             <div>
               <span className="text-foreground font-medium">{activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""} active</span>
               <span className="text-muted-foreground"> ({activeFilters.join(", ")}). </span>

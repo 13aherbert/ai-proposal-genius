@@ -251,15 +251,14 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     // Get user's organization
     const { data: profile } = await supabase
@@ -300,7 +299,7 @@ Deno.serve(async (req) => {
       .single();
 
     const planType = subscription?.plan_type?.toLowerCase() || "trial";
-    if (!["pro", "enterprise", "white_label"].includes(planType)) {
+    if (!["growth", "business", "enterprise", "white_label", "pro"].includes(planType)) {
       return new Response(
         JSON.stringify({ error: "Pro or Enterprise subscription required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

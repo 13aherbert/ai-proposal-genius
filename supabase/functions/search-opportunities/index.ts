@@ -77,7 +77,7 @@ const formatDateMMDDYYYY = (d: Date): string => {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 };
 
-async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
@@ -127,6 +127,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90)
       
       return {
         opportunities: [],
+        totalRecords: 0,
         status: { 
           provider: "SAM.gov", 
           status: statusType, 
@@ -161,6 +162,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90)
 
     return {
       opportunities,
+      totalRecords,
       status: {
         provider: "SAM.gov",
         status: opportunities.length > 0 ? "success" : "no_results",
@@ -173,15 +175,15 @@ async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90)
     const elapsed = Date.now() - startTime;
     if (err instanceof DOMException && err.name === "AbortError") {
       console.warn(`[SAM.gov] Request timed out after ${elapsed}ms`);
-      return { opportunities: [], status: { provider: "SAM.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
+      return { opportunities: [], totalRecords: 0, status: { provider: "SAM.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
     }
     console.error(`[SAM.gov] Fetch error after ${elapsed}ms:`, err);
-    return { opportunities: [], status: { provider: "SAM.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+    return { opportunities: [], totalRecords: 0, status: { provider: "SAM.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
   }
 }
 
 // ─── Grants.gov Provider ─────────────────────────────────────────────
-async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
@@ -218,7 +220,8 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
     const json = await res.json();
     const hits = json?.data?.oppHits || [];
-    console.log(`[Grants.gov] Results: ${hits.length} in ${elapsed}ms`);
+    const grantsTotal = json?.data?.totalCount || json?.data?.numberOfRecords || hits.length;
+    console.log(`[Grants.gov] Results: ${hits.length}, total: ${grantsTotal} in ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = hits.map((opp: any) => ({
       external_id: String(opp.id || opp.oppNumber || ""),
@@ -241,6 +244,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
     return {
       opportunities,
+      totalRecords: grantsTotal,
       status: {
         provider: "Grants.gov",
         status: opportunities.length > 0 ? "success" : "no_results",
@@ -252,10 +256,10 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
     const elapsed = Date.now() - startTime;
     if (err instanceof DOMException && err.name === "AbortError") {
       console.warn(`[Grants.gov] Request timed out after ${elapsed}ms`);
-      return { opportunities: [], status: { provider: "Grants.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
+      return { opportunities: [], totalRecords: 0, status: { provider: "Grants.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
     }
     console.error(`[Grants.gov] Fetch error after ${elapsed}ms:`, err);
-    return { opportunities: [], status: { provider: "Grants.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+    return { opportunities: [], totalRecords: 0, status: { provider: "Grants.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
   }
 }
 
@@ -453,9 +457,11 @@ Deno.serve(async (req) => {
     const results = await Promise.all(fetchPromises);
     
     const allProviderOpps: NormalizedOpportunity[] = [];
+    let combinedTotalRecords = 0;
     for (const result of results) {
       providerStatuses.push(result.status);
       allProviderOpps.push(...result.opportunities);
+      combinedTotalRecords += result.totalRecords || 0;
     }
 
     let allOpportunities = deduplicateOpportunities(allProviderOpps);
@@ -514,7 +520,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         opportunities: allOpportunities,
-        totalRecords: allOpportunities.length,
+        totalRecords: combinedTotalRecords || allOpportunities.length,
         limit: body.limit || 25,
         offset: body.offset || 0,
         providerStatuses,

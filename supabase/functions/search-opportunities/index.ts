@@ -77,7 +77,7 @@ const formatDateMMDDYYYY = (d: Date): string => {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 };
 
-async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 365): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
@@ -434,8 +434,8 @@ Deno.serve(async (req) => {
 
     if (effectiveSource === "all" || effectiveSource === "sam_gov") {
       if (samApiKey) {
-        // Use 365-day window for filter-only searches, 90 for keyword searches
-        const daysBack = searchKeyword.trim() ? 90 : 365;
+        // SAM.gov rejects date ranges > ~90 days; use 90 for all searches
+        const daysBack = 90;
         fetchPromises.push(fetchSamGov(body, samApiKey, daysBack));
       } else {
         console.warn("[Search] SAM_GOV_API_KEY not configured or empty, skipping SAM.gov");
@@ -467,7 +467,7 @@ Deno.serve(async (req) => {
 
     allOpportunities = rankByRelevance(allOpportunities, searchKeyword);
 
-    // If NAICS-only search returned 0 from SAM, retry with wider window
+    // If NAICS-only search returned 0 from SAM, retry with prior 90-day segment
     const samStatus = providerStatuses.find(s => s.provider === "SAM.gov");
     if (
       allOpportunities.length === 0 &&
@@ -476,12 +476,19 @@ Deno.serve(async (req) => {
       samStatus &&
       samStatus.status === "no_results"
     ) {
-      console.log("[Search] NAICS-only returned 0, retrying SAM with 730-day window");
-      const retryResult = await fetchSamGov(body, samApiKey, 730);
-      // Replace the SAM status
+      console.log("[Search] NAICS-only returned 0, retrying SAM with prior 90-day segment (days 91-180)");
+      // Search the prior 90-day window (91 to 180 days ago)
+      const retryBody = { ...body };
+      const segEnd = new Date();
+      segEnd.setDate(segEnd.getDate() - 91);
+      const segStart = new Date();
+      segStart.setDate(segStart.getDate() - 180);
+      retryBody.postedFrom = `${segStart.getFullYear()}-${String(segStart.getMonth()+1).padStart(2,"0")}-${String(segStart.getDate()).padStart(2,"0")}`;
+      retryBody.postedTo = `${segEnd.getFullYear()}-${String(segEnd.getMonth()+1).padStart(2,"0")}-${String(segEnd.getDate()).padStart(2,"0")}`;
+      const retryResult = await fetchSamGov(retryBody, samApiKey, 90);
       const samIdx = providerStatuses.findIndex(s => s.provider === "SAM.gov");
       if (samIdx >= 0) {
-        providerStatuses[samIdx] = { ...retryResult.status, message: `Retry with 2-year window: ${retryResult.status.message || ""}` };
+        providerStatuses[samIdx] = { ...retryResult.status, message: `Retry (91-180 days ago): ${retryResult.status.message || ""}` };
       }
       if (retryResult.opportunities.length > 0) {
         allOpportunities = deduplicateOpportunities(retryResult.opportunities);

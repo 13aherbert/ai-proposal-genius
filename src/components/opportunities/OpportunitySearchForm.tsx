@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Loader2, X, RotateCcw, AlertTriangle } from "lucide-react";
 import type { SearchParams } from "@/hooks/use-opportunity-search";
 
 interface OpportunitySearchFormProps {

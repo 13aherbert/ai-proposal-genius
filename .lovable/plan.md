@@ -1,92 +1,65 @@
 
-Exact conclusion from the evidence:
 
-1. The failure is not currently at SAM.gov.
-- The code is using the requested endpoint: `https://api.sam.gov/opportunities/v2/search`.
-- `SAM_GOV_API_KEY` exists.
-- The search function code is wired to send the bearer token and to call SAM only for NAICS-only searches.
+## Root Cause: Keyword Search Returns 0 Results
 
-2. The failing searches are not reaching the `search-opportunities` edge function during the observed failure window.
-I can say this confidently because all of these are true at the same time:
-- `search-opportunities` edge logs show no invocation logs, only old shutdown events.
-- Edge analytics show no recent requests for that function.
-- The client network snapshot contains no function call to `functions/v1/search-opportunities`.
-- `organization_usage_metrics` has no fresh `opportunity_searches` row during the reported failing session.
+### What is happening
 
-That means the timeout/no-results behavior the user sees is happening before the deployed search function executes.
+The edge function logs prove it clearly:
 
-3. The exact failure boundary is now narrowed to the client/runtime path before the outbound function request.
-The likely code boundary is:
-```text
-User submits form
-→ handleSearch()
-→ useOpportunitySearch.search()
-→ supabase.functions.invoke("search-opportunities", ...)
-→ expected network request never materializes
+```
+[SAM.gov] Results: 25, totalRecords: 31703
+[Search] Final: 0 results
 ```
 
-4. There is also a separate confirmed edge-function failure in the app:
-- `get-user-roles` has a boot-time syntax error:
-  `Identifier 'supabaseUrl' has already been declared`
-- This is caused by the duplicate declaration inside `supabase/functions/get-user-roles/index.ts`.
-- AuthProvider triggers this function in the background on auth changes.
-- I cannot yet prove this is the direct blocker for opportunity search, but it is a real runtime defect in the same auth/session path and should be treated as high priority.
+SAM.gov returns 25 results for keyword "Cybersecurity" -- then the edge function **throws them all away**.
 
-What I now understand with certainty
-```text
-The Opportunity Finder problem is not currently “SAM returned 0 results.”
-The request is failing before search-opportunities is invoked.
-So changing SAM query params alone will not resolve the user-facing timeout.
+### Exact bug location
+
+`supabase/functions/search-opportunities/index.ts`, lines 296-308:
+
+```typescript
+function rankByRelevance(opps, keyword) {
+  return opps
+    .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
+    .filter(({ score }) => score > 0)   // ← THIS LINE KILLS EVERYTHING
+    .sort(...)
+    .map(({ opp }) => opp);
+}
 ```
 
-Recommended next implementation plan
+The `scoreRelevance` function checks the keyword against `title`, `department`, `solicitation_number`, and `raw_data.description`. But:
 
-Step 1: Instrument the client invocation boundary
-- Add logs/state around:
-  - form submit
-  - `handleSearch`
-  - immediately before `supabase.functions.invoke`
-  - immediately after invoke resolves/rejects
-- Goal: prove whether the promise is never started, never resolves, or throws before network dispatch.
+1. SAM.gov already does server-side keyword matching -- results ARE relevant
+2. The keyword often appears in the **full description text**, not the title or department
+3. `raw_data.description` is a **URL** (e.g., `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=...`), not actual description text
+4. So every result scores **0** and gets filtered out
 
-Step 2: Remove the broken auth-side noise
-- Fix `supabase/functions/get-user-roles/index.ts` duplicate `supabaseUrl` declaration.
-- This will restore a broken background auth dependency and reduce false signals while debugging search.
+### Why NAICS search works
 
-Step 3: Add a direct fallback request path for diagnosis
-- Temporarily test the same search using a direct `fetch` to the function URL with the same bearer token.
-- Goal: distinguish “Supabase client invoke problem” from “app-level state/problem before request.”
+`scoreRelevance` returns `1` when keyword is empty (line 264), so NAICS-only searches skip the filter entirely. That is why NAICS 512110 returned 6 results successfully.
 
-Step 4: Add explicit client-visible diagnostics
-- Surface:
-  - `submit_started`
-  - `invoke_started`
-  - `invoke_failed`
-  - `response_received`
-- This prevents the UI from showing a generic spinner/timeout when no request was ever sent.
+### Fix
 
-Step 5: Re-test provider behavior only after invocation is proven
-- Once requests are definitely reaching the function, validate:
-  - NAICS `512110`
-  - default 90-day window
-  - SAM-only source
-- Only then revisit provider logic if results are still wrong.
+**Line 300**: Remove the `filter` that strips zero-score results. SAM.gov has already matched by keyword server-side, so all returned results are relevant. Instead, just sort by score (higher-scored results first) but keep everything.
 
-Files to inspect/change next
-- `src/hooks/use-opportunity-search.ts`
-- `src/pages/Opportunities.tsx`
-- `supabase/functions/get-user-roles/index.ts`
+```typescript
+function rankByRelevance(opps, keyword) {
+  if (!keyword || !keyword.trim()) return opps;
+  return opps
+    .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const dateA = a.opp.posted_date || "";
+      const dateB = b.opp.posted_date || "";
+      return dateB.localeCompare(dateA);
+    })
+    .map(({ opp }) => opp);
+}
+```
 
-Technical notes
-- `search-opportunities` itself currently has the correct SAM base URL and valid manual auth pattern.
-- The prior SAM date-window issues may still matter later, but they are not the current root cause of the observed “still broken” state because the function is not being invoked.
-- The strongest proven root cause right now is:
-  - pre-invocation failure in the client/runtime path
-  - plus a separate confirmed `get-user-roles` boot failure in the auth ecosystem
+### File to update
+- `supabase/functions/search-opportunities/index.ts` (lines 296-308)
 
-Expected outcome after the next pass
-- We will know exactly whether the blocker is:
-  - `supabase.functions.invoke` hanging/failing client-side
-  - a session/auth runtime issue before request dispatch
-  - or another frontend state dependency preventing the request from being sent
-- Only after that should we make any SAM/provider changes.
+### Expected result
+Keyword searches like "Cybersecurity", "Video", "Video production" will return the 25 results SAM.gov provides instead of filtering them all to zero.
+

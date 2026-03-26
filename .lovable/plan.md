@@ -1,35 +1,32 @@
 
 
-## Fix: Keyword Search Returns Irrelevant/No Results Due to Stale Filters
+## Fix: Pagination shows only 1 page because totalRecords is wrong
 
 ### Root Cause
-The search form retains all filter values across searches. When a user searches by NAICS code first, then switches to a keyword search, the NAICS code and other filters remain active, making the combined query too restrictive (0 results).
-
-### Changes
-
-**File: `src/components/opportunities/OpportunitySearchForm.tsx`**
-
-1. Add a "Clear All Filters" button that resets all fields except keyword
-2. Show active filter count badge next to the search button so users know filters are applied
-3. Add a "Reset All" link that clears everything including keyword
-4. When filters are active alongside a keyword, show a subtle warning: "Filters are narrowing your results. Clear filters for broader keyword search."
-
-### Implementation Detail
-
-```text
-┌─────────────────────────────────────────────┐
-│ Keyword: [Construction                    ] │
-│                                             │
-│ ⚠ 2 filters active (NAICS, Type).          │
-│   Clear filters for broader results.        │
-│                                             │
-│ Source: All    Type: Presolicitation  ...    │
-│ NAICS: 511512  Set-Aside: Any              │
-│                                             │
-│ [🔍 Search]  [Clear Filters]  [Reset All]  │
-└─────────────────────────────────────────────┘
+In `supabase/functions/search-opportunities/index.ts`, line 517:
+```typescript
+totalRecords: allOpportunities.length,  // always 25 (the current page)
 ```
+This overwrites the real total (e.g., 31,703) with just the page size. The client uses `totalRecords` to calculate `totalPages`, so it thinks there's only 1 page.
+
+The actual `totalRecords` from SAM.gov is available in `fetchSamGov` (line 142) but is discarded — only the opportunities array and provider status are returned.
+
+### Fix
+
+**File: `supabase/functions/search-opportunities/index.ts`**
+
+1. Include `totalRecords` in the return value of `fetchSamGov` and `fetchGrantsGov`
+2. Accumulate the real total across providers in the main handler
+3. Return the real total in the response instead of `allOpportunities.length`
+
+Specifically:
+- `fetchSamGov` return type changes to include `totalRecords: number` (already parsed on line 142)
+- `fetchGrantsGov` similarly returns its total from `json?.data?.totalCount` or similar
+- Main handler sums provider totals and returns that as `totalRecords`
+- Line 517 becomes: `totalRecords: combinedTotalRecords`
+
+**No client-side changes needed** — `Opportunities.tsx` already has working pagination controls that use `totalRecords` and `PAGE_SIZE` to calculate pages and call `handlePageChange` with the correct offset.
 
 ### Files to update
-- `src/components/opportunities/OpportunitySearchForm.tsx` -- add clear buttons + active filter indicator
+- `supabase/functions/search-opportunities/index.ts`
 

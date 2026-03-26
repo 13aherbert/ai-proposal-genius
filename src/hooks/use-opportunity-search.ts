@@ -39,7 +39,10 @@ export interface ProviderStatus {
   status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
   count: number;
   message?: string;
+  responseTimeMs?: number;
 }
+
+export type SearchState = "idle" | "loading" | "success" | "empty" | "timed_out" | "error";
 
 export interface SavedOpportunity {
   id: string;
@@ -67,7 +70,7 @@ export function useOpportunitySearch() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [providerStatuses, setProviderStatuses] = useState<ProviderStatus[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [searchState, setSearchState] = useState<SearchState>("idle");
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
 
@@ -78,13 +81,17 @@ export function useOpportunitySearch() {
     }
 
     setIsSearching(true);
-    setHasSearched(true);
+    setSearchState("loading");
     setProviderStatuses([]);
 
+    // Client-side safety timeout at 45s (edge function has 20s per-provider timeouts)
+    let didTimeout = false;
     const clientTimeout = setTimeout(() => {
+      didTimeout = true;
       setIsSearching(false);
-      toast.error("Search timed out. Try narrowing your search criteria.");
-    }, 30000);
+      setSearchState("timed_out");
+      toast.error("Search timed out. Try narrowing your search criteria or selecting a specific source.");
+    }, 45000);
 
     try {
       const { data, error } = await supabase.functions.invoke("search-opportunities", {
@@ -92,37 +99,54 @@ export function useOpportunitySearch() {
       });
 
       clearTimeout(clientTimeout);
+      if (didTimeout) return; // Response arrived after timeout fired
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setResults(data.opportunities || []);
-      setTotalRecords(data.totalRecords || 0);
-      setProviderStatuses(data.providerStatuses || []);
-
-      // Show provider-specific warnings
+      const opportunities: Opportunity[] = data.opportunities || [];
       const statuses: ProviderStatus[] = data.providerStatuses || [];
-      const timedOut = statuses.filter(s => s.status === "timeout");
-      const errored = statuses.filter(s => s.status === "api_error");
-      
-      if (timedOut.length > 0 && (data.opportunities?.length || 0) > 0) {
-        toast.warning(`${timedOut.map(s => s.provider).join(", ")} timed out. Showing partial results.`);
-      } else if (timedOut.length > 0 && (data.opportunities?.length || 0) === 0) {
+
+      setResults(opportunities);
+      setTotalRecords(data.totalRecords || 0);
+      setProviderStatuses(statuses);
+
+      // Determine search state from provider statuses
+      const allTimedOut = statuses.length > 0 && statuses.every(s => s.status === "timeout");
+      const someTimedOut = statuses.some(s => s.status === "timeout");
+      const someErrored = statuses.some(s => s.status === "api_error");
+
+      if (opportunities.length > 0) {
+        setSearchState("success");
+        if (someTimedOut) {
+          toast.warning(`${statuses.filter(s => s.status === "timeout").map(s => s.provider).join(", ")} timed out. Showing partial results.`);
+        }
+      } else if (allTimedOut) {
+        setSearchState("timed_out");
         toast.error("Search providers timed out. Try again or narrow your search.");
+      } else if (someErrored && !opportunities.length) {
+        setSearchState("error");
+        toast.warning(`${statuses.filter(s => s.status === "api_error").map(s => s.provider).join(", ")} returned an error. Please try again.`);
+      } else {
+        setSearchState("empty");
       }
-      
-      if (errored.length > 0) {
-        toast.warning(`${errored.map(s => s.provider).join(", ")} returned an error. Results may be incomplete.`);
+
+      if (someErrored && opportunities.length > 0) {
+        toast.warning(`${statuses.filter(s => s.status === "api_error").map(s => s.provider).join(", ")} returned an error. Results may be incomplete.`);
       }
     } catch (err: any) {
       clearTimeout(clientTimeout);
+      if (didTimeout) return;
       const msg = err?.message || "Search failed";
       toast.error(msg);
       setResults([]);
       setTotalRecords(0);
+      setSearchState("error");
     } finally {
-      clearTimeout(clientTimeout);
-      setIsSearching(false);
+      if (!didTimeout) {
+        clearTimeout(clientTimeout);
+        setIsSearching(false);
+      }
     }
   }, [session?.access_token]);
 
@@ -250,7 +274,7 @@ export function useOpportunitySearch() {
     isSearching,
     search,
     providerStatuses,
-    hasSearched,
+    searchState,
     saveOpportunity,
     savedOpportunities,
     isLoadingSaved,

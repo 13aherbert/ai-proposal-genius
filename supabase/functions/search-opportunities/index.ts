@@ -29,6 +29,7 @@ interface ProviderStatus {
   status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
   count: number;
   message?: string;
+  responseTimeMs?: number;
 }
 
 interface SearchBody {
@@ -46,7 +47,7 @@ interface SearchBody {
 }
 
 // ─── Timeout Utility ─────────────────────────────────────────────────
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 20000): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -54,6 +55,14 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// ─── Helper: detect if search uses only SAM-specific filters ─────────
+function isSamOnlySearch(params: SearchBody): boolean {
+  const hasSamFilters = !!(params.naicsCode || params.setAside || params.ptype);
+  const hasKeyword = !!(params.keyword && params.keyword.trim());
+  // If user has SAM-specific filters and no keyword, default to SAM-only
+  return hasSamFilters && !hasKeyword;
 }
 
 // ─── SAM.gov Provider ────────────────────────────────────────────────
@@ -64,66 +73,64 @@ const toSamDate = (dateStr: string): string => {
 };
 
 async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+  const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
   const safeOffset = Math.max(Number(params.offset) || 0, 0);
 
+  // Widen default date window: 365 days for NAICS/filter-only, 90 days for keyword searches
+  const hasKeyword = safeKeyword.length > 0;
+  const defaultDaysBack = hasKeyword ? 90 : 365;
   const defaultFrom = new Date();
-  defaultFrom.setDate(defaultFrom.getDate() - 90);
+  defaultFrom.setDate(defaultFrom.getDate() - defaultDaysBack);
   const defaultFromStr = `${String(defaultFrom.getMonth() + 1).padStart(2, "0")}/${String(defaultFrom.getDate()).padStart(2, "0")}/${defaultFrom.getFullYear()}`;
 
   const qp = new URLSearchParams();
   qp.set("api_key", samApiKey);
   
-  // Map keyword to SAM.gov's keyword field
   if (safeKeyword) qp.set("keyword", safeKeyword);
   
-  // Date range - SAM.gov requires both postedFrom and postedTo
+  // Date range
   qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : defaultFromStr);
   const defaultTo = new Date();
   const defaultToStr = `${String(defaultTo.getMonth() + 1).padStart(2, "0")}/${String(defaultTo.getDate()).padStart(2, "0")}/${defaultTo.getFullYear()}`;
   qp.set("postedTo", params.postedTo ? toSamDate(String(params.postedTo).slice(0, 10)) : defaultToStr);
   
-  // Map NAICS code directly to SAM.gov's ncode parameter
   if (params.naicsCode) qp.set("ncode", String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6));
-  
-  // Map set-aside to SAM.gov's typeOfSetAside parameter
   if (params.setAside) qp.set("typeOfSetAside", String(params.setAside).slice(0, 50));
-  
-  // Map ptype (procurement type) directly
   if (params.ptype) qp.set("ptype", String(params.ptype).slice(0, 5));
-  
-  // Map agency to SAM.gov's deptname parameter (provider-level filtering)
   if (params.agency) qp.set("deptname", String(params.agency).slice(0, 100));
   
   qp.set("limit", String(safeLimit));
   qp.set("offset", String(safeOffset));
 
-  // Log the request shape (without API key)
+  // Log request shape (without API key)
   const logParams = new URLSearchParams(qp);
   logParams.delete("api_key");
   console.log(`[SAM.gov] Request: ${logParams.toString()}`);
 
   try {
     const res = await fetchWithTimeout(
-      `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`,
+      `https://api.sam.gov/opportunities/v2/search?${qp.toString()}`,
       { headers: { Accept: "application/json" } },
-      15000
+      20000
     );
     
+    const elapsed = Date.now() - startTime;
+
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[SAM.gov] HTTP ${res.status}: ${errText.slice(0, 500)}`);
+      console.error(`[SAM.gov] HTTP ${res.status} in ${elapsed}ms: ${errText.slice(0, 500)}`);
       return {
         opportunities: [],
-        status: { provider: "SAM.gov", status: "api_error", count: 0, message: `HTTP ${res.status}` },
+        status: { provider: "SAM.gov", status: "api_error", count: 0, message: `HTTP ${res.status}`, responseTimeMs: elapsed },
       };
     }
 
     const data = await res.json();
     const rawOpps = data.opportunitiesData || [];
     const totalRecords = data.totalRecords || rawOpps.length;
-    console.log(`[SAM.gov] Got ${rawOpps.length} results (totalRecords: ${totalRecords})`);
+    console.log(`[SAM.gov] Got ${rawOpps.length} results (totalRecords: ${totalRecords}) in ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
       external_id: opp.noticeId || opp.opportunityId || "",
@@ -148,20 +155,23 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opp
         provider: "SAM.gov",
         status: opportunities.length > 0 ? "success" : "no_results",
         count: opportunities.length,
+        responseTimeMs: elapsed,
       },
     };
   } catch (err: unknown) {
+    const elapsed = Date.now() - startTime;
     if (err instanceof DOMException && err.name === "AbortError") {
-      console.warn("[SAM.gov] Request timed out after 15s");
-      return { opportunities: [], status: { provider: "SAM.gov", status: "timeout", count: 0, message: "Request timed out" } };
+      console.warn(`[SAM.gov] Request timed out after ${elapsed}ms`);
+      return { opportunities: [], status: { provider: "SAM.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
     }
-    console.error("[SAM.gov] Fetch error:", err);
-    return { opportunities: [], status: { provider: "SAM.gov", status: "api_error", count: 0, message: String(err) } };
+    console.error(`[SAM.gov] Fetch error after ${elapsed}ms:`, err);
+    return { opportunities: [], status: { provider: "SAM.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
   }
 }
 
 // ─── Grants.gov Provider ─────────────────────────────────────────────
 async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+  const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
@@ -183,18 +193,20 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
       body: JSON.stringify(body),
     }, 15000);
 
+    const elapsed = Date.now() - startTime;
+
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[Grants.gov] HTTP ${res.status}: ${errText.slice(0, 500)}`);
+      console.error(`[Grants.gov] HTTP ${res.status} in ${elapsed}ms: ${errText.slice(0, 500)}`);
       return {
         opportunities: [],
-        status: { provider: "Grants.gov", status: "api_error", count: 0, message: `HTTP ${res.status}` },
+        status: { provider: "Grants.gov", status: "api_error", count: 0, message: `HTTP ${res.status}`, responseTimeMs: elapsed },
       };
     }
 
     const json = await res.json();
     const hits = json?.data?.oppHits || [];
-    console.log(`[Grants.gov] Got ${hits.length} results`);
+    console.log(`[Grants.gov] Got ${hits.length} results in ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = hits.map((opp: any) => ({
       external_id: String(opp.id || opp.oppNumber || ""),
@@ -221,21 +233,23 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
         provider: "Grants.gov",
         status: opportunities.length > 0 ? "success" : "no_results",
         count: opportunities.length,
+        responseTimeMs: elapsed,
       },
     };
   } catch (err: unknown) {
+    const elapsed = Date.now() - startTime;
     if (err instanceof DOMException && err.name === "AbortError") {
-      console.warn("[Grants.gov] Request timed out after 15s");
-      return { opportunities: [], status: { provider: "Grants.gov", status: "timeout", count: 0, message: "Request timed out" } };
+      console.warn(`[Grants.gov] Request timed out after ${elapsed}ms`);
+      return { opportunities: [], status: { provider: "Grants.gov", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
     }
-    console.error("[Grants.gov] Fetch error:", err);
-    return { opportunities: [], status: { provider: "Grants.gov", status: "api_error", count: 0, message: String(err) } };
+    console.error(`[Grants.gov] Fetch error after ${elapsed}ms:`, err);
+    return { opportunities: [], status: { provider: "Grants.gov", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
   }
 }
 
 // ─── Relevance Scoring ──────────────────────────────────────────────
 function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
-  if (!keyword || !keyword.trim()) return 1; // Give all results a base score when no keyword
+  if (!keyword || !keyword.trim()) return 1;
 
   const phrase = keyword.toLowerCase().trim();
   const words = phrase.split(/\s+/).filter(Boolean);
@@ -245,38 +259,30 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   const descLower = (typeof (opp.raw_data as any)?.description === "string" ? (opp.raw_data as any).description : "").toLowerCase();
 
   let score = 0;
-
   if (titleLower.includes(phrase)) score += 100;
-
   const allInTitle = words.every(w => titleLower.includes(w));
   if (allInTitle && !titleLower.includes(phrase)) score += 50;
-
   if (!allInTitle) {
     for (const w of words) {
       if (titleLower.includes(w)) score += 10;
     }
   }
-
   for (const w of words) {
     if (deptLower.includes(w)) score += 5;
   }
-
   for (const w of words) {
     if (solNumLower.includes(w)) score += 15;
   }
-
   if (descLower) {
     for (const w of words) {
       if (descLower.includes(w)) score += 3;
     }
   }
-
   return score;
 }
 
 function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): NormalizedOpportunity[] {
-  if (!keyword || !keyword.trim()) return opps; // No keyword = return all results unfiltered
-
+  if (!keyword || !keyword.trim()) return opps;
   return opps
     .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
     .filter(({ score }) => score > 0)
@@ -400,14 +406,17 @@ Deno.serve(async (req) => {
     const opportunityType = body.opportunityType || "";
     const searchKeyword = body.keyword || "";
 
-    console.log(`[Search] Params: source=${sourceFilter}, keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
+    // Auto-detect optimal source: skip Grants.gov for SAM-specific filter searches
+    const effectiveSource = (sourceFilter === "all" && isSamOnlySearch(body)) ? "sam_gov" : sourceFilter;
+
+    console.log(`[Search] Params: source=${sourceFilter} (effective=${effectiveSource}), keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
 
     // Fetch from providers in parallel
     const samApiKey = Deno.env.get("SAM_GOV_API_KEY");
     const providerStatuses: ProviderStatus[] = [];
     const fetchPromises: Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }>[] = [];
 
-    if (sourceFilter === "all" || sourceFilter === "sam_gov") {
+    if (effectiveSource === "all" || effectiveSource === "sam_gov") {
       if (samApiKey) {
         fetchPromises.push(fetchSamGov(body, samApiKey));
       } else {
@@ -416,13 +425,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (sourceFilter === "all" || sourceFilter === "grants_gov") {
+    if (effectiveSource === "all" || effectiveSource === "grants_gov") {
       fetchPromises.push(fetchGrantsGov(body));
+    } else if (sourceFilter === "all" && effectiveSource === "sam_gov") {
+      // Note: Grants.gov was auto-skipped for SAM-specific search
+      providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
     const results = await Promise.all(fetchPromises);
     
-    // Collect provider statuses and opportunities
     const allProviderOpps: NormalizedOpportunity[] = [];
     for (const result of results) {
       providerStatuses.push(result.status);
@@ -431,19 +442,17 @@ Deno.serve(async (req) => {
 
     let allOpportunities = deduplicateOpportunities(allProviderOpps);
 
-    // Apply opportunityType filter (for generic types like "contract"/"grant")
     if (opportunityType) {
       allOpportunities = allOpportunities.filter(
         (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()
       );
     }
 
-    // Rank by relevance (does NOT filter out results when no keyword is provided)
     allOpportunities = rankByRelevance(allOpportunities, searchKeyword);
 
-    console.log(`[Search] Final results: ${allOpportunities.length} after dedup/filter/rank`);
+    console.log(`[Search] Final results: ${allOpportunities.length} after dedup/filter/rank. Provider statuses: ${JSON.stringify(providerStatuses.map(s => ({ p: s.provider, s: s.status, c: s.count, ms: s.responseTimeMs })))}`);
 
-    // Record usage
+    // Record usage (single source of truth for usage tracking)
     await supabase.rpc("update_organization_usage_metric", {
       org_id: orgId,
       metric_type_param: "opportunity_searches",

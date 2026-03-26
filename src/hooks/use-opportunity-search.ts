@@ -94,8 +94,12 @@ export function useOpportunitySearch() {
     }, 45000);
 
     try {
+      // Explicitly pass the bearer token to avoid edge function auth issues
       const { data, error } = await supabase.functions.invoke("search-opportunities", {
         body: params,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       clearTimeout(clientTimeout);

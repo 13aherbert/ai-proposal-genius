@@ -64,6 +64,7 @@ import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/routing/Redirects";
 import { Navigate } from "react-router-dom";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
+import { KeyboardShortcutsProvider } from "@/components/keyboard/KeyboardShortcutsProvider";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -162,9 +163,11 @@ export default function App() {
             <AuthProvider>
               <SecurityProvider>
                 <SubscriptionProvider>
-                  <ErrorBoundary>
-                    <AppContent />
-                  </ErrorBoundary>
+                  <KeyboardShortcutsProvider>
+                    <ErrorBoundary>
+                      <AppContent />
+                    </ErrorBoundary>
+                  </KeyboardShortcutsProvider>
                   <Toaster position="bottom-right" richColors closeButton visibleToasts={3} duration={4000} />
                   <NetworkStatusIndicator />
                 </SubscriptionProvider>

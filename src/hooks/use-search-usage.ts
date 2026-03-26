@@ -41,7 +41,7 @@ export function useSearchUsage() {
         .from("organization_usage_metrics")
         .select("metric_value")
         .eq("organization_id", profile.current_organization_id)
-        .eq("metric_type", "opportunity_search")
+        .eq("metric_type", "opportunity_searches")
         .gte("metric_date", firstOfMonth);
 
       if (!error && data) {
@@ -73,7 +73,7 @@ export function useSearchUsage() {
 
       await supabase.rpc("update_organization_usage_metric", {
         org_id: profile.current_organization_id,
-        metric_type_param: "opportunity_search",
+        metric_type_param: "opportunity_searches",
         increment_value: 1,
       });
 

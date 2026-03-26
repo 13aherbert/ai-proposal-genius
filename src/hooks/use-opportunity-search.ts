@@ -34,6 +34,13 @@ export interface SearchParams {
   offset?: number;
 }
 
+export interface ProviderStatus {
+  provider: string;
+  status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
+  count: number;
+  message?: string;
+}
+
 export interface SavedOpportunity {
   id: string;
   organization_id: string;
@@ -59,6 +66,8 @@ export function useOpportunitySearch() {
   const [results, setResults] = useState<Opportunity[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
+  const [providerStatuses, setProviderStatuses] = useState<ProviderStatus[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
 
@@ -69,8 +78,13 @@ export function useOpportunitySearch() {
     }
 
     setIsSearching(true);
-    const abortController = new AbortController();
-    const clientTimeout = setTimeout(() => abortController.abort(), 30000);
+    setHasSearched(true);
+    setProviderStatuses([]);
+
+    const clientTimeout = setTimeout(() => {
+      setIsSearching(false);
+      toast.error("Search timed out. Try narrowing your search criteria.");
+    }, 30000);
 
     try {
       const { data, error } = await supabase.functions.invoke("search-opportunities", {
@@ -79,22 +93,30 @@ export function useOpportunitySearch() {
 
       clearTimeout(clientTimeout);
 
-      if (abortController.signal.aborted) {
-        toast.error("Search timed out. Try narrowing your search criteria.");
-        setResults([]);
-        setTotalRecords(0);
-        return;
-      }
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setResults(data.opportunities || []);
       setTotalRecords(data.totalRecords || 0);
+      setProviderStatuses(data.providerStatuses || []);
+
+      // Show provider-specific warnings
+      const statuses: ProviderStatus[] = data.providerStatuses || [];
+      const timedOut = statuses.filter(s => s.status === "timeout");
+      const errored = statuses.filter(s => s.status === "api_error");
+      
+      if (timedOut.length > 0 && (data.opportunities?.length || 0) > 0) {
+        toast.warning(`${timedOut.map(s => s.provider).join(", ")} timed out. Showing partial results.`);
+      } else if (timedOut.length > 0 && (data.opportunities?.length || 0) === 0) {
+        toast.error("Search providers timed out. Try again or narrow your search.");
+      }
+      
+      if (errored.length > 0) {
+        toast.warning(`${errored.map(s => s.provider).join(", ")} returned an error. Results may be incomplete.`);
+      }
     } catch (err: any) {
-      const msg = err?.name === "AbortError"
-        ? "Search timed out. Try narrowing your search criteria."
-        : (err?.message || "Search failed");
+      clearTimeout(clientTimeout);
+      const msg = err?.message || "Search failed";
       toast.error(msg);
       setResults([]);
       setTotalRecords(0);
@@ -227,6 +249,8 @@ export function useOpportunitySearch() {
     totalRecords,
     isSearching,
     search,
+    providerStatuses,
+    hasSearched,
     saveOpportunity,
     savedOpportunities,
     isLoadingSaved,

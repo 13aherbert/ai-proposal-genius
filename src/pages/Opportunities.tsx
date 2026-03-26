@@ -27,6 +27,8 @@ export default function Opportunities() {
     totalRecords,
     isSearching,
     search,
+    providerStatuses,
+    hasSearched,
     saveOpportunity,
     savedOpportunities,
     isLoadingSaved,
@@ -176,10 +178,32 @@ export default function Opportunities() {
             </div>
           )}
 
-          {!isSearching && results.length === 0 && totalRecords === 0 && !isAtLimit && (
+          {!isSearching && results.length === 0 && hasSearched && !isAtLimit && (
             <div className="text-center py-12 text-muted-foreground">
               <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p>Enter a keyword to search for RFP and grant opportunities</p>
+              {providerStatuses.some(s => s.status === "timeout") ? (
+                <>
+                  <p className="font-medium text-foreground">Search providers timed out</p>
+                  <p className="text-sm mt-1">Try narrowing your search with more specific keywords or filters.</p>
+                </>
+              ) : providerStatuses.some(s => s.status === "api_error") ? (
+                <>
+                  <p className="font-medium text-foreground">Search providers returned an error</p>
+                  <p className="text-sm mt-1">Please try again in a moment.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-foreground">No matching opportunities found</p>
+                  <p className="text-sm mt-1">Try different keywords, a broader date range, or fewer filters.</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {!isSearching && !hasSearched && !isAtLimit && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p>Search for RFP and grant opportunities using keywords, NAICS codes, or agency names</p>
             </div>
           )}
         </TabsContent>

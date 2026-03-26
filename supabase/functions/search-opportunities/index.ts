@@ -77,7 +77,7 @@ const formatDateMMDDYYYY = (d: Date): string => {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 };
 
-async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 365): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 90): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);

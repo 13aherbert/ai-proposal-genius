@@ -1,126 +1,79 @@
 
-## Opportunity Finder Audit: Why NAICS 512110 is returning no results
+## Opportunity Search Audit Plan: API Keys and Endpoints
 
-### What I found
-1. **The search is timing out before the app gets a response**
-   - The session replay shows this exact sequence:
-     - user clicks Search
-     - button spins
-     - after about **30 seconds**, the button resets
-     - toast shows **“Search timed out. Try narrowing your search criteria.”**
-     - page then shows **“No matching opportunities found”**
-   - That means the UI is hitting its **client timeout fallback**, not receiving a completed search response.
+### What I verified
+- The project does have a `SAM_GOV_API_KEY` runtime secret configured, so the immediate issue is not “missing secret.”
+- The search edge function is calling:
+  - `https://api.sam.gov/opportunities/v2/search`
+  - `https://api.grants.gov/v1/api/search2`
+- The current edge logs for `search-opportunities` only show boot/shutdown events, not the detailed request logs that the function code should emit during searches.
+- That means we still do not have proof of what the live provider responses are: invalid key, endpoint mismatch, zero results, timeout, or runtime/deploy mismatch.
 
-2. **The UI is masking a timeout as “no results”**
-   - In `use-opportunity-search.ts`, the 30s timer sets `isSearching` to false and shows a toast.
-   - But it does **not** set a distinct “timed out” state.
-   - In `Opportunities.tsx`, if `results.length === 0` and `providerStatuses` is empty, the UI falls back to **“No matching opportunities found”**.
-   - So the current experience is misleading: the search likely **did not finish**, but the page looks like a valid zero-result search.
+### Most likely problem
+This no longer looks like a simple UI issue. The stronger possibilities are:
+1. **SAM.gov request/endpoint mismatch at runtime**
+2. **Invalid or rejected SAM key despite the secret existing**
+3. **The deployed function is not the same code we inspected**
+4. **The API is returning 0 with the current parameter mapping/date defaults**
+5. **The UI is still not surfacing the real provider failure clearly enough**
 
-3. **NAICS-only searches are sending unnecessary provider requests**
-   - The search function always calls **Grants.gov** unless the user explicitly switches source.
-   - For a NAICS-only search like `512110`, Grants.gov is not a strong match and adds latency/noise.
-   - This query should prioritize or default to **SAM.gov-only behavior** when only NAICS / SAM-specific filters are present.
-
-4. **The SAM.gov integration needs verification against the current API contract**
-   - Current code calls:
-     `https://api.sam.gov/prod/opportunities/v2/search`
-   - The current public documentation references:
-     `https://api.sam.gov/opportunities/v2/search`
-   - Even if the existing path still works in some cases, this is important enough to verify and normalize because it can affect reliability.
-
-5. **The default date window may be filtering out expected results**
-   - If the user doesn’t enter dates, the function silently applies **last 90 days only**.
-   - So “I know there are RFPs for this NAICS code” can still produce zero results if matching notices are older than 90 days.
-   - That may not be the main cause here because your replay showed a timeout, but it is still a real source of confusion.
-
-6. **Observability is still too weak**
-   - `search-opportunities` currently logs request shapes in code, but the runtime tools did not surface usable logs for the actual failing searches.
-   - Without explicit response metadata for “request never completed” vs “provider returned 0”, debugging remains guesswork.
-
-7. **There is also a separate usage-counting bug**
-   - `src/pages/Opportunities.tsx` calls `incrementUsage()` on the client immediately after starting a search.
-   - The edge function also records usage server-side.
-   - This does not cause missing RFPs, but it should be cleaned up while touching this flow.
-
-### Most likely root cause for 512110 specifically
-The strongest evidence points to this chain:
-
-```text
-NAICS-only search
-→ app calls both SAM.gov and Grants.gov
-→ backend request does not complete within 30s
-→ client timeout fires
-→ UI shows timeout toast
-→ UI then incorrectly renders “No matching opportunities found”
-```
-
-So the immediate problem is **not proven zero results from SAM.gov**.  
-The immediate problem is that the request path is **not completing reliably**, and the UI is **misreporting timeout as empty results**.
-
-### Fix plan
-**Step 1: Make timeout vs empty-results explicit in the UI**
-- Add a dedicated search state such as:
-  - `idle`
-  - `loading`
-  - `success`
-  - `empty`
-  - `timed_out`
-  - `error`
-- Update the Opportunities page so timed-out searches never render as “No matching opportunities found”.
-
-**Step 2: Optimize provider selection for NAICS-only searches**
-- If the search contains only SAM-specific filters like:
-  - `naicsCode`
-  - `ptype`
-  - `setAside`
-  - possibly agency
-- then either:
-  - automatically query **SAM.gov only**, or
-  - show a strong source recommendation and default to SAM.gov for that case.
-- This should materially reduce unnecessary latency.
-
-**Step 3: Verify and normalize the SAM.gov request**
-- Update the SAM provider integration to match the current documented endpoint and supported params.
-- Keep explicit mapping for:
-  - `ncode`
-  - `postedFrom`
-  - `postedTo`
-  - `deptname`
-  - `ptype`
-  - `typeOfSetAside`
-- Add structured response logging around:
-  - final request URL shape
-  - HTTP status
+### Plan
+**Step 1: Add definitive provider diagnostics**
+- Instrument the edge function so every search logs:
+  - whether the SAM key exists and is non-empty
+  - the exact endpoint path used
+  - sanitized query params
+  - HTTP status code
   - response time
-  - total records returned
+  - returned `totalRecords`
+  - a short sanitized error body for non-200 responses
+- Never log the actual API key.
 
-**Step 4: Improve default search behavior for NAICS searches**
-- Revisit the hidden 90-day default.
-- Either:
-  - widen the default date window for NAICS-only searches, or
-  - surface the active date window clearly in the UI so users understand why older matches may not appear.
+**Step 2: Verify and normalize the live SAM.gov integration**
+- Confirm the correct supported SAM search endpoint/version for this project’s request format.
+- Normalize all SAM URLs in the opportunity flow so search and detail fetches use a consistent, supported API base/version.
+- Trim/sanitize the runtime SAM key before use in case whitespace or formatting is breaking auth.
 
-**Step 5: Strengthen backend diagnostics**
-- Return richer `providerStatuses`, including whether a provider was:
-  - queried
-  - skipped
-  - timed out
-  - returned 0
-  - succeeded with count
-- Include overall search diagnostics in the response so the client can explain what actually happened.
+**Step 3: Make invalid-key vs bad-endpoint vs zero-results explicit**
+- Update provider status handling so the UI can distinguish:
+  - `invalid_api_key`
+  - `endpoint_error`
+  - `timeout`
+  - `no_results`
+  - `partial_results`
+- Replace generic “No matching opportunities found” when the real issue is provider/auth related.
 
-**Step 6: Remove double counting of search usage**
-- Keep usage recording in one place only, preferably the edge function.
-- Remove the extra client-side increment from `Opportunities.tsx`.
+**Step 4: Tighten NAICS-only search behavior**
+- For NAICS-only searches like `512110`, force SAM-only behavior.
+- If the first SAM query returns 0, retry once with a broader fallback strategy:
+  - wider default date window
+  - minimal restrictive params only
+- This helps separate “truly no matches” from “query too narrow.”
+
+**Step 5: Confirm the runtime path is actually executing**
+- Verify the deployed edge function is the code currently in the repo.
+- If logs still show only boot/shutdown after instrumentation, treat that as a deployment/runtime mismatch and correct the function packaging/deployment path.
+
+**Step 6: Surface real diagnostics in the page**
+- Show provider badges/messages such as:
+  - “SAM.gov rejected the API key”
+  - “SAM.gov returned 0 results for NAICS 512110”
+  - “SAM.gov timed out”
+  - “Showing partial results from Grants.gov only”
+- Keep retry actions, but stop presenting provider failures as ordinary empty results.
 
 ### Files to update
 - `supabase/functions/search-opportunities/index.ts`
 - `src/hooks/use-opportunity-search.ts`
 - `src/pages/Opportunities.tsx`
-- possibly `src/components/opportunities/OpportunitySearchForm.tsx`
+- possibly `supabase/functions/fetch-opportunity-documents/index.ts` for SAM URL consistency
 
-### Expected result after the fix
-For a NAICS search like `512110`, users should get one of these clearly:
-- actual SAM.gov matches,
-- a visible partial-results state,
+### Expected result
+After this pass, we will know exactly which of these is true:
+- the SAM key is present but rejected
+- the endpoint/path/version is wrong
+- the function is not running the expected code
+- the query mapping/date defaults are suppressing results
+- or SAM is returning legitimate zero-result responses for the current request shape
+
+That will let us fix the actual root cause instead of continuing to mask it as “no results.”

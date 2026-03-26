@@ -9,6 +9,7 @@ import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySea
 import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
 import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDetailModal";
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
+import { OpportunityPreviewMode } from "@/components/opportunities/OpportunityPreviewMode";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { useSearchUsage } from "@/hooks/use-search-usage";
@@ -80,29 +81,7 @@ export default function Opportunities() {
   }
 
   if (!hasAccess) {
-    return (
-      <>
-        <div className="py-16 text-center">
-          <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Opportunity Search</h1>
-          <p className="text-muted-foreground mb-2">
-            Search government RFPs, contracts, and grant opportunities from SAM.gov and Grants.gov.
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            Available on Growth, Business &amp; Enterprise plans.
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button onClick={() => setShowUpgradeModal(true)}>
-              Upgrade to Growth — $199/month
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            14-day free trial · Cancel anytime
-          </p>
-        </div>
-        <PlanComparisonModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} highlightPlan="growth" />
-      </>
-    );
+    return <OpportunityPreviewMode />;
   }
 
   return (

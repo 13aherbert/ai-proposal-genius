@@ -112,7 +112,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 365
   const requestUrl = `${SAM_BASE_URL}?${qp.toString()}`;
 
   try {
-    const res = await fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, 25000);
+    const res = await fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, 15000);
     
     const elapsed = Date.now() - startTime;
     console.log(`[SAM.gov] HTTP ${res.status} in ${elapsed}ms`);

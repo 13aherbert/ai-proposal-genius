@@ -1,84 +1,126 @@
 
-## Opportunity Search Audit: Findings and Fix Plan
+## Opportunity Finder Audit: Why NAICS 512110 is returning no results
 
 ### What I found
-1. **The feature is being reached, but observability is too weak**
-   - The org usage table shows recent `opportunity_searches` entries, so the edge function is being hit.
-   - The current edge logs only show boot events, not enough detail to tell whether SAM.gov / Grants.gov are returning zero results, timing out, or rejecting parameters.
+1. **The search is timing out before the app gets a response**
+   - The session replay shows this exact sequence:
+     - user clicks Search
+     - button spins
+     - after about **30 seconds**, the button resets
+     - toast shows **“Search timed out. Try narrowing your search criteria.”**
+     - page then shows **“No matching opportunities found”**
+   - That means the UI is hitting its **client timeout fallback**, not receiving a completed search response.
 
-2. **The client and backend use different usage metric names**
-   - Edge function writes `opportunity_searches`
-   - UI reads/writes `opportunity_search`
-   - This does not explain missing RFPs, but it does make usage/limits inconsistent.
+2. **The UI is masking a timeout as “no results”**
+   - In `use-opportunity-search.ts`, the 30s timer sets `isSearching` to false and shows a toast.
+   - But it does **not** set a distinct “timed out” state.
+   - In `Opportunities.tsx`, if `results.length === 0` and `providerStatuses` is empty, the UI falls back to **“No matching opportunities found”**.
+   - So the current experience is misleading: the search likely **did not finish**, but the page looks like a valid zero-result search.
 
-3. **SAM.gov request construction is the most likely search-quality problem**
-   - The function sends a generic `keyword` parameter and then ranks/filter results locally.
-   - The current implementation does not clearly map user input to the provider’s supported search fields, and agency filtering for SAM.gov is happening after the API call instead of at the provider level.
-   - This can easily produce weak or empty result sets even when matching notices exist.
+3. **NAICS-only searches are sending unnecessary provider requests**
+   - The search function always calls **Grants.gov** unless the user explicitly switches source.
+   - For a NAICS-only search like `512110`, Grants.gov is not a strong match and adds latency/noise.
+   - This query should prioritize or default to **SAM.gov-only behavior** when only NAICS / SAM-specific filters are present.
 
-4. **The UI hides why search failed**
-   - “No results” looks the same whether:
-     - providers timed out
-     - providers returned 0
-     - a filter combination was too restrictive
-     - only one provider succeeded
-   - That makes the tool feel broken even when the backend technically returned a response.
+4. **The SAM.gov integration needs verification against the current API contract**
+   - Current code calls:
+     `https://api.sam.gov/prod/opportunities/v2/search`
+   - The current public documentation references:
+     `https://api.sam.gov/opportunities/v2/search`
+   - Even if the existing path still works in some cases, this is important enough to verify and normalize because it can affect reliability.
 
-5. **The current timeout handling is incomplete**
-   - Provider fetches have timeouts, but the client-side `AbortController` is not actually passed into `supabase.functions.invoke`, so it is only acting as a timer, not a real cancellation path.
+5. **The default date window may be filtering out expected results**
+   - If the user doesn’t enter dates, the function silently applies **last 90 days only**.
+   - So “I know there are RFPs for this NAICS code” can still produce zero results if matching notices are older than 90 days.
+   - That may not be the main cause here because your replay showed a timeout, but it is still a real source of confusion.
 
-### Plan
-**Step 1: Add provider-level diagnostics**
-- Instrument `search-opportunities` with structured logs for:
-  - normalized search params
-  - provider chosen
-  - request URL/body shape (without secrets)
+6. **Observability is still too weak**
+   - `search-opportunities` currently logs request shapes in code, but the runtime tools did not surface usable logs for the actual failing searches.
+   - Without explicit response metadata for “request never completed” vs “provider returned 0”, debugging remains guesswork.
+
+7. **There is also a separate usage-counting bug**
+   - `src/pages/Opportunities.tsx` calls `incrementUsage()` on the client immediately after starting a search.
+   - The edge function also records usage server-side.
+   - This does not cause missing RFPs, but it should be cleaned up while touching this flow.
+
+### Most likely root cause for 512110 specifically
+The strongest evidence points to this chain:
+
+```text
+NAICS-only search
+→ app calls both SAM.gov and Grants.gov
+→ backend request does not complete within 30s
+→ client timeout fires
+→ UI shows timeout toast
+→ UI then incorrectly renders “No matching opportunities found”
+```
+
+So the immediate problem is **not proven zero results from SAM.gov**.  
+The immediate problem is that the request path is **not completing reliably**, and the UI is **misreporting timeout as empty results**.
+
+### Fix plan
+**Step 1: Make timeout vs empty-results explicit in the UI**
+- Add a dedicated search state such as:
+  - `idle`
+  - `loading`
+  - `success`
+  - `empty`
+  - `timed_out`
+  - `error`
+- Update the Opportunities page so timed-out searches never render as “No matching opportunities found”.
+
+**Step 2: Optimize provider selection for NAICS-only searches**
+- If the search contains only SAM-specific filters like:
+  - `naicsCode`
+  - `ptype`
+  - `setAside`
+  - possibly agency
+- then either:
+  - automatically query **SAM.gov only**, or
+  - show a strong source recommendation and default to SAM.gov for that case.
+- This should materially reduce unnecessary latency.
+
+**Step 3: Verify and normalize the SAM.gov request**
+- Update the SAM provider integration to match the current documented endpoint and supported params.
+- Keep explicit mapping for:
+  - `ncode`
+  - `postedFrom`
+  - `postedTo`
+  - `deptname`
+  - `ptype`
+  - `typeOfSetAside`
+- Add structured response logging around:
+  - final request URL shape
   - HTTP status
-  - record counts returned
-  - timeout / parse / API errors
-- Return lightweight provider metadata in the response so the UI can distinguish:
-  - success
-  - timeout
-  - api_error
-  - no_results
+  - response time
+  - total records returned
 
-**Step 2: Fix the provider query mapping**
-- Refactor SAM.gov search parameter building so user inputs map to provider-supported fields instead of relying mostly on a loose `keyword` pass-through.
-- Move agency filtering into the SAM.gov request where possible rather than post-filtering client-side.
-- Keep NAICS, set-aside, date range, and ptype handling explicit and validated.
-- Preserve the default `postedFrom`/`postedTo` behavior, but make the date window and provider query logic easier to reason about.
+**Step 4: Improve default search behavior for NAICS searches**
+- Revisit the hidden 90-day default.
+- Either:
+  - widen the default date window for NAICS-only searches, or
+  - surface the active date window clearly in the UI so users understand why older matches may not appear.
 
-**Step 3: Improve relevance and empty-result behavior**
-- Stop treating all empty results the same.
-- Keep current ranking, but only use it when it improves ordering — not in a way that risks hiding legitimate provider matches.
-- Add a clearer response contract so the UI can show:
-  - “No matching RFPs found”
-  - “SAM.gov timed out, showing partial results”
-  - “Search filters may be too narrow”
+**Step 5: Strengthen backend diagnostics**
+- Return richer `providerStatuses`, including whether a provider was:
+  - queried
+  - skipped
+  - timed out
+  - returned 0
+  - succeeded with count
+- Include overall search diagnostics in the response so the client can explain what actually happened.
 
-**Step 4: Fix client behavior and messaging**
-- Update `useOpportunitySearch` to handle provider metadata and surface more useful errors.
-- Add a real empty state for filter-based searches.
-- Change the default helper text on the page so it does not imply keyword is required when NAICS/agency/date-only searches are supported.
-- Keep the spinner from feeling indefinite by using a deterministic client timeout path and clearer fallback messaging.
+**Step 6: Remove double counting of search usage**
+- Keep usage recording in one place only, preferably the edge function.
+- Remove the extra client-side increment from `Opportunities.tsx`.
 
-**Step 5: Clean up related inconsistencies**
-- Standardize the metric name to one value everywhere (`opportunity_searches`).
-- Verify pagination, total count display, and result rendering still work after response shape changes.
-- Make sure saved opportunities and detail modal continue to work with the normalized results.
+### Files to update
+- `supabase/functions/search-opportunities/index.ts`
+- `src/hooks/use-opportunity-search.ts`
+- `src/pages/Opportunities.tsx`
+- possibly `src/components/opportunities/OpportunitySearchForm.tsx`
 
-### Technical details
-- Files likely affected:
-  - `supabase/functions/search-opportunities/index.ts`
-  - `src/hooks/use-opportunity-search.ts`
-  - `src/pages/Opportunities.tsx`
-  - `src/hooks/use-search-usage.ts`
-  - possibly `src/components/opportunities/OpportunitySearchForm.tsx`
-- Main goal:
-  - first prove whether the issue is **provider query construction**, **provider timeout**, or **over-filtering**
-  - then adjust the API integration so results are reliable again
-- Based on the current audit, the highest-priority fixes are:
-  1. provider diagnostics
-  2. SAM.gov query mapping
-  3. UI visibility into partial/no-result states
-  4. usage metric mismatch cleanup
+### Expected result after the fix
+For a NAICS search like `512110`, users should get one of these clearly:
+- actual SAM.gov matches,
+- a visible partial-results state,

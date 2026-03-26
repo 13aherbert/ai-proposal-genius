@@ -476,8 +476,8 @@ Deno.serve(async (req) => {
       samStatus &&
       samStatus.status === "no_results"
     ) {
-      console.log("[Search] NAICS-only returned 0, retrying SAM with 730-day window");
-      const retryResult = await fetchSamGov(body, samApiKey, 730);
+      console.log("[Search] NAICS-only returned 0, retrying SAM with 365-day window (max allowed by SAM API)");
+      const retryResult = await fetchSamGov(body, samApiKey, 365);
       // Replace the SAM status
       const samIdx = providerStatuses.findIndex(s => s.provider === "SAM.gov");
       if (samIdx >= 0) {

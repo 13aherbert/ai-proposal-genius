@@ -56,11 +56,37 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
   const [opportunityType, setOpportunityType] = useState("");
   const [agency, setAgency] = useState("");
 
+  const activeFilters = useMemo(() => {
+    const filters: string[] = [];
+    if (naicsCode) filters.push("NAICS");
+    if (setAside && setAside !== "any_set_aside") filters.push("Set-Aside");
+    if (opportunityType && opportunityType !== "any_type") filters.push("Type");
+    if (agency) filters.push("Agency");
+    if (postedFrom) filters.push("Posted After");
+    if (postedTo) filters.push("Posted Before");
+    if (source && source !== "all") filters.push("Source");
+    return filters;
+  }, [naicsCode, setAside, opportunityType, agency, postedFrom, postedTo, source]);
+
+  const clearFilters = () => {
+    setPostedFrom("");
+    setPostedTo("");
+    setNaicsCode("");
+    setSetAside("");
+    setSource("all");
+    setOpportunityType("");
+    setAgency("");
+  };
+
+  const resetAll = () => {
+    setKeyword("");
+    clearFilters();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanVal = (v: string) => (v && !v.startsWith("any")) ? v : undefined;
     
-    // Split ptype: prefixed values from generic opportunityType
     const isPtype = opportunityType.startsWith("ptype:");
     const ptypeValue = isPtype ? opportunityType.replace("ptype:", "") : undefined;
     const oppTypeValue = isPtype ? undefined : cleanVal(opportunityType);
@@ -91,6 +117,20 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
             maxLength={200}
           />
         </div>
+
+        {/* Active filter warning */}
+        {keyword && activeFilters.length > 0 && (
+          <div className="sm:col-span-2 lg:col-span-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-sm">
+            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+            <div>
+              <span className="text-foreground font-medium">{activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""} active</span>
+              <span className="text-muted-foreground"> ({activeFilters.join(", ")}). </span>
+              <button type="button" onClick={clearFilters} className="text-primary underline underline-offset-2 hover:text-primary/80">
+                Clear filters for broader results
+              </button>
+            </div>
+          </div>
+        )}
 
         <div>
           <Label>Source</Label>
@@ -183,19 +223,40 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
         </div>
       </div>
 
-      <Button type="submit" disabled={isSearching} className="w-full sm:w-auto">
-        {isSearching ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Searching...
-          </>
-        ) : (
-          <>
-            <Search className="mr-2 h-4 w-4" />
-            Search Opportunities
-          </>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" disabled={isSearching} className="sm:w-auto">
+          {isSearching ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Searching...
+            </>
+          ) : (
+            <>
+              <Search className="mr-2 h-4 w-4" />
+              Search Opportunities
+              {activeFilters.length > 0 && (
+                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+                  {activeFilters.length}
+                </Badge>
+              )}
+            </>
+          )}
+        </Button>
+
+        {activeFilters.length > 0 && (
+          <Button type="button" variant="outline" size="sm" onClick={clearFilters} className="gap-1.5">
+            <X className="h-3.5 w-3.5" />
+            Clear Filters
+          </Button>
         )}
-      </Button>
+
+        {(keyword || activeFilters.length > 0) && (
+          <Button type="button" variant="ghost" size="sm" onClick={resetAll} className="gap-1.5 text-muted-foreground">
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset All
+          </Button>
+        )}
+      </div>
     </form>
   );
 }

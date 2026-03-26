@@ -77,39 +77,70 @@ export function useOpportunitySearch() {
   const search = useCallback(async (params: SearchParams) => {
     if (!session?.access_token) {
       toast.error("You must be logged in to search opportunities");
+      console.error("[OpportunitySearch] No access token available");
       return;
     }
 
+    console.log("[OpportunitySearch] Search started", { params, hasToken: !!session.access_token });
     setIsSearching(true);
     setSearchState("loading");
     setProviderStatuses([]);
 
-    // Client-side safety timeout at 45s (edge function has 20s per-provider timeouts)
+    // Client-side safety timeout at 55s (edge function has its own internal timeouts)
     let didTimeout = false;
     const clientTimeout = setTimeout(() => {
       didTimeout = true;
       setIsSearching(false);
       setSearchState("timed_out");
       toast.error("Search timed out. Try narrowing your search criteria or selecting a specific source.");
-    }, 45000);
+      console.error("[OpportunitySearch] Client-side timeout fired (55s)");
+    }, 55000);
 
     try {
-      // Explicitly pass the bearer token to avoid edge function auth issues
-      const { data, error } = await supabase.functions.invoke("search-opportunities", {
-        body: params,
+      console.log("[OpportunitySearch] Invoking edge function via supabase.functions.invoke...");
+      
+      // Use direct fetch as primary path — supabase.functions.invoke can silently hang
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const functionUrl = `${supabaseUrl}/functions/v1/search-opportunities`;
+      
+      console.log("[OpportunitySearch] Fetching:", functionUrl);
+      
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 50000);
+      
+      const response = await fetch(functionUrl, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": supabaseAnonKey,
         },
+        body: JSON.stringify(params),
+        signal: controller.signal,
       });
-
+      
+      clearTimeout(fetchTimeout);
       clearTimeout(clientTimeout);
-      if (didTimeout) return; // Response arrived after timeout fired
+      if (didTimeout) return;
+      
+      console.log("[OpportunitySearch] Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("[OpportunitySearch] Error response:", response.status, errorBody);
+        throw new Error(`Search failed (${response.status}): ${errorBody}`);
+      }
+      
+      const data = await response.json();
+      console.log("[OpportunitySearch] Response data keys:", Object.keys(data));
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       const opportunities: Opportunity[] = data.opportunities || [];
       const statuses: ProviderStatus[] = data.providerStatuses || [];
+
+      console.log("[OpportunitySearch] Results:", opportunities.length, "Provider statuses:", statuses);
 
       setResults(opportunities);
       setTotalRecords(data.totalRecords || 0);
@@ -145,11 +176,13 @@ export function useOpportunitySearch() {
     } catch (err: any) {
       clearTimeout(clientTimeout);
       if (didTimeout) return;
-      const msg = err?.message || "Search failed";
+      const isAbort = err?.name === "AbortError";
+      const msg = isAbort ? "Search request timed out" : (err?.message || "Search failed");
+      console.error("[OpportunitySearch] Search error:", msg, err);
       toast.error(msg);
       setResults([]);
       setTotalRecords(0);
-      setSearchState("error");
+      setSearchState(isAbort ? "timed_out" : "error");
     } finally {
       if (!didTimeout) {
         clearTimeout(clientTimeout);

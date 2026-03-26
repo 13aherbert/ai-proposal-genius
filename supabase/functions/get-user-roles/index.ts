@@ -51,7 +51,6 @@ serve(async (req) => {
     console.log("Extracted user ID from claims:", userId);
     
     // Create Supabase client with admin privileges to bypass RLS
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     
     if (!supabaseUrl || !supabaseServiceKey) {

@@ -81,30 +81,39 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
   const url = `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`;
   console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}, ptype=${params.ptype || "any"}`);
 
-  const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } }, 15000);
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error(`[SAM.gov] API error [${res.status}]: ${errText}`);
+  try {
+    const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } }, 15000);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[SAM.gov] API error [${res.status}]: ${errText}`);
+      return [];
+    }
+
+    const data = await res.json();
+    return (data.opportunitiesData || []).map((opp: any) => ({
+      external_id: opp.noticeId || opp.opportunityId || "",
+      source: "sam_gov",
+      title: opp.title || "",
+      solicitation_number: opp.solicitationNumber || "",
+      department: opp.fullParentPathName || opp.department || "",
+      naics_code: opp.naicsCode || "",
+      posted_date: opp.postedDate || null,
+      response_deadline: opp.responseDeadLine || opp.archiveDate || null,
+      set_aside: opp.typeOfSetAside || opp.typeOfSetAsideDescription || "",
+      description_url: opp.uiLink || (opp.noticeId ? `https://sam.gov/opp/${opp.noticeId}` : (opp.solicitationNumber ? `https://sam.gov/search?keywords=${encodeURIComponent(opp.solicitationNumber)}` : "https://sam.gov")),
+      type: opp.type || opp.baseType || "contract",
+      raw_data: opp,
+      resource_links: Array.isArray(opp.resourceLinks) ? opp.resourceLinks.map((rl: any) => typeof rl === "string" ? rl : rl?.url || "").filter(Boolean) : [],
+      description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
+    }));
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.warn("[SAM.gov] Request timed out after 15s");
+    } else {
+      console.error("[SAM.gov] Fetch error:", err);
+    }
     return [];
   }
-
-  const data = await res.json();
-  return (data.opportunitiesData || []).map((opp: any) => ({
-    external_id: opp.noticeId || opp.opportunityId || "",
-    source: "sam_gov",
-    title: opp.title || "",
-    solicitation_number: opp.solicitationNumber || "",
-    department: opp.fullParentPathName || opp.department || "",
-    naics_code: opp.naicsCode || "",
-    posted_date: opp.postedDate || null,
-    response_deadline: opp.responseDeadLine || opp.archiveDate || null,
-    set_aside: opp.typeOfSetAside || opp.typeOfSetAsideDescription || "",
-    description_url: opp.uiLink || (opp.noticeId ? `https://sam.gov/opp/${opp.noticeId}` : (opp.solicitationNumber ? `https://sam.gov/search?keywords=${encodeURIComponent(opp.solicitationNumber)}` : "https://sam.gov")),
-    type: opp.type || opp.baseType || "contract",
-    raw_data: opp,
-    resource_links: Array.isArray(opp.resourceLinks) ? opp.resourceLinks.map((rl: any) => typeof rl === "string" ? rl : rl?.url || "").filter(Boolean) : [],
-    description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
-  }));
 }
 
 // ─── Grants.gov Provider ─────────────────────────────────────────────

@@ -69,10 +69,22 @@ export function useOpportunitySearch() {
     }
 
     setIsSearching(true);
+    const abortController = new AbortController();
+    const clientTimeout = setTimeout(() => abortController.abort(), 30000);
+
     try {
       const { data, error } = await supabase.functions.invoke("search-opportunities", {
         body: params,
       });
+
+      clearTimeout(clientTimeout);
+
+      if (abortController.signal.aborted) {
+        toast.error("Search timed out. Try narrowing your search criteria.");
+        setResults([]);
+        setTotalRecords(0);
+        return;
+      }
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -80,11 +92,14 @@ export function useOpportunitySearch() {
       setResults(data.opportunities || []);
       setTotalRecords(data.totalRecords || 0);
     } catch (err: any) {
-      const msg = err?.message || "Search failed";
+      const msg = err?.name === "AbortError"
+        ? "Search timed out. Try narrowing your search criteria."
+        : (err?.message || "Search failed");
       toast.error(msg);
       setResults([]);
       setTotalRecords(0);
     } finally {
+      clearTimeout(clientTimeout);
       setIsSearching(false);
     }
   }, [session?.access_token]);

@@ -196,7 +196,8 @@ export function UsageProgressWidget({
               </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-[200px]">
+          <TooltipContent side="bottom" className="max-w-[220px]">
+            <p className="text-xs font-medium mb-1">Click to see your plan details and limits</p>
             {tooltipContent}
           </TooltipContent>
         </Tooltip>

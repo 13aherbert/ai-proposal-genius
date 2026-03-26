@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Search, Bookmark, Lock, AlertCircle } from "lucide-react";
+import { Search, Bookmark, AlertCircle, Clock, WifiOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
 import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
@@ -28,7 +27,7 @@ export default function Opportunities() {
     isSearching,
     search,
     providerStatuses,
-    hasSearched,
+    searchState,
     saveOpportunity,
     savedOpportunities,
     isLoadingSaved,
@@ -38,7 +37,7 @@ export default function Opportunities() {
     deleteOpportunity,
   } = useOpportunitySearch();
 
-  const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, incrementUsage } = useSearchUsage();
+  const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, refetch: refetchUsage } = useSearchUsage();
 
   const [tab, setTab] = useState("search");
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
@@ -60,8 +59,9 @@ export default function Opportunities() {
     }
     setCurrentPage(0);
     setLastSearchParams(params);
-    search({ ...params, limit: PAGE_SIZE, offset: 0 });
-    await incrementUsage();
+    await search({ ...params, limit: PAGE_SIZE, offset: 0 });
+    // Usage is tracked server-side only — just refetch the count
+    await refetchUsage();
   };
 
   const handlePageChange = (page: number) => {
@@ -178,32 +178,86 @@ export default function Opportunities() {
             </div>
           )}
 
-          {!isSearching && results.length === 0 && hasSearched && !isAtLimit && (
+          {/* Timed out state */}
+          {!isSearching && searchState === "timed_out" && (
             <div className="text-center py-12 text-muted-foreground">
-              <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              {providerStatuses.some(s => s.status === "timeout") ? (
-                <>
-                  <p className="font-medium text-foreground">Search providers timed out</p>
-                  <p className="text-sm mt-1">Try narrowing your search with more specific keywords or filters.</p>
-                </>
-              ) : providerStatuses.some(s => s.status === "api_error") ? (
-                <>
-                  <p className="font-medium text-foreground">Search providers returned an error</p>
-                  <p className="text-sm mt-1">Please try again in a moment.</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium text-foreground">No matching opportunities found</p>
-                  <p className="text-sm mt-1">Try different keywords, a broader date range, or fewer filters.</p>
-                </>
+              <Clock className="h-10 w-10 mx-auto mb-3 opacity-50 text-warning" />
+              <p className="font-medium text-foreground">Search timed out</p>
+              <p className="text-sm mt-1">
+                The search providers took too long to respond. Try:
+              </p>
+              <ul className="text-sm mt-2 space-y-1">
+                <li>• Adding a keyword to narrow results</li>
+                <li>• Selecting a specific source (SAM.gov or Grants.gov)</li>
+                <li>• Setting a shorter date range</li>
+              </ul>
+              {lastSearchParams && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => handleSearch(lastSearchParams)}
+                >
+                  Retry Search
+                </Button>
               )}
             </div>
           )}
 
-          {!isSearching && !hasSearched && !isAtLimit && (
+          {/* Error state */}
+          {!isSearching && searchState === "error" && (
+            <div className="text-center py-12 text-muted-foreground">
+              <WifiOff className="h-10 w-10 mx-auto mb-3 opacity-50 text-destructive" />
+              <p className="font-medium text-foreground">Search providers returned an error</p>
+              <p className="text-sm mt-1">Please try again in a moment.</p>
+              {providerStatuses.length > 0 && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {providerStatuses.map((s) => (
+                    <Badge key={s.provider} variant={s.status === "success" ? "default" : s.status === "skipped" ? "secondary" : "destructive"} className="text-xs">
+                      {s.provider}: {s.status}{s.message ? ` — ${s.message}` : ""}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {lastSearchParams && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => handleSearch(lastSearchParams)}
+                >
+                  Retry Search
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Empty results state */}
+          {!isSearching && searchState === "empty" && (
             <div className="text-center py-12 text-muted-foreground">
               <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p>Search for RFP and grant opportunities using keywords, NAICS codes, or agency names</p>
+              <p className="font-medium text-foreground">No matching opportunities found</p>
+              <p className="text-sm mt-1">Try different keywords, a broader date range, or fewer filters.</p>
+              {providerStatuses.length > 0 && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {providerStatuses.map((s) => (
+                    <Badge key={s.provider} variant="secondary" className="text-xs">
+                      {s.provider}: {s.count} results
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Idle state */}
+          {!isSearching && searchState === "idle" && !isAtLimit && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p>Search for RFP and grant opportunities using keywords, NAICS codes, agency names, or filters</p>
+              <p className="text-xs mt-2 opacity-75">
+                NAICS-only searches automatically target SAM.gov for faster results
+              </p>
             </div>
           )}
         </TabsContent>

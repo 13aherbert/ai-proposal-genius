@@ -208,8 +208,20 @@ export default function Opportunities() {
           {!isSearching && searchState === "error" && (
             <div className="text-center py-12 text-muted-foreground">
               <WifiOff className="h-10 w-10 mx-auto mb-3 opacity-50 text-destructive" />
-              <p className="font-medium text-foreground">Search providers returned an error</p>
-              <p className="text-sm mt-1">Please try again in a moment.</p>
+              {providerStatuses.some(s => s.status === "invalid_api_key") ? (
+                <>
+                  <p className="font-medium text-foreground">API Key Issue</p>
+                  <p className="text-sm mt-1">
+                    {providerStatuses.filter(s => s.status === "invalid_api_key").map(s => s.provider).join(", ")} rejected the API key. 
+                    Please verify the key is valid and has not expired.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-foreground">Search providers returned an error</p>
+                  <p className="text-sm mt-1">Please try again in a moment.</p>
+                </>
+              )}
               {providerStatuses.length > 0 && (
                 <div className="mt-3 flex flex-wrap justify-center gap-2">
                   {providerStatuses.map((s) => (
@@ -242,10 +254,20 @@ export default function Opportunities() {
                 <div className="mt-3 flex flex-wrap justify-center gap-2">
                   {providerStatuses.map((s) => (
                     <Badge key={s.provider} variant="secondary" className="text-xs">
-                      {s.provider}: {s.count} results
+                      {s.provider}: {s.status === "no_results" ? "0 results" : s.status}{s.message ? ` — ${s.message}` : ""}
                     </Badge>
                   ))}
                 </div>
+              )}
+              {lastSearchParams && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => handleSearch(lastSearchParams)}
+                >
+                  Retry Search
+                </Button>
               )}
             </div>
           )}

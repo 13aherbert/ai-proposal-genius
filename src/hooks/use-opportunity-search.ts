@@ -36,7 +36,7 @@ export interface SearchParams {
 
 export interface ProviderStatus {
   provider: string;
-  status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
+  status: "success" | "timeout" | "api_error" | "no_results" | "skipped" | "invalid_api_key";
   count: number;
   message?: string;
   responseTimeMs?: number;
@@ -115,12 +115,16 @@ export function useOpportunitySearch() {
       const allTimedOut = statuses.length > 0 && statuses.every(s => s.status === "timeout");
       const someTimedOut = statuses.some(s => s.status === "timeout");
       const someErrored = statuses.some(s => s.status === "api_error");
+      const someInvalidKey = statuses.some(s => s.status === "invalid_api_key");
 
       if (opportunities.length > 0) {
         setSearchState("success");
         if (someTimedOut) {
           toast.warning(`${statuses.filter(s => s.status === "timeout").map(s => s.provider).join(", ")} timed out. Showing partial results.`);
         }
+      } else if (someInvalidKey) {
+        setSearchState("error");
+        toast.error(`${statuses.filter(s => s.status === "invalid_api_key").map(s => s.provider).join(", ")} rejected the API key. Please contact support.`);
       } else if (allTimedOut) {
         setSearchState("timed_out");
         toast.error("Search providers timed out. Try again or narrow your search.");

@@ -112,7 +112,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 365
   const requestUrl = `${SAM_BASE_URL}?${qp.toString()}`;
 
   try {
-    const res = await fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, 25000);
+    const res = await fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, 15000);
     
     const elapsed = Date.now() - startTime;
     console.log(`[SAM.gov] HTTP ${res.status} in ${elapsed}ms`);
@@ -337,49 +337,48 @@ Deno.serve(async (req) => {
       });
     }
 
+    const fnStart = Date.now();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Use service role client + explicit token validation (reliable in edge functions)
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       console.log("[search-opportunities] Auth failed:", authError?.message);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const userId = user.id;
-    console.log(`[search-opportunities] Authenticated user: ${userId.slice(0, 8)}...`);
+    const authMs = Date.now() - fnStart;
+    console.log(`[search-opportunities] Auth OK: ${userId.slice(0, 8)}... (${authMs}ms)`);
 
-    // Get user's organization
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("current_organization_id")
-      .eq("profile_id", userId)
-      .single();
+    // Get user's organization + membership + subscription in parallel
+    const orgCheckStart = Date.now();
+    const [profileRes, membershipRes, subscriptionRes] = await Promise.all([
+      supabase.from("profiles").select("current_organization_id").eq("profile_id", userId).single(),
+      // We'll need orgId for membership, but we can fetch all memberships for this user
+      supabase.from("organization_members").select("id, organization_id").eq("user_id", userId).eq("status", "active"),
+      // We'll check subscription after we know the org
+      Promise.resolve(null),
+    ]);
 
-    if (!profile?.current_organization_id) {
+    if (!profileRes.data?.current_organization_id) {
       console.log("[search-opportunities] No organization found for user");
       return new Response(JSON.stringify({ error: "No organization found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const orgId = profile.current_organization_id;
+    const orgId = profileRes.data.current_organization_id;
 
-    // Verify org membership
-    const { data: membership } = await supabase
-      .from("organization_members")
-      .select("id")
-      .eq("organization_id", orgId)
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .single();
-
-    if (!membership) {
+    // Verify membership from already-fetched data
+    const isMember = membershipRes.data?.some((m: any) => m.organization_id === orgId);
+    if (!isMember) {
       console.log("[search-opportunities] Not an active org member");
       return new Response(JSON.stringify({ error: "Not an active organization member" }), {
         status: 403,
@@ -387,32 +386,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check subscription tier
-    const { data: subscription } = await supabase
-      .from("organization_subscriptions")
-      .select("plan_type")
-      .eq("organization_id", orgId)
-      .single();
+    // Now fetch subscription + usage in parallel
+    const today = new Date().toISOString().split("T")[0];
+    const [subRes, usageRes] = await Promise.all([
+      supabase.from("organization_subscriptions").select("plan_type").eq("organization_id", orgId).single(),
+      supabase.from("organization_usage_metrics").select("metric_value").eq("organization_id", orgId).eq("metric_type", "opportunity_searches").eq("metric_date", today).single(),
+    ]);
 
-    const planType = subscription?.plan_type?.toLowerCase() || "trial";
-    console.log(`[search-opportunities] Plan type: ${planType}`);
+    const planType = subRes.data?.plan_type?.toLowerCase() || "trial";
+    const orgCheckMs = Date.now() - orgCheckStart;
+    console.log(`[search-opportunities] Org checks: plan=${planType}, orgId=${orgId.slice(0,8)}... (${orgCheckMs}ms)`);
     
-    if (!["growth", "business", "enterprise", "white_label", "pro"].includes(planType)) {
+    if (!["growth", "business", "enterprise", "white_label", "pro", "starter", "trial"].includes(planType)) {
       return new Response(
-        JSON.stringify({ error: "Pro or Enterprise subscription required" }),
+        JSON.stringify({ error: "Subscription required for opportunity search" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Rate limiting: 50 searches per org per day
-    const today = new Date().toISOString().split("T")[0];
-    const { data: usageData } = await supabase
-      .from("organization_usage_metrics")
-      .select("metric_value")
-      .eq("organization_id", orgId)
-      .eq("metric_type", "opportunity_searches")
-      .eq("metric_date", today)
-      .single();
+    const usageData = usageRes.data;
 
     if (usageData && usageData.metric_value >= 50) {
       return new Response(
@@ -501,14 +493,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[Search] Final: ${allOpportunities.length} results. Providers: ${JSON.stringify(providerStatuses.map(s => ({ p: s.provider, s: s.status, c: s.count, ms: s.responseTimeMs, m: s.message })))}`);
+    const totalMs = Date.now() - fnStart;
+    console.log(`[Search] Final: ${allOpportunities.length} results in ${totalMs}ms. Providers: ${JSON.stringify(providerStatuses.map(s => ({ p: s.provider, s: s.status, c: s.count, ms: s.responseTimeMs, m: s.message })))}`);
 
-    // Record usage
-    await supabase.rpc("update_organization_usage_metric", {
+    // Record usage (fire and forget)
+    supabase.rpc("update_organization_usage_metric", {
       org_id: orgId,
       metric_type_param: "opportunity_searches",
       increment_value: 1,
-    });
+    }).then(() => {}).catch(() => {});
 
     return new Response(
       JSON.stringify({
@@ -517,6 +510,7 @@ Deno.serve(async (req) => {
         limit: body.limit || 25,
         offset: body.offset || 0,
         providerStatuses,
+        diagnostics: { authMs, orgCheckMs, totalMs },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -295,9 +295,10 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
 
 function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): NormalizedOpportunity[] {
   if (!keyword || !keyword.trim()) return opps;
+  // SAM.gov already performs server-side keyword matching, so all returned results are relevant.
+  // We sort by local relevance score but keep everything — no filtering out zero-score results.
   return opps
     .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
-    .filter(({ score }) => score > 0)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       const dateA = a.opp.posted_date || "";

@@ -26,7 +26,7 @@ interface NormalizedOpportunity {
 
 interface ProviderStatus {
   provider: string;
-  status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
+  status: "success" | "timeout" | "api_error" | "no_results" | "skipped" | "invalid_api_key";
   count: number;
   message?: string;
   responseTimeMs?: number;
@@ -47,7 +47,7 @@ interface SearchBody {
 }
 
 // ─── Timeout Utility ─────────────────────────────────────────────────
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 20000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 25000): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -61,40 +61,38 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 function isSamOnlySearch(params: SearchBody): boolean {
   const hasSamFilters = !!(params.naicsCode || params.setAside || params.ptype);
   const hasKeyword = !!(params.keyword && params.keyword.trim());
-  // If user has SAM-specific filters and no keyword, default to SAM-only
   return hasSamFilters && !hasKeyword;
 }
 
 // ─── SAM.gov Provider ────────────────────────────────────────────────
+const SAM_BASE_URL = "https://api.sam.gov/opportunities/v2/search";
+
 const toSamDate = (dateStr: string): string => {
   const parts = dateStr.split("-");
   if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
   return dateStr;
 };
 
-async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
+const formatDateMMDDYYYY = (d: Date): string => {
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+};
+
+async function fetchSamGov(params: SearchBody, samApiKey: string, daysBack = 365): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
   const safeOffset = Math.max(Number(params.offset) || 0, 0);
 
-  // Widen default date window: 365 days for NAICS/filter-only, 90 days for keyword searches
-  const hasKeyword = safeKeyword.length > 0;
-  const defaultDaysBack = hasKeyword ? 90 : 365;
   const defaultFrom = new Date();
-  defaultFrom.setDate(defaultFrom.getDate() - defaultDaysBack);
-  const defaultFromStr = `${String(defaultFrom.getMonth() + 1).padStart(2, "0")}/${String(defaultFrom.getDate()).padStart(2, "0")}/${defaultFrom.getFullYear()}`;
+  defaultFrom.setDate(defaultFrom.getDate() - daysBack);
 
   const qp = new URLSearchParams();
   qp.set("api_key", samApiKey);
   
   if (safeKeyword) qp.set("keyword", safeKeyword);
   
-  // Date range
-  qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : defaultFromStr);
-  const defaultTo = new Date();
-  const defaultToStr = `${String(defaultTo.getMonth() + 1).padStart(2, "0")}/${String(defaultTo.getDate()).padStart(2, "0")}/${defaultTo.getFullYear()}`;
-  qp.set("postedTo", params.postedTo ? toSamDate(String(params.postedTo).slice(0, 10)) : defaultToStr);
+  qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : formatDateMMDDYYYY(defaultFrom));
+  qp.set("postedTo", params.postedTo ? toSamDate(String(params.postedTo).slice(0, 10)) : formatDateMMDDYYYY(new Date()));
   
   if (params.naicsCode) qp.set("ncode", String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6));
   if (params.setAside) qp.set("typeOfSetAside", String(params.setAside).slice(0, 50));
@@ -107,30 +105,42 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opp
   // Log request shape (without API key)
   const logParams = new URLSearchParams(qp);
   logParams.delete("api_key");
-  console.log(`[SAM.gov] Request: ${logParams.toString()}`);
+  console.log(`[SAM.gov] Endpoint: ${SAM_BASE_URL}`);
+  console.log(`[SAM.gov] Params: ${logParams.toString()}`);
+  console.log(`[SAM.gov] API key present: ${samApiKey.length > 0}, length: ${samApiKey.length}`);
+
+  const requestUrl = `${SAM_BASE_URL}?${qp.toString()}`;
 
   try {
-    const res = await fetchWithTimeout(
-      `https://api.sam.gov/opportunities/v2/search?${qp.toString()}`,
-      { headers: { Accept: "application/json" } },
-      20000
-    );
+    const res = await fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, 25000);
     
     const elapsed = Date.now() - startTime;
+    console.log(`[SAM.gov] HTTP ${res.status} in ${elapsed}ms`);
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[SAM.gov] HTTP ${res.status} in ${elapsed}ms: ${errText.slice(0, 500)}`);
+      console.error(`[SAM.gov] Error body: ${errText.slice(0, 500)}`);
+      
+      // Detect specific error types
+      const isAuthError = res.status === 401 || res.status === 403 || errText.toLowerCase().includes("api key");
+      const statusType = isAuthError ? "invalid_api_key" as const : "api_error" as const;
+      
       return {
         opportunities: [],
-        status: { provider: "SAM.gov", status: "api_error", count: 0, message: `HTTP ${res.status}`, responseTimeMs: elapsed },
+        status: { 
+          provider: "SAM.gov", 
+          status: statusType, 
+          count: 0, 
+          message: isAuthError ? "API key rejected" : `HTTP ${res.status}`, 
+          responseTimeMs: elapsed 
+        },
       };
     }
 
     const data = await res.json();
     const rawOpps = data.opportunitiesData || [];
     const totalRecords = data.totalRecords || rawOpps.length;
-    console.log(`[SAM.gov] Got ${rawOpps.length} results (totalRecords: ${totalRecords}) in ${elapsed}ms`);
+    console.log(`[SAM.gov] Results: ${rawOpps.length}, totalRecords: ${totalRecords}, elapsed: ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
       external_id: opp.noticeId || opp.opportunityId || "",
@@ -146,7 +156,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opp
       type: opp.type || opp.baseType || "contract",
       raw_data: opp,
       resource_links: Array.isArray(opp.resourceLinks) ? opp.resourceLinks.map((rl: any) => typeof rl === "string" ? rl : rl?.url || "").filter(Boolean) : [],
-      description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
+      description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
     }));
 
     return {
@@ -155,6 +165,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opp
         provider: "SAM.gov",
         status: opportunities.length > 0 ? "success" : "no_results",
         count: opportunities.length,
+        message: `${totalRecords} total records (${daysBack}-day window)`,
         responseTimeMs: elapsed,
       },
     };
@@ -194,10 +205,11 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
     }, 15000);
 
     const elapsed = Date.now() - startTime;
+    console.log(`[Grants.gov] HTTP ${res.status} in ${elapsed}ms`);
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[Grants.gov] HTTP ${res.status} in ${elapsed}ms: ${errText.slice(0, 500)}`);
+      console.error(`[Grants.gov] Error body: ${errText.slice(0, 500)}`);
       return {
         opportunities: [],
         status: { provider: "Grants.gov", status: "api_error", count: 0, message: `HTTP ${res.status}`, responseTimeMs: elapsed },
@@ -206,7 +218,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
     const json = await res.json();
     const hits = json?.data?.oppHits || [];
-    console.log(`[Grants.gov] Got ${hits.length} results in ${elapsed}ms`);
+    console.log(`[Grants.gov] Results: ${hits.length} in ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = hits.map((opp: any) => ({
       external_id: String(opp.id || opp.oppNumber || ""),
@@ -312,10 +324,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("[search-opportunities] Request received");
+
   try {
     // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.log("[search-opportunities] No auth header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -330,12 +345,14 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log("[search-opportunities] Auth failed:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const userId = user.id;
+    console.log(`[search-opportunities] Authenticated user: ${userId.slice(0, 8)}...`);
 
     // Get user's organization
     const { data: profile } = await supabase
@@ -345,6 +362,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!profile?.current_organization_id) {
+      console.log("[search-opportunities] No organization found for user");
       return new Response(JSON.stringify({ error: "No organization found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -362,6 +380,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!membership) {
+      console.log("[search-opportunities] Not an active org member");
       return new Response(JSON.stringify({ error: "Not an active organization member" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -376,6 +395,8 @@ Deno.serve(async (req) => {
       .single();
 
     const planType = subscription?.plan_type?.toLowerCase() || "trial";
+    console.log(`[search-opportunities] Plan type: ${planType}`);
+    
     if (!["growth", "business", "enterprise", "white_label", "pro"].includes(planType)) {
       return new Response(
         JSON.stringify({ error: "Pro or Enterprise subscription required" }),
@@ -409,18 +430,23 @@ Deno.serve(async (req) => {
     // Auto-detect optimal source: skip Grants.gov for SAM-specific filter searches
     const effectiveSource = (sourceFilter === "all" && isSamOnlySearch(body)) ? "sam_gov" : sourceFilter;
 
-    console.log(`[Search] Params: source=${sourceFilter} (effective=${effectiveSource}), keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
+    console.log(`[Search] source=${sourceFilter} (effective=${effectiveSource}), keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
 
     // Fetch from providers in parallel
-    const samApiKey = Deno.env.get("SAM_GOV_API_KEY");
+    const rawSamKey = Deno.env.get("SAM_GOV_API_KEY") || "";
+    const samApiKey = rawSamKey.trim(); // Trim whitespace that could break auth
     const providerStatuses: ProviderStatus[] = [];
     const fetchPromises: Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }>[] = [];
 
+    console.log(`[Search] SAM key configured: ${samApiKey.length > 0}, length: ${samApiKey.length}`);
+
     if (effectiveSource === "all" || effectiveSource === "sam_gov") {
       if (samApiKey) {
-        fetchPromises.push(fetchSamGov(body, samApiKey));
+        // Use 365-day window for filter-only searches, 90 for keyword searches
+        const daysBack = searchKeyword.trim() ? 90 : 365;
+        fetchPromises.push(fetchSamGov(body, samApiKey, daysBack));
       } else {
-        console.warn("SAM_GOV_API_KEY not configured, skipping SAM.gov");
+        console.warn("[Search] SAM_GOV_API_KEY not configured or empty, skipping SAM.gov");
         providerStatuses.push({ provider: "SAM.gov", status: "skipped", count: 0, message: "API key not configured" });
       }
     }
@@ -428,7 +454,6 @@ Deno.serve(async (req) => {
     if (effectiveSource === "all" || effectiveSource === "grants_gov") {
       fetchPromises.push(fetchGrantsGov(body));
     } else if (sourceFilter === "all" && effectiveSource === "sam_gov") {
-      // Note: Grants.gov was auto-skipped for SAM-specific search
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
@@ -450,9 +475,35 @@ Deno.serve(async (req) => {
 
     allOpportunities = rankByRelevance(allOpportunities, searchKeyword);
 
-    console.log(`[Search] Final results: ${allOpportunities.length} after dedup/filter/rank. Provider statuses: ${JSON.stringify(providerStatuses.map(s => ({ p: s.provider, s: s.status, c: s.count, ms: s.responseTimeMs })))}`);
+    // If NAICS-only search returned 0 from SAM, retry with wider window
+    const samStatus = providerStatuses.find(s => s.provider === "SAM.gov");
+    if (
+      allOpportunities.length === 0 &&
+      samApiKey &&
+      isSamOnlySearch(body) &&
+      samStatus &&
+      samStatus.status === "no_results"
+    ) {
+      console.log("[Search] NAICS-only returned 0, retrying SAM with 730-day window");
+      const retryResult = await fetchSamGov(body, samApiKey, 730);
+      // Replace the SAM status
+      const samIdx = providerStatuses.findIndex(s => s.provider === "SAM.gov");
+      if (samIdx >= 0) {
+        providerStatuses[samIdx] = { ...retryResult.status, message: `Retry with 2-year window: ${retryResult.status.message || ""}` };
+      }
+      if (retryResult.opportunities.length > 0) {
+        allOpportunities = deduplicateOpportunities(retryResult.opportunities);
+        if (opportunityType) {
+          allOpportunities = allOpportunities.filter(
+            (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()
+          );
+        }
+      }
+    }
 
-    // Record usage (single source of truth for usage tracking)
+    console.log(`[Search] Final: ${allOpportunities.length} results. Providers: ${JSON.stringify(providerStatuses.map(s => ({ p: s.provider, s: s.status, c: s.count, ms: s.responseTimeMs, m: s.message })))}`);
+
+    // Record usage
     await supabase.rpc("update_organization_usage_metric", {
       org_id: orgId,
       metric_type_param: "opportunity_searches",
@@ -470,7 +521,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in search-opportunities:", error);
+    console.error("[search-opportunities] Unhandled error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

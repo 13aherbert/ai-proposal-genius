@@ -41,7 +41,7 @@ export function useSearchUsage() {
         .from("organization_usage_metrics")
         .select("metric_value")
         .eq("organization_id", profile.current_organization_id)
-        .eq("metric_type", "opportunity_search")
+        .eq("metric_type", "opportunity_searches")
         .gte("metric_date", firstOfMonth);
 
       if (!error && data) {

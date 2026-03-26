@@ -24,6 +24,13 @@ interface NormalizedOpportunity {
   description_text_url: string | null;
 }
 
+interface ProviderStatus {
+  provider: string;
+  status: "success" | "timeout" | "api_error" | "no_results" | "skipped";
+  count: number;
+  message?: string;
+}
+
 interface SearchBody {
   keyword?: string;
   postedFrom?: string;
@@ -56,7 +63,7 @@ const toSamDate = (dateStr: string): string => {
   return dateStr;
 };
 
-async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<NormalizedOpportunity[]> {
+async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const safeLimit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
   const safeOffset = Math.max(Number(params.offset) || 0, 0);
@@ -67,30 +74,58 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
 
   const qp = new URLSearchParams();
   qp.set("api_key", samApiKey);
+  
+  // Map keyword to SAM.gov's keyword field
   if (safeKeyword) qp.set("keyword", safeKeyword);
+  
+  // Date range - SAM.gov requires both postedFrom and postedTo
   qp.set("postedFrom", params.postedFrom ? toSamDate(String(params.postedFrom).slice(0, 10)) : defaultFromStr);
   const defaultTo = new Date();
   const defaultToStr = `${String(defaultTo.getMonth() + 1).padStart(2, "0")}/${String(defaultTo.getDate()).padStart(2, "0")}/${defaultTo.getFullYear()}`;
   qp.set("postedTo", params.postedTo ? toSamDate(String(params.postedTo).slice(0, 10)) : defaultToStr);
-  if (params.naicsCode) qp.set("ncode", String(params.naicsCode).slice(0, 10));
+  
+  // Map NAICS code directly to SAM.gov's ncode parameter
+  if (params.naicsCode) qp.set("ncode", String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6));
+  
+  // Map set-aside to SAM.gov's typeOfSetAside parameter
   if (params.setAside) qp.set("typeOfSetAside", String(params.setAside).slice(0, 50));
+  
+  // Map ptype (procurement type) directly
   if (params.ptype) qp.set("ptype", String(params.ptype).slice(0, 5));
+  
+  // Map agency to SAM.gov's deptname parameter (provider-level filtering)
+  if (params.agency) qp.set("deptname", String(params.agency).slice(0, 100));
+  
   qp.set("limit", String(safeLimit));
   qp.set("offset", String(safeOffset));
 
-  const url = `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`;
-  console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}, ptype=${params.ptype || "any"}`);
+  // Log the request shape (without API key)
+  const logParams = new URLSearchParams(qp);
+  logParams.delete("api_key");
+  console.log(`[SAM.gov] Request: ${logParams.toString()}`);
 
   try {
-    const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } }, 15000);
+    const res = await fetchWithTimeout(
+      `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`,
+      { headers: { Accept: "application/json" } },
+      15000
+    );
+    
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[SAM.gov] API error [${res.status}]: ${errText}`);
-      return [];
+      console.error(`[SAM.gov] HTTP ${res.status}: ${errText.slice(0, 500)}`);
+      return {
+        opportunities: [],
+        status: { provider: "SAM.gov", status: "api_error", count: 0, message: `HTTP ${res.status}` },
+      };
     }
 
     const data = await res.json();
-    return (data.opportunitiesData || []).map((opp: any) => ({
+    const rawOpps = data.opportunitiesData || [];
+    const totalRecords = data.totalRecords || rawOpps.length;
+    console.log(`[SAM.gov] Got ${rawOpps.length} results (totalRecords: ${totalRecords})`);
+
+    const opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
       external_id: opp.noticeId || opp.opportunityId || "",
       source: "sam_gov",
       title: opp.title || "",
@@ -106,18 +141,27 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
       resource_links: Array.isArray(opp.resourceLinks) ? opp.resourceLinks.map((rl: any) => typeof rl === "string" ? rl : rl?.url || "").filter(Boolean) : [],
       description_text_url: opp.description || (opp.noticeId ? `https://api.sam.gov/prod/opportunities/v1/noticedesc?noticeid=${opp.noticeId}` : null),
     }));
+
+    return {
+      opportunities,
+      status: {
+        provider: "SAM.gov",
+        status: opportunities.length > 0 ? "success" : "no_results",
+        count: opportunities.length,
+      },
+    };
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "AbortError") {
       console.warn("[SAM.gov] Request timed out after 15s");
-    } else {
-      console.error("[SAM.gov] Fetch error:", err);
+      return { opportunities: [], status: { provider: "SAM.gov", status: "timeout", count: 0, message: "Request timed out" } };
     }
-    return [];
+    console.error("[SAM.gov] Fetch error:", err);
+    return { opportunities: [], status: { provider: "SAM.gov", status: "api_error", count: 0, message: String(err) } };
   }
 }
 
 // ─── Grants.gov Provider ─────────────────────────────────────────────
-async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity[]> {
+async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }> {
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
@@ -130,7 +174,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
 
   if (params.agency) body.agencies = String(params.agency).slice(0, 100);
 
-  console.log(`[Grants.gov] Fetching: keyword="${safeKeyword}", rows=${rows}`);
+  console.log(`[Grants.gov] Request: keyword="${safeKeyword}", rows=${rows}, agency="${params.agency || ""}"`);
 
   try {
     const res = await fetchWithTimeout("https://api.grants.gov/v1/api/search2", {
@@ -141,14 +185,18 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[Grants.gov] API error [${res.status}]: ${errText}`);
-      return [];
+      console.error(`[Grants.gov] HTTP ${res.status}: ${errText.slice(0, 500)}`);
+      return {
+        opportunities: [],
+        status: { provider: "Grants.gov", status: "api_error", count: 0, message: `HTTP ${res.status}` },
+      };
     }
 
     const json = await res.json();
     const hits = json?.data?.oppHits || [];
+    console.log(`[Grants.gov] Got ${hits.length} results`);
 
-    return hits.map((opp: any) => ({
+    const opportunities: NormalizedOpportunity[] = hits.map((opp: any) => ({
       external_id: String(opp.id || opp.oppNumber || ""),
       source: "grants_gov",
       title: opp.title || "",
@@ -166,19 +214,28 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
       resource_links: [],
       description_text_url: null,
     }));
+
+    return {
+      opportunities,
+      status: {
+        provider: "Grants.gov",
+        status: opportunities.length > 0 ? "success" : "no_results",
+        count: opportunities.length,
+      },
+    };
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "AbortError") {
       console.warn("[Grants.gov] Request timed out after 15s");
-    } else {
-      console.error("[Grants.gov] Fetch error:", err);
+      return { opportunities: [], status: { provider: "Grants.gov", status: "timeout", count: 0, message: "Request timed out" } };
     }
-    return [];
+    console.error("[Grants.gov] Fetch error:", err);
+    return { opportunities: [], status: { provider: "Grants.gov", status: "api_error", count: 0, message: String(err) } };
   }
 }
 
 // ─── Relevance Scoring ──────────────────────────────────────────────
 function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
-  if (!keyword || !keyword.trim()) return 0;
+  if (!keyword || !keyword.trim()) return 1; // Give all results a base score when no keyword
 
   const phrase = keyword.toLowerCase().trim();
   const words = phrase.split(/\s+/).filter(Boolean);
@@ -189,35 +246,25 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
 
   let score = 0;
 
-  // Exact phrase in title → highest signal
-  if (titleLower.includes(phrase)) {
-    score += 100;
-  }
+  if (titleLower.includes(phrase)) score += 100;
 
-  // All words present in title
   const allInTitle = words.every(w => titleLower.includes(w));
-  if (allInTitle && !titleLower.includes(phrase)) {
-    score += 50;
-  }
+  if (allInTitle && !titleLower.includes(phrase)) score += 50;
 
-  // Per-word matches in title
   if (!allInTitle) {
     for (const w of words) {
       if (titleLower.includes(w)) score += 10;
     }
   }
 
-  // Department matches
   for (const w of words) {
     if (deptLower.includes(w)) score += 5;
   }
 
-  // Solicitation number matches
   for (const w of words) {
     if (solNumLower.includes(w)) score += 15;
   }
 
-  // Raw data description matches
   if (descLower) {
     for (const w of words) {
       if (descLower.includes(w)) score += 3;
@@ -228,7 +275,7 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
 }
 
 function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): NormalizedOpportunity[] {
-  if (!keyword || !keyword.trim()) return opps;
+  if (!keyword || !keyword.trim()) return opps; // No keyword = return all results unfiltered
 
   return opps
     .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
@@ -353,15 +400,19 @@ Deno.serve(async (req) => {
     const opportunityType = body.opportunityType || "";
     const searchKeyword = body.keyword || "";
 
+    console.log(`[Search] Params: source=${sourceFilter}, keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
+
     // Fetch from providers in parallel
     const samApiKey = Deno.env.get("SAM_GOV_API_KEY");
-    const fetchPromises: Promise<NormalizedOpportunity[]>[] = [];
+    const providerStatuses: ProviderStatus[] = [];
+    const fetchPromises: Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus }>[] = [];
 
     if (sourceFilter === "all" || sourceFilter === "sam_gov") {
       if (samApiKey) {
         fetchPromises.push(fetchSamGov(body, samApiKey));
       } else {
         console.warn("SAM_GOV_API_KEY not configured, skipping SAM.gov");
+        providerStatuses.push({ provider: "SAM.gov", status: "skipped", count: 0, message: "API key not configured" });
       }
     }
 
@@ -370,27 +421,27 @@ Deno.serve(async (req) => {
     }
 
     const results = await Promise.all(fetchPromises);
-    let allOpportunities = deduplicateOpportunities(results.flat());
+    
+    // Collect provider statuses and opportunities
+    const allProviderOpps: NormalizedOpportunity[] = [];
+    for (const result of results) {
+      providerStatuses.push(result.status);
+      allProviderOpps.push(...result.opportunities);
+    }
 
-    // Apply opportunityType filter client-side (for generic types like "contract"/"grant")
+    let allOpportunities = deduplicateOpportunities(allProviderOpps);
+
+    // Apply opportunityType filter (for generic types like "contract"/"grant")
     if (opportunityType) {
       allOpportunities = allOpportunities.filter(
         (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()
       );
     }
 
-    // Apply agency filter client-side for SAM.gov results (Grants.gov handles it in API)
-    if (body.agency && sourceFilter !== "grants_gov") {
-      const agencyLower = body.agency.toLowerCase();
-      allOpportunities = allOpportunities.filter(
-        (opp) =>
-          opp.source === "grants_gov" ||
-          opp.department.toLowerCase().includes(agencyLower)
-      );
-    }
-
-    // Rank by relevance to keyword
+    // Rank by relevance (does NOT filter out results when no keyword is provided)
     allOpportunities = rankByRelevance(allOpportunities, searchKeyword);
+
+    console.log(`[Search] Final results: ${allOpportunities.length} after dedup/filter/rank`);
 
     // Record usage
     await supabase.rpc("update_organization_usage_metric", {
@@ -405,6 +456,7 @@ Deno.serve(async (req) => {
         totalRecords: allOpportunities.length,
         limit: body.limit || 25,
         offset: body.offset || 0,
+        providerStatuses,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -499,6 +499,7 @@ Deno.serve(async (req) => {
       }
       if (retryResult.opportunities.length > 0) {
         allOpportunities = deduplicateOpportunities(retryResult.opportunities);
+        combinedTotalRecords = retryResult.totalRecords || retryResult.opportunities.length;
         if (opportunityType) {
           allOpportunities = allOpportunities.filter(
             (opp) => opp.type.toLowerCase() === opportunityType.toLowerCase()

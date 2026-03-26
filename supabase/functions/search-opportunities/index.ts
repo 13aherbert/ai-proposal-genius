@@ -38,6 +38,17 @@ interface SearchBody {
   offset?: number;
 }
 
+// ─── Timeout Utility ─────────────────────────────────────────────────
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ─── SAM.gov Provider ────────────────────────────────────────────────
 const toSamDate = (dateStr: string): string => {
   const parts = dateStr.split("-");
@@ -70,7 +81,7 @@ async function fetchSamGov(params: SearchBody, samApiKey: string): Promise<Norma
   const url = `https://api.sam.gov/prod/opportunities/v2/search?${qp.toString()}`;
   console.log(`[SAM.gov] Fetching: keyword="${safeKeyword}", limit=${safeLimit}, offset=${safeOffset}, ptype=${params.ptype || "any"}`);
 
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } }, 15000);
   if (!res.ok) {
     const errText = await res.text();
     console.error(`[SAM.gov] API error [${res.status}]: ${errText}`);
@@ -113,11 +124,11 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
   console.log(`[Grants.gov] Fetching: keyword="${safeKeyword}", rows=${rows}`);
 
   try {
-    const res = await fetch("https://api.grants.gov/v1/api/search2", {
+    const res = await fetchWithTimeout("https://api.grants.gov/v1/api/search2", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }, 15000);
 
     if (!res.ok) {
       const errText = await res.text();
@@ -146,8 +157,12 @@ async function fetchGrantsGov(params: SearchBody): Promise<NormalizedOpportunity
       resource_links: [],
       description_text_url: null,
     }));
-  } catch (err) {
-    console.error("[Grants.gov] Fetch error:", err);
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.warn("[Grants.gov] Request timed out after 15s");
+    } else {
+      console.error("[Grants.gov] Fetch error:", err);
+    }
     return [];
   }
 }

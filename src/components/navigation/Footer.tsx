@@ -39,6 +39,7 @@ const footerSections = [
     links: [
       { label: "Security & Privacy", to: "/security" },
       { label: "Support", href: "mailto:support@optirfp.ai" },
+      { label: "Keyboard Shortcuts", action: "open-keyboard-shortcuts" },
     ],
   },
 ];
@@ -58,7 +59,14 @@ export function Footer() {
               <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    {"href" in link && link.href ? (
+                    {"action" in link && link.action ? (
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent(link.action!))}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {link.label}
+                      </button>
+                    ) : "href" in link && link.href ? (
                       <a
                         href={link.href}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -27,6 +27,8 @@ export default function Opportunities() {
     totalRecords,
     isSearching,
     search,
+    providerStatuses,
+    hasSearched,
     saveOpportunity,
     savedOpportunities,
     isLoadingSaved,

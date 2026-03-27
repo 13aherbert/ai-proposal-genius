@@ -392,6 +392,18 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   }
 }
 
+// ─── Helper: extract all string values from a nested object ─────────
+function extractStringValues(obj: unknown): string[] {
+  const strings: string[] = [];
+  if (obj && typeof obj === "object") {
+    for (const val of Object.values(obj as Record<string, unknown>)) {
+      if (typeof val === "string") strings.push(val);
+      else if (val && typeof val === "object") strings.push(...extractStringValues(val));
+    }
+  }
+  return strings;
+}
+
 // ─── Relevance Scoring ──────────────────────────────────────────────
 function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   if (!keyword || !keyword.trim()) return 1;

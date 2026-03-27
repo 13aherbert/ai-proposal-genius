@@ -40,6 +40,7 @@ interface SearchBody {
   setAside?: string;
   ptype?: string;
   source?: string;
+  sources?: string[];
   opportunityType?: string;
   agency?: string;
   limit?: number;

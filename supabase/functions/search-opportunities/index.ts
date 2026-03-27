@@ -504,6 +504,116 @@ async function fetchTexas(params: SearchBody): Promise<{ opportunities: Normaliz
   return { opportunities, totalRecords: opportunities.length, status };
 }
 
+// ─── New York State via Socrata Open Data (free, no API key needed) ──
+const NY_SOCRATA_DATASETS = [
+  { id: "ehig-g5x3", name: "NY State Authorities", base: "https://data.ny.gov", hasStatus: true },
+  { id: "twsw-2mqa", name: "MTA Procurements", base: "https://data.ny.gov", hasStatus: true },
+];
+
+async function fetchNewYork(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+  const startTime = Date.now();
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const limit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+
+  const allItems: any[] = [];
+  const errors: string[] = [];
+
+  const datasetPromises = NY_SOCRATA_DATASETS.map(async (ds) => {
+    try {
+      const qp = new URLSearchParams();
+      qp.set("$limit", String(limit));
+      qp.set("$order", "award_date DESC");
+
+      // Only fetch open/active records when the dataset has a status column
+      if (ds.hasStatus) {
+        // ehig-g5x3 uses uppercase OPEN, twsw-2mqa uses mixed-case Open
+        qp.set("$where", "upper(status)='OPEN'");
+      }
+
+      if (safeKeyword) {
+        qp.set("$q", safeKeyword);
+      }
+
+      const url = `${ds.base}/resource/${ds.id}.json?${qp.toString()}`;
+      console.log(`[NewYork/${ds.name}] Fetching: ${url}`);
+
+      const res = await fetchWithTimeout(url, {
+        headers: { Accept: "application/json" },
+      }, 15000);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[NewYork/${ds.name}] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        errors.push(`${ds.name}: HTTP ${res.status}`);
+        return [];
+      }
+
+      const items = await res.json();
+      console.log(`[NewYork/${ds.name}] Returned ${items.length} items`);
+      return items.map((item: any) => ({ ...item, _ny_dataset: ds.name }));
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        console.warn(`[NewYork/${ds.name}] Timed out`);
+        errors.push(`${ds.name}: timeout`);
+      } else {
+        console.error(`[NewYork/${ds.name}] Error:`, err);
+        errors.push(`${ds.name}: ${String(err)}`);
+      }
+      return [];
+    }
+  });
+
+  const datasetResults = await Promise.all(datasetPromises);
+  for (const items of datasetResults) {
+    allItems.push(...items);
+  }
+
+  const elapsed = Date.now() - startTime;
+  console.log(`[NewYork] Socrata total: ${allItems.length} items from ${NY_SOCRATA_DATASETS.length} datasets in ${elapsed}ms`);
+
+  let opportunities: NormalizedOpportunity[] = allItems.map((opp: any) => ({
+    external_id: String(opp.transaction_number || opp.contract_number || opp.vendor_name || Math.random().toString(36).slice(2)),
+    source: "new_york",
+    title: opp.procurement_description || opp.vendor_name || "",
+    solicitation_number: String(opp.transaction_number || opp.contract_number || ""),
+    department: opp.authority_name || opp._ny_dataset || "New York State",
+    naics_code: "",
+    posted_date: opp.award_date || opp.begin_date || null,
+    response_deadline: opp.end_date || null,
+    set_aside: opp.vendor_is_a_mwbe === "Y" ? "MWBE" : (opp.solicited_mwbe === "Y" ? "MWBE Solicited" : ""),
+    description_url: `https://data.ny.gov/resource/${opp._ny_dataset === "MTA Procurements" ? "twsw-2mqa" : "ehig-g5x3"}.json`,
+    type: opp.type_of_procurement || opp.award_process || "contract",
+    raw_data: opp,
+    resource_links: [],
+    description_text_url: null,
+  }));
+
+  // Local keyword filtering as safety net
+  if (safeKeyword) {
+    const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+    const rawCount = opportunities.length;
+    opportunities = opportunities.filter(opp => {
+      const searchText = [
+        opp.title, opp.department, opp.solicitation_number,
+        ...extractStringValues(opp.raw_data),
+      ].join(" ").toLowerCase();
+      return keywords.some(w => searchText.includes(w));
+    });
+    console.log(`[NewYork] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
+  }
+
+  const allFailed = errors.length === NY_SOCRATA_DATASETS.length;
+  const status: ProviderStatus = {
+    provider: "New York State",
+    status: allFailed ? "api_error" : opportunities.length > 0 ? "success" : "no_results",
+    count: opportunities.length,
+    message: allFailed ? errors.join("; ") : `${allItems.length} fetched, ${opportunities.length} matched${safeKeyword ? ` for "${safeKeyword}"` : ""}`,
+    responseTimeMs: elapsed,
+  };
+
+  return { opportunities, totalRecords: opportunities.length, status };
+}
+
 // ─── Helper: extract all string values from a nested object ─────────
 function extractStringValues(obj: unknown): string[] {
   const strings: string[] = [];

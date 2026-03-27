@@ -43,10 +43,11 @@ const OPPORTUNITY_TYPE_OPTIONS = [
   { value: "contract", label: "Contract" },
   { value: "grant", label: "Grant" },
   { value: "ptype:o", label: "Solicitation (SAM.gov)" },
-  { value: "ptype:p", label: "Presolicitation (SAM.gov)" },
+  { value: "ptype:p", label: "Pre-Solicitation (SAM.gov)" },
   { value: "ptype:k", label: "Combined Synopsis/Solicitation (SAM.gov)" },
   { value: "ptype:r", label: "Sources Sought (SAM.gov)" },
   { value: "ptype:s", label: "Special Notice (SAM.gov)" },
+  { value: "ptype:a", label: "Award Notice (SAM.gov)" },
 ];
 
 export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySearchFormProps) {

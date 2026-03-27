@@ -40,6 +40,7 @@ interface SearchBody {
   setAside?: string;
   ptype?: string;
   source?: string;
+  sources?: string[];
   opportunityType?: string;
   agency?: string;
   limit?: number;
@@ -795,14 +796,19 @@ Deno.serve(async (req) => {
 
     // Parse search params
     const body: SearchBody = await req.json();
-    const sourceFilter = body.source || "all";
+    // Support both legacy single `source` and new `sources` array
+    const sourcesArray: string[] = body.sources && body.sources.length > 0
+      ? body.sources
+      : [body.source || "all"];
+    const isAllSources = sourcesArray.includes("all");
+    const hasSource = (s: string) => isAllSources || sourcesArray.includes(s);
     const opportunityType = body.opportunityType || "";
     const searchKeyword = body.keyword || "";
 
     // Auto-detect optimal source: skip Grants.gov for SAM-specific filter searches
-    const effectiveSource = (sourceFilter === "all" && isSamOnlySearch(body)) ? "sam_gov" : sourceFilter;
+    const skipGrants = !isAllSources ? false : isSamOnlySearch(body);
 
-    console.log(`[Search] source=${sourceFilter} (effective=${effectiveSource}), keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
+    console.log(`[Search] sources=${JSON.stringify(sourcesArray)}, keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
 
     // Fetch from providers in parallel
     const rawSamKey = Deno.env.get("SAM_GOV_API_KEY") || "";
@@ -812,9 +818,8 @@ Deno.serve(async (req) => {
 
     console.log(`[Search] SAM key configured: ${samApiKey.length > 0}, length: ${samApiKey.length}`);
 
-    if (effectiveSource === "all" || effectiveSource === "sam_gov") {
+    if (hasSource("sam_gov")) {
       if (samApiKey) {
-        // SAM.gov rejects date ranges > ~90 days; use 90 for all searches
         const daysBack = 90;
         fetchPromises.push(fetchSamGov(body, samApiKey, daysBack));
       } else {
@@ -823,9 +828,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (effectiveSource === "all" || effectiveSource === "grants_gov") {
+    if (hasSource("grants_gov") && !skipGrants) {
       fetchPromises.push(fetchGrantsGov(body));
-    } else if (sourceFilter === "all" && effectiveSource === "sam_gov") {
+    } else if (hasSource("grants_gov") && skipGrants) {
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
@@ -833,7 +838,7 @@ Deno.serve(async (req) => {
     const apifyToken = (Deno.env.get("APIFY_API_TOKEN") || "").trim();
     console.log(`[Search] Apify token configured: ${apifyToken.length > 0}`);
 
-    if (effectiveSource === "all" || effectiveSource === "california_eprocure") {
+    if (hasSource("california_eprocure")) {
       if (apifyToken) {
         fetchPromises.push(fetchCalifornia(body, apifyToken));
       } else {
@@ -843,12 +848,12 @@ Deno.serve(async (req) => {
     }
 
     // Texas SmartBuy via free Socrata API (no API key needed)
-    if (effectiveSource === "all" || effectiveSource === "texas_smartbuy") {
+    if (hasSource("texas_smartbuy")) {
       fetchPromises.push(fetchTexas(body));
     }
 
     // New York State via free Socrata API (no API key needed)
-    if (effectiveSource === "all" || effectiveSource === "new_york") {
+    if (hasSource("new_york")) {
       fetchPromises.push(fetchNewYork(body));
     }
 

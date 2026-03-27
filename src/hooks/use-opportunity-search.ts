@@ -28,6 +28,7 @@ export interface SearchParams {
   setAside?: string;
   ptype?: string;
   source?: string;
+  sources?: string[];
   opportunityType?: string;
   agency?: string;
   limit?: number;
@@ -87,14 +88,15 @@ export function useOpportunitySearch() {
     setSearchState("loading");
     setProviderStatuses([]);
 
-    // Derive which providers will be queried
-    const source = params.source || "all";
+    // Derive which providers will be queried from sources array
+    const sources = params.sources || (params.source ? [params.source] : ["all"]);
+    const isAll = sources.includes("all");
     const providers: string[] = [];
-    if (source === "all" || source === "sam_gov") providers.push("SAM.gov");
-    if (source === "all" || source === "grants_gov") providers.push("Grants.gov");
-    if (source === "all" || source === "california_eprocure") providers.push("California eProcure");
-    if (source === "all" || source === "texas_smartbuy") providers.push("Texas SmartBuy");
-    if (source === "all" || source === "new_york") providers.push("New York State");
+    if (isAll || sources.includes("sam_gov")) providers.push("SAM.gov");
+    if (isAll || sources.includes("grants_gov")) providers.push("Grants.gov");
+    if (isAll || sources.includes("california_eprocure")) providers.push("California eProcure");
+    if (isAll || sources.includes("texas_smartbuy")) providers.push("Texas SmartBuy");
+    if (isAll || sources.includes("new_york")) providers.push("New York State");
     setSearchingProviders(providers);
 
     // Client-side safety timeout at 55s (edge function has its own internal timeouts)

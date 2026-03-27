@@ -337,9 +337,9 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
     }
 
     const items: any[] = await res.json();
-    console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
+    console.log(`[California] Apify returned ${items.length} raw items in ${elapsed}ms`);
 
-    const opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
       external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
       source: "california_eprocure",
       title: opp.eventName || opp.title || "",
@@ -356,6 +356,20 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
       description_text_url: null,
     }));
 
+    // Apply local keyword filtering since the scraper's native keyword param is unreliable
+    if (safeKeyword) {
+      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+      const rawCount = opportunities.length;
+      opportunities = opportunities.filter(opp => {
+        const searchText = [
+          opp.title, opp.department, opp.solicitation_number,
+          ...extractStringValues(opp.raw_data),
+        ].join(" ").toLowerCase();
+        return keywords.some(w => searchText.includes(w));
+      });
+      console.log(`[California] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
+    }
+
     return {
       opportunities,
       totalRecords: opportunities.length,
@@ -363,7 +377,7 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
         provider: "California eProcure",
         status: opportunities.length > 0 ? "success" : "no_results",
         count: opportunities.length,
-        message: `${items.length} results via Apify scraper`,
+        message: `${items.length} scraped, ${opportunities.length} matched${safeKeyword ? ` for "${safeKeyword}"` : ""}`,
         responseTimeMs: elapsed,
       },
     };

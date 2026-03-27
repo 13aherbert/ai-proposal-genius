@@ -719,7 +719,7 @@ Deno.serve(async (req) => {
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
-    // Apify-based providers (California eProcure + Texas SmartBuy)
+    // Apify-based providers (California eProcure)
     const apifyToken = (Deno.env.get("APIFY_API_TOKEN") || "").trim();
     console.log(`[Search] Apify token configured: ${apifyToken.length > 0}`);
 
@@ -732,13 +732,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Texas SmartBuy via free Socrata API (no API key needed)
     if (effectiveSource === "all" || effectiveSource === "texas_smartbuy") {
-      if (apifyToken) {
-        fetchPromises.push(fetchTexas(body, apifyToken));
-      } else {
-        console.warn("[Search] APIFY_API_TOKEN not configured, skipping Texas SmartBuy");
-        providerStatuses.push({ provider: "Texas SmartBuy", status: "skipped", count: 0, message: "Apify token not configured" });
-      }
+      fetchPromises.push(fetchTexas(body));
+    }
     }
 
     const results = await Promise.all(fetchPromises);

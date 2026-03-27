@@ -323,14 +323,17 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
       const errText = await res.text();
       console.error(`[California] Apify error: ${errText.slice(0, 500)}`);
       const isAuthError = res.status === 401 || res.status === 403;
+      const isBillingError = res.status === 402;
+      const statusType = isBillingError ? "billing_error" as const : isAuthError ? "invalid_api_key" as const : "api_error" as const;
+      const message = isBillingError ? "Scraper quota exceeded — upgrade Apify plan" : isAuthError ? "Apify token rejected" : `HTTP ${res.status}`;
       return {
         opportunities: [],
         totalRecords: 0,
         status: {
           provider: "California eProcure",
-          status: isAuthError ? "invalid_api_key" : "api_error",
+          status: statusType,
           count: 0,
-          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
+          message,
           responseTimeMs: elapsed,
         },
       };
@@ -392,102 +395,113 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   }
 }
 
-// ─── Texas SmartBuy via Apify State Procurement Data ────────────────
-async function fetchTexas(params: SearchBody, apifyToken: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+// ─── Texas SmartBuy via Socrata Open Data (free, no API key needed) ──
+const TX_SOCRATA_DATASETS = [
+  { id: "vipt-h4ye", name: "DIR Active Contracts", base: "https://data.texas.gov" },
+  { id: "svjm-sdfz", name: "TCEQ Contracts", base: "https://data.texas.gov" },
+];
+
+async function fetchTexas(params: SearchBody): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
-  const maxResults = safeKeyword ? 100 : Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+  const limit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  const actorInput: Record<string, unknown> = {
-    states: ["TX", "TX_TCEQ", "TX_CONTRACTS"],
-    maxResults,
-  };
-  if (safeKeyword) actorInput.keyword = safeKeyword;
+  const allItems: any[] = [];
+  const errors: string[] = [];
 
-  const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~state-procurement-data/run-sync-get-dataset-items?token=${apifyToken}`;
-  console.log(`[Texas] Apify request: keyword="${safeKeyword || "(browse all)"}", maxResults=${maxResults}, input=`, JSON.stringify(actorInput));
+  // Query each Socrata dataset in parallel
+  const datasetPromises = TX_SOCRATA_DATASETS.map(async (ds) => {
+    try {
+      // Build SoQL query
+      const qp = new URLSearchParams();
+      qp.set("$limit", String(limit));
+      qp.set("$order", ":updated_at DESC");
 
-  try {
-    const res = await fetchWithTimeout(apifyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(actorInput),
-    }, 45000);
+      // Keyword search using Socrata full-text search ($q parameter)
+      if (safeKeyword) {
+        qp.set("$q", safeKeyword);
+      }
 
-    const elapsed = Date.now() - startTime;
-    console.log(`[Texas] Apify HTTP ${res.status} in ${elapsed}ms`);
+      const url = `${ds.base}/resource/${ds.id}.json?${qp.toString()}`;
+      console.log(`[Texas/${ds.name}] Fetching: ${url}`);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[Texas] Apify error: ${errText.slice(0, 500)}`);
-      const isAuthError = res.status === 401 || res.status === 403;
-      return {
-        opportunities: [],
-        totalRecords: 0,
-        status: {
-          provider: "Texas SmartBuy",
-          status: isAuthError ? "invalid_api_key" : "api_error",
-          count: 0,
-          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
-          responseTimeMs: elapsed,
-        },
-      };
+      const res = await fetchWithTimeout(url, {
+        headers: { Accept: "application/json" },
+      }, 15000);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[Texas/${ds.name}] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        errors.push(`${ds.name}: HTTP ${res.status}`);
+        return [];
+      }
+
+      const items = await res.json();
+      console.log(`[Texas/${ds.name}] Returned ${items.length} items`);
+      // Tag each item with its dataset source
+      return items.map((item: any) => ({ ...item, _tx_dataset: ds.name }));
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        console.warn(`[Texas/${ds.name}] Timed out`);
+        errors.push(`${ds.name}: timeout`);
+      } else {
+        console.error(`[Texas/${ds.name}] Error:`, err);
+        errors.push(`${ds.name}: ${String(err)}`);
+      }
+      return [];
     }
+  });
 
-    const items: any[] = await res.json();
-    console.log(`[Texas] Apify returned ${items.length} raw items in ${elapsed}ms`);
-
-    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
-      external_id: String(opp.id || opp.contract_number || opp.solicitation_number || opp.url || ""),
-      source: "texas_smartbuy",
-      title: opp.title || opp.description || "",
-      solicitation_number: String(opp.contract_number || opp.solicitation_number || ""),
-      department: opp.agency || opp.department || "",
-      naics_code: opp.nigp_code || opp.commodity_code || "",
-      posted_date: opp.start_date || opp.posted_date || opp.deadline || null,
-      response_deadline: opp.deadline || opp.end_date || null,
-      set_aside: opp.set_aside || opp.category || "",
-      description_url: opp.url || "https://www.txsmartbuy.com/esbd",
-      type: opp.type || opp.category || "contract",
-      raw_data: opp,
-      resource_links: [],
-      description_text_url: null,
-    }));
-
-    // Apply local keyword filtering as a safety net
-    if (safeKeyword) {
-      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
-      const rawCount = opportunities.length;
-      opportunities = opportunities.filter(opp => {
-        const searchText = [
-          opp.title, opp.department, opp.solicitation_number,
-          ...extractStringValues(opp.raw_data),
-        ].join(" ").toLowerCase();
-        return keywords.some(w => searchText.includes(w));
-      });
-      console.log(`[Texas] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
-    }
-
-    return {
-      opportunities,
-      totalRecords: opportunities.length,
-      status: {
-        provider: "Texas SmartBuy",
-        status: opportunities.length > 0 ? "success" : "no_results",
-        count: opportunities.length,
-        message: `${items.length} fetched, ${opportunities.length} matched${safeKeyword ? ` for "${safeKeyword}"` : ""}`,
-        responseTimeMs: elapsed,
-      },
-    };
-  } catch (err: unknown) {
-    const elapsed = Date.now() - startTime;
-    if (err instanceof DOMException && err.name === "AbortError") {
-      console.warn(`[Texas] Apify request timed out after ${elapsed}ms`);
-      return { opportunities: [], totalRecords: 0, status: { provider: "Texas SmartBuy", status: "timeout", count: 0, message: "Apify actor timed out", responseTimeMs: elapsed } };
-    }
-    console.error(`[Texas] Apify fetch error after ${elapsed}ms:`, err);
-    return { opportunities: [], totalRecords: 0, status: { provider: "Texas SmartBuy", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+  const datasetResults = await Promise.all(datasetPromises);
+  for (const items of datasetResults) {
+    allItems.push(...items);
   }
+
+  const elapsed = Date.now() - startTime;
+  console.log(`[Texas] Socrata total: ${allItems.length} items from ${TX_SOCRATA_DATASETS.length} datasets in ${elapsed}ms`);
+
+  let opportunities: NormalizedOpportunity[] = allItems.map((opp: any) => ({
+    external_id: String(opp.po_contract_number || opp.contract_number || opp.id || Math.random().toString(36).slice(2)),
+    source: "texas_smartbuy",
+    title: opp.description || opp.vendor_name || opp.contract_description || opp.project_description || "",
+    solicitation_number: String(opp.po_contract_number || opp.contract_number || ""),
+    department: opp.agency_name || opp.agency || opp._tx_dataset || "",
+    naics_code: opp.nigp_code || opp.commodity_code || opp.pcc || "",
+    posted_date: opp.start_date || opp.effective_date || opp.award_date || null,
+    response_deadline: opp.end_date || opp.expiration_date || null,
+    set_aside: opp.hub_status || opp.set_aside || "",
+    description_url: opp.url || "https://www.txsmartbuy.com/esbd",
+    type: opp.contract_type || opp.type || "contract",
+    raw_data: opp,
+    resource_links: [],
+    description_text_url: null,
+  }));
+
+  // Apply local keyword filtering as safety net (Socrata $q is fuzzy)
+  if (safeKeyword) {
+    const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+    const rawCount = opportunities.length;
+    opportunities = opportunities.filter(opp => {
+      const searchText = [
+        opp.title, opp.department, opp.solicitation_number,
+        ...extractStringValues(opp.raw_data),
+      ].join(" ").toLowerCase();
+      return keywords.some(w => searchText.includes(w));
+    });
+    console.log(`[Texas] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
+  }
+
+  // Determine status
+  const allFailed = errors.length === TX_SOCRATA_DATASETS.length;
+  const status: ProviderStatus = {
+    provider: "Texas SmartBuy",
+    status: allFailed ? "api_error" : opportunities.length > 0 ? "success" : "no_results",
+    count: opportunities.length,
+    message: allFailed ? errors.join("; ") : `${allItems.length} fetched, ${opportunities.length} matched${safeKeyword ? ` for "${safeKeyword}"` : ""}`,
+    responseTimeMs: elapsed,
+  };
+
+  return { opportunities, totalRecords: opportunities.length, status };
 }
 
 // ─── Helper: extract all string values from a nested object ─────────

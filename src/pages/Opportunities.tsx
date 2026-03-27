@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Search, Bookmark, AlertCircle, Clock, WifiOff } from "lucide-react";
+import { Search, Bookmark, AlertCircle, Clock, WifiOff, Bell } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
@@ -10,7 +10,10 @@ import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDe
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
 import { OpportunityPreviewMode } from "@/components/opportunities/OpportunityPreviewMode";
 import { SearchProgressIndicator } from "@/components/opportunities/SearchProgressIndicator";
+import { SaveSearchModal } from "@/components/opportunities/SaveSearchModal";
+import { SavedSearchesList } from "@/components/opportunities/SavedSearchesList";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
+import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { useSearchUsage } from "@/hooks/use-search-usage";
 import { PlanComparisonModal } from "@/components/subscription/PlanComparisonModal";
@@ -41,11 +44,14 @@ export default function Opportunities() {
 
   const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, refetch: refetchUsage } = useSearchUsage();
 
+  const { savedSearches, isLoading: isLoadingSavedSearches, saveSearch, updateSearch, deleteSearch } = useSavedSearches();
+
   const [tab, setTab] = useState("search");
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [lastSearchParams, setLastSearchParams] = useState<SearchParams | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {
@@ -123,6 +129,10 @@ export default function Opportunities() {
             <Bookmark className="h-4 w-4" />
             Saved ({savedOpportunities.length})
           </TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-1.5">
+            <Bell className="h-4 w-4" />
+            Alerts ({savedSearches.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="search" className="space-y-4">
@@ -136,7 +146,22 @@ export default function Opportunities() {
             </div>
           )}
 
-          <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
+            </div>
+            {lastSearchParams && searchState === "success" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => setShowSaveSearchModal(true)}
+              >
+                <Bell className="h-4 w-4 mr-1" />
+                Save Search
+              </Button>
+            )}
+          </div>
 
           <SearchProgressIndicator isSearching={isSearching} providers={searchingProviders} />
 
@@ -297,6 +322,29 @@ export default function Opportunities() {
             onDelete={deleteOpportunity}
           />
         </TabsContent>
+
+        <TabsContent value="alerts">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Saved Searches & Alerts</h2>
+                <p className="text-sm text-muted-foreground">
+                  Get notified when new opportunities match your saved search criteria
+                </p>
+              </div>
+            </div>
+            <SavedSearchesList
+              savedSearches={savedSearches}
+              isLoading={isLoadingSavedSearches}
+              onUpdate={updateSearch}
+              onDelete={deleteSearch}
+              onRunSearch={(params) => {
+                setTab("search");
+                handleSearch(params);
+              }}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
       <OpportunityDetailModal
@@ -306,6 +354,15 @@ export default function Opportunities() {
         onSave={saveOpportunity}
         isSaved={selectedOpportunity ? savedIds.has(selectedOpportunity.external_id) : false}
       />
+
+      {lastSearchParams && (
+        <SaveSearchModal
+          open={showSaveSearchModal}
+          onOpenChange={setShowSaveSearchModal}
+          searchParams={lastSearchParams}
+          onSave={saveSearch}
+        />
+      )}
 
       <PlanComparisonModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} highlightPlan="business" />
     </>

@@ -2164,6 +2164,53 @@ export type Database = {
           },
         ]
       }
+      saved_searches: {
+        Row: {
+          alert_frequency: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_alert_sent: string | null
+          name: string
+          organization_id: string
+          search_params: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_frequency?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alert_sent?: string | null
+          name: string
+          organization_id: string
+          search_params?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_frequency?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alert_sent?: string | null
+          name?: string
+          organization_id?: string
+          search_params?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_searches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           created_at: string | null

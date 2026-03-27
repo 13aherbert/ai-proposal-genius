@@ -146,7 +146,22 @@ export default function Opportunities() {
             </div>
           )}
 
-          <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
+            </div>
+            {lastSearchParams && searchState === "success" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => setShowSaveSearchModal(true)}
+              >
+                <Bell className="h-4 w-4 mr-1" />
+                Save Search
+              </Button>
+            )}
+          </div>
 
           <SearchProgressIndicator isSearching={isSearching} providers={searchingProviders} />
 

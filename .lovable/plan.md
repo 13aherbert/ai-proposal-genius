@@ -1,43 +1,35 @@
 
 
-## Root Cause: Grants.gov Returns 0 Results With Empty Keyword
+## Integrate Apify CaleProcure Scraper for California RFPs
 
-### What is happening
+### How it works
 
-From the edge function logs:
-```
-[Grants.gov] Request: keyword="", rows=25, agency=""
-[Grants.gov] Results: 0, total: 0
-```
+The Apify scraper (`fortuitous_pirate/caleprocure-scraper`) is a hosted actor that scrapes the CaleProcure website. Your edge function will call the Apify API to run the actor, wait for results, then normalize them into the existing opportunity format.
 
-The Grants.gov `search2` API treats an empty `keyword` as "match nothing." Unlike SAM.gov which supports browsing by date range alone, Grants.gov **requires a keyword or other filter** (like `agencies`, `fundingCategories`, `aln`) to return results.
+### What I need from you
 
-When the user selects "Grants.gov" as source and hits Search with no keyword and no other filters, the edge function sends `{"keyword": "", "rows": 25, "oppStatuses": "forecasted|posted"}` — and Grants.gov returns 0 hits.
+1. **Apify API Token** -- You need an Apify account with an API token. Get it from [Apify Console → Settings → Integrations](https://console.apify.com/account/integrations). I will securely store it as `APIFY_API_TOKEN` in your Supabase edge function secrets.
 
-### Fix
+2. **Billing awareness** -- The scraper costs ~$0.002 per result ($2 per 1,000 results). Each search your users run will trigger an Apify actor run. With a default limit of 25 results per page, that's ~$0.05 per search.
 
-**File: `supabase/functions/search-opportunities/index.ts`** — `fetchGrantsGov` function
+That's it. No other keys or accounts are needed.
 
-1. When `keyword` is empty and no `agency` filter is set, use a wildcard keyword `"*"` instead of `""`. The Grants.gov API accepts `"*"` as a browse-all query.
-2. If `"*"` doesn't work (some versions reject it), fall back to using a space `" "` or the word `"grants"` as a catch-all.
-3. Add a log line so we can see which keyword was actually sent.
+### What I will build
 
-The change is a single line in `fetchGrantsGov`:
+**Replace the current `fetchCalifornia` function** in `supabase/functions/search-opportunities/index.ts`:
 
-```typescript
-// Before
-const body = { keyword: safeKeyword || "", ... };
+1. Call Apify's REST API to start a synchronous actor run:
+   - `POST https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items`
+   - Pass input: `keyword`, `startDate`/`endDate` (mm/dd/yyyy format), `departments`, `status: "Open"`, `limit: 25`
+   - Use `APIFY_API_TOKEN` as the `?token=` query param
 
-// After  
-const effectiveKeyword = safeKeyword || "*";
-const body = { keyword: effectiveKeyword, ... };
-```
+2. Normalize the Apify output (fields like `eventId`, `eventName`, `department`, `endDate`, `type`, `status`) to the existing `NormalizedOpportunity` interface
 
-Additionally, the Grants.gov response uses `data.hitCount` for total count (not `data.totalCount`), so we should also check that field to ensure accurate totals.
+3. Keep the existing 15s timeout and provider status tracking
+
+4. Remove the current `CALIFORNIA_API_KEY` dependency since Apify replaces the direct CaleProcure API
 
 ### Files to update
-- `supabase/functions/search-opportunities/index.ts` (fetchGrantsGov function, ~3 lines)
-
-### Expected result
-Selecting "Grants.gov" source with no keyword will return posted/forecasted grant opportunities instead of 0 results.
+- `supabase/functions/search-opportunities/index.ts` -- replace `fetchCalifornia` internals
+- No frontend changes needed -- California is already in the source dropdown
 

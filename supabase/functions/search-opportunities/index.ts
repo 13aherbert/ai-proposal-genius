@@ -188,14 +188,18 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  const effectiveKeyword = safeKeyword || "*";
-
   const body: Record<string, unknown> = {
-    keyword: effectiveKeyword,
     rows,
     oppStatuses: "forecasted|posted",
-    sortBy: "relevance",
   };
+
+  // Only include keyword if non-empty; Grants.gov treats "*" as literal and returns 0
+  if (safeKeyword) {
+    body.keyword = safeKeyword;
+    body.sortBy = "relevance";
+  } else {
+    body.sortBy = "openDate|desc";
+  }
 
   if (params.agency) body.agencies = String(params.agency).slice(0, 100);
 

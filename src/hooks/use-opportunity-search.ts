@@ -161,11 +161,15 @@ export function useOpportunitySearch() {
       const someTimedOut = statuses.some(s => s.status === "timeout");
       const someErrored = statuses.some(s => s.status === "api_error");
       const someInvalidKey = statuses.some(s => s.status === "invalid_api_key");
+      const someBillingError = statuses.some(s => s.status === "billing_error");
 
       if (opportunities.length > 0) {
         setSearchState("success");
         if (someTimedOut) {
           toast.warning(`${statuses.filter(s => s.status === "timeout").map(s => s.provider).join(", ")} timed out. Showing partial results.`);
+        }
+        if (someBillingError) {
+          toast.warning(`${statuses.filter(s => s.status === "billing_error").map(s => s.provider).join(", ")} temporarily unavailable (scraper quota exceeded). Showing partial results.`);
         }
       } else if (someInvalidKey) {
         setSearchState("error");
@@ -173,6 +177,9 @@ export function useOpportunitySearch() {
       } else if (allTimedOut) {
         setSearchState("timed_out");
         toast.error("Search providers timed out. Try again or narrow your search.");
+      } else if (someBillingError && !someErrored) {
+        setSearchState("error");
+        toast.error(`${statuses.filter(s => s.status === "billing_error").map(s => s.provider).join(", ")} temporarily unavailable (scraper quota exceeded).`);
       } else if (someErrored && !opportunities.length) {
         setSearchState("error");
         toast.warning(`${statuses.filter(s => s.status === "api_error").map(s => s.provider).join(", ")} returned an error. Please try again.`);

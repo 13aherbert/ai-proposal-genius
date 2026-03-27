@@ -203,7 +203,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
   if (params.agency) body.agencies = String(params.agency).slice(0, 100);
 
-  console.log(`[Grants.gov] Request: keyword="${effectiveKeyword}" (original="${safeKeyword}"), rows=${rows}, agency="${params.agency || ""}"`);
+  console.log(`[Grants.gov] Request: keyword="${safeKeyword || "(browse all)"}", rows=${rows}, agency="${params.agency || ""}"`);
 
   try {
     const res = await fetchWithTimeout("https://api.grants.gov/v1/api/search2", {

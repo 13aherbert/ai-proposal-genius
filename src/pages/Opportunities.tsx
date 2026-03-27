@@ -9,6 +9,7 @@ import { OpportunityCard } from "@/components/opportunities/OpportunityCard";
 import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDetailModal";
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
 import { OpportunityPreviewMode } from "@/components/opportunities/OpportunityPreviewMode";
+import { SearchProgressIndicator } from "@/components/opportunities/SearchProgressIndicator";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { useSearchUsage } from "@/hooks/use-search-usage";
@@ -35,6 +36,7 @@ export default function Opportunities() {
     updateStatus,
     updateNotes,
     deleteOpportunity,
+    searchingProviders,
   } = useOpportunitySearch();
 
   const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, refetch: refetchUsage } = useSearchUsage();
@@ -135,6 +137,8 @@ export default function Opportunities() {
           )}
 
           <OpportunitySearchForm onSearch={handleSearch} isSearching={isSearching} />
+
+          <SearchProgressIndicator isSearching={isSearching} providers={searchingProviders} />
 
           {results.length > 0 && (
             <p className="text-sm text-muted-foreground">

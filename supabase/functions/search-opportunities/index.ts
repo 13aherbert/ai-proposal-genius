@@ -387,7 +387,12 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   const titleLower = (opp.title || "").toLowerCase();
   const deptLower = (opp.department || "").toLowerCase();
   const solNumLower = (opp.solicitation_number || "").toLowerCase();
-  const descLower = (typeof (opp.raw_data as any)?.description === "string" ? (opp.raw_data as any).description : "").toLowerCase();
+  // Gather all useful text from raw_data for broader matching
+  const rawDataStr = Object.values(opp.raw_data || {})
+    .filter(v => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  const descLower = rawDataStr;
 
   let score = 0;
   if (titleLower.includes(phrase)) score += 100;
@@ -414,10 +419,17 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
 
 function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): NormalizedOpportunity[] {
   if (!keyword || !keyword.trim()) return opps;
-  // SAM.gov already performs server-side keyword matching, so all returned results are relevant.
-  // We sort by local relevance score but keep everything — no filtering out zero-score results.
-  return opps
-    .map(opp => ({ opp, score: scoreRelevance(opp, keyword) }))
+
+  const scored = opps.map(opp => ({ opp, score: scoreRelevance(opp, keyword) }));
+
+  // When a keyword is active, filter out zero-relevance results.
+  // SAM.gov does server-side matching but can still return loosely related items;
+  // Grants.gov and California results need strict local gating.
+  const filtered = scored.filter(({ score }) => score > 0);
+
+  console.log(`[Relevance] keyword="${keyword}": ${opps.length} in → ${filtered.length} after relevance gate (removed ${opps.length - filtered.length} zero-score)`);
+
+  return filtered
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       const dateA = a.opp.posted_date || "";

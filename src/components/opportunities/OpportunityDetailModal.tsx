@@ -28,7 +28,6 @@ import {
   Info,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import { toast } from "sonner";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 import {
@@ -44,6 +43,7 @@ interface OpportunityDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (opportunity: Opportunity) => void;
+  onDraftProposal: (opportunity: Opportunity) => void;
   isSaved?: boolean;
 }
 
@@ -157,9 +157,9 @@ export function OpportunityDetailModal({
   open,
   onOpenChange,
   onSave,
+  onDraftProposal,
   isSaved,
 }: OpportunityDetailModalProps) {
-  const { draftProposal, isDrafting } = useDraftProposal();
   
   const handleExportPdf = useCallback(() => {
     if (!opportunity) return;
@@ -414,15 +414,17 @@ export function OpportunityDetailModal({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => draftProposal(opportunity, () => onOpenChange(false))}
-              disabled={isDrafting}
+              onClick={() => {
+                onOpenChange(false);
+                onDraftProposal(opportunity);
+              }}
             >
-              {isDrafting ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-1.5 h-4 w-4" />
-              )}
-              {isDrafting ? "Fetching..." : "Draft Proposal"}
+              <FileText className="mr-1.5 h-4 w-4" />
+              {opportunity.resource_links && opportunity.resource_links.length > 0
+                ? `Draft Proposal (${opportunity.resource_links.length} docs)`
+                : opportunity.description_text_url
+                  ? "Draft Proposal"
+                  : "Start Proposal"}
             </Button>
 
             <Button variant="outline" size="sm" onClick={handleExportPdf}>

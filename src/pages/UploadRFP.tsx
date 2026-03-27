@@ -4,7 +4,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback, memo, useEffect, useRef } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
+import { UrlInput } from "@/components/rfp/UrlInput";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
@@ -54,6 +56,7 @@ const UploadRFP = () => {
     isRefreshing,
     setProjectTitle,
     handleFileUpload,
+    handleUrlUpload,
     updateProject,
     fetchProjectCount
   } = useRFPUpload();
@@ -141,6 +144,10 @@ const UploadRFP = () => {
       await handleFileUpload(file, deadline);
     }
   }, [handleFileUpload, deadline]);
+
+  const handleUrlSubmit = useCallback(async (url: string) => {
+    await handleUrlUpload(url, deadline);
+  }, [handleUrlUpload, deadline]);
 
   const handleUpdateProject = useCallback(() => {
     updateProject(projectTitle, deadline, clientName, businessName);
@@ -241,16 +248,28 @@ const UploadRFP = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <MemoizedUploadDropzone
-                onDrop={handleDrop}
-                isUploading={isUploading}
-                uploadProgress={uploadProgress}
-                disabled={hasReachedLimit}
-              />
-              
-              
-            </div>
+            <Tabs defaultValue="upload" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload">Upload File</TabsTrigger>
+                <TabsTrigger value="url">Paste URL</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload">
+                <MemoizedUploadDropzone
+                  onDrop={handleDrop}
+                  isUploading={isUploading}
+                  uploadProgress={uploadProgress}
+                  disabled={hasReachedLimit}
+                />
+              </TabsContent>
+              <TabsContent value="url">
+                <UrlInput
+                  onSubmit={handleUrlSubmit}
+                  isProcessing={isUploading}
+                  uploadProgress={uploadProgress}
+                  disabled={hasReachedLimit}
+                />
+              </TabsContent>
+            </Tabs>
             
             <div className="flex flex-col gap-6">
               <ProjectForm

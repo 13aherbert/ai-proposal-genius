@@ -73,6 +73,7 @@ export function useOpportunitySearch() {
   const [searchState, setSearchState] = useState<SearchState>("idle");
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [searchingProviders, setSearchingProviders] = useState<string[]>([]);
 
   const search = useCallback(async (params: SearchParams) => {
     if (!session?.access_token) {

@@ -1,35 +1,55 @@
 
 
-## Integrate Apify CaleProcure Scraper for California RFPs
+## Fix: California Keyword Relevance + Search Progress Feedback
 
-### How it works
+### Problem 1: California returns irrelevant results
 
-The Apify scraper (`fortuitous_pirate/caleprocure-scraper`) is a hosted actor that scrapes the CaleProcure website. Your edge function will call the Apify API to run the actor, wait for results, then normalize them into the existing opportunity format.
+The Apify CaleProcure scraper **does not support keyword filtering**. The logs prove it — searching "Video" returned "HVAC Replacement", "WEAPONS FIRING RANGE", etc. The scraper's `keyword` input is either ignored or doesn't work as expected. It simply returns all open opportunities.
 
-### What I need from you
+**Fix**: After receiving results from the Apify scraper, apply keyword filtering in the edge function before returning results. Use the existing `scoreRelevance` function and filter out zero-score results for California specifically (since SAM.gov/Grants.gov handle keyword filtering server-side, but the scraper does not).
 
-1. **Apify API Token** -- You need an Apify account with an API token. Get it from [Apify Console → Settings → Integrations](https://console.apify.com/account/integrations). I will securely store it as `APIFY_API_TOKEN` in your Supabase edge function secrets.
+In `fetchCalifornia`, after normalizing items, filter by keyword:
+```typescript
+// Filter California results by keyword since the scraper doesn't support it
+if (safeKeyword) {
+  const keywords = safeKeyword.toLowerCase().split(/\s+/);
+  opportunities = opportunities.filter(opp => {
+    const text = `${opp.title} ${opp.department} ${opp.solicitation_number}`.toLowerCase();
+    return keywords.some(w => text.includes(w));
+  });
+}
+```
 
-2. **Billing awareness** -- The scraper costs ~$0.002 per result ($2 per 1,000 results). Each search your users run will trigger an Apify actor run. With a default limit of 25 results per page, that's ~$0.05 per search.
+Also set `totalRecords` to filtered count, not raw item count.
 
-That's it. No other keys or accounts are needed.
+### Problem 2: No progress indication during long searches
 
-### What I will build
+California searches take ~28s via Apify. The UI shows a generic spinner with no feedback about what's happening. Users can't tell if it's working or stuck.
 
-**Replace the current `fetchCalifornia` function** in `supabase/functions/search-opportunities/index.ts`:
+**Fix**: Add a progress/status display during search that shows:
+- Which providers are being queried
+- Elapsed time
+- An animated message like "Searching California eProcure... (scraper may take 20-30s)"
 
-1. Call Apify's REST API to start a synchronous actor run:
-   - `POST https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items`
-   - Pass input: `keyword`, `startDate`/`endDate` (mm/dd/yyyy format), `departments`, `status: "Open"`, `limit: 25`
-   - Use `APIFY_API_TOKEN` as the `?token=` query param
+Changes:
+1. **`src/hooks/use-opportunity-search.ts`**: Add `searchElapsed` state (updated every second during search) and `searchingProviders` state (list of provider names being queried, derived from the `source` param).
 
-2. Normalize the Apify output (fields like `eventId`, `eventName`, `department`, `endDate`, `type`, `status`) to the existing `NormalizedOpportunity` interface
+2. **`src/pages/Opportunities.tsx`**: Show a search progress panel when `isSearching` is true:
+   - Provider badges showing which sources are being queried
+   - Elapsed time counter
+   - California-specific warning about scraper taking 20-30s
+   - Progress bar (estimated: SAM ~2s, Grants ~2s, California ~25s)
 
-3. Keep the existing 15s timeout and provider status tracking
-
-4. Remove the current `CALIFORNIA_API_KEY` dependency since Apify replaces the direct CaleProcure API
+3. **`src/components/opportunities/SearchProgressIndicator.tsx`** (new): A small component showing:
+   ```
+   ⏳ Searching...  [SAM.gov] [Grants.gov] [California eProcure ⚠️ ~25s]
+   Elapsed: 12s
+   ━━━━━━━━━━━━░░░░░░░░ (progress bar)
+   ```
 
 ### Files to update
-- `supabase/functions/search-opportunities/index.ts` -- replace `fetchCalifornia` internals
-- No frontend changes needed -- California is already in the source dropdown
+- `supabase/functions/search-opportunities/index.ts` — keyword filter in `fetchCalifornia`
+- `src/components/opportunities/SearchProgressIndicator.tsx` — new component
+- `src/hooks/use-opportunity-search.ts` — add elapsed timer + provider list state
+- `src/pages/Opportunities.tsx` — render progress indicator during search
 

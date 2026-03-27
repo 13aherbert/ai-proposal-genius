@@ -306,6 +306,56 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
     if (parts.length === 3) actorInput.endDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
   }
 
+  const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
+  console.log(`[California] Apify request: keyword="${safeKeyword || "(browse all)"}", limit=${rows}, input=`, JSON.stringify(actorInput));
+
+  try {
+    const res = await fetchWithTimeout(apifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actorInput),
+    }, 45000);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[California] Apify HTTP ${res.status} in ${elapsed}ms`);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[California] Apify error: ${errText.slice(0, 500)}`);
+      const isAuthError = res.status === 401 || res.status === 403;
+      return {
+        opportunities: [],
+        totalRecords: 0,
+        status: {
+          provider: "California eProcure",
+          status: isAuthError ? "invalid_api_key" : "api_error",
+          count: 0,
+          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
+          responseTimeMs: elapsed,
+        },
+      };
+    }
+
+    const items: any[] = await res.json();
+    console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
+
+    const opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+      external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
+      source: "california_eprocure",
+      title: opp.eventName || opp.title || "",
+      solicitation_number: String(opp.eventId || opp.solicitationNumber || ""),
+      department: opp.department || opp.agency || "",
+      naics_code: opp.naicsCode || "",
+      posted_date: opp.startDate || opp.publishDate || null,
+      response_deadline: opp.endDate || opp.closeDate || null,
+      set_aside: opp.type || opp.setAside || "",
+      description_url: opp.url || (opp.eventId ? `https://caleprocure.ca.gov/event/${opp.eventId}/0` : "https://caleprocure.ca.gov"),
+      type: opp.type || "contract",
+      raw_data: opp,
+      resource_links: [],
+      description_text_url: null,
+    }));
+
     return {
       opportunities,
       totalRecords: opportunities.length,

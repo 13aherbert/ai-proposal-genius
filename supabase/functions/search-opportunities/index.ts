@@ -275,13 +275,26 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  // Build Apify actor input
+  // Build Apify actor input — the scraper supports native keyword filtering
   const actorInput: Record<string, unknown> = {
+    dataType: "bids",
     status: "Open",
     limit: rows,
   };
   if (safeKeyword) actorInput.keyword = safeKeyword;
-  if (params.agency) actorInput.departments = String(params.agency).slice(0, 100);
+  if (params.agency) actorInput.departments = [String(params.agency).slice(0, 100)];
+
+  // Map set-aside to certificationTypes
+  if (params.setAside) {
+    const setAsideMap: Record<string, string> = {
+      "SBA": "Small Business",
+      "SBP": "Small Business",
+      "SDVOSBC": "DVBE",
+      "WOSB": "Small Business",
+    };
+    const certType = setAsideMap[params.setAside];
+    if (certType) actorInput.certificationTypes = [certType];
+  }
   
   // Convert date filters to mm/dd/yyyy format expected by the scraper
   if (params.postedFrom) {
@@ -294,14 +307,14 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   }
 
   const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
-  console.log(`[California] Apify request: keyword="${safeKeyword || "(browse all)"}", limit=${rows}, agency="${params.agency || ""}"`)
+  console.log(`[California] Apify request: keyword="${safeKeyword || "(browse all)"}", limit=${rows}, input=`, JSON.stringify(actorInput));
 
   try {
     const res = await fetchWithTimeout(apifyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(actorInput),
-    }, 45000); // Apify actor runs can take longer than direct APIs
+    }, 45000);
 
     const elapsed = Date.now() - startTime;
     console.log(`[California] Apify HTTP ${res.status} in ${elapsed}ms`);
@@ -326,7 +339,7 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
     const items: any[] = await res.json();
     console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
 
-    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+    const opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
       external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
       source: "california_eprocure",
       title: opp.eventName || opp.title || "",
@@ -342,16 +355,6 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
       resource_links: [],
       description_text_url: null,
     }));
-
-    // Filter by keyword client-side since the scraper doesn't support keyword filtering
-    if (safeKeyword) {
-      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
-      opportunities = opportunities.filter(opp => {
-        const text = `${opp.title} ${opp.department} ${opp.solicitation_number}`.toLowerCase();
-        return keywords.some(w => text.includes(w));
-      });
-      console.log(`[California] After keyword filter "${safeKeyword}": ${opportunities.length} of ${items.length} items`);
-    }
 
     return {
       opportunities,

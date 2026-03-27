@@ -90,8 +90,8 @@ export function useOpportunitySearch() {
     // Derive which providers will be queried
     const source = params.source || "all";
     const providers: string[] = [];
-    if (source === "all" || source === "sam.gov") providers.push("SAM.gov");
-    if (source === "all" || source === "grants.gov") providers.push("Grants.gov");
+    if (source === "all" || source === "sam_gov") providers.push("SAM.gov");
+    if (source === "all" || source === "grants_gov") providers.push("Grants.gov");
     if (source === "all" || source === "california_eprocure") providers.push("California eProcure");
     setSearchingProviders(providers);
 
@@ -332,5 +332,6 @@ export function useOpportunitySearch() {
     updateStatus,
     updateNotes,
     deleteOpportunity,
+    searchingProviders,
   };
 }

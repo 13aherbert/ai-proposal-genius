@@ -736,7 +736,6 @@ Deno.serve(async (req) => {
     if (effectiveSource === "all" || effectiveSource === "texas_smartbuy") {
       fetchPromises.push(fetchTexas(body));
     }
-    }
 
     const results = await Promise.all(fetchPromises);
     

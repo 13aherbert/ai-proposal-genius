@@ -188,8 +188,10 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
+  const effectiveKeyword = safeKeyword || "*";
+
   const body: Record<string, unknown> = {
-    keyword: safeKeyword || "",
+    keyword: effectiveKeyword,
     rows,
     oppStatuses: "forecasted|posted",
     sortBy: "relevance",
@@ -197,7 +199,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
   if (params.agency) body.agencies = String(params.agency).slice(0, 100);
 
-  console.log(`[Grants.gov] Request: keyword="${safeKeyword}", rows=${rows}, agency="${params.agency || ""}"`);
+  console.log(`[Grants.gov] Request: keyword="${effectiveKeyword}" (original="${safeKeyword}"), rows=${rows}, agency="${params.agency || ""}"`);
 
   try {
     const res = await fetchWithTimeout("https://api.grants.gov/v1/api/search2", {
@@ -220,7 +222,7 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 
     const json = await res.json();
     const hits = json?.data?.oppHits || [];
-    const grantsTotal = json?.data?.totalCount || json?.data?.numberOfRecords || hits.length;
+    const grantsTotal = json?.data?.hitCount || json?.data?.totalCount || json?.data?.numberOfRecords || hits.length;
     console.log(`[Grants.gov] Results: ${hits.length}, total: ${grantsTotal} in ${elapsed}ms`);
 
     const opportunities: NormalizedOpportunity[] = hits.map((opp: any) => ({

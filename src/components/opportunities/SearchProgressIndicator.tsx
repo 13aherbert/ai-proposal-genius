@@ -13,6 +13,7 @@ const PROVIDER_ESTIMATES: Record<string, number> = {
   "Grants.gov": 3,
   "California eProcure": 30,
   "Texas SmartBuy": 8,
+  "New York State": 8,
 };
 
 export function SearchProgressIndicator({ isSearching, providers }: SearchProgressIndicatorProps) {

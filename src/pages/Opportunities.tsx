@@ -322,6 +322,29 @@ export default function Opportunities() {
             onDelete={deleteOpportunity}
           />
         </TabsContent>
+
+        <TabsContent value="alerts">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Saved Searches & Alerts</h2>
+                <p className="text-sm text-muted-foreground">
+                  Get notified when new opportunities match your saved search criteria
+                </p>
+              </div>
+            </div>
+            <SavedSearchesList
+              savedSearches={savedSearches}
+              isLoading={isLoadingSavedSearches}
+              onUpdate={updateSearch}
+              onDelete={deleteSearch}
+              onRunSearch={(params) => {
+                setTab("search");
+                handleSearch(params);
+              }}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
       <OpportunityDetailModal
@@ -331,6 +354,15 @@ export default function Opportunities() {
         onSave={saveOpportunity}
         isSaved={selectedOpportunity ? savedIds.has(selectedOpportunity.external_id) : false}
       />
+
+      {lastSearchParams && (
+        <SaveSearchModal
+          open={showSaveSearchModal}
+          onOpenChange={setShowSaveSearchModal}
+          searchParams={lastSearchParams}
+          onSave={saveSearch}
+        />
+      )}
 
       <PlanComparisonModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} highlightPlan="business" />
     </>

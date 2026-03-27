@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Search, Bookmark, AlertCircle, Clock, WifiOff } from "lucide-react";
+import { Search, Bookmark, AlertCircle, Clock, WifiOff, Bell } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { OpportunitySearchForm } from "@/components/opportunities/OpportunitySearchForm";
@@ -10,7 +10,10 @@ import { OpportunityDetailModal } from "@/components/opportunities/OpportunityDe
 import { SavedOpportunities } from "@/components/opportunities/SavedOpportunities";
 import { OpportunityPreviewMode } from "@/components/opportunities/OpportunityPreviewMode";
 import { SearchProgressIndicator } from "@/components/opportunities/SearchProgressIndicator";
+import { SaveSearchModal } from "@/components/opportunities/SaveSearchModal";
+import { SavedSearchesList } from "@/components/opportunities/SavedSearchesList";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
+import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { useSearchUsage } from "@/hooks/use-search-usage";
 import { PlanComparisonModal } from "@/components/subscription/PlanComparisonModal";
@@ -41,11 +44,14 @@ export default function Opportunities() {
 
   const { searchesUsed, searchesRemaining, isAtLimit, isUnlimited, refetch: refetchUsage } = useSearchUsage();
 
+  const { savedSearches, isLoading: isLoadingSavedSearches, saveSearch, updateSearch, deleteSearch } = useSavedSearches();
+
   const [tab, setTab] = useState("search");
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [lastSearchParams, setLastSearchParams] = useState<SearchParams | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {

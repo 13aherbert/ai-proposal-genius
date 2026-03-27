@@ -18,7 +18,8 @@ export interface SavedSearch {
 }
 
 export function useSavedSearches() {
-  const { user } = useAuth();
+  const { session } = useAuth();
+  const user = session?.user;
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

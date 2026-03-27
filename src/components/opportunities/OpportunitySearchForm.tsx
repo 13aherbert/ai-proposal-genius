@@ -34,6 +34,7 @@ const SOURCE_OPTIONS = [
   { value: "sam_gov", label: "SAM.gov" },
   { value: "grants_gov", label: "Grants.gov" },
   { value: "california_eprocure", label: "California eProcure" },
+  { value: "texas_smartbuy", label: "Texas SmartBuy" },
 ];
 
 const OPPORTUNITY_TYPE_OPTIONS = [

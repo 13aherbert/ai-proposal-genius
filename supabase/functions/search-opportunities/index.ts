@@ -392,6 +392,104 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   }
 }
 
+// ─── Texas SmartBuy via Apify State Procurement Data ────────────────
+async function fetchTexas(params: SearchBody, apifyToken: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+  const startTime = Date.now();
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const maxResults = safeKeyword ? 100 : Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+
+  const actorInput: Record<string, unknown> = {
+    states: ["TX", "TX_TCEQ", "TX_CONTRACTS"],
+    maxResults,
+  };
+  if (safeKeyword) actorInput.keyword = safeKeyword;
+
+  const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~state-procurement-data/run-sync-get-dataset-items?token=${apifyToken}`;
+  console.log(`[Texas] Apify request: keyword="${safeKeyword || "(browse all)"}", maxResults=${maxResults}, input=`, JSON.stringify(actorInput));
+
+  try {
+    const res = await fetchWithTimeout(apifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actorInput),
+    }, 45000);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[Texas] Apify HTTP ${res.status} in ${elapsed}ms`);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[Texas] Apify error: ${errText.slice(0, 500)}`);
+      const isAuthError = res.status === 401 || res.status === 403;
+      return {
+        opportunities: [],
+        totalRecords: 0,
+        status: {
+          provider: "Texas SmartBuy",
+          status: isAuthError ? "invalid_api_key" : "api_error",
+          count: 0,
+          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
+          responseTimeMs: elapsed,
+        },
+      };
+    }
+
+    const items: any[] = await res.json();
+    console.log(`[Texas] Apify returned ${items.length} raw items in ${elapsed}ms`);
+
+    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+      external_id: String(opp.id || opp.contract_number || opp.solicitation_number || opp.url || ""),
+      source: "texas_smartbuy",
+      title: opp.title || opp.description || "",
+      solicitation_number: String(opp.contract_number || opp.solicitation_number || ""),
+      department: opp.agency || opp.department || "",
+      naics_code: opp.nigp_code || opp.commodity_code || "",
+      posted_date: opp.start_date || opp.posted_date || opp.deadline || null,
+      response_deadline: opp.deadline || opp.end_date || null,
+      set_aside: opp.set_aside || opp.category || "",
+      description_url: opp.url || "https://www.txsmartbuy.com/esbd",
+      type: opp.type || opp.category || "contract",
+      raw_data: opp,
+      resource_links: [],
+      description_text_url: null,
+    }));
+
+    // Apply local keyword filtering as a safety net
+    if (safeKeyword) {
+      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+      const rawCount = opportunities.length;
+      opportunities = opportunities.filter(opp => {
+        const searchText = [
+          opp.title, opp.department, opp.solicitation_number,
+          ...extractStringValues(opp.raw_data),
+        ].join(" ").toLowerCase();
+        return keywords.some(w => searchText.includes(w));
+      });
+      console.log(`[Texas] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
+    }
+
+    return {
+      opportunities,
+      totalRecords: opportunities.length,
+      status: {
+        provider: "Texas SmartBuy",
+        status: opportunities.length > 0 ? "success" : "no_results",
+        count: opportunities.length,
+        message: `${items.length} fetched, ${opportunities.length} matched${safeKeyword ? ` for "${safeKeyword}"` : ""}`,
+        responseTimeMs: elapsed,
+      },
+    };
+  } catch (err: unknown) {
+    const elapsed = Date.now() - startTime;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.warn(`[Texas] Apify request timed out after ${elapsed}ms`);
+      return { opportunities: [], totalRecords: 0, status: { provider: "Texas SmartBuy", status: "timeout", count: 0, message: "Apify actor timed out", responseTimeMs: elapsed } };
+    }
+    console.error(`[Texas] Apify fetch error after ${elapsed}ms:`, err);
+    return { opportunities: [], totalRecords: 0, status: { provider: "Texas SmartBuy", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+  }
+}
+
 // ─── Helper: extract all string values from a nested object ─────────
 function extractStringValues(obj: unknown): string[] {
   const strings: string[] = [];
@@ -607,7 +705,7 @@ Deno.serve(async (req) => {
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
-    // California eProcure (via Apify scraper)
+    // Apify-based providers (California eProcure + Texas SmartBuy)
     const apifyToken = (Deno.env.get("APIFY_API_TOKEN") || "").trim();
     console.log(`[Search] Apify token configured: ${apifyToken.length > 0}`);
 
@@ -617,6 +715,15 @@ Deno.serve(async (req) => {
       } else {
         console.warn("[Search] APIFY_API_TOKEN not configured, skipping California eProcure");
         providerStatuses.push({ provider: "California eProcure", status: "skipped", count: 0, message: "Apify token not configured" });
+      }
+    }
+
+    if (effectiveSource === "all" || effectiveSource === "texas_smartbuy") {
+      if (apifyToken) {
+        fetchPromises.push(fetchTexas(body, apifyToken));
+      } else {
+        console.warn("[Search] APIFY_API_TOKEN not configured, skipping Texas SmartBuy");
+        providerStatuses.push({ provider: "Texas SmartBuy", status: "skipped", count: 0, message: "Apify token not configured" });
       }
     }
 

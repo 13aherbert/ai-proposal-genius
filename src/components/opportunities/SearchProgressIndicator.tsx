@@ -12,6 +12,7 @@ const PROVIDER_ESTIMATES: Record<string, number> = {
   "SAM.gov": 3,
   "Grants.gov": 3,
   "California eProcure": 30,
+  "Texas SmartBuy": 30,
 };
 
 export function SearchProgressIndicator({ isSearching, providers }: SearchProgressIndicatorProps) {
@@ -43,14 +44,18 @@ export function SearchProgressIndicator({ isSearching, providers }: SearchProgre
         {providers.map(p => (
           <Badge key={p} variant="secondary" className="text-xs">
             {p}
-            {p === "California eProcure" && <span className="ml-1 opacity-60">~25s</span>}
+            {(p === "California eProcure" || p === "Texas SmartBuy") && <span className="ml-1 opacity-60">~25s</span>}
           </Badge>
         ))}
       </div>
       <Progress value={progress} className="h-1.5" />
-      {hasCalifornia && elapsed > 5 && (
+      {(hasCalifornia || providers.includes("Texas SmartBuy")) && elapsed > 5 && (
         <p className="text-xs text-muted-foreground">
-          California eProcure uses a web scraper and typically takes 20-30 seconds
+          {hasCalifornia && providers.includes("Texas SmartBuy")
+            ? "California eProcure and Texas SmartBuy use web scrapers and typically take 20-30 seconds"
+            : hasCalifornia
+            ? "California eProcure uses a web scraper and typically takes 20-30 seconds"
+            : "Texas SmartBuy uses a web scraper and typically takes 20-30 seconds"}
         </p>
       )}
     </div>

@@ -196,6 +196,8 @@ Deno.serve(async (req) => {
       deadline,
       agency,
       source,
+      externalId,
+      autoAnalyze = false,
     } = body as {
       resourceLinks: string[];
       descriptionTextUrl?: string | null;
@@ -203,6 +205,8 @@ Deno.serve(async (req) => {
       deadline?: string | null;
       agency?: string | null;
       source?: string;
+      externalId?: string;
+      autoAnalyze?: boolean;
     };
 
     if (!title) {
@@ -308,7 +312,7 @@ Deno.serve(async (req) => {
               });
 
             if (!uploadError) {
-              uploadedFiles.push({ path: storagePath, name: filename, isPdf: false });
+              uploadedFiles.push({ path: storagePath, name: filename, isPdf: false, size: blob.size });
               primaryFilePath = storagePath;
               console.log(`[fetch-docs] Uploaded description text: ${storagePath}`);
             }
@@ -316,6 +320,37 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         console.error("[fetch-docs] Error fetching description:", err);
+      }
+    }
+
+    // State source fallback: create a context file from available metadata
+    if (uploadedFiles.length === 0 && source && ["california_eprocure", "texas_smartbuy", "new_york"].includes(source)) {
+      console.log(`[fetch-docs] State source (${source}) — creating context file from metadata`);
+      const contextLines = [
+        `Title: ${title}`,
+        `Source: ${source}`,
+        agency ? `Agency/Department: ${agency}` : "",
+        deadline ? `Response Deadline: ${deadline}` : "",
+        externalId ? `ID: ${externalId}` : "",
+        "",
+        "This project was created from an opportunity listing.",
+        "Please upload the full RFP/solicitation documents for analysis.",
+      ].filter(Boolean);
+
+      const contextText = contextLines.join("\n");
+      const filename = `opportunity_context_${Date.now()}.txt`;
+      const storagePath = `${orgId}/${userId}/${filename}`;
+      const blob = new Blob([contextText], { type: "text/plain" });
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("rfp-files")
+        .upload(storagePath, blob, { contentType: "text/plain", upsert: false });
+
+      if (!uploadError) {
+        uploadedFiles.push({ path: storagePath, name: filename, isPdf: false, size: blob.size });
+        primaryFilePath = storagePath;
+        console.log(`[fetch-docs] Created context file: ${storagePath}`);
+        warnings.push("No downloadable documents found. A context file was created — please upload the full RFP for analysis.");
       }
     }
 

@@ -273,15 +273,15 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
 async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
-  const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+  // When keyword is provided, fetch more results to have a larger pool for local filtering
+  const rows = safeKeyword ? 100 : Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  // Build Apify actor input — the scraper supports native keyword filtering
+  // Build Apify actor input — do NOT pass keyword (scraper's keyword param is unreliable)
   const actorInput: Record<string, unknown> = {
     dataType: "bids",
     status: "Open",
     limit: rows,
   };
-  if (safeKeyword) actorInput.keyword = safeKeyword;
   if (params.agency) actorInput.departments = [String(params.agency).slice(0, 100)];
 
   // Map set-aside to certificationTypes

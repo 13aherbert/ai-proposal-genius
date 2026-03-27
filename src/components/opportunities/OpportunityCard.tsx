@@ -2,7 +2,20 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Bookmark, Calendar, Building2, Hash, Eye, FileText, Loader2, Clock } from "lucide-react";
+import {
+  ExternalLink,
+  Bookmark,
+  Calendar,
+  Building2,
+  Hash,
+  Eye,
+  FileText,
+  Loader2,
+  Clock,
+  Zap,
+  Timer,
+  Shield,
+} from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
@@ -27,10 +40,21 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
-function getSourceLabel(source: string) {
+export function getSourceLabel(source: string) {
   switch (source) {
     case "sam_gov": return "SAM.gov";
     case "grants_gov": return "Grants.gov";
+    case "california_eprocure": return "California";
+    case "texas_smartbuy": return "Texas";
+    case "new_york": return "New York";
+    default: return source;
+  }
+}
+
+export function getSourceShortLabel(source: string) {
+  switch (source) {
+    case "sam_gov": return "SAM";
+    case "grants_gov": return "Grants";
     case "california_eprocure": return "CA";
     case "texas_smartbuy": return "TX";
     case "new_york": return "NY";
@@ -38,7 +62,7 @@ function getSourceLabel(source: string) {
   }
 }
 
-function getSourceFallbackUrl(source: string) {
+export function getSourceFallbackUrl(source: string) {
   switch (source) {
     case "sam_gov": return "https://sam.gov";
     case "grants_gov": return "https://www.grants.gov";
@@ -49,38 +73,48 @@ function getSourceFallbackUrl(source: string) {
   }
 }
 
-function getSourceColor(source: string) {
+export function getSourceColor(source: string) {
   switch (source) {
     case "sam_gov": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case "grants_gov": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
     case "california_eprocure": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-    case "texas_smartbuy": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+    case "texas_smartbuy": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
     case "new_york": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300";
     default: return "";
   }
 }
 
+export function getSourceIcon(source: string) {
+  switch (source) {
+    case "sam_gov": return "🇺🇸";
+    case "grants_gov": return "💰";
+    case "california_eprocure": return "🌴";
+    case "texas_smartbuy": return "⭐";
+    case "new_york": return "🗽";
+    default: return "📄";
+  }
+}
+
 /** Derive a notice type from SAM.gov ptype or general type field */
-function getNoticeType(opportunity: Opportunity): { label: string; color: string } | null {
+export function getNoticeType(opportunity: Opportunity): { label: string; color: string; icon?: string } | null {
   const raw = opportunity.raw_data || {};
   const ptype = (raw.type as string) || "";
   const typeField = (opportunity.type || "").toLowerCase();
 
-  // SAM.gov ptype codes
   if (ptype === "p" || typeField.includes("presolicitation") || typeField.includes("pre-solicitation")) {
-    return { label: "Coming Soon", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" };
+    return { label: "Early Access", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300", icon: "⏳" };
   }
   if (ptype === "r" || typeField.includes("sources sought")) {
     return { label: "Sources Sought", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" };
   }
   if (ptype === "a" || typeField.includes("award")) {
-    return { label: "Awarded", color: "bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400" };
+    return { label: "Awarded", color: "bg-muted text-muted-foreground" };
   }
   if (ptype === "k" || typeField.includes("combined")) {
-    return { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" };
+    return { label: "Open", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" };
   }
   if (ptype === "o" || typeField.includes("solicitation")) {
-    return { label: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" };
+    return { label: "Open", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" };
   }
   if (ptype === "s" || typeField.includes("special notice")) {
     return { label: "Notice", color: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300" };
@@ -90,14 +124,13 @@ function getNoticeType(opportunity: Opportunity): { label: string; color: string
 }
 
 /** For pre-solicitations, estimate days until expected solicitation release */
-function getDaysUntilRelease(opportunity: Opportunity): number | null {
+export function getDaysUntilRelease(opportunity: Opportunity): number | null {
   const raw = opportunity.raw_data || {};
   const ptype = (raw.type as string) || "";
   const typeField = (opportunity.type || "").toLowerCase();
   const isPreSol = ptype === "p" || typeField.includes("presolicitation") || typeField.includes("pre-solicitation");
   if (!isPreSol) return null;
 
-  // Use response_deadline as estimated release, or fall back to 30 days from posted
   const deadline = opportunity.response_deadline;
   if (deadline) {
     try {
@@ -105,7 +138,6 @@ function getDaysUntilRelease(opportunity: Opportunity): number | null {
       return days > 0 ? days : null;
     } catch { return null; }
   }
-  // If no deadline, estimate ~30 days from posting
   if (opportunity.posted_date) {
     try {
       const days = differenceInDays(parseISO(opportunity.posted_date), new Date()) + 30;
@@ -115,36 +147,84 @@ function getDaysUntilRelease(opportunity: Opportunity): number | null {
   return null;
 }
 
+/** Get response time urgency badge */
+function getResponseTimeBadge(opportunity: Opportunity): { label: string; color: string; icon: React.ReactNode } | null {
+  const deadline = opportunity.response_deadline;
+  if (!deadline) return null;
+
+  try {
+    const days = differenceInDays(parseISO(deadline), new Date());
+    if (days < 0) return null; // Expired
+    if (days < 7) {
+      return {
+        label: `Rush: ${days}d left`,
+        color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        icon: <Zap className="h-3 w-3" />,
+      };
+    }
+    if (days <= 30) {
+      return {
+        label: `${days}d remaining`,
+        color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+        icon: <Timer className="h-3 w-3" />,
+      };
+    }
+    return {
+      label: `${days}d remaining`,
+      color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      icon: <Shield className="h-3 w-3" />,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }: OpportunityCardProps) {
   const { draftProposal, isDrafting } = useDraftProposal();
   const noticeType = getNoticeType(opportunity);
   const daysUntilRelease = getDaysUntilRelease(opportunity);
+  const responseBadge = getResponseTimeBadge(opportunity);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow relative group">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+        {/* Source badge - top right corner */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+          <Badge className={`text-[10px] border-0 gap-1 ${getSourceColor(opportunity.source)}`}>
+            <span>{getSourceIcon(opportunity.source)}</span>
+            {getSourceShortLabel(opportunity.source)}
+          </Badge>
+        </div>
+
+        <div className="pr-20">
           <CardTitle className="text-base leading-snug line-clamp-2">
             {opportunity.title}
           </CardTitle>
-          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-            <Badge className={`text-[10px] border-0 ${getSourceColor(opportunity.source)}`}>
-              {getSourceLabel(opportunity.source)}
-            </Badge>
-            {noticeType && (
-              <Badge className={`text-[10px] border-0 ${noticeType.color}`}>
-                {noticeType.label}
-              </Badge>
-            )}
-            {!noticeType && opportunity.type && (
-              <Badge variant="secondary" className="text-xs">
-                {opportunity.type}
-              </Badge>
-            )}
-          </div>
         </div>
+
+        {/* Badge row: notice type + response time */}
+        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+          {noticeType && (
+            <Badge className={`text-[10px] border-0 gap-1 ${noticeType.color}`}>
+              {noticeType.icon && <span>{noticeType.icon}</span>}
+              {noticeType.label}
+            </Badge>
+          )}
+          {responseBadge && (
+            <Badge className={`text-[10px] border-0 gap-1 ${responseBadge.color}`}>
+              {responseBadge.icon}
+              {responseBadge.label}
+            </Badge>
+          )}
+          {!noticeType && opportunity.type && (
+            <Badge variant="secondary" className="text-[10px]">
+              {opportunity.type}
+            </Badge>
+          )}
+        </div>
+
         {opportunity.solicitation_number && (
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="text-xs text-muted-foreground font-mono mt-1">
             {opportunity.solicitation_number}
           </p>
         )}
@@ -153,13 +233,13 @@ export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }:
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
           {opportunity.department && (
             <span className="flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5" />
+              <Building2 className="h-3.5 w-3.5 shrink-0" />
               <span className="line-clamp-1">{opportunity.department}</span>
             </span>
           )}
           {opportunity.naics_code && (
             <span className="flex items-center gap-1">
-              <Hash className="h-3.5 w-3.5" />
+              <Hash className="h-3.5 w-3.5 shrink-0" />
               {opportunity.naics_code}
             </span>
           )}

@@ -12,6 +12,7 @@ import { OpportunityPreviewMode } from "@/components/opportunities/OpportunityPr
 import { SearchProgressIndicator } from "@/components/opportunities/SearchProgressIndicator";
 import { SaveSearchModal } from "@/components/opportunities/SaveSearchModal";
 import { SavedSearchesList } from "@/components/opportunities/SavedSearchesList";
+import { DraftProposalDialog } from "@/components/opportunities/DraftProposalDialog";
 import { useOpportunitySearch } from "@/hooks/use-opportunity-search";
 import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
@@ -178,6 +179,7 @@ export default function Opportunities() {
                 opportunity={opp}
                 onSave={saveOpportunity}
                 onViewDetails={setSelectedOpportunity}
+                onDraftProposal={setDraftOpportunity}
                 isSaved={savedIds.has(opp.external_id)}
               />
             ))}
@@ -320,6 +322,7 @@ export default function Opportunities() {
             onUpdateStatus={updateStatus}
             onUpdateNotes={updateNotes}
             onDelete={deleteOpportunity}
+            onDraftProposal={setDraftOpportunity}
           />
         </TabsContent>
 
@@ -352,7 +355,14 @@ export default function Opportunities() {
         open={!!selectedOpportunity}
         onOpenChange={(open) => !open && setSelectedOpportunity(null)}
         onSave={saveOpportunity}
+        onDraftProposal={setDraftOpportunity}
         isSaved={selectedOpportunity ? savedIds.has(selectedOpportunity.external_id) : false}
+      />
+
+      <DraftProposalDialog
+        opportunity={draftOpportunity}
+        open={!!draftOpportunity}
+        onOpenChange={(open) => !open && setDraftOpportunity(null)}
       />
 
       {lastSearchParams && (

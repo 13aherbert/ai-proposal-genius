@@ -1,53 +1,31 @@
 
 
-## Diagnosis: California eProcure Keyword Search Returns 0 Results
+## Texas SmartBuy Search — Apify Credits Exhausted
 
-### Root cause
+### Problem
+Every Texas search returns HTTP 402 from Apify. The free tier credits are depleted. California searches will likely hit the same issue soon.
 
-The Apify CaleProcure scraper's `keyword` parameter **does not work reliably**. Evidence:
+### Options
 
-- Searching with `keyword: "Hvac"` → Apify HTTP 201, **0 items** returned
-- Searching with `keyword: "Video"` → Apify HTTP 201, **0 items** returned
-- Previous searches WITHOUT a keyword → scraper returned **25 items** (but irrelevant ones)
+**Option A: Upgrade Apify plan**
+- Add credits or upgrade to a paid Apify plan at https://console.apify.com/billing/subscription
+- No code changes needed — Texas and California will resume working immediately
 
-The scraper has **0 monthly active users**, **0.0 rating**, and only 4 total users. Its keyword filtering is either broken or uses an incompatible search mechanism on the CaleProcure site.
+**Option B: Graceful degradation in the UI (code change)**
+- Detect HTTP 402 specifically in `fetchTexas` and `fetchCalifornia`
+- Return a new provider status like `"billing_error"` instead of generic `"api_error"`
+- Show a user-friendly message: "Texas SmartBuy is temporarily unavailable (scraper quota exceeded)" instead of "returned an error. Please try again."
+- When searching "All Sources", skip failed scraper providers silently so SAM.gov and Grants.gov results still appear without confusion
 
-### Fix
+**Option C: Replace Apify with direct data sources**
+- Texas publishes procurement data via Socrata open data portals (data.texas.gov) which have free, unlimited API access
+- Replace the Apify actor call with direct Socrata API queries — no account or credits needed
+- This eliminates the Apify dependency and cost for Texas entirely
 
-Stop relying on the scraper's native `keyword` parameter. Instead:
+### Recommendation
+Option A (add Apify credits) for immediate fix. Option C (direct Socrata API) for long-term reliability — it removes the paid dependency entirely. Option B regardless, so the UI handles quota errors gracefully.
 
-1. **Always omit `keyword` from the Apify actor input** — let the scraper return all open bids
-2. **Apply keyword filtering locally** in the edge function after receiving results, matching against `title`, `department`, `eventName`, and all string fields in `raw_data`
-3. **Request more results** from the scraper (e.g. `limit: 100`) so we have a larger pool to filter from when keywords are provided
-
-### Changes in `supabase/functions/search-opportunities/index.ts`
-
-In `fetchCalifornia`:
-- Remove `if (safeKeyword) actorInput.keyword = safeKeyword;` (line 284)
-- Increase scraper limit to 100 when keyword is provided (to get a bigger pool for filtering)
-- After normalizing items, apply local keyword filtering:
-
-```text
-if (safeKeyword) {
-  const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
-  opportunities = opportunities.filter(opp => {
-    const searchText = [
-      opp.title, opp.department, opp.solicitation_number,
-      ...extractStringValues(opp.raw_data)
-    ].join(" ").toLowerCase();
-    return keywords.some(w => searchText.includes(w));
-  });
-}
-```
-
-- Update `totalRecords` to the filtered count
-- Log both raw and filtered counts for debugging
-
-### Expected result
-- Scraper returns all open CA bids (~25-100 items)
-- Local filtering keeps only HVAC-relevant results
-- Users see relevant California opportunities for keyword searches
-
-### File to update
-- `supabase/functions/search-opportunities/index.ts` — `fetchCalifornia` function (~lines 278-370)
+### Files to update (for Options B + C)
+- `supabase/functions/search-opportunities/index.ts` — update `fetchTexas` error handling + optionally replace with Socrata API
+- No frontend changes needed unless adding the `billing_error` status to the UI
 

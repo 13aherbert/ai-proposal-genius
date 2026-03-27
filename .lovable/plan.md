@@ -1,38 +1,53 @@
 
 
-## Fix: Data Sources Filters Not Clickable
+## Add URL-Based RFP Input
 
-### Root cause
+### Problem
+Some RFPs exist only as web pages with no downloadable documents. Users currently have no way to use a URL as the RFP source.
 
-`SourceSelectionContent` (line 223) is defined as a **component function inside the render body**:
-```tsx
-const SourceSelectionContent = () => (
-  <div className="space-y-3">
-    ...checkboxes, collapsibles, switch...
-  </div>
-);
-```
+### Approach
+Add a tab-based input switcher on the Upload RFP page: "Upload File" (existing) and "Paste URL" (new). When a URL is submitted, a new edge function scrapes the page content using Firecrawl, converts it to a text/markdown file, uploads it to Supabase Storage, and creates the project — identical to the file upload path from that point forward.
 
-React sees a new component identity on every render cycle. Each time any state changes (e.g., clicking a checkbox calls `toggleSource` → `setSelectedSources` → re-render), React **unmounts and remounts** `SourceSelectionContent` entirely. This destroys focus, kills click handlers mid-execution, and resets Collapsible open states — making checkboxes appear unclickable.
+### Prerequisites
+The workspace has a Firecrawl connection (`std_01kewyt9c0exhapy9v6va9tktn`) but it is **not linked** to this project. It needs to be connected first.
 
-### Fix
+### Changes
 
-Convert `SourceSelectionContent` from a component to a **JSX variable** (inline JSX assigned to a `const`). This keeps the same React element tree identity across renders, so checkboxes, collapsibles, and the switch all work correctly.
+#### 1. New component: `UrlInput.tsx`
+- Card with a URL text input, a "Fetch & Create Project" button, and progress states
+- Validates URL format client-side
+- Shows fetching progress: "Scraping page..." → "Creating project..." → "Done"
+- Same `disabled` prop as UploadDropzone for limit gating
 
-Change line 223 from:
-```tsx
-const SourceSelectionContent = () => (
-```
-to:
-```tsx
-const sourceSelectionContent = (
-```
+#### 2. Update `UploadRFP.tsx`
+- Add a Tabs component ("Upload File" | "Paste URL") wrapping the left column
+- "Upload File" tab renders existing `UploadDropzone`
+- "Paste URL" tab renders new `UrlInput`
+- `UrlInput` calls `handleUrlSubmit` which invokes the new edge function, then sets `projectId`/`rfpFilePath`/`projectTitle` the same way file upload does
 
-Then update the two usage sites (lines 322 and the mobile Sheet) from `<SourceSelectionContent />` to `{sourceSelectionContent}`.
+#### 3. Update `use-rfp-upload.ts`
+- Add `handleUrlUpload(url: string, deadline?: Date)` method
+- Calls `scrape-rfp-url` edge function
+- Sets same state (projectId, projectTitle, rfpFilePath, uploadProgress)
+- Returns same shape so automation can auto-start
 
-### File to update
-- `src/components/opportunities/OpportunitySearchForm.tsx` — 3 small edits (line 223, and 2 usage sites)
+#### 4. New edge function: `scrape-rfp-url`
+- Accepts `{ url, userId, organizationId, deadline?, title? }`
+- Uses Firecrawl API (`FIRECRAWL_API_KEY`) to scrape the URL as markdown
+- Uploads the markdown content as a `.md` file to `rfp-files` storage bucket
+- Creates a project row with `rfp_file_path` pointing to the uploaded file
+- Returns `{ projectId, filePath, title, scrapedContent: { wordCount, title } }`
+- Handles errors: invalid URL, scrape failure, empty content
+
+#### 5. Connect Firecrawl
+- Link the existing Firecrawl connection to this project so the edge function has access to `FIRECRAWL_API_KEY`
+
+### Files to create/update
+- `src/components/rfp/UrlInput.tsx` — new component
+- `src/pages/UploadRFP.tsx` — add tabs, wire URL input
+- `src/hooks/use-rfp-upload.ts` — add `handleUrlUpload`
+- `supabase/functions/scrape-rfp-url/index.ts` — new edge function
 
 ### Expected result
-Checkboxes toggle immediately, collapsible sections stay open, and the pre-solicitation switch works on first click.
+Users can paste any URL, the system scrapes the page content, creates a project with the extracted text as the RFP source, and the existing auto-analysis pipeline kicks in automatically.
 

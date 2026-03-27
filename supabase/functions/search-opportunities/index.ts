@@ -269,6 +269,98 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
   }
 }
 
+// ─── California eProcure (CalSAAS) Provider ─────────────────────────
+async function fetchCalifornia(params: SearchBody, apiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+  const startTime = Date.now();
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+
+  const qp = new URLSearchParams();
+  if (safeKeyword) qp.set("keyword", safeKeyword);
+  if (params.postedFrom) qp.set("postedFrom", String(params.postedFrom).slice(0, 10));
+  if (params.postedTo) qp.set("postedTo", String(params.postedTo).slice(0, 10));
+  if (params.naicsCode) qp.set("naicsCode", String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6));
+  if (params.agency) qp.set("department", String(params.agency).slice(0, 100));
+  qp.set("limit", String(rows));
+
+  const logParams = new URLSearchParams(qp);
+  console.log(`[California] Endpoint: https://caleprocure.ca.gov/api/Opportunities`);
+  console.log(`[California] Params: ${logParams.toString()}`);
+
+  const requestUrl = `https://caleprocure.ca.gov/api/Opportunities?${qp.toString()}`;
+
+  try {
+    const res = await fetchWithTimeout(requestUrl, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }, 15000);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[California] HTTP ${res.status} in ${elapsed}ms`);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[California] Error body: ${errText.slice(0, 500)}`);
+      const isAuthError = res.status === 401 || res.status === 403;
+      return {
+        opportunities: [],
+        totalRecords: 0,
+        status: {
+          provider: "California eProcure",
+          status: isAuthError ? "invalid_api_key" : "api_error",
+          count: 0,
+          message: isAuthError ? "API key rejected" : `HTTP ${res.status}`,
+          responseTimeMs: elapsed,
+        },
+      };
+    }
+
+    const data = await res.json();
+    const rawOpps = Array.isArray(data) ? data : (data.opportunities || data.results || data.data || []);
+    const totalRecords = data.totalRecords || data.total || rawOpps.length;
+    console.log(`[California] Results: ${rawOpps.length}, totalRecords: ${totalRecords}, elapsed: ${elapsed}ms`);
+
+    const opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
+      external_id: opp.solicitationNumber || opp.id || "",
+      source: "california_eprocure",
+      title: opp.title || opp.name || "",
+      solicitation_number: opp.solicitationNumber || opp.bidNumber || "",
+      department: opp.department || opp.agency || opp.organizationName || "",
+      naics_code: opp.naicsCode || "",
+      posted_date: opp.postedDate || opp.publishDate || opp.openDate || null,
+      response_deadline: opp.responseDeadline || opp.closeDate || opp.dueDate || null,
+      set_aside: opp.setAside || opp.smallBusinessIndicator || opp.preference || "",
+      description_url: opp.link || opp.url || (opp.solicitationNumber ? `https://caleprocure.ca.gov/event/${opp.solicitationNumber}/0` : "https://caleprocure.ca.gov"),
+      type: opp.type || opp.opportunityType || "contract",
+      raw_data: opp,
+      resource_links: Array.isArray(opp.attachments) ? opp.attachments.map((a: any) => typeof a === "string" ? a : a?.url || "").filter(Boolean) : [],
+      description_text_url: null,
+    }));
+
+    return {
+      opportunities,
+      totalRecords,
+      status: {
+        provider: "California eProcure",
+        status: opportunities.length > 0 ? "success" : "no_results",
+        count: opportunities.length,
+        message: `${totalRecords} total records`,
+        responseTimeMs: elapsed,
+      },
+    };
+  } catch (err: unknown) {
+    const elapsed = Date.now() - startTime;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.warn(`[California] Request timed out after ${elapsed}ms`);
+      return { opportunities: [], totalRecords: 0, status: { provider: "California eProcure", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
+    }
+    console.error(`[California] Fetch error after ${elapsed}ms:`, err);
+    return { opportunities: [], totalRecords: 0, status: { provider: "California eProcure", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+  }
+}
+
 // ─── Relevance Scoring ──────────────────────────────────────────────
 function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   if (!keyword || !keyword.trim()) return 1;
@@ -458,6 +550,20 @@ Deno.serve(async (req) => {
       fetchPromises.push(fetchGrantsGov(body));
     } else if (sourceFilter === "all" && effectiveSource === "sam_gov") {
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
+    }
+
+    // California eProcure
+    const rawCalKey = Deno.env.get("CALIFORNIA_API_KEY") || "";
+    const calApiKey = rawCalKey.trim();
+    console.log(`[Search] California key configured: ${calApiKey.length > 0}`);
+
+    if (effectiveSource === "all" || effectiveSource === "california_eprocure") {
+      if (calApiKey) {
+        fetchPromises.push(fetchCalifornia(body, calApiKey));
+      } else {
+        console.warn("[Search] CALIFORNIA_API_KEY not configured, skipping California eProcure");
+        providerStatuses.push({ provider: "California eProcure", status: "skipped", count: 0, message: "API key not configured" });
+      }
     }
 
     const results = await Promise.all(fetchPromises);

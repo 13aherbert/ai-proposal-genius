@@ -73,6 +73,7 @@ export function useOpportunitySearch() {
   const [searchState, setSearchState] = useState<SearchState>("idle");
   const [savedOpportunities, setSavedOpportunities] = useState<SavedOpportunity[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [searchingProviders, setSearchingProviders] = useState<string[]>([]);
 
   const search = useCallback(async (params: SearchParams) => {
     if (!session?.access_token) {
@@ -85,6 +86,14 @@ export function useOpportunitySearch() {
     setIsSearching(true);
     setSearchState("loading");
     setProviderStatuses([]);
+
+    // Derive which providers will be queried
+    const source = params.source || "all";
+    const providers: string[] = [];
+    if (source === "all" || source === "sam.gov") providers.push("SAM.gov");
+    if (source === "all" || source === "grants.gov") providers.push("Grants.gov");
+    if (source === "all" || source === "california_eprocure") providers.push("California eProcure");
+    setSearchingProviders(providers);
 
     // Client-side safety timeout at 55s (edge function has its own internal timeouts)
     let didTimeout = false;

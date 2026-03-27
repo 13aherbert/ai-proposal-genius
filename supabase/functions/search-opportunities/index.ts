@@ -326,7 +326,7 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
     const items: any[] = await res.json();
     console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
 
-    const opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
       external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
       source: "california_eprocure",
       title: opp.eventName || opp.title || "",
@@ -343,9 +343,19 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
       description_text_url: null,
     }));
 
+    // Filter by keyword client-side since the scraper doesn't support keyword filtering
+    if (safeKeyword) {
+      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+      opportunities = opportunities.filter(opp => {
+        const text = `${opp.title} ${opp.department} ${opp.solicitation_number}`.toLowerCase();
+        return keywords.some(w => text.includes(w));
+      });
+      console.log(`[California] After keyword filter "${safeKeyword}": ${opportunities.length} of ${items.length} items`);
+    }
+
     return {
       opportunities,
-      totalRecords: items.length,
+      totalRecords: opportunities.length,
       status: {
         provider: "California eProcure",
         status: opportunities.length > 0 ? "success" : "no_results",

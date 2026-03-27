@@ -7,7 +7,6 @@ import { UploadDropzone } from "@/components/rfp/UploadDropzone";
 import { UrlInput } from "@/components/rfp/UrlInput";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";

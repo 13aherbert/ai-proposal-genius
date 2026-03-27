@@ -1,31 +1,47 @@
 
 
-## Texas SmartBuy Search — Apify Credits Exhausted
+## Fix: Texas SmartBuy Results Missing Titles
 
-### Problem
-Every Texas search returns HTTP 402 from Apify. The free tier credits are depleted. California searches will likely hit the same issue soon.
+### Root Cause
 
-### Options
+The field name mapping in `fetchTexas` (line 466) uses incorrect column names. The actual Socrata dataset fields are:
 
-**Option A: Upgrade Apify plan**
-- Add credits or upgrade to a paid Apify plan at https://console.apify.com/billing/subscription
-- No code changes needed — Texas and California will resume working immediately
+**TCEQ Contracts (`svjm-sdfz`):**
+- `project_name` → title (code looks for `description` — wrong)
+- `vendor_name_description` → vendor (code looks for `vendor_name` — wrong)
+- `po_contract_number` → external_id (correct)
+- `pcc_code` → naics_code field
+- `total_amount` → available but unused
 
-**Option B: Graceful degradation in the UI (code change)**
-- Detect HTTP 402 specifically in `fetchTexas` and `fetchCalifornia`
-- Return a new provider status like `"billing_error"` instead of generic `"api_error"`
-- Show a user-friendly message: "Texas SmartBuy is temporarily unavailable (scraper quota exceeded)" instead of "returned an error. Please try again."
-- When searching "All Sources", skip failed scraper providers silently so SAM.gov and Grants.gov results still appear without confusion
+**DIR Active Contracts (`vipt-h4ye`):**
+- `rfo_description` → title (code looks for `description` — wrong)
+- `primary_vendor_name` → vendor
+- `contract_number` → external_id (correct)
+- `rfo_number` → solicitation number
+- `primary_vendor_hub_status` → set_aside (code looks for `hub_status` — wrong)
+- `contract_type` / `contract_subtype` → type
+- `contract_start` → posted_date (code looks for `start_date` — only works for TCEQ)
+- `contract_termination_date` → response_deadline (code looks for `end_date` — only works for TCEQ)
+- `contract_manager`, `contract_manager_email` → useful metadata
 
-**Option C: Replace Apify with direct data sources**
-- Texas publishes procurement data via Socrata open data portals (data.texas.gov) which have free, unlimited API access
-- Replace the Apify actor call with direct Socrata API queries — no account or credits needed
-- This eliminates the Apify dependency and cost for Texas entirely
+### Fix
 
-### Recommendation
-Option A (add Apify credits) for immediate fix. Option C (direct Socrata API) for long-term reliability — it removes the paid dependency entirely. Option B regardless, so the UI handles quota errors gracefully.
+Update the field mapping on lines 463-478 to use the correct column names from both datasets:
 
-### Files to update (for Options B + C)
-- `supabase/functions/search-opportunities/index.ts` — update `fetchTexas` error handling + optionally replace with Socrata API
-- No frontend changes needed unless adding the `billing_error` status to the UI
+```typescript
+title: opp.project_name || opp.rfo_description || opp.vendor_name_description || opp.primary_vendor_name || "",
+solicitation_number: String(opp.po_contract_number || opp.rfo_number || opp.contract_number || ""),
+department: opp.agency_name || opp._tx_dataset || "Texas",
+naics_code: opp.pcc_code || opp.commodity_code || "",
+posted_date: opp.start_date || opp.contract_start || null,
+response_deadline: opp.end_date || opp.contract_termination_date || null,
+set_aside: opp.primary_vendor_hub_status || opp.hub_status || "",
+type: opp.contract_type || opp.contract_subtype || opp.contract_or_po_2 || "contract",
+```
+
+### File to update
+- `supabase/functions/search-opportunities/index.ts` — lines 463-478 (field mapping in `fetchTexas`)
+
+### Expected result
+Texas SmartBuy results will display proper titles like "Cell Phone Services", "Medical Monitoring", "Software Products, Software as a Service..." instead of empty strings.
 

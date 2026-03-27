@@ -26,7 +26,7 @@ interface NormalizedOpportunity {
 
 interface ProviderStatus {
   provider: string;
-  status: "success" | "timeout" | "api_error" | "no_results" | "skipped" | "invalid_api_key";
+  status: "success" | "timeout" | "api_error" | "no_results" | "skipped" | "invalid_api_key" | "billing_error";
   count: number;
   message?: string;
   responseTimeMs?: number;

@@ -220,7 +220,7 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
     : selectedSources.length;
 
   // Source selection UI (shared between desktop and mobile)
-  const SourceSelectionContent = () => (
+  const sourceSelectionContent = (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Data Sources</span>
@@ -319,7 +319,7 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Desktop side panel for sources */}
         <div className="hidden lg:block w-64 shrink-0 border rounded-lg bg-card p-4">
-          <SourceSelectionContent />
+          {sourceSelectionContent}
         </div>
 
         {/* Main search form */}
@@ -474,7 +474,7 @@ export function OpportunitySearchForm({ onSearch, isSearching }: OpportunitySear
                   <SheetTitle>Search Sources & Filters</SheetTitle>
                 </SheetHeader>
                 <div className="mt-4 overflow-y-auto">
-                  <SourceSelectionContent />
+                  {sourceSelectionContent}
                 </div>
               </SheetContent>
             </Sheet>

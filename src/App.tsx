@@ -32,6 +32,7 @@ import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminSecurity from "@/pages/admin/AdminSecurity";
 import AdminBilling from "@/pages/admin/AdminBilling";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import SourceStatusDashboard from "@/pages/admin/SourceStatusDashboard";
 import Organization from "@/pages/Organization";
 import WhiteLabel from "@/pages/WhiteLabel";
 import Opportunities from "@/pages/Opportunities";
@@ -122,6 +123,7 @@ function AppContent() {
         <Route path="/admin/security" element={<AdminSecurity />} />
         <Route path="/admin/billing" element={<AdminBilling />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/source-health" element={<SourceStatusDashboard />} />
       </Route>
       
       <Route path="/reset-password" element={<ResetPassword />} />

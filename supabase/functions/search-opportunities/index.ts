@@ -847,6 +847,11 @@ Deno.serve(async (req) => {
       fetchPromises.push(fetchTexas(body));
     }
 
+    // New York State via free Socrata API (no API key needed)
+    if (effectiveSource === "all" || effectiveSource === "new_york") {
+      fetchPromises.push(fetchNewYork(body));
+    }
+
     const results = await Promise.all(fetchPromises);
     
     const allProviderOpps: NormalizedOpportunity[] = [];

@@ -94,6 +94,7 @@ export function useOpportunitySearch() {
     if (source === "all" || source === "grants_gov") providers.push("Grants.gov");
     if (source === "all" || source === "california_eprocure") providers.push("California eProcure");
     if (source === "all" || source === "texas_smartbuy") providers.push("Texas SmartBuy");
+    if (source === "all" || source === "new_york") providers.push("New York State");
     setSearchingProviders(providers);
 
     // Client-side safety timeout at 55s (edge function has its own internal timeouts)

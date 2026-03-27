@@ -269,40 +269,46 @@ async function fetchGrantsGov(params: SearchBody): Promise<{ opportunities: Norm
   }
 }
 
-// ─── California eProcure (CalSAAS) Provider ─────────────────────────
-async function fetchCalifornia(params: SearchBody, apiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+// ─── California eProcure via Apify Scraper ──────────────────────────
+async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
   const startTime = Date.now();
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  const qp = new URLSearchParams();
-  if (safeKeyword) qp.set("keyword", safeKeyword);
-  if (params.postedFrom) qp.set("postedFrom", String(params.postedFrom).slice(0, 10));
-  if (params.postedTo) qp.set("postedTo", String(params.postedTo).slice(0, 10));
-  if (params.naicsCode) qp.set("naicsCode", String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6));
-  if (params.agency) qp.set("department", String(params.agency).slice(0, 100));
-  qp.set("limit", String(rows));
+  // Build Apify actor input
+  const actorInput: Record<string, unknown> = {
+    status: "Open",
+    limit: rows,
+  };
+  if (safeKeyword) actorInput.keyword = safeKeyword;
+  if (params.agency) actorInput.departments = String(params.agency).slice(0, 100);
+  
+  // Convert date filters to mm/dd/yyyy format expected by the scraper
+  if (params.postedFrom) {
+    const parts = String(params.postedFrom).slice(0, 10).split("-");
+    if (parts.length === 3) actorInput.startDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
+  }
+  if (params.postedTo) {
+    const parts = String(params.postedTo).slice(0, 10).split("-");
+    if (parts.length === 3) actorInput.endDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
+  }
 
-  const logParams = new URLSearchParams(qp);
-  console.log(`[California] Endpoint: https://caleprocure.ca.gov/api/Opportunities`);
-  console.log(`[California] Params: ${logParams.toString()}`);
-
-  const requestUrl = `https://caleprocure.ca.gov/api/Opportunities?${qp.toString()}`;
+  const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
+  console.log(`[California] Apify request: keyword="${safeKeyword || "(browse all)"}", limit=${rows}, agency="${params.agency || ""}"`)
 
   try {
-    const res = await fetchWithTimeout(requestUrl, {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-    }, 15000);
+    const res = await fetchWithTimeout(apifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actorInput),
+    }, 45000); // Apify actor runs can take longer than direct APIs
 
     const elapsed = Date.now() - startTime;
-    console.log(`[California] HTTP ${res.status} in ${elapsed}ms`);
+    console.log(`[California] Apify HTTP ${res.status} in ${elapsed}ms`);
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[California] Error body: ${errText.slice(0, 500)}`);
+      console.error(`[California] Apify error: ${errText.slice(0, 500)}`);
       const isAuthError = res.status === 401 || res.status === 403;
       return {
         opportunities: [],
@@ -311,52 +317,50 @@ async function fetchCalifornia(params: SearchBody, apiKey: string): Promise<{ op
           provider: "California eProcure",
           status: isAuthError ? "invalid_api_key" : "api_error",
           count: 0,
-          message: isAuthError ? "API key rejected" : `HTTP ${res.status}`,
+          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
           responseTimeMs: elapsed,
         },
       };
     }
 
-    const data = await res.json();
-    const rawOpps = Array.isArray(data) ? data : (data.opportunities || data.results || data.data || []);
-    const totalRecords = data.totalRecords || data.total || rawOpps.length;
-    console.log(`[California] Results: ${rawOpps.length}, totalRecords: ${totalRecords}, elapsed: ${elapsed}ms`);
+    const items: any[] = await res.json();
+    console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
 
-    const opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
-      external_id: opp.solicitationNumber || opp.id || "",
+    const opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
+      external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
       source: "california_eprocure",
-      title: opp.title || opp.name || "",
-      solicitation_number: opp.solicitationNumber || opp.bidNumber || "",
-      department: opp.department || opp.agency || opp.organizationName || "",
+      title: opp.eventName || opp.title || "",
+      solicitation_number: String(opp.eventId || opp.solicitationNumber || ""),
+      department: opp.department || opp.agency || "",
       naics_code: opp.naicsCode || "",
-      posted_date: opp.postedDate || opp.publishDate || opp.openDate || null,
-      response_deadline: opp.responseDeadline || opp.closeDate || opp.dueDate || null,
-      set_aside: opp.setAside || opp.smallBusinessIndicator || opp.preference || "",
-      description_url: opp.link || opp.url || (opp.solicitationNumber ? `https://caleprocure.ca.gov/event/${opp.solicitationNumber}/0` : "https://caleprocure.ca.gov"),
-      type: opp.type || opp.opportunityType || "contract",
+      posted_date: opp.startDate || opp.publishDate || null,
+      response_deadline: opp.endDate || opp.closeDate || null,
+      set_aside: opp.type || opp.setAside || "",
+      description_url: opp.url || (opp.eventId ? `https://caleprocure.ca.gov/event/${opp.eventId}/0` : "https://caleprocure.ca.gov"),
+      type: opp.type || "contract",
       raw_data: opp,
-      resource_links: Array.isArray(opp.attachments) ? opp.attachments.map((a: any) => typeof a === "string" ? a : a?.url || "").filter(Boolean) : [],
+      resource_links: [],
       description_text_url: null,
     }));
 
     return {
       opportunities,
-      totalRecords,
+      totalRecords: items.length,
       status: {
         provider: "California eProcure",
         status: opportunities.length > 0 ? "success" : "no_results",
         count: opportunities.length,
-        message: `${totalRecords} total records`,
+        message: `${items.length} results via Apify scraper`,
         responseTimeMs: elapsed,
       },
     };
   } catch (err: unknown) {
     const elapsed = Date.now() - startTime;
     if (err instanceof DOMException && err.name === "AbortError") {
-      console.warn(`[California] Request timed out after ${elapsed}ms`);
-      return { opportunities: [], totalRecords: 0, status: { provider: "California eProcure", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
+      console.warn(`[California] Apify request timed out after ${elapsed}ms`);
+      return { opportunities: [], totalRecords: 0, status: { provider: "California eProcure", status: "timeout", count: 0, message: "Apify actor timed out", responseTimeMs: elapsed } };
     }
-    console.error(`[California] Fetch error after ${elapsed}ms:`, err);
+    console.error(`[California] Apify fetch error after ${elapsed}ms:`, err);
     return { opportunities: [], totalRecords: 0, status: { provider: "California eProcure", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
   }
 }

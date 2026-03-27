@@ -122,6 +122,76 @@ export const useRFPUpload = () => {
     }
   }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshSubscription]);
 
+  const handleUrlUpload = useCallback(async (url: string, deadline?: Date) => {
+    if (!session?.user) {
+      toast.error("Please sign in to upload RFPs");
+      return;
+    }
+
+    await fetchProjectCount();
+
+    if (currentProjectCount !== null && projectLimit !== null && currentProjectCount >= projectLimit) {
+      toast.error(`Project limit reached (${currentProjectCount}/${projectLimit})`, {
+        description: "Please delete some projects or upgrade your plan."
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Get user's current organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('current_organization_id')
+        .eq('profile_id', session.user.id)
+        .single();
+
+      if (!profile?.current_organization_id) {
+        throw new Error('User organization not found');
+      }
+
+      setUploadProgress(10);
+
+      const { data, error } = await supabase.functions.invoke('scrape-rfp-url', {
+        body: {
+          url,
+          organizationId: profile.current_organization_id,
+          deadline: deadline ? deadline.toISOString() : null,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setUploadProgress(80);
+
+      setProjectId(data.projectId);
+      setProjectTitle(data.title);
+      setRfpFilePath(data.filePath);
+
+      fetchProjectCount();
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+
+      setUploadProgress(100);
+      toast.success("RFP imported from URL", {
+        description: `Scraped ${data.scrapedContent?.wordCount || 0} words`,
+      });
+
+      if (currentProjectCount !== null && projectLimit !== null && currentProjectCount === projectLimit - 1) {
+        toast.warning("This is your last project slot. Upgrade for more.", { duration: 6000 });
+      }
+    } catch (error: any) {
+      console.error("URL upload error:", error);
+      toast.error("Failed to import from URL", {
+        description: error.message || "Please try again.",
+      });
+    } finally {
+      setTimeout(() => setIsUploading(false), 500);
+    }
+  }, [session, projectLimit, currentProjectCount, queryClient, fetchProjectCount, planType]);
+
   const handleFileUpload = useCallback(async (file: File, deadline?: Date) => {
     if (!session?.user) {
       toast.error("Please sign in to upload RFPs");
@@ -279,6 +349,7 @@ export const useRFPUpload = () => {
     isRefreshing,
     setProjectTitle,
     handleFileUpload,
+    handleUrlUpload,
     updateProject,
     fetchProjectCount
   };

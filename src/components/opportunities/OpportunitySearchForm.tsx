@@ -33,6 +33,7 @@ const SOURCE_OPTIONS = [
   { value: "all", label: "All Sources" },
   { value: "sam_gov", label: "SAM.gov" },
   { value: "grants_gov", label: "Grants.gov" },
+  { value: "california_eprocure", label: "California eProcure" },
 ];
 
 const OPPORTUNITY_TYPE_OPTIONS = [

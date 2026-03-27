@@ -16,7 +16,7 @@ import {
   Hash,
   Clock,
   FileText,
-  Loader2,
+  
   Download,
   Bell,
   Globe,

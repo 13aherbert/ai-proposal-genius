@@ -275,13 +275,26 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
   const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
   const rows = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
 
-  // Build Apify actor input
+  // Build Apify actor input — the scraper supports native keyword filtering
   const actorInput: Record<string, unknown> = {
+    dataType: "bids",
     status: "Open",
     limit: rows,
   };
   if (safeKeyword) actorInput.keyword = safeKeyword;
-  if (params.agency) actorInput.departments = String(params.agency).slice(0, 100);
+  if (params.agency) actorInput.departments = [String(params.agency).slice(0, 100)];
+
+  // Map set-aside to certificationTypes
+  if (params.setAside) {
+    const setAsideMap: Record<string, string> = {
+      "SBA": "Small Business",
+      "SBP": "Small Business",
+      "SDVOSBC": "DVBE",
+      "WOSB": "Small Business",
+    };
+    const certType = setAsideMap[params.setAside];
+    if (certType) actorInput.certificationTypes = [certType];
+  }
   
   // Convert date filters to mm/dd/yyyy format expected by the scraper
   if (params.postedFrom) {
@@ -292,66 +305,6 @@ async function fetchCalifornia(params: SearchBody, apifyToken: string): Promise<
     const parts = String(params.postedTo).slice(0, 10).split("-");
     if (parts.length === 3) actorInput.endDate = `${parts[1]}/${parts[2]}/${parts[0]}`;
   }
-
-  const apifyUrl = `https://api.apify.com/v2/acts/fortuitous_pirate~caleprocure-scraper/run-sync-get-dataset-items?token=${apifyToken}`;
-  console.log(`[California] Apify request: keyword="${safeKeyword || "(browse all)"}", limit=${rows}, agency="${params.agency || ""}"`)
-
-  try {
-    const res = await fetchWithTimeout(apifyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(actorInput),
-    }, 45000); // Apify actor runs can take longer than direct APIs
-
-    const elapsed = Date.now() - startTime;
-    console.log(`[California] Apify HTTP ${res.status} in ${elapsed}ms`);
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[California] Apify error: ${errText.slice(0, 500)}`);
-      const isAuthError = res.status === 401 || res.status === 403;
-      return {
-        opportunities: [],
-        totalRecords: 0,
-        status: {
-          provider: "California eProcure",
-          status: isAuthError ? "invalid_api_key" : "api_error",
-          count: 0,
-          message: isAuthError ? "Apify token rejected" : `HTTP ${res.status}`,
-          responseTimeMs: elapsed,
-        },
-      };
-    }
-
-    const items: any[] = await res.json();
-    console.log(`[California] Apify returned ${items.length} items in ${elapsed}ms`);
-
-    let opportunities: NormalizedOpportunity[] = items.map((opp: any) => ({
-      external_id: String(opp.eventId || opp.solicitationNumber || opp.id || ""),
-      source: "california_eprocure",
-      title: opp.eventName || opp.title || "",
-      solicitation_number: String(opp.eventId || opp.solicitationNumber || ""),
-      department: opp.department || opp.agency || "",
-      naics_code: opp.naicsCode || "",
-      posted_date: opp.startDate || opp.publishDate || null,
-      response_deadline: opp.endDate || opp.closeDate || null,
-      set_aside: opp.type || opp.setAside || "",
-      description_url: opp.url || (opp.eventId ? `https://caleprocure.ca.gov/event/${opp.eventId}/0` : "https://caleprocure.ca.gov"),
-      type: opp.type || "contract",
-      raw_data: opp,
-      resource_links: [],
-      description_text_url: null,
-    }));
-
-    // Filter by keyword client-side since the scraper doesn't support keyword filtering
-    if (safeKeyword) {
-      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
-      opportunities = opportunities.filter(opp => {
-        const text = `${opp.title} ${opp.department} ${opp.solicitation_number}`.toLowerCase();
-        return keywords.some(w => text.includes(w));
-      });
-      console.log(`[California] After keyword filter "${safeKeyword}": ${opportunities.length} of ${items.length} items`);
-    }
 
     return {
       opportunities,

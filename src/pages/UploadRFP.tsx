@@ -145,6 +145,10 @@ const UploadRFP = () => {
     }
   }, [handleFileUpload, deadline]);
 
+  const handleUrlSubmit = useCallback(async (url: string) => {
+    await handleUrlUpload(url, deadline);
+  }, [handleUrlUpload, deadline]);
+
   const handleUpdateProject = useCallback(() => {
     updateProject(projectTitle, deadline, clientName, businessName);
   }, [updateProject, projectTitle, deadline, clientName, businessName]);
@@ -244,16 +248,28 @@ const UploadRFP = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <MemoizedUploadDropzone
-                onDrop={handleDrop}
-                isUploading={isUploading}
-                uploadProgress={uploadProgress}
-                disabled={hasReachedLimit}
-              />
-              
-              
-            </div>
+            <Tabs defaultValue="upload" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload">Upload File</TabsTrigger>
+                <TabsTrigger value="url">Paste URL</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload">
+                <MemoizedUploadDropzone
+                  onDrop={handleDrop}
+                  isUploading={isUploading}
+                  uploadProgress={uploadProgress}
+                  disabled={hasReachedLimit}
+                />
+              </TabsContent>
+              <TabsContent value="url">
+                <UrlInput
+                  onSubmit={handleUrlSubmit}
+                  isProcessing={isUploading}
+                  uploadProgress={uploadProgress}
+                  disabled={hasReachedLimit}
+                />
+              </TabsContent>
+            </Tabs>
             
             <div className="flex flex-col gap-6">
               <ProjectForm

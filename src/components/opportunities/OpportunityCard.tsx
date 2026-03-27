@@ -10,20 +10,20 @@ import {
   Hash,
   Eye,
   FileText,
-  Loader2,
+  
   Clock,
   Zap,
   Timer,
   Shield,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { Opportunity } from "@/hooks/use-opportunity-search";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onSave: (opportunity: Opportunity) => void;
   onViewDetails: (opportunity: Opportunity) => void;
+  onDraftProposal: (opportunity: Opportunity) => void;
   isSaved?: boolean;
 }
 
@@ -179,8 +179,7 @@ function getResponseTimeBadge(opportunity: Opportunity): { label: string; color:
   }
 }
 
-export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }: OpportunityCardProps) {
-  const { draftProposal, isDrafting } = useDraftProposal();
+export function OpportunityCard({ opportunity, onSave, onViewDetails, onDraftProposal, isSaved }: OpportunityCardProps) {
   const noticeType = getNoticeType(opportunity);
   const daysUntilRelease = getDaysUntilRelease(opportunity);
   const responseBadge = getResponseTimeBadge(opportunity);
@@ -290,15 +289,14 @@ export function OpportunityCard({ opportunity, onSave, onViewDetails, isSaved }:
           <Button
             size="sm"
             variant="outline"
-            onClick={() => draftProposal(opportunity)}
-            disabled={isDrafting}
+            onClick={() => onDraftProposal(opportunity)}
           >
-            {isDrafting ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <FileText className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {isDrafting ? "Fetching..." : "Draft Proposal"}
+            <FileText className="mr-1.5 h-3.5 w-3.5" />
+            {opportunity.resource_links && opportunity.resource_links.length > 0
+              ? `Draft Proposal (${opportunity.resource_links.length} docs)`
+              : opportunity.description_text_url
+                ? "Draft Proposal"
+                : "Start Proposal"}
           </Button>
           <Button size="sm" variant="ghost" asChild>
             <a href={opportunity.description_url || getSourceFallbackUrl(opportunity.source)} target="_blank" rel="noopener noreferrer">

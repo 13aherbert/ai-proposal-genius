@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/select";
 import {
   ExternalLink,
+  Loader2,
   Trash2,
   Calendar,
   Building2,
-  Loader2,
+  
   Plus,
   StickyNote,
   Check,
@@ -24,7 +25,6 @@ import {
   FileText,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useDraftProposal } from "@/hooks/use-draft-proposal";
 import type { SavedOpportunity } from "@/hooks/use-opportunity-search";
 
 interface SavedOpportunitiesProps {
@@ -33,6 +33,7 @@ interface SavedOpportunitiesProps {
   onUpdateStatus: (id: string, status: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
   onDelete: (id: string) => void;
+  onDraftProposal: (opportunity: any) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -64,8 +65,8 @@ export function SavedOpportunities({
   onUpdateStatus,
   onUpdateNotes,
   onDelete,
+  onDraftProposal,
 }: SavedOpportunitiesProps) {
-  const { draftProposal, isDrafting } = useDraftProposal();
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -249,7 +250,7 @@ export function SavedOpportunities({
                     size="sm"
                     variant="outline"
                     onClick={() =>
-                      draftProposal({
+                      onDraftProposal({
                         external_id: opp.external_id,
                         source: opp.source,
                         title: opp.title,
@@ -266,14 +267,9 @@ export function SavedOpportunities({
                         description_text_url: null,
                       })
                     }
-                    disabled={isDrafting}
                   >
-                    {isDrafting ? (
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <FileText className="mr-1.5 h-3.5 w-3.5" />
-                    )}
-                    {isDrafting ? "Fetching..." : "Start Project"}
+                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                    Start Project
                   </Button>
 
                   {opp.description_url && (

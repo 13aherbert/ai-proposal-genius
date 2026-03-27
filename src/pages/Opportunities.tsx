@@ -53,6 +53,7 @@ export default function Opportunities() {
   const [lastSearchParams, setLastSearchParams] = useState<SearchParams | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showSaveSearchModal, setShowSaveSearchModal] = useState(false);
+  const [draftOpportunity, setDraftOpportunity] = useState<Opportunity | null>(null);
   const savedIds = new Set(savedOpportunities.map((s) => s.external_id));
 
   useEffect(() => {

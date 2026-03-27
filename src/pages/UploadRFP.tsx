@@ -4,6 +4,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback, memo, useEffect, useRef } from "react";
 import { useRFPUpload } from "@/hooks/use-rfp-upload";
 import { UploadDropzone } from "@/components/rfp/UploadDropzone";
+import { UrlInput } from "@/components/rfp/UrlInput";
+import { ProjectForm } from "@/components/rfp/ProjectForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectForm } from "@/components/rfp/ProjectForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -54,6 +57,7 @@ const UploadRFP = () => {
     isRefreshing,
     setProjectTitle,
     handleFileUpload,
+    handleUrlUpload,
     updateProject,
     fetchProjectCount
   } = useRFPUpload();

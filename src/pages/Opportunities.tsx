@@ -129,6 +129,10 @@ export default function Opportunities() {
             <Bookmark className="h-4 w-4" />
             Saved ({savedOpportunities.length})
           </TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-1.5">
+            <Bell className="h-4 w-4" />
+            Alerts ({savedSearches.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="search" className="space-y-4">

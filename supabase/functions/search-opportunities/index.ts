@@ -796,14 +796,19 @@ Deno.serve(async (req) => {
 
     // Parse search params
     const body: SearchBody = await req.json();
-    const sourceFilter = body.source || "all";
+    // Support both legacy single `source` and new `sources` array
+    const sourcesArray: string[] = body.sources && body.sources.length > 0
+      ? body.sources
+      : [body.source || "all"];
+    const isAllSources = sourcesArray.includes("all");
+    const hasSource = (s: string) => isAllSources || sourcesArray.includes(s);
     const opportunityType = body.opportunityType || "";
     const searchKeyword = body.keyword || "";
 
     // Auto-detect optimal source: skip Grants.gov for SAM-specific filter searches
-    const effectiveSource = (sourceFilter === "all" && isSamOnlySearch(body)) ? "sam_gov" : sourceFilter;
+    const skipGrants = !isAllSources ? false : isSamOnlySearch(body);
 
-    console.log(`[Search] source=${sourceFilter} (effective=${effectiveSource}), keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
+    console.log(`[Search] sources=${JSON.stringify(sourcesArray)}, keyword="${searchKeyword}", naics=${body.naicsCode || ""}, agency="${body.agency || ""}", setAside=${body.setAside || ""}, ptype=${body.ptype || ""}, type=${opportunityType}`);
 
     // Fetch from providers in parallel
     const rawSamKey = Deno.env.get("SAM_GOV_API_KEY") || "";

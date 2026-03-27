@@ -15,7 +15,7 @@ import {
   Trash2,
   Calendar,
   Building2,
-  Loader2,
+  
   Plus,
   StickyNote,
   Check,

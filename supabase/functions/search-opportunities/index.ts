@@ -556,17 +556,16 @@ Deno.serve(async (req) => {
       providerStatuses.push({ provider: "Grants.gov", status: "skipped", count: 0, message: "Skipped for NAICS/set-aside search" });
     }
 
-    // California eProcure
-    const rawCalKey = Deno.env.get("CALIFORNIA_API_KEY") || "";
-    const calApiKey = rawCalKey.trim();
-    console.log(`[Search] California key configured: ${calApiKey.length > 0}`);
+    // California eProcure (via Apify scraper)
+    const apifyToken = (Deno.env.get("APIFY_API_TOKEN") || "").trim();
+    console.log(`[Search] Apify token configured: ${apifyToken.length > 0}`);
 
     if (effectiveSource === "all" || effectiveSource === "california_eprocure") {
-      if (calApiKey) {
-        fetchPromises.push(fetchCalifornia(body, calApiKey));
+      if (apifyToken) {
+        fetchPromises.push(fetchCalifornia(body, apifyToken));
       } else {
-        console.warn("[Search] CALIFORNIA_API_KEY not configured, skipping California eProcure");
-        providerStatuses.push({ provider: "California eProcure", status: "skipped", count: 0, message: "API key not configured" });
+        console.warn("[Search] APIFY_API_TOKEN not configured, skipping California eProcure");
+        providerStatuses.push({ provider: "California eProcure", status: "skipped", count: 0, message: "Apify token not configured" });
       }
     }
 

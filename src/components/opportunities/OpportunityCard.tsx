@@ -44,6 +44,7 @@ export function getSourceLabel(source: string) {
   switch (source) {
     case "sam_gov": return "SAM.gov";
     case "grants_gov": return "Grants.gov";
+    case "fedconnect": return "FedConnect";
     case "california_eprocure": return "California";
     case "texas_smartbuy": return "Texas";
     case "new_york": return "New York";
@@ -55,6 +56,7 @@ export function getSourceShortLabel(source: string) {
   switch (source) {
     case "sam_gov": return "SAM";
     case "grants_gov": return "Grants";
+    case "fedconnect": return "FC";
     case "california_eprocure": return "CA";
     case "texas_smartbuy": return "TX";
     case "new_york": return "NY";
@@ -66,6 +68,7 @@ export function getSourceFallbackUrl(source: string) {
   switch (source) {
     case "sam_gov": return "https://sam.gov";
     case "grants_gov": return "https://www.grants.gov";
+    case "fedconnect": return "https://www.fedconnect.net";
     case "california_eprocure": return "https://caleprocure.ca.gov";
     case "texas_smartbuy": return "https://www.txsmartbuy.com";
     case "new_york": return "https://data.ny.gov";
@@ -77,6 +80,7 @@ export function getSourceColor(source: string) {
   switch (source) {
     case "sam_gov": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case "grants_gov": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+    case "fedconnect": return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300";
     case "california_eprocure": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
     case "texas_smartbuy": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
     case "new_york": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300";
@@ -88,6 +92,7 @@ export function getSourceIcon(source: string) {
   switch (source) {
     case "sam_gov": return "🇺🇸";
     case "grants_gov": return "💰";
+    case "fedconnect": return "🔗";
     case "california_eprocure": return "🌴";
     case "texas_smartbuy": return "⭐";
     case "new_york": return "🗽";

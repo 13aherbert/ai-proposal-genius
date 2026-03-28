@@ -73,6 +73,7 @@ interface SourceOption {
 const FEDERAL_SOURCES: SourceOption[] = [
   { value: "sam_gov", label: "SAM.gov", shortLabel: "SAM" },
   { value: "grants_gov", label: "Grants.gov", shortLabel: "Grants" },
+  { value: "fedconnect", label: "FedConnect", shortLabel: "FC" },
 ];
 
 const STATE_SOURCES: SourceOption[] = [

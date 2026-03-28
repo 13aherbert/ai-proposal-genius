@@ -615,6 +615,130 @@ async function fetchNewYork(params: SearchBody): Promise<{ opportunities: Normal
   return { opportunities, totalRecords: opportunities.length, status };
 }
 
+// ─── FedConnect Provider ─────────────────────────────────────────────
+const FEDCONNECT_SEARCH_URL = "https://www.fedconnect.net/FedConnect/PublicPages/PublicSearch/Public_Opportunities.aspx";
+
+async function fetchFedConnect(params: SearchBody, apiKey: string): Promise<{ opportunities: NormalizedOpportunity[]; status: ProviderStatus; totalRecords: number }> {
+  const startTime = Date.now();
+  const safeKeyword = String(params.keyword || "").slice(0, 200).trim();
+  const limit = Math.min(Math.max(Number(params.limit) || 25, 1), 100);
+
+  // FedConnect public search API endpoint
+  const searchUrl = "https://www.fedconnect.net/FedConnect/api/public/search";
+
+  const searchBody: Record<string, unknown> = {
+    searchText: safeKeyword || "",
+    pageSize: limit,
+    pageNumber: 1,
+    sortField: "PostedDate",
+    sortDirection: "desc",
+    status: "Open",
+  };
+
+  if (params.naicsCode) {
+    searchBody.naicsCode = String(params.naicsCode).replace(/[^0-9]/g, "").slice(0, 6);
+  }
+  if (params.postedFrom) searchBody.postedFrom = params.postedFrom;
+  if (params.postedTo) searchBody.postedTo = params.postedTo;
+  if (params.setAside) searchBody.setAside = String(params.setAside).slice(0, 50);
+
+  console.log(`[FedConnect] Request: keyword="${safeKeyword || "(browse all)"}", limit=${limit}`);
+
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    };
+    if (apiKey) {
+      headers["X-Api-Key"] = apiKey;
+    }
+
+    const res = await fetchWithTimeout(searchUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(searchBody),
+    }, 15000);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[FedConnect] HTTP ${res.status} in ${elapsed}ms`);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[FedConnect] Error body: ${errText.slice(0, 500)}`);
+      const isAuthError = res.status === 401 || res.status === 403;
+      return {
+        opportunities: [],
+        totalRecords: 0,
+        status: {
+          provider: "FedConnect",
+          status: isAuthError ? "invalid_api_key" : "api_error",
+          count: 0,
+          message: isAuthError ? "API key rejected" : `HTTP ${res.status}`,
+          responseTimeMs: elapsed,
+        },
+      };
+    }
+
+    const data = await res.json();
+    const rawOpps = data.opportunities || data.results || data.data || [];
+    const totalRecords = data.totalRecords || data.totalCount || rawOpps.length;
+    console.log(`[FedConnect] Results: ${rawOpps.length}, totalRecords: ${totalRecords}, elapsed: ${elapsed}ms`);
+
+    let opportunities: NormalizedOpportunity[] = rawOpps.map((opp: any) => ({
+      external_id: String(opp.solicitationNumber || opp.opportunityId || opp.id || ""),
+      source: "fedconnect",
+      title: opp.title || opp.opportunityTitle || opp.description || "",
+      solicitation_number: String(opp.solicitationNumber || opp.referenceNumber || ""),
+      department: opp.agencyName || opp.department || opp.organizationName || "",
+      naics_code: opp.naicsCode || "",
+      posted_date: opp.postedDate || opp.publicationDate || null,
+      response_deadline: opp.responseDueDate || opp.responseDate || opp.closeDate || null,
+      set_aside: opp.smallBusinessSetAside || opp.setAside || "",
+      description_url: opp.url || opp.link || (opp.solicitationNumber
+        ? `https://www.fedconnect.net/FedConnect/default.aspx?doc=${encodeURIComponent(opp.solicitationNumber)}`
+        : "https://www.fedconnect.net"),
+      type: opp.type || opp.opportunityType || "contract",
+      raw_data: opp,
+      resource_links: Array.isArray(opp.attachments) ? opp.attachments.map((a: any) => typeof a === "string" ? a : a?.url || "").filter(Boolean) : [],
+      description_text_url: opp.descriptionUrl || null,
+    }));
+
+    // Local keyword filtering
+    if (safeKeyword) {
+      const keywords = safeKeyword.toLowerCase().split(/\s+/).filter(Boolean);
+      const rawCount = opportunities.length;
+      opportunities = opportunities.filter(opp => {
+        const searchText = [
+          opp.title, opp.department, opp.solicitation_number,
+          ...extractStringValues(opp.raw_data),
+        ].join(" ").toLowerCase();
+        return keywords.some(w => searchText.includes(w));
+      });
+      console.log(`[FedConnect] Local keyword filter: ${rawCount} → ${opportunities.length} (keyword="${safeKeyword}")`);
+    }
+
+    return {
+      opportunities,
+      totalRecords,
+      status: {
+        provider: "FedConnect",
+        status: opportunities.length > 0 ? "success" : "no_results",
+        count: opportunities.length,
+        message: `${totalRecords} total records`,
+        responseTimeMs: elapsed,
+      },
+    };
+  } catch (err: unknown) {
+    const elapsed = Date.now() - startTime;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      console.warn(`[FedConnect] Request timed out after ${elapsed}ms`);
+      return { opportunities: [], totalRecords: 0, status: { provider: "FedConnect", status: "timeout", count: 0, message: "Request timed out", responseTimeMs: elapsed } };
+    }
+    console.error(`[FedConnect] Fetch error after ${elapsed}ms:`, err);
+    return { opportunities: [], totalRecords: 0, status: { provider: "FedConnect", status: "api_error", count: 0, message: String(err), responseTimeMs: elapsed } };
+  }
+}
+
 // ─── Helper: extract all string values from a nested object ─────────
 function extractStringValues(obj: unknown): string[] {
   const strings: string[] = [];
@@ -855,6 +979,17 @@ Deno.serve(async (req) => {
     // New York State via free Socrata API (no API key needed)
     if (hasSource("new_york")) {
       fetchPromises.push(fetchNewYork(body));
+    }
+
+    // FedConnect (API key optional — skips gracefully if missing)
+    const fedconnectKey = (Deno.env.get("FEDCONNECT_API_KEY") || "").trim();
+    if (hasSource("fedconnect")) {
+      if (fedconnectKey) {
+        fetchPromises.push(fetchFedConnect(body, fedconnectKey));
+      } else {
+        console.warn("[Search] FEDCONNECT_API_KEY not configured, skipping FedConnect");
+        providerStatuses.push({ provider: "FedConnect", status: "skipped", count: 0, message: "API key not configured" });
+      }
     }
 
     const results = await Promise.all(fetchPromises);

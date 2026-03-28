@@ -94,6 +94,7 @@ export function useOpportunitySearch() {
     const providers: string[] = [];
     if (isAll || sources.includes("sam_gov")) providers.push("SAM.gov");
     if (isAll || sources.includes("grants_gov")) providers.push("Grants.gov");
+    if (isAll || sources.includes("fedconnect")) providers.push("FedConnect");
     if (isAll || sources.includes("california_eprocure")) providers.push("California eProcure");
     if (isAll || sources.includes("texas_smartbuy")) providers.push("Texas SmartBuy");
     if (isAll || sources.includes("new_york")) providers.push("New York State");

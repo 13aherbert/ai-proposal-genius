@@ -111,8 +111,19 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
               <GlobalSaveStatus sectionStatuses={statusValues} />
             )}
           </div>
-          <CardDescription>
-            Create and edit sections for your proposal
+          <CardDescription className="flex flex-wrap items-center gap-3">
+            <span>Create and edit sections for your proposal</span>
+            {sections.length > 0 && (() => {
+              const totalWords = sections.reduce((sum, s) => sum + countWords(s.content || ""), 0);
+              const pages = Math.ceil(totalWords / 250);
+              const readMin = Math.ceil(totalWords / 200);
+              return (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                  Total: {totalWords.toLocaleString()} words · ~{pages} page{pages !== 1 ? "s" : ""} · ~{readMin} min read
+                </span>
+              );
+            })()}
           </CardDescription>
         </div>
         <BackupManager sections={sections} projectId={projectId} />

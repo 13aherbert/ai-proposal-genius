@@ -66,7 +66,8 @@ export const CategorySidebar = ({
   };
 
   const StaleBadge = ({ name }: { name: string }) => {
-    const lastUpdated = categoryLastUpdated[name];
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    const lastUpdated = categoryLastUpdated[name] || categoryLastUpdated[slug];
     const level = stalenessLevel(lastUpdated);
     if (level === "needs-review") {
       return (

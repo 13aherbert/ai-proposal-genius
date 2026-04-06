@@ -1,8 +1,8 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, MoreVertical } from "lucide-react";
+import { Loader2, Trash2, MoreVertical, FileText } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";

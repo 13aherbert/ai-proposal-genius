@@ -127,6 +127,8 @@ export const useEntries = (selectedCategory: string | null) => {
         title: entry.title,
         category: entry.category,
         updated: new Date(entry.updated_at).toLocaleDateString(),
+        updatedAt: entry.updated_at,
+        createdAt: entry.created_at,
         isTemplate: entry.content?.includes(TEMPLATE_MARKER) ?? false,
       }));
 

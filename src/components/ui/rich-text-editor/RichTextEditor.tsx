@@ -11,8 +11,10 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import { EditorToolbar } from "./EditorToolbar";
+import { AIBubbleMenu } from "./AIBubbleMenu";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import type { Tone } from "./aiTransform";
 import "./styles.css";
 
 interface RichTextEditorProps {
@@ -21,6 +23,8 @@ interface RichTextEditorProps {
   onBlur?: () => void;
   placeholder?: string;
   className?: string;
+  sectionTitle?: string;
+  tone?: Tone;
 }
 
 /**
@@ -43,6 +47,8 @@ export function RichTextEditor({
   onBlur,
   placeholder = "Start writing or use AI to generate content...",
   className,
+  sectionTitle,
+  tone,
 }: RichTextEditorProps) {
   const isExternalUpdate = useRef(false);
 
@@ -109,6 +115,7 @@ export function RichTextEditor({
   return (
     <div className={cn("border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background", className)}>
       <EditorToolbar editor={editor} />
+      <AIBubbleMenu editor={editor} sectionTitle={sectionTitle} tone={tone} />
       <EditorContent editor={editor} />
     </div>
   );

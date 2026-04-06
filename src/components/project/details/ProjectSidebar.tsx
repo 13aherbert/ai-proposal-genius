@@ -114,8 +114,8 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
         {sections.map((section) => {
           const locked = isFeatureLocked(section.id);
           const requiredTier = SECTION_REQUIRED_TIER[section.id];
-          
-          return (
+
+          const button = (
             <Button
               key={section.id}
               variant="ghost"
@@ -136,7 +136,23 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
               )}
             </Button>
           );
+
+          if (section.id === "review" && locked) {
+            return (
+              <FeatureDiscoveryTooltip
+                key={section.id}
+                featureId="review-tab"
+                message="💡 Growth plan unlocks Review workflows for team-based proposal review."
+              >
+                {button}
+              </FeatureDiscoveryTooltip>
+            );
+          }
+
+          return button;
         })}
+
+        <ProjectTierIndicator />
       </div>
     </>
   );

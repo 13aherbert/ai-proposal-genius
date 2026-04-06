@@ -70,6 +70,7 @@ function ElapsedTimer({ startTime, isRunning, overallProgress }: { startTime?: D
 }
 
 
+const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef, AutomatedProposalCreationProps>(
   ({ projectId, filePath }, ref) => {
     const { progress, startAutomation, stopAutomation, resetAutomation } = useAutomatedProposalCreation(projectId, filePath);
 
@@ -269,3 +270,7 @@ function ElapsedTimer({ startTime, isRunning, overallProgress }: { startTime?: D
     </Card>
   );
 });
+
+AutomatedProposalCreation.displayName = "AutomatedProposalCreation";
+
+export default AutomatedProposalCreation;

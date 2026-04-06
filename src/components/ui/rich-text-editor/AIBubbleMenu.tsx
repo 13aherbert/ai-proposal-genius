@@ -205,7 +205,7 @@ export function AIBubbleMenu({ editor, sectionTitle, tone }: AIBubbleMenuProps) 
               </div>
               <div className="border-t border-border/50 pt-1.5">
                 <div
-                  className="text-xs leading-relaxed text-green-700 dark:text-green-400 underline decoration-green-500/30"
+                  className="text-xs leading-relaxed text-primary underline decoration-primary/30"
                   dangerouslySetInnerHTML={{
                     __html: suggestion.length > 500 ? suggestion.substring(0, 500) + "..." : suggestion,
                   }}
@@ -213,7 +213,7 @@ export function AIBubbleMenu({ editor, sectionTitle, tone }: AIBubbleMenuProps) 
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950" onClick={handleAccept}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary hover:bg-primary/10" onClick={handleAccept}>
                 <Check className="h-3.5 w-3.5" /> Accept
               </Button>
               <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:bg-destructive/10" onClick={handleReject}>

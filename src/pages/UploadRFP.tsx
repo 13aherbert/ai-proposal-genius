@@ -12,7 +12,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/components/AuthProvider";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
-import { AutomatedProposalCreation, type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
+import AutomatedProposalCreation, { type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
 import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
 
 const MemoizedUploadDropzone = memo(UploadDropzone);

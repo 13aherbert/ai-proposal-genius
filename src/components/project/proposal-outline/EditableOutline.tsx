@@ -64,12 +64,12 @@ export function EditableOutline({ outlineMarkdown, onOutlineChange }: EditableOu
       {/* Header row */}
       <div className="flex items-center gap-2 flex-wrap">
         {isModified && (
-          <Badge variant="outline" className="text-amber-600 border-amber-400 text-xs">
+          <Badge variant="outline" className="text-accent-foreground border-accent text-xs">
             Modified
           </Badge>
         )}
         {showWarning && (
-          <div className="flex items-center gap-1 text-xs text-amber-600">
+          <div className="flex items-center gap-1 text-xs text-destructive">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>Many sections may increase generation time</span>
           </div>

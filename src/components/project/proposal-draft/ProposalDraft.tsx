@@ -179,7 +179,18 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
             })()}
           </CardDescription>
         </div>
-        <BackupManager sections={sections} projectId={projectId} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant={commentSidebarOpen ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setCommentSidebarOpen(!commentSidebarOpen)}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Comments{openCommentCount > 0 ? ` (${openCommentCount})` : ""}
+          </Button>
+          <BackupManager sections={sections} projectId={projectId} />
+        </div>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
         {isLoading ? (

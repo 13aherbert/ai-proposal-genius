@@ -13,9 +13,10 @@ interface SortableSectionProps {
   onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
   members?: Array<{ user_id: string; first_name?: string; last_name?: string; username?: string; role: string }>;
   showTeamFeatures?: boolean;
+  onComment?: (sectionId: string, quotedText: string, from: number, to: number) => void;
 }
 
-export function SortableSection({ section, isSelected, onSelect, onSaveStatusChange, members, showTeamFeatures }: SortableSectionProps) {
+export function SortableSection({ section, isSelected, onSelect, onSaveStatusChange, members, showTeamFeatures, onComment }: SortableSectionProps) {
   const {
     attributes,
     listeners,
@@ -55,6 +56,7 @@ export function SortableSection({ section, isSelected, onSelect, onSaveStatusCha
           onSaveStatusChange={onSaveStatusChange}
           members={members}
           showTeamFeatures={showTeamFeatures}
+          onComment={onComment}
         />
       </div>
     </div>

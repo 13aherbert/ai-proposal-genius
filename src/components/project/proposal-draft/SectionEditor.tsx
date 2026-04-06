@@ -36,9 +36,10 @@ interface SectionEditorProps {
   onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
   members?: Array<{ user_id: string; first_name?: string; last_name?: string; username?: string; role: string }>;
   showTeamFeatures?: boolean;
+  onComment?: (sectionId: string, quotedText: string, from: number, to: number) => void;
 }
 
-export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChange, members = [], showTeamFeatures = false }: SectionEditorProps) {
+export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChange, members = [], showTeamFeatures = false, onComment }: SectionEditorProps) {
   const [title, setTitle] = useState(section.section_title);
   const [content, setContent] = useState(section.content || "");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -291,6 +292,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               placeholder="Start writing or use AI to generate content..."
               sectionTitle={title}
               editable={!isReadOnly}
+              onComment={onComment ? (quotedText, from, to) => onComment(section.section_id, quotedText, from, to) : undefined}
             />
             {!isReadOnly && (
               <div className="flex items-center justify-end">

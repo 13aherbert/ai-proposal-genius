@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, MoreVertical, FileText } from "lucide-react";
+import { Loader2, Trash2, MoreVertical, FileText, MessageSquare } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
@@ -12,7 +12,9 @@ import { GlobalSaveStatus } from "./components/GlobalSaveStatus";
 import { ProposalProgress } from "./components/ProposalProgress";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
+import { useProposalComments } from "@/hooks/useProposalComments";
 import { BackupManager } from "./BackupManager";
+import { CommentSidebar } from "@/components/project/comments";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { SaveStatus } from "@/hooks/use-auto-save";
@@ -30,6 +32,9 @@ export interface ProposalDraftProps {
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [sectionStatuses, setSectionStatuses] = useState<Record<string, SaveStatus>>({});
+  const [commentSidebarOpen, setCommentSidebarOpen] = useState(false);
+  const [commentSectionId, setCommentSectionId] = useState<string | undefined>();
+  const [pendingComment, setPendingComment] = useState<{ sectionId: string; quotedText: string; from: number; to: number } | null>(null);
   const [filter, setFilter] = useState<{ status: WorkflowStatus | null; assignee: string | null; myOnly: boolean }>({
     status: null,
     assignee: null,
@@ -50,6 +55,8 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   } = useProposalSections(projectId);
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
+  const { comments: allComments, addComment } = useProposalComments(projectId);
+  const openCommentCount = allComments.filter(c => !c.is_resolved).length;
 
   // Get org members for team features
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -71,9 +78,16 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       last_name: m.last_name,
       username: m.username,
       role: m.role,
+      avatar_url: m.avatar_url,
     })),
     [members]
   );
+
+  const handleCommentFromEditor = useCallback((sectionId: string, quotedText: string, from: number, to: number) => {
+    setCommentSidebarOpen(true);
+    setCommentSectionId(sectionId);
+    setPendingComment({ sectionId, quotedText, from, to });
+  }, []);
 
   // Filtered sections
   const filteredSections = useMemo(() => {
@@ -165,7 +179,18 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
             })()}
           </CardDescription>
         </div>
-        <BackupManager sections={sections} projectId={projectId} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant={commentSidebarOpen ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setCommentSidebarOpen(!commentSidebarOpen)}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Comments{openCommentCount > 0 ? ` (${openCommentCount})` : ""}
+          </Button>
+          <BackupManager sections={sections} projectId={projectId} />
+        </div>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0">
         {isLoading ? (
@@ -225,10 +250,19 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
               onSaveStatusChange={handleSaveStatusChange}
               members={membersList}
               showTeamFeatures={showTeamFeatures}
+              onComment={handleCommentFromEditor}
             />
           </div>
         )}
       </CardContent>
+
+      <CommentSidebar
+        projectId={projectId}
+        sectionId={commentSectionId}
+        open={commentSidebarOpen}
+        onClose={() => setCommentSidebarOpen(false)}
+        members={membersList}
+      />
     </Card>
   );
 }

@@ -28,6 +28,7 @@ interface RichTextEditorProps {
   sectionTitle?: string;
   tone?: Tone;
   editable?: boolean;
+  onComment?: (quotedText: string, from: number, to: number) => void;
 }
 
 /**
@@ -53,6 +54,7 @@ export function RichTextEditor({
   sectionTitle,
   tone,
   editable = true,
+  onComment,
 }: RichTextEditorProps) {
   const isExternalUpdate = useRef(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -144,7 +146,7 @@ export function RichTextEditor({
   return (
     <div className={cn("border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background", className)}>
       <EditorToolbar editor={editor} onFullScreen={() => setIsFullScreen(true)} />
-      <AIBubbleMenu editor={editor} sectionTitle={sectionTitle} tone={tone} />
+      <AIBubbleMenu editor={editor} sectionTitle={sectionTitle} tone={tone} onComment={onComment} />
       <EditorContent editor={editor} />
       <div className="border-t px-4 py-1.5 flex items-center justify-end">
         <SectionStats content={content} className="text-xs text-muted-foreground" />

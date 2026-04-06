@@ -1997,6 +1997,82 @@ export type Database = {
           },
         ]
       }
+      proposal_comments: {
+        Row: {
+          content: string
+          created_at: string
+          highlight_from: number | null
+          highlight_to: number | null
+          id: string
+          is_resolved: boolean
+          mentions: string[] | null
+          parent_id: string | null
+          project_id: string
+          quoted_text: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          section_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          highlight_from?: number | null
+          highlight_to?: number | null
+          id?: string
+          is_resolved?: boolean
+          mentions?: string[] | null
+          parent_id?: string | null
+          project_id: string
+          quoted_text?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          section_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          highlight_from?: number | null
+          highlight_to?: number | null
+          id?: string
+          is_resolved?: boolean
+          mentions?: string[] | null
+          parent_id?: string | null
+          project_id?: string
+          quoted_text?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          section_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "proposal_comments_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_sections"
+            referencedColumns: ["section_id"]
+          },
+        ]
+      }
       proposal_designs: {
         Row: {
           content_blocks: Json

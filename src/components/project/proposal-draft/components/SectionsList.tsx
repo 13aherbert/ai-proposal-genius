@@ -15,6 +15,7 @@ export interface SectionsListProps {
   onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
   members?: Array<{ user_id: string; first_name?: string; last_name?: string; username?: string; role: string }>;
   showTeamFeatures?: boolean;
+  onComment?: (sectionId: string, quotedText: string, from: number, to: number) => void;
 }
 
 export function SectionsList({ 
@@ -27,6 +28,7 @@ export function SectionsList({
   onSaveStatusChange,
   members,
   showTeamFeatures,
+  onComment,
 }: SectionsListProps) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 10 },
@@ -76,6 +78,7 @@ export function SectionsList({
               onSaveStatusChange={onSaveStatusChange}
               members={members}
               showTeamFeatures={showTeamFeatures}
+              onComment={onComment}
             />
           ))}
         </div>

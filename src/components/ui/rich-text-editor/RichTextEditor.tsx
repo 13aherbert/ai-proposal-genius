@@ -79,6 +79,7 @@ export function RichTextEditor({
       Placeholder.configure({ placeholder }),
       CharacterCount,
     ],
+    editable,
     content: migrateContent(content),
     onUpdate: ({ editor: e }) => {
       if (!isExternalUpdate.current) {

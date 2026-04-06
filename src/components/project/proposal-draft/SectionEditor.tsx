@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Save, Wand2, Trash2 } from "lucide-react";
 import { countWords } from "@/utils/wordCount";
 import { useProposalSections, ProposalSection } from "./useProposalSections";

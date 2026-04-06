@@ -33,8 +33,43 @@ const stepDescriptions: Record<AutomationStep, string> = {
   evaluation: "Evaluating the completed proposal against RFP requirements",
   completed: "All automation steps completed successfully"
 };
+function ElapsedTimer({ startTime, isRunning, overallProgress }: { startTime?: Date; isRunning: boolean; overallProgress: number }) {
+  const [elapsed, setElapsed] = useState(0);
 
-export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef, AutomatedProposalCreationProps>(
+  useEffect(() => {
+    if (!isRunning) return;
+    const origin = startTime ? startTime.getTime() : Date.now();
+    const tick = () => setElapsed(Math.floor((Date.now() - origin) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isRunning, startTime]);
+
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const formatted = `${mins}:${secs.toString().padStart(2, '0')}`;
+  const isLong = elapsed > 300; // > 5 minutes
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm text-muted-foreground">
+        <span>Overall Progress</span>
+        <span className="flex items-center gap-2">
+          <span className="text-xs">Elapsed: {formatted}</span>
+          <span>{overallProgress}%</span>
+        </span>
+      </div>
+      <Progress value={overallProgress} className="h-2" />
+      {isLong && (
+        <div className="text-xs text-muted-foreground text-center">
+          Taking a bit longer than usual — hang tight!
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   ({ projectId, filePath }, ref) => {
     const { progress, startAutomation, stopAutomation, resetAutomation } = useAutomatedProposalCreation(projectId, filePath);
 

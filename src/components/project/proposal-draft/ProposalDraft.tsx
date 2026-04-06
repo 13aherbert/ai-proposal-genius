@@ -250,10 +250,19 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
               onSaveStatusChange={handleSaveStatusChange}
               members={membersList}
               showTeamFeatures={showTeamFeatures}
+              onComment={handleCommentFromEditor}
             />
           </div>
         )}
       </CardContent>
+
+      <CommentSidebar
+        projectId={projectId}
+        sectionId={commentSectionId}
+        open={commentSidebarOpen}
+        onClose={() => setCommentSidebarOpen(false)}
+        members={membersList}
+      />
     </Card>
   );
 }

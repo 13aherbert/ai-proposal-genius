@@ -107,7 +107,10 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
           >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
-                <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />
+                <div className="space-y-6">
+                  <ReviewQueue projectId={project.project_id} members={membersList} />
+                  <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />
+                </div>
               </Suspense>
             </ErrorBoundary>
           </GatedFeature>
@@ -146,6 +149,12 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
         onSectionChange={setActiveSection}
       />
       <div className="flex-1 p-3 sm:p-6">
+        {showPresence && presenceUsers.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Online:</span>
+            <PresenceAvatars presenceUsers={presenceUsers} members={membersList} />
+          </div>
+        )}
         {isTestMode && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-md p-2 text-sm text-amber-700">
             Test mode active. Your subscription features are being simulated.

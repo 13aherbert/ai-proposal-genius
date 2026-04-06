@@ -235,7 +235,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               placeholder="Start writing or use AI to generate content..."
               sectionTitle={title}
             />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-end">
               <Button 
                 onClick={handleManualSave} 
                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
@@ -243,9 +243,6 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 <Save className="h-4 w-4" />
                 Save Changes
               </Button>
-              <span className="text-xs text-muted-foreground">
-                {countWords(content)} words
-              </span>
             </div>
           </CardContent>
         )}

@@ -10,6 +10,10 @@ export interface ProposalSection {
   content: string | null;
   created_at: string;
   updated_at: string;
+  assigned_to: string | null;
+  workflow_status: string;
+  due_date: string | null;
+  review_comment: string | null;
 }
 
 export function useProposalSections(projectId: string) {

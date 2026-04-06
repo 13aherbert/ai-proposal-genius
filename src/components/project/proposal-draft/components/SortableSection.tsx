@@ -11,9 +11,11 @@ interface SortableSectionProps {
   isSelected: boolean;
   onSelect: () => void;
   onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
+  members?: Array<{ user_id: string; first_name?: string; last_name?: string; username?: string; role: string }>;
+  showTeamFeatures?: boolean;
 }
 
-export function SortableSection({ section, isSelected, onSelect, onSaveStatusChange }: SortableSectionProps) {
+export function SortableSection({ section, isSelected, onSelect, onSaveStatusChange, members, showTeamFeatures }: SortableSectionProps) {
   const {
     attributes,
     listeners,
@@ -51,6 +53,8 @@ export function SortableSection({ section, isSelected, onSelect, onSaveStatusCha
           isSelected={isSelected}
           onSelect={onSelect}
           onSaveStatusChange={onSaveStatusChange}
+          members={members}
+          showTeamFeatures={showTeamFeatures}
         />
       </div>
     </div>

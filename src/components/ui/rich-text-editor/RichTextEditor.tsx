@@ -27,6 +27,7 @@ interface RichTextEditorProps {
   className?: string;
   sectionTitle?: string;
   tone?: Tone;
+  editable?: boolean;
 }
 
 /**
@@ -51,6 +52,7 @@ export function RichTextEditor({
   className,
   sectionTitle,
   tone,
+  editable = true,
 }: RichTextEditorProps) {
   const isExternalUpdate = useRef(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -77,6 +79,7 @@ export function RichTextEditor({
       Placeholder.configure({ placeholder }),
       CharacterCount,
     ],
+    editable,
     content: migrateContent(content),
     onUpdate: ({ editor: e }) => {
       if (!isExternalUpdate.current) {

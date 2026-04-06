@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Save, Wand2, Trash2 } from "lucide-react";
 import { countWords } from "@/utils/wordCount";
@@ -79,10 +80,9 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
     onSaveStatusChange?.(section.section_id, status);
   }, [status, section.section_id, onSaveStatusChange]);
 
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setContent(newContent);
-    markDirty(JSON.stringify({ content: newContent, title }));
+  const handleContentChange = (html: string) => {
+    setContent(html);
+    markDirty(JSON.stringify({ content: html, title }));
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,12 +225,11 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
             {isGenerating && (
               <AIProgress progress={progress} label="Generating content" />
             )}
-            <Textarea
-              value={content}
+            <RichTextEditor
+              content={content}
               onChange={handleContentChange}
               onBlur={handleBlur}
-              placeholder="Write your content here..."
-              className="min-h-[150px] sm:min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
+              placeholder="Start writing or use AI to generate content..."
             />
             <div className="flex items-center justify-between">
               <Button 

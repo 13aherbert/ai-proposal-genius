@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import Table from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -48,9 +48,7 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        history: { depth: 50 },
-      }),
+      StarterKit,
       Underline,
       TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -100,7 +98,7 @@ export function RichTextEditor({
       // Only update if content genuinely differs (avoid cursor jumps)
       if (migrated !== currentHTML && content !== currentHTML) {
         isExternalUpdate.current = true;
-        editor.commands.setContent(migrated, false);
+        editor.commands.setContent(migrated);
         isExternalUpdate.current = false;
       }
     }

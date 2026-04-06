@@ -635,7 +635,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
     await persistAutomationState(projectId, 'analysis', 'in_progress', 0);
 
     const toastId = toast.loading('Starting automated proposal creation...', {
-      description: 'This process may take 10-15 minutes. Please keep this page open.'
+      description: 'This process typically takes 2-5 minutes. Please keep this page open.'
     });
 
     try {

@@ -13,6 +13,8 @@ export interface SectionsListProps {
   isLoading?: boolean;
   error?: Error | null;
   onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
+  members?: Array<{ user_id: string; first_name?: string; last_name?: string; username?: string; role: string }>;
+  showTeamFeatures?: boolean;
 }
 
 export function SectionsList({ 
@@ -23,45 +25,33 @@ export function SectionsList({
   isLoading,
   error,
   onSaveStatusChange,
+  members,
+  showTeamFeatures,
 }: SectionsListProps) {
   const mouseSensor = useSensor(MouseSensor, {
-    activationConstraint: {
-      distance: 10,
-    },
+    activationConstraint: { distance: 10 },
   });
   
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 250,
-      tolerance: 5,
-    },
+    activationConstraint: { delay: 250, tolerance: 5 },
   });
   
   const sensors = useSensors(mouseSensor, touchSensor);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (over && active.id !== over.id) {
       const oldIndex = sections.findIndex((section) => section.section_id === active.id);
       const newIndex = sections.findIndex((section) => section.section_id === over.id);
-      
       const newSections = [...sections];
       const [movedSection] = newSections.splice(oldIndex, 1);
       newSections.splice(newIndex, 0, movedSection);
-      
       onReorderSections(newSections);
     }
   };
 
-  if (isLoading) {
-    return <div>Loading sections...</div>;
-  }
-
-  if (error) {
-    return <div className="text-destructive">Error loading sections: {error.message}</div>;
-  }
-
+  if (isLoading) return <div>Loading sections...</div>;
+  if (error) return <div className="text-destructive">Error loading sections: {error.message}</div>;
   if (sections.length === 0) {
     return (
       <div className="text-muted-foreground">
@@ -84,6 +74,8 @@ export function SectionsList({
               isSelected={selectedSection === section.section_id}
               onSelect={() => onSelectSection(section.section_id)}
               onSaveStatusChange={onSaveStatusChange}
+              members={members}
+              showTeamFeatures={showTeamFeatures}
             />
           ))}
         </div>

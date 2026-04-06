@@ -118,6 +118,5 @@ export function RichTextEditor({
       <AIBubbleMenu editor={editor} sectionTitle={sectionTitle} tone={tone} />
       <EditorContent editor={editor} />
     </div>
-    </div>
   );
 }

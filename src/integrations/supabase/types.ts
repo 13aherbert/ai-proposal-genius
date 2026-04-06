@@ -1902,6 +1902,48 @@ export type Database = {
           },
         ]
       }
+      project_presence: {
+        Row: {
+          action: string
+          id: string
+          last_seen: string | null
+          project_id: string
+          section_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          id?: string
+          last_seen?: string | null
+          project_id: string
+          section_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          last_seen?: string | null
+          project_id?: string
+          section_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_presence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_presence_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_sections"
+            referencedColumns: ["section_id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           analysis: string | null
@@ -2184,6 +2226,89 @@ export type Database = {
           },
         ]
       }
+      review_checklist_items: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_default: boolean | null
+          label: string
+          project_id: string
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          label: string
+          project_id: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          label?: string
+          project_id?: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_checklist_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
+      review_checklist_status: {
+        Row: {
+          checked: boolean | null
+          checked_at: string | null
+          checked_by: string | null
+          checklist_item_id: string
+          id: string
+          section_id: string
+        }
+        Insert: {
+          checked?: boolean | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_item_id: string
+          id?: string
+          section_id: string
+        }
+        Update: {
+          checked?: boolean | null
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_item_id?: string
+          id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_checklist_status_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "review_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_checklist_status_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_sections"
+            referencedColumns: ["section_id"]
+          },
+        ]
+      }
       saved_opportunities: {
         Row: {
           created_at: string
@@ -2296,6 +2421,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_reviews: {
+        Row: {
+          action: string
+          checklist_snapshot: Json | null
+          comment: string | null
+          content_hash: string | null
+          created_at: string
+          id: string
+          project_id: string
+          reviewer_id: string
+          section_id: string
+        }
+        Insert: {
+          action: string
+          checklist_snapshot?: Json | null
+          comment?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          project_id: string
+          reviewer_id: string
+          section_id: string
+        }
+        Update: {
+          action?: string
+          checklist_snapshot?: Json | null
+          comment?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string
+          reviewer_id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "section_reviews_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_sections"
+            referencedColumns: ["section_id"]
           },
         ]
       }

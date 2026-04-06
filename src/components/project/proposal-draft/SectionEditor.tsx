@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,7 +161,10 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
 
   return (
     <>
-      <Card>
+      <Card className={cn(
+        "transition-all duration-200 hover:shadow-md",
+        isSelected && "border-l-4 border-l-[hsl(var(--brand-green,142_76%_36%))] shadow-sm"
+      )}>
         <CardHeader className="cursor-pointer" onClick={onSelect}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -231,7 +235,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               placeholder="Start writing or use AI to generate content..."
               sectionTitle={title}
             />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-end">
               <Button 
                 onClick={handleManualSave} 
                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
@@ -239,9 +243,6 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 <Save className="h-4 w-4" />
                 Save Changes
               </Button>
-              <span className="text-xs text-muted-foreground">
-                {countWords(content)} words
-              </span>
             </div>
           </CardContent>
         )}

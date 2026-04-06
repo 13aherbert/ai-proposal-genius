@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Wrench, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { useKnowledgeBase } from "@/components/knowledge-base/hooks/useKnowledge
 import { useStarterTemplates } from "@/components/knowledge-base/hooks/useStarterTemplates";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 import type { SearchResult } from "@/components/knowledge-base/SearchResults";
 
 const KnowledgeBase = () => {
@@ -40,6 +41,29 @@ const KnowledgeBase = () => {
   const readiness = useKnowledgeReadiness();
 
   const [selectedSearchEntry, setSelectedSearchEntry] = useState<SearchResult | null>(null);
+  const [categoryLastUpdated, setCategoryLastUpdated] = useState<Record<string, string>>({});
+
+  // Fetch the most recent updated_at per category for staleness indicators
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const fetchCategoryDates = async () => {
+      const { data } = await supabase
+        .from('knowledge_entries')
+        .select('category, updated_at')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false });
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const row of data) {
+          if (!map[row.category]) {
+            map[row.category] = row.updated_at;
+          }
+        }
+        setCategoryLastUpdated(map);
+      }
+    };
+    fetchCategoryDates();
+  }, [session?.user?.id]);
 
   const isSearchActive = searchQuery.trim().length > 0;
 
@@ -83,6 +107,7 @@ const KnowledgeBase = () => {
           onSelectCategory={setSelectedCategory}
           categoryCoverage={readiness.categoryCoverage}
           templateOnlyCategories={readiness.templateOnlyCategories}
+          categoryLastUpdated={categoryLastUpdated}
         />
         <div className="lg:col-span-3 space-y-4 sm:space-y-6">
           <SearchBar

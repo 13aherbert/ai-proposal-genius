@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { List, Star, Plus, CheckCircle, Circle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { List, Star, Plus, CheckCircle, Circle, AlertTriangle } from "lucide-react";
 import { KnowledgeCategory } from "./types";
 import { CategoryCoverage } from "@/hooks/use-knowledge-readiness";
 import { enhancedKnowledgeCategories } from "./data/categories";
+import { stalenessLevel } from "@/utils/relativeTime";
 
 interface CategorySidebarProps {
   categories: KnowledgeCategory[];
@@ -12,6 +14,8 @@ interface CategorySidebarProps {
   onSelectCategory: (category: string | null) => void;
   categoryCoverage?: CategoryCoverage[];
   templateOnlyCategories?: string[];
+  /** Map of category name → most recent updated_at ISO string */
+  categoryLastUpdated?: Record<string, string>;
 }
 
 export const CategorySidebar = ({ 
@@ -20,6 +24,7 @@ export const CategorySidebar = ({
   onSelectCategory,
   categoryCoverage = [],
   templateOnlyCategories = [],
+  categoryLastUpdated = {},
 }: CategorySidebarProps) => {
 
   const getStatus = (name: string) => {
@@ -60,6 +65,43 @@ export const CategorySidebar = ({
     return <Plus className="h-3 w-3 text-muted-foreground flex-shrink-0" />;
   };
 
+  const StaleBadge = ({ name }: { name: string }) => {
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    const lastUpdated = categoryLastUpdated[name] || categoryLastUpdated[slug];
+    const level = stalenessLevel(lastUpdated);
+    if (level === "needs-review") {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="destructive" className="text-[9px] px-1 py-0 leading-tight">
+                Review
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Not updated in over 180 days</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    if (level === "stale") {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertTriangle className="h-3 w-3 text-amber-500 flex-shrink-0" />
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Not updated in over 90 days</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return null;
+  };
+
   return (
     <Card className="lg:col-span-1 bg-secondary/50 backdrop-blur-sm h-full">
       <CardHeader>
@@ -88,6 +130,7 @@ export const CategorySidebar = ({
             >
               <StatusIcon name={category.name} />
               <span className="flex-1 text-left">{category.name}</span>
+              <StaleBadge name={category.name} />
               <PriorityIcon name={category.name} />
             </Button>
           ))}

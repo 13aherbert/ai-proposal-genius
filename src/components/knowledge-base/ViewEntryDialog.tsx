@@ -11,6 +11,8 @@ import { DeleteEntryAlert } from "./dialog/DeleteEntryAlert";
 import { ParsingStatusIndicator } from "./ParsingStatusIndicator";
 import { useEntryOperations } from "./hooks/useEntryOperations";
 import { KnowledgeCategory } from "./types";
+import { Clock, CalendarPlus } from "lucide-react";
+import { format } from "date-fns";
 
 interface ViewEntryDialogProps {
   open: boolean;
@@ -43,6 +45,8 @@ export const ViewEntryDialog = ({
     parsingStatus,
     parsingProgress,
     parsingError,
+    createdAt,
+    updatedAt,
     fetchEntryContent,
     handleSave,
     handleDelete,
@@ -70,6 +74,11 @@ export const ViewEntryDialog = ({
 
   const handleDeleteConfirm = async () => {
     await handleDelete();
+  };
+
+  const formatFullDate = (iso?: string | null) => {
+    if (!iso) return null;
+    return format(new Date(iso), "MMMM d, yyyy 'at' h:mm a");
   };
 
   return (
@@ -106,6 +115,24 @@ export const ViewEntryDialog = ({
             categories={categories}
             onEditedCategoryChange={setEditedCategory}
           />
+
+          {/* Timestamps */}
+          {(createdAt || updatedAt) && (
+            <div className="px-6 py-2 border-b flex flex-wrap gap-4 text-xs text-muted-foreground">
+              {updatedAt && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Last updated: {formatFullDate(updatedAt)}
+                </span>
+              )}
+              {createdAt && (
+                <span className="flex items-center gap-1">
+                  <CalendarPlus className="h-3 w-3" />
+                  Created: {formatFullDate(createdAt)}
+                </span>
+              )}
+            </div>
+          )}
 
           {filePath && entryId && (
             <div className="px-6 py-3 border-b">

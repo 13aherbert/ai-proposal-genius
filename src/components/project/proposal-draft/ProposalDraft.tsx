@@ -78,9 +78,16 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       last_name: m.last_name,
       username: m.username,
       role: m.role,
+      avatar_url: m.avatar_url,
     })),
     [members]
   );
+
+  const handleCommentFromEditor = useCallback((sectionId: string, quotedText: string, from: number, to: number) => {
+    setCommentSidebarOpen(true);
+    setCommentSectionId(sectionId);
+    setPendingComment({ sectionId, quotedText, from, to });
+  }, []);
 
   // Filtered sections
   const filteredSections = useMemo(() => {

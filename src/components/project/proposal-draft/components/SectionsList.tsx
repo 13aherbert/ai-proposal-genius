@@ -3,6 +3,7 @@ import { ProposalSection } from "../useProposalSections";
 import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableSection } from "./SortableSection";
+import { SaveStatus } from "@/hooks/use-auto-save";
 
 export interface SectionsListProps {
   sections: ProposalSection[];
@@ -11,6 +12,7 @@ export interface SectionsListProps {
   onReorderSections: (sections: ProposalSection[]) => void;
   isLoading?: boolean;
   error?: Error | null;
+  onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
 }
 
 export function SectionsList({ 
@@ -19,7 +21,8 @@ export function SectionsList({
   onSelectSection,
   onReorderSections,
   isLoading,
-  error 
+  error,
+  onSaveStatusChange,
 }: SectionsListProps) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -56,7 +59,7 @@ export function SectionsList({
   }
 
   if (error) {
-    return <div className="text-red-500">Error loading sections: {error.message}</div>;
+    return <div className="text-destructive">Error loading sections: {error.message}</div>;
   }
 
   if (sections.length === 0) {
@@ -80,6 +83,7 @@ export function SectionsList({
               section={section}
               isSelected={selectedSection === section.section_id}
               onSelect={() => onSelectSection(section.section_id)}
+              onSaveStatusChange={onSaveStatusChange}
             />
           ))}
         </div>

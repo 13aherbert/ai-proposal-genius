@@ -15,6 +15,7 @@ import { BackupManager } from "./BackupManager";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { SaveStatus } from "@/hooks/use-auto-save";
+import { countWords } from "@/utils/wordCount";
 
 export interface ProposalDraftProps {
   projectId: string;

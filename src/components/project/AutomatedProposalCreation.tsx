@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Clock, Play, Square, RotateCcw, AlertCircle, Zap } from "lucide-react";
 import { useAutomatedProposalCreation, type AutomationStep } from "@/hooks/use-automated-proposal-creation";
-import { forwardRef, useImperativeHandle } from "react";
+import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
 
 interface AutomatedProposalCreationProps {
   projectId: string;
@@ -120,18 +120,7 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
         </div>
         
         {progress.isRunning && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Overall Progress</span>
-              <span>{progress.overallProgress}%</span>
-            </div>
-            <Progress value={progress.overallProgress} className="h-2" />
-            {formatTimeRemaining() && (
-              <div className="text-xs text-muted-foreground text-center">
-                Estimated time remaining: {formatTimeRemaining()}
-              </div>
-            )}
-          </div>
+          <ElapsedTimer startTime={progress.startTime} isRunning={progress.isRunning} overallProgress={progress.overallProgress} />
         )}
       </CardHeader>
       
@@ -233,7 +222,7 @@ export const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef
           <AlertDescription className="text-sm">
             <div className="font-medium mb-2">About Automated Proposal Creation</div>
             <ul className="space-y-1 text-xs">
-              <li>• This process typically takes 10-15 minutes to complete</li>
+              <li>• This process typically takes 2-5 minutes to complete</li>
               <li>• Each step builds on the previous one for best results</li>
               <li>• You can stop and resume the process at any time</li>
               <li>• Content can be reviewed and edited after generation</li>

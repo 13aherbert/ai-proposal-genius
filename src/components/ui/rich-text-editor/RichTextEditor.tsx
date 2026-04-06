@@ -52,6 +52,7 @@ export function RichTextEditor({
   className,
   sectionTitle,
   tone,
+  editable = true,
 }: RichTextEditorProps) {
   const isExternalUpdate = useRef(false);
   const [isFullScreen, setIsFullScreen] = useState(false);

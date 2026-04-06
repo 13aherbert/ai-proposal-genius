@@ -2,17 +2,12 @@
 /**
  * Subscription Page Component
  * 
- * Handles displaying and managing user subscription states:
- * - Loading state while subscription data is fetched
- * - Renewal prompt if subscription needs attention
- * - Payment failed view if a payment attempt failed
- * - Default subscription plans view
- * 
- * Handles routing logic based on subscription status and manages
- * payment update process.
+ * In-app pricing & plan management page for logged-in users.
+ * Shows current plan, plan cards, and feature comparison table.
+ * Handles renewal prompts and payment failures.
  */
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useSubscription } from "@/hooks/subscription";
 import { toast } from "sonner";
 import { useSEO } from "@/hooks/use-seo";
@@ -23,7 +18,6 @@ import { DefaultView } from "@/components/subscription/DefaultView";
 import { usePaymentUpdate } from "@/hooks/subscription/use-payment-update";
 
 export default function Subscription() {
-  const navigate = useNavigate();
   const location = useLocation();
   const subscription = useSubscription();
   const { handleUpdatePayment, isUpdatingPayment } = usePaymentUpdate();
@@ -32,8 +26,8 @@ export default function Subscription() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useSEO({
-    title: "OptiRFP Pricing — Free Tier + Unlimited Users | Start Free",
-    description: "Start free with 6 projects. Scale to Growth ($199), Business ($499), or Enterprise ($1,499+). Unlimited team members on all paid plans.",
+    title: "Plans & Pricing — OptiRFP",
+    description: "Choose the right OptiRFP plan. Start free with 6 projects. Scale to Growth ($199), Business ($499), or Enterprise ($1,499+).",
   });
 
   // Check for payment status in URL params (redirected from payment provider)
@@ -49,7 +43,6 @@ export default function Subscription() {
       });
     }
     
-    // Set initialLoadComplete after a timeout to prevent flickering
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
     }, 3000);
@@ -57,33 +50,20 @@ export default function Subscription() {
     return () => clearTimeout(timer);
   }, [location.search]);
 
-  // Process subscription data once loaded
+  // Process subscription data — show renewal prompt if needed but NEVER redirect away
   useEffect(() => {
     if (!subscription.isLoading && subscription.subscription) {
       setInitialLoadComplete(true);
       
-      const hasActiveSubscription = subscription.subscription?.status === 'active';
-      const isTrialOrFreeStarter = subscription.subscription?.plan_type === 'trial' || subscription.subscription?.plan_type === 'starter';
       const hasFailedSubscriptionPayment = subscription.subscription?.status === 'past_due' || subscription.subscription?.status === 'unpaid';
-      // Fix: Call isInGracePeriod as a function
       const needsRenewal = subscription.isInGracePeriod() || hasFailedSubscriptionPayment;
       
-      // Check if this is an enterprise request
-      const isEnterpriseRequest = location.search.includes('enterprise=true') || location.state?.fromUpgradeButton;
-      
-      // Don't auto-redirect to dashboard if user explicitly wants to see subscription plans
-      // or if they're coming from enterprise onboarding
-      if (hasActiveSubscription && !needsRenewal && !isEnterpriseRequest) {
-        if (!location.state?.fromUpgradeButton) {
-          navigate('/dashboard');
-        }
-      } else if (needsRenewal) {
+      if (needsRenewal) {
         setShowRenewalPrompt(true);
       }
     }
-  }, [subscription.subscription, subscription.isLoading, navigate, location.state, location.search, subscription.isInGracePeriod]);
+  }, [subscription.subscription, subscription.isLoading, subscription.isInGracePeriod]);
 
-  // Render appropriate view based on state
   if (subscription.isLoading && !initialLoadComplete) {
     return <LoadingState />;
   }
@@ -91,7 +71,6 @@ export default function Subscription() {
   if (showRenewalPrompt) {
     return (
       <RenewalPrompt
-        // Fix: Pass the function itself instead of its return value
         isInGracePeriod={subscription.isInGracePeriod}
         handleUpdatePayment={handleUpdatePayment}
         isUpdatingPayment={isUpdatingPayment}

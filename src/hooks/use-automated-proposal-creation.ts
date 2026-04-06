@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { analyzeRFP } from '@/components/project/rfp-analysis/api/rfpAnalysisApi';
@@ -30,6 +30,144 @@ interface StepResult {
   error?: string;
 }
 
+const STEP_ORDER: AutomationStep[] = ['analysis', 'outline', 'sections', 'content', 'evaluation'];
+
+/**
+ * Persist the automation state to the projects table so the Overview tab
+ * (and any other consumer) always reads the same source of truth.
+ */
+async function persistAutomationState(
+  projectId: string,
+  step: AutomationStep,
+  status: 'pending' | 'in_progress' | 'completed' | 'failed',
+  progress: number,
+  error?: string,
+) {
+  const update: Record<string, unknown> = {
+    automation_step: step,
+    automation_status: status,
+    automation_progress: progress,
+  };
+
+  if (status === 'in_progress' && progress === 0) {
+    update.automation_started_at = new Date().toISOString();
+  }
+  if (status === 'completed') {
+    update.automation_completed_at = new Date().toISOString();
+  }
+  if (error) {
+    update.automation_error = error;
+  }
+  if (status === 'in_progress' || status === 'completed') {
+    update.automation_error = null; // clear previous error
+  }
+
+  await supabase
+    .from('projects')
+    .update(update)
+    .eq('project_id', projectId);
+}
+
+/**
+ * Derive local progress state from the persisted DB columns so the
+ * Overview tab shows the correct status on mount / navigation.
+ */
+function deriveProgressFromDB(project: {
+  automation_status?: string | null;
+  automation_step?: string | null;
+  automation_progress?: number | null;
+  automation_error?: string | null;
+  analysis?: string | null;
+  proposal_outline?: string | null;
+  evaluation?: string | null;
+}): AutomationProgress {
+  const status = project.automation_status;
+  const step = (project.automation_step as AutomationStep) || 'analysis';
+  const dbProgress = project.automation_progress ?? 0;
+
+  // If DB says completed, mark all steps done
+  if (status === 'completed') {
+    return {
+      currentStep: 'completed',
+      stepProgress: 100,
+      overallProgress: 100,
+      isRunning: false,
+      isPaused: false,
+      completedSteps: [...STEP_ORDER],
+      errors: [],
+    };
+  }
+
+  // If DB says failed, mark steps up to the failed one
+  if (status === 'failed') {
+    const failedIdx = STEP_ORDER.indexOf(step as AutomationStep);
+    const completed = failedIdx > 0 ? STEP_ORDER.slice(0, failedIdx) : [];
+    return {
+      currentStep: step,
+      stepProgress: 0,
+      overallProgress: dbProgress,
+      isRunning: false,
+      isPaused: false,
+      completedSteps: completed,
+      errors: [{ step: step as AutomationStep, message: project.automation_error || 'Step failed' }],
+    };
+  }
+
+  // If DB says in_progress — the page was likely closed mid-run.
+  // Show completed steps up to current and mark current as pending (not running
+  // since we don't have the active process anymore).
+  if (status === 'in_progress') {
+    const currentIdx = STEP_ORDER.indexOf(step as AutomationStep);
+    const completed = currentIdx > 0 ? STEP_ORDER.slice(0, currentIdx) : [];
+    return {
+      currentStep: step,
+      stepProgress: 0,
+      overallProgress: dbProgress,
+      isRunning: false,
+      isPaused: false,
+      completedSteps: completed,
+      errors: [],
+    };
+  }
+
+  // Fallback: infer from content presence (for projects automated before this fix)
+  const completedSteps: AutomationStep[] = [];
+  if (project.analysis?.trim()) completedSteps.push('analysis');
+  if (project.proposal_outline?.trim()) completedSteps.push('outline');
+  // sections & content are in proposal_sections table — can't cheaply check here
+  // but if we have evaluation, everything before it must be done
+  if (project.evaluation?.trim()) {
+    if (!completedSteps.includes('analysis')) completedSteps.push('analysis');
+    if (!completedSteps.includes('outline')) completedSteps.push('outline');
+    completedSteps.push('sections', 'content', 'evaluation');
+  }
+
+  if (completedSteps.length === 5) {
+    return {
+      currentStep: 'completed',
+      stepProgress: 100,
+      overallProgress: 100,
+      isRunning: false,
+      isPaused: false,
+      completedSteps,
+      errors: [],
+    };
+  }
+
+  // Find next pending step
+  const nextStep = STEP_ORDER.find(s => !completedSteps.includes(s)) || 'analysis';
+
+  return {
+    currentStep: nextStep,
+    stepProgress: 0,
+    overallProgress: completedSteps.length > 0 ? Math.round((completedSteps.length / 5) * 100) : 0,
+    isRunning: false,
+    isPaused: false,
+    completedSteps,
+    errors: [],
+  };
+}
+
 export function useAutomatedProposalCreation(projectId: string, filePath: string) {
   const { session } = useAuth();
   const [progress, setProgress] = useState<AutomationProgress>({
@@ -41,13 +179,37 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
     completedSteps: [],
     errors: []
   });
+  const [initialized, setInitialized] = useState(false);
+
+  // On mount: load persisted automation state from DB
+  useEffect(() => {
+    let cancelled = false;
+    async function loadState() {
+      const { data } = await supabase
+        .from('projects')
+        .select('automation_status, automation_step, automation_progress, automation_error, analysis, proposal_outline, evaluation')
+        .eq('project_id', projectId)
+        .single();
+
+      if (cancelled || !data) {
+        setInitialized(true);
+        return;
+      }
+
+      const derived = deriveProgressFromDB(data);
+      setProgress(derived);
+      setInitialized(true);
+    }
+    loadState();
+    return () => { cancelled = true; };
+  }, [projectId]);
 
   const updateProgress = useCallback((updates: Partial<AutomationProgress>) => {
     setProgress(prev => ({ ...prev, ...updates }));
   }, []);
 
   const calculateOverallProgress = useCallback((step: AutomationStep, stepProgress: number) => {
-    const stepWeights = {
+    const stepWeights: Record<string, number> = {
       analysis: 20,
       outline: 20,
       sections: 15,
@@ -55,17 +217,12 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
       evaluation: 10
     };
 
-    const stepOrder: AutomationStep[] = ['analysis', 'outline', 'sections', 'content', 'evaluation'];
-    const currentStepIndex = stepOrder.indexOf(step);
+    const currentStepIndex = STEP_ORDER.indexOf(step);
     
     let totalProgress = 0;
-    
-    // Add completed steps
     for (let i = 0; i < currentStepIndex; i++) {
-      totalProgress += stepWeights[stepOrder[i]];
+      totalProgress += stepWeights[STEP_ORDER[i]];
     }
-    
-    // Add current step progress
     totalProgress += (stepWeights[step] * stepProgress) / 100;
     
     return Math.round(totalProgress);
@@ -79,8 +236,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         stepProgress: 0,
         overallProgress: calculateOverallProgress('analysis', 0)
       });
+      await persistAutomationState(projectId, 'analysis', 'in_progress', 0);
 
-      // Check if analysis already exists
       const { data: existingProject } = await supabase
         .from('projects')
         .select('analysis')
@@ -95,7 +252,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: true, data: existingProject.analysis };
       }
 
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const newStepProgress = Math.min(prev.stepProgress + 15, 90);
@@ -130,8 +286,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         stepProgress: 0,
         overallProgress: calculateOverallProgress('outline', 0)
       });
+      await persistAutomationState(projectId, 'outline', 'in_progress', calculateOverallProgress('outline', 0));
 
-      // Check if outline already exists
       const { data: existingProject } = await supabase
         .from('projects')
         .select('proposal_outline')
@@ -146,7 +302,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: true, data: existingProject.proposal_outline };
       }
 
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const newStepProgress = Math.min(prev.stepProgress + 20, 90);
@@ -167,7 +322,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
       if (functionError) throw new Error(functionError.message);
       if (!generatedData?.outline) throw new Error("Invalid response from outline generation");
 
-      // Save the outline
       const { error: updateError } = await supabase
         .from('projects')
         .update({ 
@@ -198,30 +352,27 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         stepProgress: 0,
         overallProgress: calculateOverallProgress('sections', 0)
       });
+      await persistAutomationState(projectId, 'sections', 'in_progress', calculateOverallProgress('sections', 0));
 
-      // Extract section titles from outline using the same logic as the manual process
       const extractSectionTitles = (outline: string): string[] => {
         const lines = outline.split('\n');
         const titles: string[] = [];
         
         for (const line of lines) {
           const trimmed = line.trim();
-          // Match markdown headers (# ## ###) and numbered items (1. 2. etc.)
           if (trimmed.match(/^#{1,3}\s+(.+)/) || trimmed.match(/^\d+\.\s+(.+)/)) {
             let title = trimmed
-              .replace(/^#{1,3}\s+/, '') // Remove markdown headers
-              .replace(/^\d+\.\s+/, '') // Remove numbered list items
-              .replace(/\*\*/g, '') // Remove bold markdown
-              .replace(/\*/g, '') // Remove italic markdown
+              .replace(/^#{1,3}\s+/, '')
+              .replace(/^\d+\.\s+/, '')
+              .replace(/\*\*/g, '')
+              .replace(/\*/g, '')
               .trim();
             
-            // Filter out proposal outline headers and appendices sections
             const titleLower = title.toLowerCase();
             const isProposalHeader = titleLower.includes('proposal outline') || 
                                     titleLower.includes('outline') && titleLower.includes('proposal');
             const isAppendices = titleLower.includes('appendix') || 
-                                titleLower.includes('appendices') ||
-                                titleLower.includes('appendix');
+                                titleLower.includes('appendices');
             
             if (title && title.length > 3 && title.length < 100 && !isProposalHeader && !isAppendices) {
               titles.push(title);
@@ -238,7 +389,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: false, error: 'No valid sections found in outline' };
       }
 
-      // Check if sections already exist
       const { data: existingSections } = await supabase
         .from('proposal_sections')
         .select('section_title')
@@ -255,7 +405,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: true, data: sectionTitles };
       }
 
-      // Create sections
       for (let i = 0; i < newTitles.length; i++) {
         const title = newTitles[i];
         const { data: { session } } = await supabase.auth.getSession();
@@ -264,7 +413,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
           throw new Error("No authenticated user");
         }
 
-        // Get user's current organization
         const { data: profile } = await supabase
           .from('profiles')
           .select('current_organization_id')
@@ -291,7 +439,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
           overallProgress: calculateOverallProgress('sections', stepProgress)
         });
 
-        // Small delay to maintain order
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
@@ -310,8 +457,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         stepProgress: 0,
         overallProgress: calculateOverallProgress('content', 0)
       });
+      await persistAutomationState(projectId, 'content', 'in_progress', calculateOverallProgress('content', 0));
 
-      // Get all sections
       const { data: sections } = await supabase
         .from('proposal_sections')
         .select('*')
@@ -332,7 +479,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: true };
       }
 
-      // Generate content for each section
       let completed = 0;
       const errors: string[] = [];
 
@@ -349,7 +495,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
           if (error || !data?.content) {
             errors.push(section.section_title);
           } else {
-            // Update section with generated content
             await supabase
               .from('proposal_sections')
               .update({ content: data.content })
@@ -363,7 +508,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
             overallProgress: calculateOverallProgress('content', stepProgress)
           });
 
-          // Delay between generations
           if (completed < sectionsNeedingContent.length) {
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
@@ -399,8 +543,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         stepProgress: 0,
         overallProgress: calculateOverallProgress('evaluation', 0)
       });
+      await persistAutomationState(projectId, 'evaluation', 'in_progress', calculateOverallProgress('evaluation', 0));
 
-      // Check if evaluation already exists
       const { data: existingProject } = await supabase
         .from('projects')
         .select('evaluation')
@@ -415,7 +559,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         return { success: true, data: existingProject.evaluation };
       }
 
-      // Get proposal sections and analysis for evaluation
       const [sectionsResult, analysisResult] = await Promise.all([
         supabase.from('proposal_sections').select('*').eq('project_id', projectId),
         supabase.from('projects').select('analysis').eq('project_id', projectId).single()
@@ -439,7 +582,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         overallProgress: calculateOverallProgress('evaluation', 40)
       });
 
-      // Call evaluation function
       const { data: evaluationData, error: evaluationError } = await supabase.functions.invoke('evaluate-proposal', {
         body: {
           projectId,
@@ -456,7 +598,6 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
       if (evaluationError) throw new Error(evaluationError.message);
       if (!evaluationData?.evaluation) throw new Error("Invalid response from evaluation service");
 
-      // Save evaluation
       const { error: updateError } = await supabase
         .from('projects')
         .update({ evaluation: evaluationData.evaluation })
@@ -491,6 +632,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
       completedSteps: []
     });
 
+    await persistAutomationState(projectId, 'analysis', 'in_progress', 0);
+
     const toastId = toast.loading('Starting automated proposal creation...', {
       description: 'This process may take 10-15 minutes. Please keep this page open.'
     });
@@ -502,6 +645,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         throw new Error(`Analysis failed: ${analysisResult.error}`);
       }
       setProgress(prev => ({ ...prev, completedSteps: [...prev.completedSteps, 'analysis'] }));
+      await persistAutomationState(projectId, 'analysis', 'in_progress', 20);
 
       // Step 2: Outline
       const outlineResult = await executeOutlineStep(analysisResult.data);
@@ -509,6 +653,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         throw new Error(`Outline generation failed: ${outlineResult.error}`);
       }
       setProgress(prev => ({ ...prev, completedSteps: [...prev.completedSteps, 'outline'] }));
+      await persistAutomationState(projectId, 'outline', 'in_progress', 40);
 
       // Step 3: Sections
       const sectionsResult = await executeSectionsStep(outlineResult.data);
@@ -516,6 +661,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         throw new Error(`Section creation failed: ${sectionsResult.error}`);
       }
       setProgress(prev => ({ ...prev, completedSteps: [...prev.completedSteps, 'sections'] }));
+      await persistAutomationState(projectId, 'sections', 'in_progress', 55);
 
       // Step 4: Content
       const contentResult = await executeContentStep();
@@ -523,6 +669,7 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         throw new Error(`Content generation failed: ${contentResult.error}`);
       }
       setProgress(prev => ({ ...prev, completedSteps: [...prev.completedSteps, 'content'] }));
+      await persistAutomationState(projectId, 'content', 'in_progress', 90);
 
       // Step 5: Evaluation
       const evaluationResult = await executeEvaluationStep();
@@ -537,6 +684,8 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
         isRunning: false
       }));
 
+      await persistAutomationState(projectId, 'completed', 'completed', 100);
+
       toast.dismiss(toastId);
       toast.success('Automated proposal creation completed!', {
         description: 'Your complete proposal is ready for review.'
@@ -544,42 +693,56 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
 
     } catch (error) {
       console.error('Automation error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
       setProgress(prev => ({
         ...prev,
         isRunning: false,
         errors: [...prev.errors, { 
           step: prev.currentStep, 
-          message: error instanceof Error ? error.message : 'Unknown error'
+          message: errorMsg
         }]
       }));
 
+      await persistAutomationState(
+        projectId,
+        progress.currentStep,
+        'failed',
+        progress.overallProgress,
+        errorMsg,
+      );
+
       toast.dismiss(toastId);
       toast.error('Automation failed', {
-        description: error instanceof Error ? error.message : 'Please try again or continue manually.'
+        description: errorMsg || 'Please try again or continue manually.'
       });
     }
   }, [
     session,
+    projectId,
     executeAnalysisStep,
     executeOutlineStep,
     executeSectionsStep,
     executeContentStep,
     executeEvaluationStep,
-    updateProgress
+    updateProgress,
+    progress.currentStep,
+    progress.overallProgress,
   ]);
 
-  const stopAutomation = useCallback(() => {
+  const stopAutomation = useCallback(async () => {
     setProgress(prev => ({
       ...prev,
       isRunning: false,
       isPaused: false
     }));
+    await persistAutomationState(projectId, progress.currentStep, 'in_progress', progress.overallProgress);
     toast.info('Automation stopped', {
       description: 'You can continue the process manually or restart automation.'
     });
-  }, []);
+  }, [projectId, progress.currentStep, progress.overallProgress]);
 
-  const resetAutomation = useCallback(() => {
+  const resetAutomation = useCallback(async () => {
     setProgress({
       currentStep: 'analysis',
       stepProgress: 0,
@@ -589,12 +752,14 @@ export function useAutomatedProposalCreation(projectId: string, filePath: string
       completedSteps: [],
       errors: []
     });
-  }, []);
+    await persistAutomationState(projectId, 'analysis', 'pending', 0);
+  }, [projectId]);
 
   return {
     progress,
     startAutomation,
     stopAutomation,
-    resetAutomation
+    resetAutomation,
+    initialized,
   };
 }

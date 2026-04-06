@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { type Editor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/extension-bubble-menu/react";
 import {
   Sparkles, FileText, AlignLeft,
   Briefcase, Scissors, Wrench,

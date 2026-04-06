@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useSubscriptionFeatures, FeatureName } from "@/hooks/use-subscription-features";
 import { useSubscription } from "@/hooks/use-subscription";
 import { TierBadge } from "@/components/subscription/TierBadge";
+import { ProjectTierIndicator } from "@/components/subscription/ProjectTierIndicator";
+import { FeatureDiscoveryTooltip } from "@/components/subscription/FeatureDiscoveryTooltip";
 
 interface ProjectSidebarProps {
   activeSection: string;

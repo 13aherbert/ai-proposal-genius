@@ -34,6 +34,7 @@ import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { FeatureGate } from "@/components/subscription/FeatureGate";
 import { UsageProgressWidget } from "@/components/subscription/UsageProgressWidget";
+import { DashboardUpgradeBanner } from "@/components/subscription/DashboardUpgradeBanner";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -262,6 +263,9 @@ export default function Dashboard() {
               currentPlan="enterprise"
             />
           )}
+          {/* Upgrade Banner for Free Tier */}
+          <DashboardUpgradeBanner />
+
           {/* Recent Activity */}
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>

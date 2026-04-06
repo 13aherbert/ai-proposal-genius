@@ -1,11 +1,12 @@
 
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AIProgress } from "@/components/shared/AIProgress";
 import { useProposalOutline } from "./useProposalOutline";
-import ReactMarkdown from "react-markdown";
+import { EditableOutline } from "./EditableOutline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,27 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
     handleReset
   } = useProposalOutline(projectId, analysis);
 
+  // Track user edits to outline — starts as AI outline, user can modify
+  const [editedOutline, setEditedOutline] = useState<string | null>(null);
+
+  // When AI generates a new outline, reset edited version
+  const currentOutline = editedOutline ?? outline;
+
+  const handleOutlineChange = useCallback((markdown: string) => {
+    setEditedOutline(markdown);
+  }, []);
+
+  const handleResetOutline = () => {
+    handleReset();
+    setEditedOutline(null);
+  };
+
+  // When a new outline is generated, clear edits
+  const handleGenerate = async () => {
+    setEditedOutline(null);
+    await handleGenerateOutline();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -41,7 +63,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
             Proposal Outline
           </CardTitle>
           <CardDescription>
-            Generate an AI-powered outline for your proposal
+            Generate an AI-powered outline, then reorder, edit, or add sections before content generation
           </CardDescription>
         </div>
       </CardHeader>
@@ -54,7 +76,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
         
         {!outline && !isGenerating && (
           <Button 
-            onClick={handleGenerateOutline} 
+            onClick={handleGenerate} 
             className="w-full bg-brand-green hover:bg-brand-green-dark text-white"
             disabled={!analysis}
           >
@@ -75,18 +97,20 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
           </div>
         )}
         
-        {outline && (
+        {outline && !isGenerating && (
           <div className="space-y-4">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{outline}</ReactMarkdown>
-            </div>
+            <EditableOutline
+              outlineMarkdown={currentOutline || outline}
+              onOutlineChange={handleOutlineChange}
+            />
+            
             <div className="flex flex-col sm:flex-row gap-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="border-red-500 hover:bg-red-500/10 text-red-500 w-full sm:w-auto"
+                    className="border-destructive hover:bg-destructive/10 text-destructive w-full sm:w-auto"
                   >
                     Reset Outline
                   </Button>
@@ -100,7 +124,7 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReset}>
+                    <AlertDialogAction onClick={handleResetOutline}>
                       Yes, reset outline
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -109,19 +133,12 @@ export function ProposalOutline({ projectId, analysis }: ProposalOutlineProps) {
               
               <Button 
                 variant="outline" 
-                onClick={handleGenerateOutline}
+                onClick={handleGenerate}
                 size="sm"
                 className="bg-brand-green hover:bg-brand-green-dark text-white border-brand-green hover:border-brand-green-dark w-full sm:w-auto"
                 disabled={isGenerating}
               >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate New Outline"
-                )}
+                Generate New Outline
               </Button>
             </div>
           </div>

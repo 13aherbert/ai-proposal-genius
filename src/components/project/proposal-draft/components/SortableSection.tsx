@@ -4,14 +4,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { ProposalSection } from "../useProposalSections";
 import { SectionEditor } from "../SectionEditor";
 import { GripVertical } from "lucide-react";
+import { SaveStatus } from "@/hooks/use-auto-save";
 
 interface SortableSectionProps {
   section: ProposalSection;
   isSelected: boolean;
   onSelect: () => void;
+  onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
 }
 
-export function SortableSection({ section, isSelected, onSelect }: SortableSectionProps) {
+export function SortableSection({ section, isSelected, onSelect, onSaveStatusChange }: SortableSectionProps) {
   const {
     attributes,
     listeners,
@@ -48,6 +50,7 @@ export function SortableSection({ section, isSelected, onSelect }: SortableSecti
           section={section}
           isSelected={isSelected}
           onSelect={onSelect}
+          onSaveStatusChange={onSaveStatusChange}
         />
       </div>
     </div>

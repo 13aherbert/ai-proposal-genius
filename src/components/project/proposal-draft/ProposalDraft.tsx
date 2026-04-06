@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, MoreVertical } from "lucide-react";
@@ -8,11 +8,14 @@ import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
 import { ContentGenerationButton } from "./components/ContentGenerationButton";
 import { CompiledView } from "./components/CompiledView";
+import { GlobalSaveStatus } from "./components/GlobalSaveStatus";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { BackupManager } from "./BackupManager";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { SaveStatus } from "@/hooks/use-auto-save";
+import { useBlocker } from "react-router-dom";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -21,6 +24,7 @@ export interface ProposalDraftProps {
 
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [sectionStatuses, setSectionStatuses] = useState<Record<string, SaveStatus>>({});
   
   const {
     sections,
@@ -34,20 +38,40 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
 
+  const statusValues = Object.values(sectionStatuses);
+  const hasUnsaved = statusValues.some(s => s === "unsaved" || s === "saving");
+
+  // Browser beforeunload guard
+  useEffect(() => {
+    if (!hasUnsaved) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsaved]);
+
+  // React Router in-app navigation guard
+  useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsaved && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  const handleSaveStatusChange = useCallback((sectionId: string, status: SaveStatus) => {
+    setSectionStatuses(prev => ({ ...prev, [sectionId]: status }));
+  }, []);
+
   const handleSelectSection = (sectionId: string) => {
     setSelectedSection(selectedSection === sectionId ? null : sectionId);
   };
 
   const handleCreateSections = async (titles: string[]) => {
     try {
-      // Create sections sequentially to maintain order, but suppress individual toasts
       for (const title of titles) {
         await addSection(title, true);
-        // Small delay to ensure proper ordering
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Show single success toast after all sections are created
       toast.success(`Created ${titles.length} sections from outline`, {
         description: "You can now start adding content to each section."
       });
@@ -59,7 +83,6 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     }
   };
 
-  // Wrap updateSection to return a Promise to match the expected interface
   const handleUpdateSection = async (sectionId: string, content: string, title: string): Promise<void> => {
     return new Promise((resolve) => {
       updateSection(sectionId, content, title);
@@ -73,7 +96,6 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       return;
     }
 
-    // Show warning toast with confirmation
     toast.warning(`Delete all ${sections.length} sections?`, {
       description: "This action cannot be undone. A backup will be created automatically.",
       action: {
@@ -83,7 +105,6 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     });
   };
 
-  // If in compiled mode, show the compiled view
   if (mode === "compiled") {
     return <CompiledView sections={sections} projectId={projectId} />;
   }
@@ -92,7 +113,12 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:justify-between space-y-2 sm:space-y-0">
         <div>
-          <CardTitle className="text-xl sm:text-2xl font-semibold">Proposal Draft</CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-xl sm:text-2xl font-semibold">Proposal Draft</CardTitle>
+            {sections.length > 0 && (
+              <GlobalSaveStatus sectionStatuses={statusValues} />
+            )}
+          </div>
           <CardDescription>
             Create and edit sections for your proposal
           </CardDescription>
@@ -148,6 +174,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
               onSelectSection={handleSelectSection}
               onReorderSections={reorderSections}
               isLoading={isLoading}
+              onSaveStatusChange={handleSaveStatusChange}
             />
           </div>
         )}

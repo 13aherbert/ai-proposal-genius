@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { AIProgress } from "@/components/shared/AIProgress";
+import { useAutoSave, SaveStatus } from "@/hooks/use-auto-save";
+import { SaveStatusIndicator } from "./components/SaveStatusIndicator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +26,10 @@ interface SectionEditorProps {
   section: ProposalSection;
   isSelected: boolean;
   onSelect: () => void;
+  onSaveStatusChange?: (sectionId: string, status: SaveStatus) => void;
 }
 
-export function SectionEditor({ section, isSelected, onSelect }: SectionEditorProps) {
+export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChange }: SectionEditorProps) {
   const [title, setTitle] = useState(section.section_title);
   const [content, setContent] = useState(section.content || "");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,8 +39,65 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
   const { updateSection, deleteSection } = useProposalSections(section.project_id);
   const { session } = useAuth();
 
-  const handleSave = () => {
-    updateSection(section.section_id, content, title);
+  const storageKey = `autosave_section_${section.section_id}`;
+
+  // Restore from localStorage backup on mount
+  useEffect(() => {
+    try {
+      const backup = localStorage.getItem(storageKey);
+      if (backup) {
+        const parsed = JSON.parse(backup);
+        if (parsed.content && parsed.content !== section.content) {
+          setContent(parsed.content);
+          if (parsed.title) setTitle(parsed.title);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [section.section_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveAsync = useCallback(async () => {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        updateSection(section.section_id, content, title);
+        // updateSection is fire-and-forget via mutation; resolve optimistically
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }, [updateSection, section.section_id, content, title]);
+
+  const { status, markDirty, saveNow, retry } = useAutoSave({
+    delay: 2000,
+    storageKey,
+    onSave: handleSaveAsync,
+  });
+
+  // Report status changes to parent
+  useEffect(() => {
+    onSaveStatusChange?.(section.section_id, status);
+  }, [status, section.section_id, onSaveStatusChange]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setContent(newContent);
+    markDirty(JSON.stringify({ content: newContent, title }));
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    markDirty(JSON.stringify({ content, title: newTitle }));
+  };
+
+  const handleBlur = () => {
+    if (status === "unsaved") {
+      saveNow();
+    }
+  };
+
+  const handleManualSave = () => {
+    saveNow();
     setIsEditing(false);
   };
 
@@ -87,6 +147,8 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
       setContent(data.content);
       setProgress(100);
       toast.success('Content generated successfully!');
+      // Auto-save the generated content
+      markDirty(JSON.stringify({ content: data.content, title }));
     } catch (error) {
       console.error('Error generating content:', error);
       toast.error('Failed to generate content. Please try again.');
@@ -105,7 +167,8 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               {isEditing ? (
                 <Input
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={handleTitleChange}
+                  onBlur={handleBlur}
                   onClick={(e) => e.stopPropagation()}
                   className="text-lg font-semibold"
                   autoFocus
@@ -123,6 +186,7 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
               )}
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
+              <SaveStatusIndicator status={status} onRetry={retry} />
               <Button
                 variant="destructive"
                 size="sm"
@@ -162,12 +226,13 @@ export function SectionEditor({ section, isSelected, onSelect }: SectionEditorPr
             )}
             <Textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={handleContentChange}
+              onBlur={handleBlur}
               placeholder="Write your content here..."
               className="min-h-[150px] sm:min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
             />
             <Button 
-              onClick={handleSave} 
+              onClick={handleManualSave} 
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
             >
               <Save className="h-4 w-4" />

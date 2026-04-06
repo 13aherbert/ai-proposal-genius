@@ -2050,34 +2050,46 @@ export type Database = {
       }
       proposal_sections: {
         Row: {
+          assigned_to: string | null
           content: string | null
           created_at: string
+          due_date: string | null
           organization_id: string
           project_id: string
+          review_comment: string | null
           section_id: string
           section_title: string
           updated_at: string
           user_id: string
+          workflow_status: string
         }
         Insert: {
+          assigned_to?: string | null
           content?: string | null
           created_at?: string
+          due_date?: string | null
           organization_id: string
           project_id: string
+          review_comment?: string | null
           section_id?: string
           section_title: string
           updated_at?: string
           user_id: string
+          workflow_status?: string
         }
         Update: {
+          assigned_to?: string | null
           content?: string | null
           created_at?: string
+          due_date?: string | null
           organization_id?: string
           project_id?: string
+          review_comment?: string | null
           section_id?: string
           section_title?: string
           updated_at?: string
           user_id?: string
+          workflow_status?: string
         }
         Relationships: [
           {

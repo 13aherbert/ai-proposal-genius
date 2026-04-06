@@ -179,12 +179,6 @@ export function AIBubbleMenu({ editor, sectionTitle, tone }: AIBubbleMenuProps) 
   return (
     <BubbleMenu
       editor={editor}
-      tippyOptions={{
-        placement: "top",
-        maxWidth: "none",
-        duration: [200, 150],
-        appendTo: () => document.body,
-      }}
       shouldShow={({ editor: e }) => {
         if (phase === "loading" || phase === "review") return true;
         const { from, to } = e.state.selection;

@@ -10,4 +10,8 @@ export interface KnowledgeEntry {
   category: string;
   updated: string;
   isTemplate?: boolean;
+  /** Raw ISO timestamp for updated_at */
+  updatedAt?: string;
+  /** Raw ISO timestamp for created_at */
+  createdAt?: string;
 }

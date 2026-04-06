@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, MoreVertical, FileText } from "lucide-react";
+import { Loader2, Trash2, MoreVertical, FileText, MessageSquare } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
@@ -12,7 +12,9 @@ import { GlobalSaveStatus } from "./components/GlobalSaveStatus";
 import { ProposalProgress } from "./components/ProposalProgress";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
+import { useProposalComments } from "@/hooks/useProposalComments";
 import { BackupManager } from "./BackupManager";
+import { CommentSidebar } from "@/components/project/comments";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { SaveStatus } from "@/hooks/use-auto-save";

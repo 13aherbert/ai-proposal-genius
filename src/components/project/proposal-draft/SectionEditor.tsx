@@ -229,6 +229,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               onChange={handleContentChange}
               onBlur={handleBlur}
               placeholder="Start writing or use AI to generate content..."
+              sectionTitle={title}
             />
             <div className="flex items-center justify-between">
               <Button 

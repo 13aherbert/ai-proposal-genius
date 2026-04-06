@@ -27,6 +27,7 @@ interface RichTextEditorProps {
   className?: string;
   sectionTitle?: string;
   tone?: Tone;
+  editable?: boolean;
 }
 
 /**

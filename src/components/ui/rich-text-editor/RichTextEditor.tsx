@@ -53,6 +53,7 @@ export function RichTextEditor({
   tone,
 }: RichTextEditorProps) {
   const isExternalUpdate = useRef(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -80,7 +81,6 @@ export function RichTextEditor({
     onUpdate: ({ editor: e }) => {
       if (!isExternalUpdate.current) {
         const html = e.getHTML();
-        // Don't save empty editor artifacts
         if (html === "<p></p>") {
           onChange("");
         } else {
@@ -94,16 +94,29 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
+        spellcheck: "true",
       },
     },
   });
+
+  // Fullscreen shortcut: Ctrl+Shift+F or F11
+  const handleFullScreenShortcut = useCallback((e: KeyboardEvent) => {
+    if (e.key === "F11" || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "F")) {
+      e.preventDefault();
+      setIsFullScreen(prev => !prev);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleFullScreenShortcut);
+    return () => document.removeEventListener("keydown", handleFullScreenShortcut);
+  }, [handleFullScreenShortcut]);
 
   // Sync external content changes (e.g. AI generation) into editor
   useEffect(() => {
     if (editor && content !== undefined) {
       const currentHTML = editor.getHTML();
       const migrated = migrateContent(content);
-      // Only update if content genuinely differs (avoid cursor jumps)
       if (migrated !== currentHTML && content !== currentHTML) {
         isExternalUpdate.current = true;
         editor.commands.setContent(migrated);
@@ -114,11 +127,25 @@ export function RichTextEditor({
 
   if (!editor) return null;
 
+  if (isFullScreen) {
+    return (
+      <FullScreenEditor
+        editor={editor}
+        sectionTitle={sectionTitle}
+        tone={tone}
+        onExit={() => setIsFullScreen(false)}
+      />
+    );
+  }
+
   return (
     <div className={cn("border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background", className)}>
-      <EditorToolbar editor={editor} />
+      <EditorToolbar editor={editor} onFullScreen={() => setIsFullScreen(true)} />
       <AIBubbleMenu editor={editor} sectionTitle={sectionTitle} tone={tone} />
       <EditorContent editor={editor} />
+      <div className="border-t px-4 py-1.5 flex items-center justify-end">
+        <SectionStats content={content} className="text-xs text-muted-foreground" />
+      </div>
     </div>
   );
 }

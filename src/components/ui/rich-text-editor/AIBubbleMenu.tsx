@@ -16,6 +16,7 @@ interface AIBubbleMenuProps {
   editor: Editor;
   sectionTitle?: string;
   tone?: Tone;
+  onComment?: (quotedText: string, from: number, to: number) => void;
 }
 
 const ACTIONS: { action: AIAction; icon: React.ReactNode; label: string }[] = [
@@ -29,7 +30,7 @@ const ACTIONS: { action: AIAction; icon: React.ReactNode; label: string }[] = [
 
 type Phase = "idle" | "loading" | "review" | "custom-input";
 
-export function AIBubbleMenu({ editor, sectionTitle, tone }: AIBubbleMenuProps) {
+export function AIBubbleMenu({ editor, sectionTitle, tone, onComment }: AIBubbleMenuProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [suggestion, setSuggestion] = useState("");
   const [originalText, setOriginalText] = useState("");
@@ -266,17 +267,33 @@ export function AIBubbleMenu({ editor, sectionTitle, tone }: AIBubbleMenuProps) 
                 </Button>
               ))}
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 text-xs gap-1 px-2 w-full justify-start border-t border-border/50 rounded-t-none pt-1"
-              onClick={() => {
-                setPhase("custom-input");
-                setTimeout(() => inputRef.current?.focus(), 50);
-              }}
-            >
-              <MessageSquare className="h-3.5 w-3.5" /> Ask AI...
-            </Button>
+            <div className="flex items-center gap-0.5 border-t border-border/50 pt-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 px-2 flex-1 justify-start"
+                onClick={() => {
+                  setPhase("custom-input");
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+              >
+                <MessageSquare className="h-3.5 w-3.5" /> Ask AI...
+              </Button>
+              {onComment && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs gap-1 px-2"
+                  onClick={() => {
+                    const { from, to } = editor.state.selection;
+                    const text = editor.state.doc.textBetween(from, to, " ");
+                    onComment(text, from, to);
+                  }}
+                >
+                  💬 Comment
+                </Button>
+              )}
+            </div>
           </>
         )}
       </div>

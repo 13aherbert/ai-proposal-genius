@@ -292,6 +292,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               placeholder="Start writing or use AI to generate content..."
               sectionTitle={title}
               editable={!isReadOnly}
+              onComment={onComment ? (quotedText, from, to) => onComment(section.section_id, quotedText, from, to) : undefined}
             />
             {!isReadOnly && (
               <div className="flex items-center justify-end">

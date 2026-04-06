@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Save, Wand2, Trash2 } from "lucide-react";
+import { countWords } from "@/utils/wordCount";
 import { useProposalSections, ProposalSection } from "./useProposalSections";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

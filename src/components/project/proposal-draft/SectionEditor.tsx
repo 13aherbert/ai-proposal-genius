@@ -232,13 +232,18 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               placeholder="Write your content here..."
               className="min-h-[150px] sm:min-h-[200px] focus:border-brand-green focus-visible:ring-brand-green"
             />
-            <Button 
-              onClick={handleManualSave} 
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
-            >
-              <Save className="h-4 w-4" />
-              Save Changes
-            </Button>
+            <div className="flex items-center justify-between">
+              <Button 
+                onClick={handleManualSave} 
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white"
+              >
+                <Save className="h-4 w-4" />
+                Save Changes
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {countWords(content)} words
+              </span>
+            </div>
           </CardContent>
         )}
       </Card>

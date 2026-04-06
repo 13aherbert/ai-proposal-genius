@@ -6,6 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { TierBadge } from "@/components/subscription/TierBadge";
+import { GatedFeatureModal } from "@/components/subscription/GatedFeatureModal";
 
 const ease = [0.16, 1, 0.3, 1];
 
@@ -69,15 +73,26 @@ function StatusBadge({ status }: { status: Status }) {
   );
 }
 
-function TierBadge({ tier }: { tier: Tier }) {
-  return (
-    <Badge variant="secondary" className="text-[11px] bg-muted text-muted-foreground">
-      {tier}
-    </Badge>
-  );
+const TIER_ORDER: Record<string, number> = {
+  starter: 0, growth: 1, business: 2, enterprise: 3,
+};
+
+function tierToRequired(tier: Tier): 'growth' | 'business' | 'enterprise' | null {
+  switch (tier) {
+    case "Business+": return "business";
+    case "Enterprise": return "enterprise";
+    default: return null;
+  }
 }
 
 export default function Integrations() {
+  const { plan } = useSubscriptionFeatures();
+  const [gateModal, setGateModal] = useState<{ open: boolean; name: string; tier: 'growth' | 'business' | 'enterprise' }>({
+    open: false, name: "", tier: "business",
+  });
+
+  const currentLevel = TIER_ORDER[plan] ?? 0;
+
   useSEO({
     title: "Integrations — OptiRFP",
     description: "Connect OptiRFP with Salesforce, HubSpot, Slack, Google Drive, Okta, and more. Explore available integrations and build custom ones with our API.",
@@ -88,6 +103,15 @@ export default function Integrations() {
       description: "Browse OptiRFP's integration directory.",
     },
   });
+
+  const handleConnect = (item: Integration) => {
+    const required = tierToRequired(item.tier);
+    if (required && currentLevel < (TIER_ORDER[required] ?? 99)) {
+      setGateModal({ open: true, name: item.name, tier: required });
+    } else {
+      // Actual connect logic would go here
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -123,31 +147,49 @@ export default function Integrations() {
               {cat.title}
             </motion.h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {cat.items.map((item, i) => (
-                <motion.div
-                  key={item.name}
-                  initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, amount: 0.15 }}
-                  transition={{ duration: 0.5, delay: i * 0.06, ease }}
-                >
-                  <Card className="h-full border-border/60 bg-card hover:shadow-md transition-shadow duration-300">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl select-none" role="img" aria-label={item.name}>{item.logo}</span>
-                          <h3 className="font-semibold text-base">{item.name}</h3>
+              {cat.items.map((item, i) => {
+                const requiredTier = tierToRequired(item.tier);
+                const isLocked = requiredTier ? currentLevel < (TIER_ORDER[requiredTier] ?? 99) : false;
+
+                return (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
+                    whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    viewport={{ once: true, amount: 0.15 }}
+                    transition={{ duration: 0.5, delay: i * 0.06, ease }}
+                  >
+                    <Card className="h-full border-border/60 bg-card hover:shadow-md transition-shadow duration-300">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl select-none" role="img" aria-label={item.name}>{item.logo}</span>
+                            <h3 className="font-semibold text-base">{item.name}</h3>
+                          </div>
+                          {isLocked && requiredTier && (
+                            <TierBadge tier={requiredTier} size="sm" />
+                          )}
                         </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">{item.desc}</p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge status={item.status} />
-                        <TierBadge tier={item.tier} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">{item.desc}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge status={item.status} />
+                          {item.status === "available" && (
+                            <Button
+                              size="sm"
+                              variant={isLocked ? "outline" : "default"}
+                              onClick={() => handleConnect(item)}
+                              className="ml-auto"
+                            >
+                              {isLocked && <Lock className="h-3 w-3 mr-1" />}
+                              Connect
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -193,6 +235,21 @@ export default function Integrations() {
           </div>
         </div>
       </section>
+
+      {/* Gated Feature Modal */}
+      <GatedFeatureModal
+        open={gateModal.open}
+        onOpenChange={(open) => setGateModal(prev => ({ ...prev, open }))}
+        featureName={`${gateModal.name} Integration`}
+        requiredTier={gateModal.tier}
+        description="Connect your favorite tools with OptiRFP to streamline your proposal workflow and boost productivity."
+        benefits={[
+          "Sync opportunities from Salesforce CRM",
+          "Get Slack/Teams notifications for project updates",
+          "Export directly to Google Drive or SharePoint",
+          "Automate your proposal workflow across tools",
+        ]}
+      />
     </div>
   );
 }

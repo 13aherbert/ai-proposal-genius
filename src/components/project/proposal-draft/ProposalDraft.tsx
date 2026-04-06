@@ -40,21 +40,13 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   const statusValues = Object.values(sectionStatuses);
   const hasUnsaved = statusValues.some(s => s === "unsaved" || s === "saving");
 
-  // Browser beforeunload guard
+  // Browser beforeunload guard for unsaved changes
   useEffect(() => {
     if (!hasUnsaved) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsaved]);
-
-  // React Router in-app navigation guard
-  useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsaved && currentLocation.pathname !== nextLocation.pathname
-  );
 
   const handleSaveStatusChange = useCallback((sectionId: string, status: SaveStatus) => {
     setSectionStatuses(prev => ({ ...prev, [sectionId]: status }));

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileEdit, BookOpen, Wand } from 'lucide-react';
+import { FileEdit, BookOpen, Wand, Lock } from 'lucide-react';
 import { useSubscriptionFeatures } from '@/hooks/use-subscription-features';
 import { lazy, Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Loader2, Lock } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { GatedFeature } from '@/components/subscription/GatedFeature';
+import { TierBadge } from '@/components/subscription/TierBadge';
 
 // Lazy load components
 const ProposalDraft = lazy(() => import('@/components/project/proposal-draft/ProposalDraft').then(mod => ({ default: mod.ProposalDraft })));
@@ -19,116 +18,111 @@ const SectionLoading = () => (
   </div>
 );
 
-const FeatureLocked = ({ 
-  featureName, 
-  planName 
-}: { 
-  featureName: string;
-  planName: string;
-}) => {
-  const navigate = useNavigate();
-  
-  return (
-    <Card className="w-full max-w-md mx-auto mt-10">
-      <CardHeader className="text-center pb-2">
-        <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-        <CardTitle>Feature Not Available</CardTitle>
-        <CardDescription>
-          {featureName} is available with {planName}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center pt-2">
-        <Button 
-          onClick={() => navigate('/subscription')}
-          className="mt-2"
-        >
-          Upgrade Subscription
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-
 interface UnifiedProposalViewProps {
   projectId: string;
   analysis: string | null;
   proposalOutline: string | null;
 }
 
+const TIER_ORDER: Record<string, number> = {
+  starter: 0,
+  growth: 1,
+  business: 2,
+  enterprise: 3,
+};
+
 export function UnifiedProposalView({ projectId, analysis, proposalOutline }: UnifiedProposalViewProps) {
   const [activeTab, setActiveTab] = useState('draft');
-  const { hasFeature, getPlanName } = useSubscriptionFeatures();
+  const { plan, isLoading } = useSubscriptionFeatures();
+
+  const currentLevel = TIER_ORDER[plan] ?? 0;
 
   const tabs = [
     {
       id: 'draft',
       label: 'Draft',
       icon: FileEdit,
-      feature: 'proposal_draft',
+      requiredTier: null,
     },
     {
       id: 'compiled',
       label: 'Compiled',
       icon: BookOpen,
-      feature: 'compiled_draft',
+      requiredTier: 'growth' as const,
     },
     {
       id: 'auto',
       label: 'Auto-Generated',
       icon: Wand,
-      feature: 'auto_proposal_generation',
+      requiredTier: 'business' as const,
     },
   ];
+
+  const isLocked = (requiredTier: string | null): boolean => {
+    if (!requiredTier || isLoading) return false;
+    return currentLevel < (TIER_ORDER[requiredTier] ?? 1);
+  };
 
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          {tabs.map((tab) => (
-            <TabsTrigger 
-              key={tab.id} 
-              value={tab.id}
-              className="flex items-center gap-2"
-              disabled={!hasFeature(tab.feature as any)}
-            >
-              <tab.icon className="h-4 w-4" />
-              <span className="text-[10px] sm:text-sm sm:inline">{tab.label}</span>
-            </TabsTrigger>
-          ))}
+          {tabs.map((tab) => {
+            const locked = isLocked(tab.requiredTier);
+            return (
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id}
+                className="flex items-center gap-1.5"
+              >
+                <tab.icon className="h-4 w-4" />
+                <span className={`text-[10px] sm:text-sm ${locked ? 'opacity-70' : ''}`}>{tab.label}</span>
+                {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         <TabsContent value="draft" className="mt-4">
-          {hasFeature('proposal_draft') ? (
-            <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
-                <ProposalDraft projectId={projectId} mode="draft" />
-              </Suspense>
-            </ErrorBoundary>
-          ) : (
-            <FeatureLocked 
-              featureName="Proposal Draft" 
-              planName={getPlanName('proposal_draft')} 
-            />
-          )}
+          <ErrorBoundary>
+            <Suspense fallback={<SectionLoading />}>
+              <ProposalDraft projectId={projectId} mode="draft" />
+            </Suspense>
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="compiled" className="mt-4">
-          {hasFeature('compiled_draft') ? (
+          <GatedFeature
+            featureName="Compiled Proposal"
+            requiredTier="growth"
+            description="View your entire proposal as a single, continuous document. Perfect for final review and one-click copying."
+            benefits={[
+              "See your entire proposal as a continuous document",
+              "Interactive table of contents with section navigation",
+              "Print-ready preview matching final export",
+              "Copy full proposal text with one click",
+            ]}
+          >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
                 <ProposalDraft projectId={projectId} mode="compiled" />
               </Suspense>
             </ErrorBoundary>
-          ) : (
-            <FeatureLocked 
-              featureName="Compiled Draft" 
-              planName={getPlanName('compiled_draft')} 
-            />
-          )}
+          </GatedFeature>
         </TabsContent>
 
         <TabsContent value="auto" className="mt-4">
-          {hasFeature('auto_proposal_generation') ? (
+          <GatedFeature
+            featureName="Auto-Generated Proposal"
+            requiredTier="business"
+            description="Let AI generate a complete proposal draft from your RFP analysis. Save hours of writing time."
+            benefits={[
+              "AI generates a full proposal from your RFP",
+              "Customizable tone and style settings",
+              "Section-by-section regeneration",
+              "One-click integration with your draft",
+            ]}
+          >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
                 <AutoGeneratedProposal 
@@ -138,12 +132,7 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
                 />
               </Suspense>
             </ErrorBoundary>
-          ) : (
-            <FeatureLocked 
-              featureName="Auto-Generated Proposal" 
-              planName={getPlanName('auto_proposal_generation')} 
-            />
-          )}
+          </GatedFeature>
         </TabsContent>
       </Tabs>
     </div>

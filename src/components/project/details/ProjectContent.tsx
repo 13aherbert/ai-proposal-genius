@@ -4,12 +4,9 @@ import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { toast } from "sonner";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { GatedFeature } from "@/components/subscription/GatedFeature";
 
 // Lazy load heavy components
 const ProposalEvaluation = lazy(() => import("@/components/project/proposal-evaluation/ProposalEvaluation").then(mod => ({ default: mod.ProposalEvaluation })));
@@ -26,37 +23,6 @@ const SectionLoading = () => (
   </div>
 );
 
-// Feature locked component
-const FeatureLocked = ({ 
-  featureName, 
-  planName 
-}: { 
-  featureName: string;
-  planName: string;
-}) => {
-  const navigate = useNavigate();
-  
-  return (
-    <Card className="w-full max-w-md mx-auto mt-10">
-      <CardHeader className="text-center pb-2">
-        <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-        <CardTitle>Feature Not Available</CardTitle>
-        <CardDescription>
-          {featureName} is available with {planName}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center pt-2">
-        <Button 
-          onClick={() => navigate('/subscription')}
-          className="mt-2"
-        >
-          Upgrade Subscription
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
-
 interface ProjectContentProps {
   project: Project;
   autoStart?: boolean;
@@ -64,9 +30,7 @@ interface ProjectContentProps {
 
 export function ProjectContent({ project, autoStart }: ProjectContentProps) {
   const [activeSection, setActiveSection] = useState("overview");
-  const [shownToasts, setShownToasts] = useState<Set<string>>(new Set());
-  const { hasFeature, getPlanName, isTestMode } = useSubscriptionFeatures();
-  const navigate = useNavigate();
+  const { isTestMode } = useSubscriptionFeatures();
 
   // Auto-start: navigate to analysis tab when coming from auto-fetch
   useEffect(() => {
@@ -75,101 +39,70 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
     }
   }, [autoStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Clear shown toasts when active section changes
-  useEffect(() => {
-    setShownToasts(new Set());
-  }, [activeSection]);
-
-  // Handle feature access checks and toasts
-  useEffect(() => {
-    const checkFeatureAccess = () => {
-      let requiredFeature = "";
-      
-      switch (activeSection) {
-        case "analysis":
-          requiredFeature = "rfp_summary";
-          break;
-        case "proposal":
-          requiredFeature = "proposal_draft";
-          break;
-        case "review":
-          requiredFeature = "evaluation";
-          break;
-        default:
-          return;
-      }
-
-      if (requiredFeature && !hasFeature(requiredFeature as any) && !shownToasts.has(requiredFeature)) {
-        toast.error(`This feature requires a subscription upgrade`, {
-          description: "Visit the subscription page to learn more",
-          action: {
-            label: "Upgrade",
-            onClick: () => navigate('/subscription')
-          }
-        });
-        setShownToasts(prev => new Set([...prev, requiredFeature]));
-      }
-    };
-
-    checkFeatureAccess();
-  }, [activeSection, hasFeature, shownToasts, navigate]);
-
   const renderSection = () => {
     switch (activeSection) {
       case "overview":
         return <ProjectInfo project={project} />;
       
       case "analysis":
-        if (hasFeature("rfp_summary")) {
-          return (
-            <UnifiedAnalysisView 
-              projectId={project.project_id}
-              filePath={project.rfp_file_path}
-              analysis={project.analysis}
-            />
-          );
-        } else {
-          return <FeatureLocked featureName="Analysis" planName={getPlanName("rfp_summary")} />;
-        }
+        return (
+          <UnifiedAnalysisView 
+            projectId={project.project_id}
+            filePath={project.rfp_file_path}
+            analysis={project.analysis}
+          />
+        );
       
       case "proposal":
-        if (hasFeature("proposal_draft")) {
-          return (
-            <UnifiedProposalView 
-              projectId={project.project_id}
-              analysis={project.analysis}
-              proposalOutline={project.proposal_outline}
-            />
-          );
-        } else {
-          return <FeatureLocked featureName="Proposal" planName={getPlanName("proposal_draft")} />;
-        }
+        return (
+          <UnifiedProposalView 
+            projectId={project.project_id}
+            analysis={project.analysis}
+            proposalOutline={project.proposal_outline}
+          />
+        );
       
       case "review":
-        if (hasFeature("evaluation")) {
-          return (
+        return (
+          <GatedFeature
+            featureName="Review & Evaluation"
+            requiredTier="growth"
+            description="Get AI-powered scoring and a multi-stage review pipeline for your proposals. Ensure compliance, quality, and readiness before submission."
+            benefits={[
+              "Multi-stage review pipeline (Draft → Review → Approved)",
+              "Review checklists ensure compliance and quality",
+              "Approval history with full audit trail",
+              "Section-by-section reviewer assignment",
+            ]}
+          >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
                 <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />
               </Suspense>
             </ErrorBoundary>
-          );
-        } else {
-          return <FeatureLocked featureName="Evaluation" planName={getPlanName("evaluation")} />;
-        }
+          </GatedFeature>
+        );
 
       case "design":
-        if (hasFeature("design_studio")) {
-          return (
+        return (
+          <GatedFeature
+            featureName="Design Studio"
+            requiredTier="business"
+            description="Create visually stunning, branded proposals with a drag-and-drop editor. Export print-ready documents that win."
+            benefits={[
+              "8+ professional proposal templates",
+              "Brand customization (logo, colors, fonts)",
+              "Cover page designer with dynamic fields",
+              "Live WYSIWYG preview of final output",
+            ]}
+          >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
                 <ProposalDesignStudio projectId={project.project_id} />
               </Suspense>
             </ErrorBoundary>
-          );
-        } else {
-          return <FeatureLocked featureName="Design Studio" planName={getPlanName("design_studio")} />;
-        }
+          </GatedFeature>
+        );
       
       default:
         return null;

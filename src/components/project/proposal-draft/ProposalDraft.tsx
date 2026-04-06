@@ -1,8 +1,8 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trash2, MoreVertical } from "lucide-react";
+import { Loader2, Trash2, MoreVertical, FileText } from "lucide-react";
 import { AddSectionButton } from "./components/AddSectionButton";
 import { SectionsList } from "./components/SectionsList";
 import { SectionCreationButton } from "./components/SectionCreationButton";
@@ -15,7 +15,7 @@ import { BackupManager } from "./BackupManager";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { SaveStatus } from "@/hooks/use-auto-save";
-import { useBlocker } from "react-router-dom";
+import { countWords } from "@/utils/wordCount";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -41,21 +41,13 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   const statusValues = Object.values(sectionStatuses);
   const hasUnsaved = statusValues.some(s => s === "unsaved" || s === "saving");
 
-  // Browser beforeunload guard
+  // Browser beforeunload guard for unsaved changes
   useEffect(() => {
     if (!hasUnsaved) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [hasUnsaved]);
-
-  // React Router in-app navigation guard
-  useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsaved && currentLocation.pathname !== nextLocation.pathname
-  );
 
   const handleSaveStatusChange = useCallback((sectionId: string, status: SaveStatus) => {
     setSectionStatuses(prev => ({ ...prev, [sectionId]: status }));
@@ -119,8 +111,19 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
               <GlobalSaveStatus sectionStatuses={statusValues} />
             )}
           </div>
-          <CardDescription>
-            Create and edit sections for your proposal
+          <CardDescription className="flex flex-wrap items-center gap-3">
+            <span>Create and edit sections for your proposal</span>
+            {sections.length > 0 && (() => {
+              const totalWords = sections.reduce((sum, s) => sum + countWords(s.content || ""), 0);
+              const pages = Math.ceil(totalWords / 250);
+              const readMin = Math.ceil(totalWords / 200);
+              return (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                  Total: {totalWords.toLocaleString()} words · ~{pages} page{pages !== 1 ? "s" : ""} · ~{readMin} min read
+                </span>
+              );
+            })()}
           </CardDescription>
         </div>
         <BackupManager sections={sections} projectId={projectId} />

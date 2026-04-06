@@ -55,6 +55,8 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   } = useProposalSections(projectId);
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
+  const { comments: allComments, addComment } = useProposalComments(projectId);
+  const openCommentCount = allComments.filter(c => !c.is_resolved).length;
 
   // Get org members for team features
   const [orgId, setOrgId] = useState<string | null>(null);

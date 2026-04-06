@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,7 +161,10 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
 
   return (
     <>
-      <Card>
+      <Card className={cn(
+        "transition-all duration-200 hover:shadow-md",
+        isSelected && "border-l-4 border-l-[hsl(var(--brand-green,142_76%_36%))] shadow-sm"
+      )}>
         <CardHeader className="cursor-pointer" onClick={onSelect}>
           <div className="flex items-center justify-between">
             <div className="flex-1">

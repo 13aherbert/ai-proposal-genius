@@ -6,7 +6,7 @@ import {
   List, ListOrdered, Quote, Minus, Link2,
   Table as TableIcon, AlignLeft, AlignCenter, AlignRight,
   Highlighter, RemoveFormatting, ChevronDown, ChevronUp,
-  Undo, Redo,
+  Undo, Redo, Maximize2,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 
 interface EditorToolbarProps {
   editor: Editor;
+  onFullScreen?: () => void;
 }
 
 interface ToolbarButtonProps {
@@ -51,7 +52,7 @@ function ToolbarButton({ onClick, isActive, disabled, tooltip, shortcut, childre
   );
 }
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onFullScreen }: EditorToolbarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const isMac = typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
@@ -132,6 +133,12 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         </ToolbarButton>
 
         <div className="flex-1" />
+
+        {onFullScreen && (
+          <ToolbarButton onClick={onFullScreen} tooltip="Full Screen" shortcut="Ctrl+Shift+F">
+            <Maximize2 className="h-4 w-4" />
+          </ToolbarButton>
+        )}
 
         <Toggle
           size="sm"

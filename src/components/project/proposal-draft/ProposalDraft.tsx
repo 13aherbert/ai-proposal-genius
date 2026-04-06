@@ -32,6 +32,9 @@ export interface ProposalDraftProps {
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [sectionStatuses, setSectionStatuses] = useState<Record<string, SaveStatus>>({});
+  const [commentSidebarOpen, setCommentSidebarOpen] = useState(false);
+  const [commentSectionId, setCommentSectionId] = useState<string | undefined>();
+  const [pendingComment, setPendingComment] = useState<{ sectionId: string; quotedText: string; from: number; to: number } | null>(null);
   const [filter, setFilter] = useState<{ status: WorkflowStatus | null; assignee: string | null; myOnly: boolean }>({
     status: null,
     assignee: null,

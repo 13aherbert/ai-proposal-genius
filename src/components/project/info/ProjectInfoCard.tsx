@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectEditForm } from "./ProjectEditForm";
 import { ProjectDetails } from "./ProjectDetails";
 import { ProjectDocuments } from "./ProjectDocuments";
-import { AutomatedProposalCreation } from "@/components/project/AutomatedProposalCreation";
+import AutomatedProposalCreation from "@/components/project/AutomatedProposalCreation";
 import { useState } from "react";
 import { Edit } from "lucide-react";
 

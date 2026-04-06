@@ -9,6 +9,7 @@ import { SectionCreationButton } from "./components/SectionCreationButton";
 import { ContentGenerationButton } from "./components/ContentGenerationButton";
 import { CompiledView } from "./components/CompiledView";
 import { GlobalSaveStatus } from "./components/GlobalSaveStatus";
+import { ProposalProgress } from "./components/ProposalProgress";
 import { useProposalSections } from "./useProposalSections";
 import { useProposalOutline } from "./hooks/useProposalOutline";
 import { BackupManager } from "./BackupManager";
@@ -16,6 +17,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "sonner";
 import { SaveStatus } from "@/hooks/use-auto-save";
 import { countWords } from "@/utils/wordCount";
+import { useAuth } from "@/components/AuthProvider";
+import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
+import { WorkflowStatus } from "./hooks/useSectionWorkflow";
 
 export interface ProposalDraftProps {
   projectId: string;
@@ -25,7 +30,15 @@ export interface ProposalDraftProps {
 export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps) {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [sectionStatuses, setSectionStatuses] = useState<Record<string, SaveStatus>>({});
-  
+  const [filter, setFilter] = useState<{ status: WorkflowStatus | null; assignee: string | null; myOnly: boolean }>({
+    status: null,
+    assignee: null,
+    myOnly: false,
+  });
+
+  const { session } = useAuth();
+  const { plan } = useSubscriptionFeatures();
+
   const {
     sections,
     isLoading,
@@ -38,10 +51,45 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
 
   const { proposalOutline, extractSectionTitles } = useProposalOutline(projectId);
 
+  // Get org members for team features
+  const [orgId, setOrgId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.from("profiles").select("current_organization_id").eq("profile_id", session.user.id).single()
+        .then(({ data }) => { if (data) setOrgId(data.current_organization_id); });
+    });
+  }, [session?.user?.id]);
+
+  const { members } = useOrganizationMembers(orgId);
+  const showTeamFeatures = plan !== "starter" && members.length > 1;
+
+  const membersList = useMemo(() =>
+    members.map(m => ({
+      user_id: m.user_id,
+      first_name: m.first_name,
+      last_name: m.last_name,
+      username: m.username,
+      role: m.role,
+    })),
+    [members]
+  );
+
+  // Filtered sections
+  const filteredSections = useMemo(() => {
+    let result = sections;
+    if (filter.status) {
+      result = result.filter(s => (s.workflow_status || "draft") === filter.status);
+    }
+    if (filter.myOnly && session?.user?.id) {
+      result = result.filter(s => s.assigned_to === session.user.id);
+    }
+    return result;
+  }, [sections, filter, session?.user?.id]);
+
   const statusValues = Object.values(sectionStatuses);
   const hasUnsaved = statusValues.some(s => s === "unsaved" || s === "saving");
 
-  // Browser beforeunload guard for unsaved changes
   useEffect(() => {
     if (!hasUnsaved) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -63,15 +111,12 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
         await addSection(title, true);
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
       toast.success(`Created ${titles.length} sections from outline`, {
         description: "You can now start adding content to each section."
       });
     } catch (error) {
       console.error('Error creating sections:', error);
-      toast.error("Failed to create some sections", {
-        description: "Please try again or create sections manually."
-      });
+      toast.error("Failed to create some sections");
     }
   };
 
@@ -87,13 +132,9 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
       toast.error("No sections to delete");
       return;
     }
-
     toast.warning(`Delete all ${sections.length} sections?`, {
       description: "This action cannot be undone. A backup will be created automatically.",
-      action: {
-        label: "Delete All",
-        onClick: () => deleteAllSections()
-      }
+      action: { label: "Delete All", onClick: () => deleteAllSections() }
     });
   };
 
@@ -107,9 +148,7 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
         <div>
           <div className="flex items-center gap-3">
             <CardTitle className="text-xl sm:text-2xl font-semibold">Proposal Draft</CardTitle>
-            {sections.length > 0 && (
-              <GlobalSaveStatus sectionStatuses={statusValues} />
-            )}
+            {sections.length > 0 && <GlobalSaveStatus sectionStatuses={statusValues} />}
           </div>
           <CardDescription className="flex flex-wrap items-center gap-3">
             <span>Create and edit sections for your proposal</span>
@@ -135,22 +174,28 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
           </div>
         ) : (
           <div className="space-y-6">
+            {sections.length > 0 && (
+              <ProposalProgress
+                sections={sections}
+                currentUserId={session?.user?.id}
+                filter={filter}
+                onFilterChange={setFilter}
+              />
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3">
               <AddSectionButton onAdd={addSection} />
-              
               <SectionCreationButton
                 proposalOutline={proposalOutline}
                 sectionsCount={sections.length}
                 onCreateSections={handleCreateSections}
                 extractSectionTitles={extractSectionTitles}
               />
-
               <ContentGenerationButton
                 sections={sections}
                 projectId={projectId}
                 onUpdateSection={handleUpdateSection}
               />
-
               {sections.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -172,12 +217,14 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
             </div>
             
             <SectionsList
-              sections={sections}
+              sections={filteredSections}
               selectedSection={selectedSection}
               onSelectSection={handleSelectSection}
               onReorderSections={reorderSections}
               isLoading={isLoading}
               onSaveStatusChange={handleSaveStatusChange}
+              members={membersList}
+              showTeamFeatures={showTeamFeatures}
             />
           </div>
         )}

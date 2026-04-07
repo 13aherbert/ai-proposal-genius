@@ -65,11 +65,11 @@ export function ReviewSectionCard({
   );
 
   // Init default checklist items if none exist
-  useState(() => {
+  useMemo(() => {
     if (!checklistLoading && checklistItems.length === 0) {
       initDefaults();
     }
-  });
+  }, [checklistLoading, checklistItems.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allChecked =
     checklistItems.length > 0 &&

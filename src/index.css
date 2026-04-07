@@ -177,3 +177,30 @@
     z-index: 1000 !important;
   }
 }
+
+/* Print styles for Compiled Proposal */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .compiled-proposal-content,
+  .compiled-proposal-content * {
+    visibility: visible;
+  }
+  .compiled-proposal-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  .compiled-proposal-content h2 {
+    page-break-after: avoid;
+  }
+  .compiled-proposal-content .prose {
+    page-break-inside: avoid;
+  }
+}

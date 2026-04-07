@@ -47,6 +47,7 @@ import {
   Mail,
   Calendar,
   Shield,
+  BarChart3,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<

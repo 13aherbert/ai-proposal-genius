@@ -90,6 +90,24 @@ serve(async (req) => {
           );
         }
 
+        // Validate role against allowed values to prevent privilege escalation
+        const allowedRoles = ['user', 'admin'];
+        if (!allowedRoles.includes(data.role)) {
+          console.error(`Rejected role assignment attempt: ${data.role} by user ${user.id}`);
+          return new Response(
+            JSON.stringify({ error: 'Invalid role. Only "user" and "admin" roles can be assigned via this endpoint.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Prevent admins from assigning roles to themselves
+        if (data.user_id === user.id && data.role === 'admin') {
+          return new Response(
+            JSON.stringify({ error: 'Cannot assign admin role to yourself' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         // Check if role already exists
         const { data: existingRole } = await supabase
           .from('user_roles')

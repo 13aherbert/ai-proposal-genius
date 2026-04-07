@@ -49,6 +49,7 @@ import {
   Shield,
   BarChart3,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const ListItem = React.forwardRef<
   React.ElementRef<typeof Link>,
@@ -214,6 +215,7 @@ export function Navbar() {
 
           {/* Desktop profile dropdown */}
           <div className="hidden md:flex items-center gap-2">
+            <ThemeToggle />
             {/* Enterprise Badge */}
             {session && isEnterprise && (
               <Popover>
@@ -504,6 +506,12 @@ export function Navbar() {
                    )}
 
                    {isEnterprise && <Separator />}
+
+                   {/* Theme Toggle (mobile) */}
+                   <div className="flex items-center gap-4 min-h-[56px] py-2 px-4">
+                     <span className="text-sm text-muted-foreground">Theme</span>
+                     <ThemeToggle />
+                   </div>
 
                    {/* Account */}
                    <div className="space-y-1 mt-1">

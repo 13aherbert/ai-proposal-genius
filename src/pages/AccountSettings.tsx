@@ -18,6 +18,7 @@ import { ProfileLoading } from "@/components/account/ProfileLoading";
 import { AccountActionButtons } from "@/components/account/AccountActionButtons";
 import { BrandGuidelinesCard } from "@/components/account/BrandGuidelinesCard";
 import { ReferralCard } from "@/components/account/ReferralCard";
+import { MFASetupWizard } from "@/components/account/MFASetupWizard";
 import { useProfile } from "@/hooks/use-profile";
 
 export default function AccountSettings() {
@@ -121,6 +122,8 @@ export default function AccountSettings() {
                 <SubscriptionCard subscription={subscription ? toSubscriptionPlan(subscription) : null} />
                 
                 <BillingHistory />
+
+                <MFASetupWizard />
 
                 <BrandGuidelinesCard />
 

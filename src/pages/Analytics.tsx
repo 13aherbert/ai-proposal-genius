@@ -1,6 +1,6 @@
 import React from "react";
 import { useAnalyticsDashboard } from "@/hooks/useAnalyticsDashboard";
-import { useSubscription } from "@/hooks/use-subscription";
+
 import { OverviewCards } from "@/components/analytics/OverviewCards";
 import { ProposalsChart } from "@/components/analytics/ProposalsChart";
 import { PipelineView } from "@/components/analytics/PipelineView";
@@ -13,7 +13,7 @@ import { BarChart3, TrendingUp, Calendar, DollarSign, Target } from "lucide-reac
 
 export default function Analytics() {
   const { overview, monthlyData, pipeline, roiData, roiSettings, projects, isLoading, updateROI, recordOutcome } = useAnalyticsDashboard();
-  const { currentTier } = useSubscription();
+  
 
   if (isLoading) {
     return (

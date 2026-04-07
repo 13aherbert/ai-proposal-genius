@@ -162,7 +162,7 @@ export function Navbar() {
                   <NavigationMenuItem>
                     <NavigationMenuTrigger
                       className={cn(
-                        isActiveGroup("/projects", "/knowledge-base", "/organization") &&
+                        isActiveGroup("/projects", "/knowledge-base", "/organization", "/analytics") &&
                           "font-semibold text-foreground"
                       )}
                     >
@@ -186,6 +186,9 @@ export function Navbar() {
                             Programmatic access to your data
                           </ListItem>
                         )}
+                        <ListItem to="/analytics" title="Analytics">
+                          Proposal metrics, ROI, and team performance
+                        </ListItem>
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>

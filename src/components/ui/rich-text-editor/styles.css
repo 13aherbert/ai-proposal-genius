@@ -10,10 +10,17 @@
 
 .tiptap {
   min-height: 200px;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
 }
 
 .tiptap:focus {
   outline: none;
+}
+
+/* Ensure editor content area adapts to theme */
+.tiptap .ProseMirror {
+  color: hsl(var(--foreground));
 }
 
 /* Table styles */

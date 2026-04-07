@@ -29,7 +29,7 @@ export function ProjectsHeader({
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold text-white">Projects</h1>
+        <h1 className="text-3xl font-bold text-foreground">Projects</h1>
         
         {/* Display project count and limit when available - updated to start with "Usage: " */}
         {currentPlanLimit && typeof projectCount === 'number' && !isSubscriptionLoading && (

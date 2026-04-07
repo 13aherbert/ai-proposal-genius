@@ -203,7 +203,7 @@ export function useProjects(user: User | null) {
       setTotalCount(result.totalCount);
       return result.data;
     },
-    enabled: !!user?.id && !orgLoading && orgError === null,
+    enabled: !!user?.id && !orgLoading,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
     staleTime: 60000,

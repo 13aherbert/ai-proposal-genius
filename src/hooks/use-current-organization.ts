@@ -1,7 +1,6 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 interface Organization {
   id: string;
@@ -13,12 +12,9 @@ interface Organization {
 }
 
 export function useCurrentOrganization() {
-  const [user, setUser] = useState<any>(null);
+  const { session } = useAuth();
+  const user = session?.user ?? null;
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-  }, []);
 
   const organizationQuery = useQuery({
     queryKey: ["current-organization", user?.id],

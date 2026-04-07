@@ -14,6 +14,55 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Detect whether a string is already HTML (from TipTap rich-text editor).
+ * If so, return it as-is with only sanitisation of dangerous tags.
+ * If not, convert markdown to HTML.
+ */
+function isHtmlContent(text: string): boolean {
+  return /<(?:p|h[1-6]|ul|ol|li|table|blockquote|strong|em|br|div|span)\b/i.test(text);
+}
+
+/**
+ * Sanitise HTML from TipTap — strip <script> tags but keep formatting.
+ * Also add print-friendly styles to tables.
+ */
+function sanitiseRichHtml(html: string, settings?: { primaryColor: string }): string {
+  let sanitised = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '');
+
+  // Style tables for export
+  if (settings) {
+    sanitised = sanitised.replace(/<table(?:\s[^>]*)?>/gi, (match) => {
+      if (match.includes('style=')) return match;
+      return `<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">`;
+    });
+    sanitised = sanitised.replace(/<th(?:\s[^>]*)?>/gi, () =>
+      `<th style="padding:8px 12px;text-align:left;font-weight:600;background:${settings.primaryColor};color:#fff;border:1px solid #e2e8f0;">`
+    );
+    sanitised = sanitised.replace(/<td(?:\s[^>]*)?>/gi, () =>
+      `<td style="padding:8px 12px;border:1px solid #e2e8f0;">`
+    );
+  }
+
+  // Style blockquotes
+  if (settings) {
+    sanitised = sanitised.replace(/<blockquote(?:\s[^>]*)?>/gi, () =>
+      `<blockquote style="border-left:4px solid ${settings.primaryColor};padding-left:16px;margin:16px 0;font-style:italic;color:#555;">`
+    );
+  }
+
+  // Style links
+  sanitised = sanitised.replace(/<a\s/gi, '<a style="color:#3b82f6;text-decoration:underline;" ');
+
+  // Add styles to lists
+  sanitised = sanitised.replace(/<ul(?:\s[^>]*)?>/gi, '<ul style="padding-left:20px;margin:8px 0;">');
+  sanitised = sanitised.replace(/<ol(?:\s[^>]*)?>/gi, '<ol style="padding-left:20px;margin:8px 0;">');
+
+  return sanitised;
+}
+
 function markdownTableToHtml(md: string, settings: { primaryColor: string }): string {
   const tableRegex = /(?:^|\n)((?:\|[^\n]+\|\n)(?:\|[\s:|-]+\|\n)((?:\|[^\n]+\|\n?)*))/gm;
   return md.replace(tableRegex, (_match, fullTable: string) => {
@@ -47,7 +96,9 @@ function markdownToHtml(md: string, settings?: { primaryColor: string }): string
   let html = escapeHtml(processed);
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+  html = html.replace(/~~(.*?)~~/g, "<s>$1</s>");
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#3b82f6;text-decoration:underline;">$1</a>');
+  html = html.replace(/^#### (.*$)/gm, "<h4>$1</h4>");
   html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
   html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
@@ -57,15 +108,29 @@ function markdownToHtml(md: string, settings?: { primaryColor: string }): string
   // Unordered lists
   html = html.replace(/^- (.*$)/gm, "<li>$1</li>");
   html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul style='padding-left:20px;'>$&</ul>");
+  // Blockquotes
+  html = html.replace(/^&gt; (.*$)/gm, "<blockquote style='border-left:4px solid #ccc;padding-left:16px;margin:8px 0;font-style:italic;color:#555;'>$1</blockquote>");
   html = html.replace(/\n\n/g, "</p><p>");
   html = "<p>" + html + "</p>";
-  html = html.replace(/<p><(h[123]|ul|ol|li)/g, "<$1");
-  html = html.replace(/<\/(h[123]|ul|ol|li)><\/p>/g, "</$1>");
+  html = html.replace(/<p><(h[1234]|ul|ol|li|blockquote)/g, "<$1");
+  html = html.replace(/<\/(h[1234]|ul|ol|li|blockquote)><\/p>/g, "</$1>");
 
   tables.forEach((table, i) => {
     html = html.replace(`__TABLE_PLACEHOLDER_${i}__`, table);
   });
   return html;
+}
+
+/**
+ * Process text content: if it's already HTML (from TipTap), sanitise and pass through.
+ * If it's markdown (legacy), convert to HTML.
+ */
+function processTextContent(text: string, settings?: { primaryColor: string }): string {
+  if (!text) return '';
+  if (isHtmlContent(text)) {
+    return sanitiseRichHtml(text, settings);
+  }
+  return markdownToHtml(text, settings);
 }
 
 interface DesignSettings {
@@ -197,7 +262,7 @@ function renderHeadingHtml(block: ContentBlock, settings: DesignSettings, sectio
   const lvl = Number(c.level) || 2;
   const prefix = sectionNumber ? `${sectionNumber} ` : '';
   const text = escapeHtml(prefix + String(c.text || ""));
-  const sizes: Record<number, string> = { 1: "28px", 2: "22px", 3: "18px" };
+  const sizes: Record<number, string> = { 1: "28px", 2: "22px", 3: "18px", 4: "16px" };
   const headerStyle = settings.headerStyle || "accent-bar";
 
   let style = `font-family:${settings.headerFont};font-size:${sizes[lvl] || "22px"};margin-top:24px;color:${settings.primaryColor};`;
@@ -247,7 +312,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
       return renderHeadingHtml(block, settings, sectionMap[block.id]);
 
     case "text":
-      return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${markdownToHtml(String(c.text || ""), settings)}</div>`;
+      return `<div style="font-family:${settings.bodyFont};line-height:1.7;font-size:14px;">${processTextContent(String(c.text || ""), settings)}</div>`;
 
     case "image":
       return `<figure style="text-align:center;margin:24px 0;">
@@ -259,8 +324,8 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
       const headers = (c.headers as string[]) || [];
       const rows = (c.rows as string[][]) || [];
       return `<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
-        <thead><tr style="background:${settings.primaryColor};color:#fff;">${headers.map((h) => `<th style="padding:8px 12px;text-align:left;">${escapeHtml(h)}</th>`).join("")}</tr></thead>
-        <tbody>${rows.map((row, i) => `<tr style="background:${i % 2 === 0 ? "#f8fafc" : "#fff"}">${row.map((cell) => `<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
+        <thead><tr style="background:${settings.primaryColor};color:#fff;">${headers.map((h) => `<th style="padding:8px 12px;text-align:left;border:1px solid #e2e8f0;">${escapeHtml(h)}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map((row, i) => `<tr style="background:${i % 2 === 0 ? "#f8fafc" : "#fff"}">${row.map((cell) => `<td style="padding:8px 12px;border:1px solid #e2e8f0;">${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
       </table>`;
     }
 
@@ -270,7 +335,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
     }
 
     case "quote":
-      return `<blockquote style="border-left:4px solid ${settings.primaryColor};padding-left:16px;margin:16px 0;font-style:italic;color:${settings.secondaryColor};">${markdownToHtml(String(c.text || ""))}</blockquote>`;
+      return `<blockquote style="border-left:4px solid ${settings.primaryColor};padding-left:16px;margin:16px 0;font-style:italic;color:${settings.secondaryColor};">${processTextContent(String(c.text || ""))}</blockquote>`;
 
     case "callout": {
       const variant = String(c.variant || "info");
@@ -280,7 +345,7 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
         success: { bg: "#dcfce7", border: "#22c55e", text: "#166534" },
       };
       const v = colors[variant] || colors.info;
-      return `<div style="background:${v.bg};border-left:4px solid ${v.border};padding:16px;border-radius:8px;margin:16px 0;color:${v.text};font-size:14px;">${markdownToHtml(String(c.text || ""))}</div>`;
+      return `<div style="background:${v.bg};border-left:4px solid ${v.border};padding:16px;border-radius:8px;margin:16px 0;color:${v.text};font-size:14px;">${processTextContent(String(c.text || ""))}</div>`;
     }
 
     default:
@@ -367,6 +432,18 @@ Deno.serve(async (req: Request) => {
           }
         }
       }
+      // Resolve image block URLs
+      if (block.type === 'image' && block.content.url) {
+        const imgPath = String(block.content.url);
+        if (!imgPath.startsWith('http')) {
+          const { data: signedData } = await adminClient.storage
+            .from('rfp-files')
+            .createSignedUrl(imgPath, 3600);
+          if (signedData?.signedUrl) {
+            block.content.url = signedData.signedUrl;
+          }
+        }
+      }
     }
 
     const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
@@ -388,10 +465,21 @@ Deno.serve(async (req: Request) => {
       @page { margin: 0; size: letter; }
     }
     img { max-width: 100%; }
-    h1, h2, h3 { font-family: ${settings.headerFont}, sans-serif; }
+    h1, h2, h3, h4 { font-family: ${settings.headerFont}, sans-serif; }
     p { margin: 8px 0; }
     ul, ol { padding-left: 20px; }
     li { margin: 4px 0; }
+    table { page-break-inside: avoid; }
+    /* Rich-text content styles */
+    strong { font-weight: 700; }
+    em { font-style: italic; }
+    u { text-decoration: underline; }
+    s { text-decoration: line-through; }
+    mark { background-color: #fef08a; padding: 0 2px; }
+    a { color: #3b82f6; text-decoration: underline; }
+    blockquote { border-left: 4px solid #e2e8f0; padding-left: 16px; margin: 16px 0; font-style: italic; }
+    .tiptap-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .tiptap-table th, .tiptap-table td { border: 1px solid #e2e8f0; padding: 8px 12px; }
   </style>
 </head>
 <body>

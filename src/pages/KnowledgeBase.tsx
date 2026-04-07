@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Wrench, ChevronDown } from "lucide-react";
+import { ArrowLeft, Wrench, ChevronDown, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
@@ -21,6 +21,10 @@ import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchResult } from "@/components/knowledge-base/SearchResults";
+import { useKBGovernance } from "@/components/knowledge-base/governance/useKBGovernance";
+import { KBHealthDashboard } from "@/components/knowledge-base/governance/KBHealthDashboard";
+import { ReviewCycleManager } from "@/components/knowledge-base/governance/ReviewCycleManager";
+import { QAPairManager } from "@/components/knowledge-base/governance/QAPairManager";
 
 const KnowledgeBase = () => {
   const navigate = useNavigate();

@@ -25,6 +25,7 @@ import Referral from "@/pages/Referral";
 import Team from "@/pages/Team";
 import TeamInvite from "@/pages/TeamInvite";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Analytics from "@/pages/Analytics";
 
 import UserManagementPage from "@/pages/admin/UserManagementPage";
 import BlogManagement from "@/pages/admin/BlogManagement";
@@ -107,6 +108,7 @@ function AppContent() {
         <Route path="/team/invite" element={<TeamInvite />} />
         <Route path="/api-docs" element={<ApiDocs />} />
         <Route path="/enterprise-support" element={<EnterpriseSupport />} />
+        <Route path="/analytics" element={<Analytics />} />
         
         {/* Legacy route redirects */}
         <Route path="/recent-projects" element={<RecentProjectsRedirect />} />

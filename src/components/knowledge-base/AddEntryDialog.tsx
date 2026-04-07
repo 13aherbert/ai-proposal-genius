@@ -19,6 +19,7 @@ import { useKBGovernance } from "./governance/useKBGovernance";
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const { session } = useAuth();
   const [contentMode, setContentMode] = useState<'manual' | 'upload' | 'ai'>('manual');
+  const { checkDuplicates } = useKBGovernance();
   
   const {
     formData,

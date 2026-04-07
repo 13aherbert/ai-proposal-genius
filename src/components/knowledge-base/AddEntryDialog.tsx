@@ -13,6 +13,8 @@ import { useEntryForm } from "./entry-dialog/useEntryForm";
 import { useState, useEffect } from "react";
 import { AIGenerator } from "./entry-dialog/AIGenerator";
 import { toast } from "sonner";
+import { DuplicateWarning } from "./governance/DuplicateWarning";
+import { useKBGovernance } from "./governance/useKBGovernance";
 
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const { session } = useAuth();

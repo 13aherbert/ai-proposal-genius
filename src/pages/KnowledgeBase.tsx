@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Wrench, ChevronDown } from "lucide-react";
+import { ArrowLeft, Wrench, ChevronDown, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CategorySidebar } from "@/components/knowledge-base/CategorySidebar";
@@ -21,6 +21,10 @@ import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchResult } from "@/components/knowledge-base/SearchResults";
+import { useKBGovernance } from "@/components/knowledge-base/governance/useKBGovernance";
+import { KBHealthDashboard } from "@/components/knowledge-base/governance/KBHealthDashboard";
+import { ReviewCycleManager } from "@/components/knowledge-base/governance/ReviewCycleManager";
+import { QAPairManager } from "@/components/knowledge-base/governance/QAPairManager";
 
 const KnowledgeBase = () => {
   const navigate = useNavigate();
@@ -39,9 +43,11 @@ const KnowledgeBase = () => {
   } = useKnowledgeBase();
   const { isSeeding, seedingProgress } = useStarterTemplates();
   const readiness = useKnowledgeReadiness();
+  const governance = useKBGovernance();
 
   const [selectedSearchEntry, setSelectedSearchEntry] = useState<SearchResult | null>(null);
   const [categoryLastUpdated, setCategoryLastUpdated] = useState<Record<string, string>>({});
+  const [showGovernance, setShowGovernance] = useState(false);
 
   // Fetch the most recent updated_at per category for staleness indicators
   useEffect(() => {
@@ -93,12 +99,44 @@ const KnowledgeBase = () => {
             Knowledge Base
           </h1>
         </div>
-        <AddEntryDialog 
-          categories={categories}
-          open={open}
-          onOpenChange={setOpen}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showGovernance ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowGovernance(!showGovernance)}
+          >
+            <ShieldCheck className="h-4 w-4 mr-1" />
+            Governance
+          </Button>
+          <AddEntryDialog 
+            categories={categories}
+            open={open}
+            onOpenChange={setOpen}
+          />
+        </div>
       </header>
+
+      {/* Governance Panel */}
+      {showGovernance && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <KBHealthDashboard
+            healthScores={governance.healthScores}
+            onRecalculate={governance.calculateHealthScores}
+            isLoading={governance.isLoading}
+          />
+          <ReviewCycleManager
+            reviewCycles={governance.reviewCycles}
+            onUpsertCycle={governance.upsertReviewCycle}
+            onMarkReviewed={governance.markAsReviewed}
+          />
+          <QAPairManager
+            qaPairs={governance.qaPairs}
+            onAdd={governance.addQAPair}
+            onDelete={governance.deleteQAPair}
+            selectedCategory={selectedCategory}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         <CategorySidebar 

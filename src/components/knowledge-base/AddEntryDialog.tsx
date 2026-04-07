@@ -13,10 +13,13 @@ import { useEntryForm } from "./entry-dialog/useEntryForm";
 import { useState, useEffect } from "react";
 import { AIGenerator } from "./entry-dialog/AIGenerator";
 import { toast } from "sonner";
+import { DuplicateWarning } from "./governance/DuplicateWarning";
+import { useKBGovernance } from "./governance/useKBGovernance";
 
 export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialogProps) => {
   const { session } = useAuth();
   const [contentMode, setContentMode] = useState<'manual' | 'upload' | 'ai'>('manual');
+  const { checkDuplicates } = useKBGovernance();
   
   const {
     formData,
@@ -179,6 +182,15 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
             </div>
           )}
           
+          {formData.title && formData.category && (
+            <DuplicateWarning
+              title={formData.title}
+              content={formData.content}
+              category={formData.category}
+              checkDuplicates={checkDuplicates}
+            />
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel

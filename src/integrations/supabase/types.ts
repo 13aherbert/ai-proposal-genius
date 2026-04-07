@@ -562,6 +562,179 @@ export type Database = {
           },
         ]
       }
+      kb_health_scores: {
+        Row: {
+          calculated_at: string
+          category: string
+          completeness_score: number | null
+          duplicate_count: number | null
+          freshness_score: number | null
+          id: string
+          organization_id: string
+          overall_score: number | null
+          stale_entries: number | null
+          total_entries: number | null
+        }
+        Insert: {
+          calculated_at?: string
+          category: string
+          completeness_score?: number | null
+          duplicate_count?: number | null
+          freshness_score?: number | null
+          id?: string
+          organization_id: string
+          overall_score?: number | null
+          stale_entries?: number | null
+          total_entries?: number | null
+        }
+        Update: {
+          calculated_at?: string
+          category?: string
+          completeness_score?: number | null
+          duplicate_count?: number | null
+          freshness_score?: number | null
+          id?: string
+          organization_id?: string
+          overall_score?: number | null
+          stale_entries?: number | null
+          total_entries?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_health_scores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_qa_pairs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          id: string
+          organization_id: string
+          question: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          question: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          question?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_qa_pairs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_review_cycles: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          id: string
+          last_reviewed_at: string | null
+          last_reviewed_by: string | null
+          next_review_at: string | null
+          organization_id: string
+          review_frequency_days: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          last_reviewed_at?: string | null
+          last_reviewed_by?: string | null
+          next_review_at?: string | null
+          organization_id: string
+          review_frequency_days?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          last_reviewed_at?: string | null
+          last_reviewed_by?: string | null
+          next_review_at?: string | null
+          organization_id?: string
+          review_frequency_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_review_cycles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_review_history: {
+        Row: {
+          category: string
+          id: string
+          notes: string | null
+          organization_id: string
+          reviewed_at: string
+          reviewed_by: string
+        }
+        Insert: {
+          category: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          reviewed_at?: string
+          reviewed_by: string
+        }
+        Update: {
+          category?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          reviewed_at?: string
+          reviewed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_review_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_entries: {
         Row: {
           category: string

@@ -1,53 +1,44 @@
 
 
-## Add URL-Based RFP Input
+## Diagnosis: Projects Stuck on Loading
 
-### Problem
-Some RFPs exist only as web pages with no downloadable documents. Users currently have no way to use a URL as the RFP source.
+### Root Cause
 
-### Approach
-Add a tab-based input switcher on the Upload RFP page: "Upload File" (existing) and "Paste URL" (new). When a URL is submitted, a new edge function scrapes the page content using Firecrawl, converts it to a text/markdown file, uploads it to Supabase Storage, and creates the project — identical to the file upload path from that point forward.
+The `useProjects` hook depends on `useCurrentOrganization()`, which has a **race condition** in how it fetches the user. The organization hook uses its own `useState` + `useEffect` to call `supabase.auth.getUser()`, separate from the `AuthProvider` session. This creates two problems:
 
-### Prerequisites
-The workspace has a Firecrawl connection (`std_01kewyt9c0exhapy9v6va9tktn`) but it is **not linked** to this project. It needs to be connected first.
+1. **Duplicate auth fetch**: `useCurrentOrganization` fetches the user independently instead of using the session from `AuthProvider`, causing a timing gap.
 
-### Changes
+2. **Error blocks projects permanently**: The projects query has `enabled: !!user?.id && !orgLoading && orgError === null` (line 206). If the organization query throws an error (e.g., RLS denies access to `organizations` table, or `.single()` fails), `orgError` becomes non-null and the projects query **never executes**. The `orgLoading` flips to `false`, but `orgError !== null` keeps the query disabled. Meanwhile, `isLoadingWithOrg` (line 366) only checks `isLoading || orgLoading` — so it shows as not loading, but the `isLoading` from the projects query stays `true` because it never ran (enabled=false keeps it in loading state with react-query).
 
-#### 1. New component: `UrlInput.tsx`
-- Card with a URL text input, a "Fetch & Create Project" button, and progress states
-- Validates URL format client-side
-- Shows fetching progress: "Scraping page..." → "Creating project..." → "Done"
-- Same `disabled` prop as UploadDropzone for limit gating
+3. **`organizationId === null` returns empty**: Even if the org query succeeds but returns `null` (user has no `current_organization_id`), `fetchProjects` returns empty at line 111-114. But additionally, the query key includes `organizationId` as `undefined` during loading, then changes when resolved, causing refetches.
 
-#### 2. Update `UploadRFP.tsx`
-- Add a Tabs component ("Upload File" | "Paste URL") wrapping the left column
-- "Upload File" tab renders existing `UploadDropzone`
-- "Paste URL" tab renders new `UrlInput`
-- `UrlInput` calls `handleUrlSubmit` which invokes the new edge function, then sets `projectId`/`rfpFilePath`/`projectTitle` the same way file upload does
+### The Fix
 
-#### 3. Update `use-rfp-upload.ts`
-- Add `handleUrlUpload(url: string, deadline?: Date)` method
-- Calls `scrape-rfp-url` edge function
-- Sets same state (projectId, projectTitle, rfpFilePath, uploadProgress)
-- Returns same shape so automation can auto-start
+**File: `src/hooks/use-current-organization.ts`**
+- Remove the independent `useState`/`useEffect` for user. Accept the user as a parameter or use `useAuth()` from `AuthProvider` to avoid the race condition.
 
-#### 4. New edge function: `scrape-rfp-url`
-- Accepts `{ url, userId, organizationId, deadline?, title? }`
-- Uses Firecrawl API (`FIRECRAWL_API_KEY`) to scrape the URL as markdown
-- Uploads the markdown content as a `.md` file to `rfp-files` storage bucket
-- Creates a project row with `rfp_file_path` pointing to the uploaded file
-- Returns `{ projectId, filePath, title, scrapedContent: { wordCount, title } }`
-- Handles errors: invalid URL, scrape failure, empty content
+**File: `src/hooks/use-projects.ts`**
+- Change the `enabled` condition to handle org errors gracefully — if org loading fails, still allow projects to load (without org filter) rather than blocking entirely.
+- Change `orgError === null` to `!orgError` or remove the org error gate and let projects load without an org filter as fallback.
 
-#### 5. Connect Firecrawl
-- Link the existing Firecrawl connection to this project so the edge function has access to `FIRECRAWL_API_KEY`
+### Specific Changes
 
-### Files to create/update
-- `src/components/rfp/UrlInput.tsx` — new component
-- `src/pages/UploadRFP.tsx` — add tabs, wire URL input
-- `src/hooks/use-rfp-upload.ts` — add `handleUrlUpload`
-- `supabase/functions/scrape-rfp-url/index.ts` — new edge function
+1. **`src/hooks/use-current-organization.ts`**: Replace the manual `useState`/`useEffect` user fetch with `useAuth()` from `AuthProvider`, so the user is immediately available when the session exists.
 
-### Expected result
-Users can paste any URL, the system scrapes the page content, creates a project with the extracted text as the RFP source, and the existing auto-analysis pipeline kicks in automatically.
+2. **`src/hooks/use-projects.ts`** (line 206): Change the enabled condition from:
+   ```
+   enabled: !!user?.id && !orgLoading && orgError === null
+   ```
+   to:
+   ```
+   enabled: !!user?.id && !orgLoading
+   ```
+   And handle `orgError` as a fallback — if org failed, fetch projects without org filter.
+
+3. **`src/hooks/use-projects.ts`** (line 366): Update `isLoadingWithOrg` to not block on org errors:
+   ```
+   const isLoadingWithOrg = orgLoading ? true : isLoading;
+   ```
+
+These changes ensure that even if the organization query fails or returns null, the user can still see their projects.
 

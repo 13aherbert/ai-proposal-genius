@@ -182,6 +182,15 @@ export const AddEntryDialog = ({ categories, open, onOpenChange }: AddEntryDialo
             </div>
           )}
           
+          {formData.title && formData.category && (
+            <DuplicateWarning
+              title={formData.title}
+              content={formData.content}
+              category={formData.category}
+              checkDuplicates={checkDuplicates}
+            />
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel

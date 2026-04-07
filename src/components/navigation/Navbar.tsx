@@ -47,6 +47,7 @@ import {
   Mail,
   Calendar,
   Shield,
+  BarChart3,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<
@@ -162,7 +163,7 @@ export function Navbar() {
                   <NavigationMenuItem>
                     <NavigationMenuTrigger
                       className={cn(
-                        isActiveGroup("/projects", "/knowledge-base", "/organization") &&
+                        isActiveGroup("/projects", "/knowledge-base", "/organization", "/analytics") &&
                           "font-semibold text-foreground"
                       )}
                     >
@@ -186,6 +187,9 @@ export function Navbar() {
                             Programmatic access to your data
                           </ListItem>
                         )}
+                        <ListItem to="/analytics" title="Analytics">
+                          Proposal metrics, ROI, and team performance
+                        </ListItem>
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
@@ -464,6 +468,20 @@ export function Navbar() {
                     >
                       <Search className="h-5 w-5 text-muted-foreground" />
                       Discover
+                    </Link>
+                  </SheetClose>
+
+                  {/* Analytics */}
+                  <SheetClose asChild>
+                    <Link
+                      to="/analytics"
+                      className={cn(
+                        "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                        isActive("/analytics") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
+                      )}
+                    >
+                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                      Analytics
                     </Link>
                   </SheetClose>
 

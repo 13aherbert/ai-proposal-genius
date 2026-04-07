@@ -118,6 +118,89 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          organization_id: string
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          organization_id: string
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          organization_id?: string
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
+      analytics_roi_settings: {
+        Row: {
+          created_at: string | null
+          hourly_rate: number | null
+          id: string
+          manual_hours_per_proposal: number | null
+          organization_id: string
+          subscription_monthly_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          manual_hours_per_proposal?: number | null
+          organization_id: string
+          subscription_monthly_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hourly_rate?: number | null
+          id?: string
+          manual_hours_per_proposal?: number | null
+          organization_id?: string
+          subscription_monthly_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_roi_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       archived_beta_invitations: {
         Row: {
           accepted_at: string | null
@@ -2161,6 +2244,54 @@ export type Database = {
             foreignKeyName: "proposal_designs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
+      proposal_outcomes: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          outcome: string
+          project_id: string
+          recorded_by: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          outcome: string
+          project_id: string
+          recorded_by: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          outcome?: string
+          project_id?: string
+          recorded_by?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_outcomes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_outcomes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
             referencedRelation: "projects"
             referencedColumns: ["project_id"]
           },

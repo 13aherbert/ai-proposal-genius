@@ -470,6 +470,20 @@ export function Navbar() {
                     </Link>
                   </SheetClose>
 
+                  {/* Analytics */}
+                  <SheetClose asChild>
+                    <Link
+                      to="/analytics"
+                      className={cn(
+                        "flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg active:bg-muted/70 transition-colors",
+                        isActive("/analytics") ? "font-semibold text-foreground bg-muted" : "hover:bg-muted"
+                      )}
+                    >
+                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                      Analytics
+                    </Link>
+                  </SheetClose>
+
                    <Separator />
 
                    {/* Enterprise Priority Support (mobile) */}

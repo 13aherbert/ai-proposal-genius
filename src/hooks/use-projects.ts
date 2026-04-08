@@ -107,11 +107,7 @@ export function useProjects(user: User | null) {
         return { data: [], totalCount: 0 };
       }
       
-      // Handle case where user has no organization yet
-      if (organizationId === null) {
-        console.log("User has no organization, returning empty results");
-        return { data: [], totalCount: 0 };
-      }
+      // If user has no organization, fetch by user_id only (no org filter)
       
       if (process.env.NODE_ENV === 'development') {
         await new Promise(resolve => setTimeout(resolve, 500));

@@ -19,7 +19,7 @@ export function useUserRoles() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [isUser, setIsUser] = useState(false);
-  const [isCheckingRoles, setIsCheckingRoles] = useState(false); 
+  const [isCheckingRoles, setIsCheckingRoles] = useState(true); 
   const [roleCheckError, setRoleCheckError] = useState<string | null>(null);
   
   // References to track state between renders
@@ -147,7 +147,8 @@ export function useUserRoles() {
         refs.timeout = null;
       }
     };
-  }, [session, checkRoles, refs, isAdmin, isSystemAdmin, isUser, isCheckingRoles, roleCheckError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, checkRoles]);
   
   // Make these derive directly from state
   const showAdminButton = isAdmin || isSystemAdmin;

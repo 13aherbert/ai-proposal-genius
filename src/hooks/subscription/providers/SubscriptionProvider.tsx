@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useNetwork } from '@/hooks/network';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { SubscriptionPlan } from '@/types/subscription';
 import { createDefaultSubscription, createStarterSubscription } from '../utils/subscription-creation';
 import { storeSubscriptionDataLocally, getStoredSubscriptionData } from '../feature-access';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
+import { useAuth } from '@/components/AuthProvider';
 
 // Context type definitions
 type SubscriptionContextType = {
@@ -52,6 +53,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [error, setError] = useState<Error | null>(null);
   const { isOnline, withNetworkCheck } = useNetwork();
   const { organization, loading: orgLoading } = useCurrentOrganization();
+  const { session } = useAuth();
+  const hasFetchedRef = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   // Clear subscription data
   const clearSubscription = useCallback(() => {
@@ -132,10 +136,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Get the current user session
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData?.session;
-
+      // Use session from AuthProvider instead of fetching independently
       if (!session) {
         console.log('No session found, clearing subscription');
         clearSubscription();
@@ -260,7 +261,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(false);
       setHasCheckedSubscription(true);
     }
-  }, [clearSubscription, isOnline, organization?.id, orgLoading]);
+  }, [clearSubscription, isOnline, organization?.id, orgLoading, session]);
 
   // Refresh subscription data
   const refreshSubscription = useCallback(async () => {
@@ -270,45 +271,55 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsLoading(false);
   }, [fetchSubscriptionData, withNetworkCheck]);
 
-  // Initialize subscription on mount
+  // Initialize subscription on mount - stabilized to prevent re-render storms
   useEffect(() => {
-    console.log('SubscriptionProvider initializing');
-    
     // Wait for organization to load before fetching subscription
-    if (orgLoading) {
-      console.log('Waiting for organization to load...');
+    if (orgLoading) return;
+    
+    // No session means no subscription
+    if (!session?.user) {
+      clearSubscription();
+      setIsLoading(false);
       return;
     }
+
+    // Deduplicate: only fetch if org ID actually changed
+    const orgKey = organization?.id || 'none';
+    if (hasFetchedRef.current === orgKey) return;
+    if (isFetchingRef.current) return;
     
     // If we're offline, try to load from cache first
     if (!isOnline) {
-      console.log('Offline: Using cached subscription data on init');
       const cachedData = getStoredSubscriptionData();
       if (cachedData) {
         setSubscription(cachedData);
         setHasCheckedSubscription(true);
         setIsLoading(false);
-        return;
       }
+      return;
     }
     
-    // Otherwise fetch fresh data
-    fetchSubscriptionData();
-    
-    // Listen for auth state changes
+    isFetchingRef.current = true;
+    hasFetchedRef.current = orgKey;
+    fetchSubscriptionData().finally(() => {
+      isFetchingRef.current = false;
+    });
+  }, [session?.user?.id, organization?.id, orgLoading, isOnline, fetchSubscriptionData, clearSubscription]);
+
+  // Listen for auth state changes separately (stable effect)
+  useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      console.log('Auth state changed:', event);
       if (event === 'SIGNED_OUT') {
+        hasFetchedRef.current = null;
         clearSubscription();
       } else if (event === 'SIGNED_IN') {
-        fetchSubscriptionData();
+        hasFetchedRef.current = null; // Reset so next render fetches
       }
     });
-
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [clearSubscription, fetchSubscriptionData, isOnline, orgLoading, organization?.id]);
+  }, [clearSubscription]);
 
   // The context value
   const value = {

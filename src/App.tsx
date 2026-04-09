@@ -7,6 +7,7 @@ import { NetworkStatusProvider } from "@/hooks/network";
 import { SubscriptionProvider } from "@/hooks/subscription";
 import { useAnalytics } from "@/hooks/use-analytics";
 import React, { lazy, Suspense } from "react";
+import { useWebVitals } from "@/hooks/use-web-vitals";
 
 // Eagerly loaded pages (critical path)
 import Index from "@/pages/Index";

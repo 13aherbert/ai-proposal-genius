@@ -83,10 +83,21 @@
   * {
     @apply border-border;
   }
+
+  /* Focus indicators for keyboard navigation */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Font size scaling for accessibility */
+  p, li, span, td, th, label, input, textarea, select, button {
+    font-size: calc(1em * var(--a11y-font-scale, 1));
   }
   
   /* Improve touch targets on mobile */

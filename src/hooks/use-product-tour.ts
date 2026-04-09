@@ -124,13 +124,19 @@ export function useProductTour() {
     if (location.pathname !== '/dashboard') return;
 
     const created = new Date(session.user.created_at);
-    const isNew = Date.now() - created.getTime() < 7 * 24 * 60 * 60 * 1000; // within 7 days
+    const isNew = Date.now() - created.getTime() < 7 * 24 * 60 * 60 * 1000;
     if (isNew) {
       hasAutoStarted.current = true;
-      // Delay to let dashboard elements render
       setTimeout(() => setIsRunning(true), 2000);
     }
   }, [session, state.completed, state.skippedAt, location.pathname]);
+
+  // Listen for restart-product-tour event from Navbar
+  useEffect(() => {
+    const handler = () => start();
+    window.addEventListener('restart-product-tour', handler);
+    return () => window.removeEventListener('restart-product-tour', handler);
+  }, []);
 
   const start = useCallback(() => {
     setStepIndex(0);

@@ -10,13 +10,17 @@ export function useSubscriptionNotifications() {
   const [hasShownGracePeriodNotice, setHasShownGracePeriodNotice] = useState(false);
   const [hasShownExpirationNotice, setHasShownExpirationNotice] = useState(false);
   const [hasShownRenewalNotice, setHasShownRenewalNotice] = useState(false);
+  const [hasShownFailedPaymentNotice, setHasShownFailedPaymentNotice] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (subscription.isLoading || !subscription.subscription) return;
 
     // Check for failed payment status
-    if (subscription.hasFailedPayment()) {
+    if (
+      !hasShownFailedPaymentNotice &&
+      subscription.hasFailedPayment()
+    ) {
       toast.error("Payment failed", {
         description: "We couldn't process your last payment. Please update your payment method.",
         duration: 10000,
@@ -25,6 +29,7 @@ export function useSubscriptionNotifications() {
           onClick: () => navigate('/account-settings')
         }
       });
+      setHasShownFailedPaymentNotice(true);
     }
 
     // Check for upcoming renewal (7 days before expiration)
@@ -54,12 +59,11 @@ export function useSubscriptionNotifications() {
       const gracePeriodEnd = addDays(new Date(subscription.subscription.current_period_end), 3);
       
       if (!isPast(gracePeriodEnd)) {
-        // User is in grace period
         const daysLeft = differenceInDays(gracePeriodEnd, new Date()) + 1;
         
         toast.warning(`Grace period: ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`, {
           description: "Your subscription has expired. Update your payment method to maintain access.",
-          duration: 0, // This won't auto-dismiss
+          duration: 0,
           action: {
             label: "Renew now",
             onClick: () => navigate('/subscription')
@@ -68,10 +72,9 @@ export function useSubscriptionNotifications() {
         
         setHasShownGracePeriodNotice(true);
       } else if (!hasShownExpirationNotice) {
-        // Past grace period
         toast.error("Subscription expired", {
           description: "Your subscription has expired and the grace period has ended. Renew now to restore access.",
-          duration: 0, // This won't auto-dismiss
+          duration: 0,
           action: {
             label: "Renew now",
             onClick: () => navigate('/subscription')
@@ -88,8 +91,7 @@ export function useSubscriptionNotifications() {
     hasShownGracePeriodNotice, 
     hasShownExpirationNotice, 
     hasShownRenewalNotice,
-    subscription.hasFailedPayment,
-    subscription.isInGracePeriod
+    hasShownFailedPaymentNotice,
   ]);
 
   return { 

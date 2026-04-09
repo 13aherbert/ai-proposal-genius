@@ -267,9 +267,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refreshSubscription = useCallback(async () => {
     console.log('Manually refreshing subscription data');
     setIsLoading(true);
-    await withNetworkCheck(fetchSubscriptionData);
+    await fetchSubscriptionData();
     setIsLoading(false);
-  }, [fetchSubscriptionData, withNetworkCheck]);
+  }, [fetchSubscriptionData]);
 
   // Initialize subscription on mount - stabilized to prevent re-render storms
   useEffect(() => {

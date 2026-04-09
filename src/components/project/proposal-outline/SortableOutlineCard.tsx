@@ -88,10 +88,18 @@ export function SortableOutlineCard({
         {...attributes}
         {...listeners}
         className="mt-1 cursor-grab touch-none text-muted-foreground hover:text-foreground transition-colors shrink-0"
-        aria-label="Drag to reorder"
+        aria-label={`Drag to reorder ${section.title}`}
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
       </button>
+      {/* Keyboard reorder */}
+      <KeyboardReorderButtons
+        index={index}
+        total={totalSections}
+        label={section.title}
+        onMoveUp={() => onMoveUp(index)}
+        onMoveDown={() => onMoveDown(index)}
+      />
 
       {/* Content */}
       <div className="flex-1 min-w-0">

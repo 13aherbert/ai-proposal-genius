@@ -217,6 +217,7 @@ export function Navbar() {
 
           {/* Desktop profile dropdown */}
           <div className="hidden md:flex items-center gap-2">
+            <AccessibilitySettings />
             <ThemeToggle />
             {/* Enterprise Badge */}
             {session && isEnterprise && (

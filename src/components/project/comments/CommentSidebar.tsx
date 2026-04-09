@@ -1,11 +1,19 @@
 import { useState, useMemo } from "react";
-import { MessageSquare, X, Filter } from "lucide-react";
+import { MessageSquare, X, Filter, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useProposalComments, ProposalComment } from "@/hooks/useProposalComments";
 import { CommentThread } from "./CommentThread";
 import { CommentInput } from "./CommentInput";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "@/components/ui/drawer";
 
 interface CommentSidebarProps {
   projectId: string;
@@ -18,10 +26,15 @@ interface CommentSidebarProps {
 
 type FilterType = "all" | "open" | "resolved";
 
-export function CommentSidebar({ projectId, sectionId, open, onClose, members, onScrollToHighlight }: CommentSidebarProps) {
+function CommentContent({
+  projectId,
+  sectionId,
+  onClose,
+  members,
+  onScrollToHighlight,
+}: Omit<CommentSidebarProps, "open">) {
   const { comments, isLoading, addComment, resolveComment, deleteComment, editComment, isAdding } = useProposalComments(projectId);
   const [filter, setFilter] = useState<FilterType>("all");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let result = comments;
@@ -36,26 +49,8 @@ export function CommentSidebar({ projectId, sectionId, open, onClose, members, o
   const openCount = comments.filter((c) => !c.is_resolved && (!sectionId || c.section_id === sectionId)).length;
   const resolvedCount = comments.filter((c) => c.is_resolved && (!sectionId || c.section_id === sectionId)).length;
 
-  if (!open) return null;
-
   return (
-    <div className="fixed right-0 top-0 h-full w-80 sm:w-96 bg-background border-l shadow-xl z-50 flex flex-col animate-in slide-in-from-right-full duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-primary" />
-          <span className="font-semibold text-sm">Comments</span>
-          {openCount > 0 && (
-            <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
-              {openCount}
-            </span>
-          )}
-        </div>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
+    <>
       {/* Filters */}
       <div className="flex gap-1 px-4 py-2 border-b">
         {(["all", "open", "resolved"] as FilterType[]).map((f) => (
@@ -63,7 +58,7 @@ export function CommentSidebar({ projectId, sectionId, open, onClose, members, o
             key={f}
             variant={filter === f ? "default" : "ghost"}
             size="sm"
-            className="h-7 text-xs capitalize"
+            className="h-8 text-xs capitalize min-w-[44px]"
             onClick={() => setFilter(f)}
           >
             {f}
@@ -112,6 +107,70 @@ export function CommentSidebar({ projectId, sectionId, open, onClose, members, o
           )}
         </div>
       </ScrollArea>
+    </>
+  );
+}
+
+export function CommentSidebar({ projectId, sectionId, open, onClose, members, onScrollToHighlight }: CommentSidebarProps) {
+  const isMobile = useIsMobile();
+  const { comments } = useProposalComments(projectId);
+  const openCount = comments.filter((c) => !c.is_resolved && (!sectionId || c.section_id === sectionId)).length;
+
+  if (!open) return null;
+
+  // Mobile: bottom sheet drawer
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+        <DrawerContent className="max-h-[85vh] flex flex-col">
+          <DrawerHeader className="flex items-center justify-between pb-2">
+            <DrawerTitle className="flex items-center gap-2 text-sm">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              Comments
+              {openCount > 0 && (
+                <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                  {openCount}
+                </span>
+              )}
+            </DrawerTitle>
+          </DrawerHeader>
+          <CommentContent
+            projectId={projectId}
+            sectionId={sectionId}
+            onClose={onClose}
+            members={members}
+            onScrollToHighlight={onScrollToHighlight}
+          />
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop: side panel
+  return (
+    <div className="fixed right-0 top-0 h-full w-80 sm:w-96 bg-background border-l shadow-xl z-50 flex flex-col animate-in slide-in-from-right-full duration-200">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-primary" />
+          <span className="font-semibold text-sm">Comments</span>
+          {openCount > 0 && (
+            <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+              {openCount}
+            </span>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose} aria-label="Close comments">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <CommentContent
+        projectId={projectId}
+        sectionId={sectionId}
+        onClose={onClose}
+        members={members}
+        onScrollToHighlight={onScrollToHighlight}
+      />
     </div>
   );
 }

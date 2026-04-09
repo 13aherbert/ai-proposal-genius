@@ -1,54 +1,55 @@
 
 
-## Diagnosis: Projects Still Stuck Loading
+## Diagnosis: Infinite Toast Notifications and Subscription Fetch Storm
 
-### Root Causes Found
+### Root Causes
 
-**Primary: Dual `useSubscription` hook conflict creating re-render storm**
+**1. NetworkStatusProvider context value not memoized**
 
-There are TWO files exporting `useSubscription`:
-- `src/hooks/use-subscription.ts` — standalone hook with its own state, fetching, and a `useEffect` loop
-- `src/hooks/use-subscription.tsx` — wrapper around the SubscriptionProvider context
+`checkConnection` (line 40) is a plain function recreated every render. The context value `{ status: networkStatus, checkConnection }` is a new object every render, causing ALL consumers of `useNetwork()` to re-render — including `SubscriptionProvider`. Each re-render recreates `fetchSubscriptionData`, triggering the useEffect.
 
-When components import `from "@/hooks/use-subscription"` (without extension), Vite resolves `.ts` before `.tsx`. So `RecentProjects.tsx` (line 7) gets the **standalone** hook, NOT the Provider-based one.
+**2. SubscriptionProvider error path shows toast on every failure**
 
-The standalone hook (`use-subscription.ts`) has a circular `useEffect` at line 191-198:
-- It depends on `[session, checkSubscription]`
-- `checkSubscription` is a `useCallback` that depends on `[session]` (line 112)
-- Every `session` object reference change recreates `checkSubscription`, which re-triggers the effect
-- `checkSubscription` calls `refreshSubscriptionInBackground` (line 64), which calls `setSubscription`, causing another render
-- This creates the "Using cached subscription data" / "Refreshing subscription data in background" spam seen in logs (hundreds of times)
+Line 259: `toast.error('Failed to fetch subscription data...')` fires inside the catch block with no deduplication. If the fetch fails repeatedly (e.g., network flakiness from the favicon flood), each failure produces a toast.
 
-This re-render storm destabilizes the `useProjects` hook, which also depends on subscription-related state through `useProjectLimits`.
+**3. `useSubscriptionNotifications` has no guard for failed payment toasts**
 
-**Secondary: `useCurrentOrganization` query retry blocking projects**
+The `hasFailedPayment()` check (line 19) fires a `toast.error("Payment failed")` every time the useEffect runs, with no `hasShownFailedPaymentNotice` state guard. The effect depends on `subscription.hasFailedPayment` (line 91), which is a new callback reference whenever subscription changes, causing the effect to re-run and fire the toast again.
 
-If the organization query fails (e.g., RLS timeout due to the re-render storm overwhelming the connection), react-query retries 3 times with exponential backoff. During retries, `isLoading` stays `true`, keeping the projects query disabled (`enabled: !!user?.id && !orgLoading`).
+**4. `refreshSubscription` calls `withNetworkCheck` which floods favicon requests**
+
+`withNetworkCheck` calls `checkConnection()` which fetches `/favicon.ico`. When called repeatedly (due to re-renders), this creates the favicon request flood visible in the network logs.
 
 ### Fix Plan
 
-**Step 1: Remove the duplicate standalone `use-subscription.ts` file**
+**Step 1: Memoize NetworkStatusProvider context value**
 
-Delete `src/hooks/use-subscription.ts` entirely. All imports of `@/hooks/use-subscription` will then resolve to `use-subscription.tsx`, which correctly uses the Provider context. This eliminates the re-render storm.
+In `src/hooks/network/NetworkStatusProvider.tsx`:
+- Wrap `checkConnection` in `useCallback`
+- Memoize the context value with `useMemo` so consumers don't re-render unless `networkStatus` actually changes
+- Use a ref for `networkStatus` inside `checkConnection` to avoid stale closure issues
 
-Update any code that relies on types or exports unique to the `.ts` file (like `Subscription`, `SubscriptionResponse` types) — move those to the `.tsx` file or a shared types file.
+**Step 2: Remove toast from SubscriptionProvider error path**
 
-**Step 2: Stabilize `use-subscription.tsx` wrapper**
+In `src/hooks/subscription/providers/SubscriptionProvider.tsx`:
+- Remove `toast.error('Failed to fetch subscription data...')` from line 259 — errors are already handled by setting the `error` state, and consumers can react to it. This eliminates toast spam on repeated fetch failures.
 
-The `useSubscriptionWithFallback` wrapper in `use-subscription.tsx` has its own problematic effects:
-- Line 66: Direct fetch on error creates cascading retries
-- Line 136: Force refresh on error creates another retry chain
+**Step 3: Add guard for failed payment toast in useSubscriptionNotifications**
 
-Simplify: remove the cascading error-recovery effects. The SubscriptionProvider already handles errors with cached data fallback. The wrapper should just pass through without adding retry storms.
+In `src/hooks/use-subscription-notifications.tsx`:
+- Add `hasShownFailedPaymentNotice` state (like the existing grace period and renewal guards)
+- Gate the `toast.error("Payment failed")` call behind this guard
+- Remove `subscription.hasFailedPayment` and `subscription.isInGracePeriod` from the useEffect dependency array — these are functions that change reference on every subscription change and should be called inside the effect, not used as dependencies
 
-**Step 3: Add safety timeout for `orgLoading` in `useProjects`**
+**Step 4: Prevent refreshSubscription from being called during initialization**
 
-Even after fixing the re-render storm, add a defensive timeout so that if `orgLoading` stays `true` for more than 5 seconds, bypass it and fetch projects without org filter. This prevents any future organization loading issue from permanently blocking projects.
+In `src/hooks/subscription/providers/SubscriptionProvider.tsx`:
+- Make `refreshSubscription` skip the `withNetworkCheck` wrapper and call `fetchSubscriptionData` directly (the function already handles offline checking internally)
+- This eliminates the duplicate favicon fetch on every refresh
 
 ### Files Changed
 
-1. **Delete `src/hooks/use-subscription.ts`** — the standalone hook that conflicts with the Provider
-2. **Edit `src/hooks/use-subscription.tsx`** — remove cascading error-recovery effects, re-export any needed types
-3. **Edit `src/hooks/use-projects.ts`** — add orgLoading timeout fallback
-4. **Edit `src/pages/RecentProjects.tsx`** — clean up unused subscription imports if needed
+1. `src/hooks/network/NetworkStatusProvider.tsx` — memoize context value and checkConnection
+2. `src/hooks/subscription/providers/SubscriptionProvider.tsx` — remove toast.error from catch, simplify refreshSubscription
+3. `src/hooks/use-subscription-notifications.tsx` — add failed payment guard, fix useEffect dependencies
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { KeyboardReorderButtons } from "@/components/accessibility/KeyboardReorderButtons";
 import { OutlineSection } from "./useOutlineSections";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

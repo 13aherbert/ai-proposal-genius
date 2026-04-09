@@ -49,7 +49,7 @@ export function Footer() {
   const { session } = useAuth();
 
   return (
-    <footer className="bg-background border-t mt-auto">
+    <footer className="bg-background border-t mt-auto" role="contentinfo" aria-label="Site footer">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Footer columns */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">

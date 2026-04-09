@@ -128,6 +128,21 @@
   }
 }
 
+/* Scrollbar-hide utility for horizontal scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Global overflow protection */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 .gradient-bg {
   background: linear-gradient(to bottom, #34D399 0%, #1a1a1a 100%);
 }

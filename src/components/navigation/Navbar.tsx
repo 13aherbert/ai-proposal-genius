@@ -48,6 +48,7 @@ import {
   Calendar,
   Shield,
   BarChart3,
+  Compass,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -306,6 +307,15 @@ export function Navbar() {
                       Restart Onboarding
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('restart-product-tour'));
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Compass className="mr-2 h-4 w-4" />
+                    Restart Tour
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />

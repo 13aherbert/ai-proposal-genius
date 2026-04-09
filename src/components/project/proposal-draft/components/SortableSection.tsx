@@ -50,7 +50,7 @@ export function SortableSection({ section, index, totalSections, isSelected, onS
         {...attributes}
         {...listeners}
         className="absolute left-0 top-0 bottom-0 flex items-center px-1 sm:px-2 cursor-grab opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-        aria-label={`Drag to reorder ${section.title}`}
+        aria-label={`Drag to reorder ${section.section_title}`}
       >
         <GripVertical className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" aria-hidden="true" />
       </div>
@@ -58,7 +58,7 @@ export function SortableSection({ section, index, totalSections, isSelected, onS
         <KeyboardReorderButtons
           index={index}
           total={totalSections}
-          label={section.title || "section"}
+          label={section.section_title || "section"}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
         />

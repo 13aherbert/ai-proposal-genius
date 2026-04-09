@@ -255,8 +255,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setSubscription(cachedData);
       }
       
-      // Show a toast message
-      toast.error('Failed to fetch subscription data. Using cached data if available.');
+      // Error state is set above; consumers can react to it. No toast here to avoid spam.
     } finally {
       setIsLoading(false);
       setHasCheckedSubscription(true);
@@ -267,9 +266,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refreshSubscription = useCallback(async () => {
     console.log('Manually refreshing subscription data');
     setIsLoading(true);
-    await withNetworkCheck(fetchSubscriptionData);
+    await fetchSubscriptionData();
     setIsLoading(false);
-  }, [fetchSubscriptionData, withNetworkCheck]);
+  }, [fetchSubscriptionData]);
 
   // Initialize subscription on mount - stabilized to prevent re-render storms
   useEffect(() => {

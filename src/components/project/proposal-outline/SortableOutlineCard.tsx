@@ -21,17 +21,23 @@ import {
 
 interface SortableOutlineCardProps {
   section: OutlineSection;
+  index: number;
   onUpdateTitle: (id: string, title: string) => void;
   onUpdateDescription: (id: string, desc: string) => void;
   onDelete: (id: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
   totalSections: number;
 }
 
 export function SortableOutlineCard({
   section,
+  index,
   onUpdateTitle,
   onUpdateDescription,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   totalSections,
 }: SortableOutlineCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);

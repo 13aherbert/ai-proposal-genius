@@ -161,7 +161,7 @@ export function Navbar() {
                   </NavigationMenuItem>
 
                   {/* Manage */}
-                  <NavigationMenuItem>
+                  <NavigationMenuItem data-tour="nav-projects">
                     <NavigationMenuTrigger
                       className={cn(
                         isActiveGroup("/projects", "/knowledge-base", "/organization", "/analytics") &&
@@ -175,7 +175,7 @@ export function Navbar() {
                         <ListItem to="/projects" title="Projects">
                           View and manage all your proposal projects
                         </ListItem>
-                        <ListItem to="/knowledge-base" title="Knowledge Base">
+                        <ListItem to="/knowledge-base" title="Knowledge Base" data-tour="nav-knowledge">
                           Manage your content library and templates
                         </ListItem>
                         {showOrg && (
@@ -196,7 +196,7 @@ export function Navbar() {
                   </NavigationMenuItem>
 
                   {/* Discover */}
-                  <NavigationMenuItem>
+                  <NavigationMenuItem data-tour="nav-discover">
                     <Link to="/opportunities">
                       <NavigationMenuLink
                         className={cn(
@@ -264,7 +264,7 @@ export function Navbar() {
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button data-tour="user-menu" variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                     </Avatar>

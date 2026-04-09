@@ -76,7 +76,7 @@ export function EditorToolbar({ editor, onFullScreen }: EditorToolbarProps) {
   return (
     <div className="border-b bg-muted/30 rounded-t-md sticky top-0 z-10" role="toolbar" aria-label="Text formatting">
       {/* Row 1 */}
-      <div className="flex flex-wrap items-center gap-0.5 p-1" role="group" aria-label="Basic formatting">
+      <div className="flex items-center gap-0.5 p-1 overflow-x-auto scrollbar-hide" role="group" aria-label="Basic formatting">
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive("bold")} tooltip="Bold" shortcut={`${mod}+B`}>
           <Bold className="h-4 w-4" />
         </ToolbarButton>
@@ -153,7 +153,7 @@ export function EditorToolbar({ editor, onFullScreen }: EditorToolbarProps) {
 
       {/* Row 2 — Advanced */}
       {showAdvanced && (
-        <div className="flex flex-wrap items-center gap-0.5 p-1 border-t border-border/50" role="group" aria-label="Advanced formatting">
+        <div className="flex items-center gap-0.5 p-1 border-t border-border/50 overflow-x-auto scrollbar-hide" role="group" aria-label="Advanced formatting">
           <ToolbarButton onClick={insertTable} tooltip="Insert Table">
             <TableIcon className="h-4 w-4" />
           </ToolbarButton>

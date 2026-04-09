@@ -51,6 +51,7 @@ import {
   Compass,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilitySettings } from "@/components/accessibility/AccessibilitySettings";
 
 const ListItem = React.forwardRef<
   React.ElementRef<typeof Link>,

@@ -117,6 +117,14 @@ export function useProductTour() {
   const [stepIndex, setStepIndex] = useState(0);
   const hasAutoStarted = useRef(false);
 
+  const start = useCallback(() => {
+    setStepIndex(0);
+    setState({ completed: false, skippedAt: null, lastStep: 0 });
+    saveState({ completed: false, skippedAt: null, lastStep: 0 });
+    hasAutoStarted.current = true;
+    setIsRunning(true);
+  }, []);
+
   // Auto-start for new users who haven't completed or skipped the tour
   useEffect(() => {
     if (!session?.user || hasAutoStarted.current) return;
@@ -136,15 +144,7 @@ export function useProductTour() {
     const handler = () => start();
     window.addEventListener('restart-product-tour', handler);
     return () => window.removeEventListener('restart-product-tour', handler);
-  }, []);
-
-  const start = useCallback(() => {
-    setStepIndex(0);
-    setState({ completed: false, skippedAt: null, lastStep: 0 });
-    saveState({ completed: false, skippedAt: null, lastStep: 0 });
-    hasAutoStarted.current = true;
-    setIsRunning(true);
-  }, []);
+  }, [start]);
 
   const complete = useCallback(() => {
     const newState: TourState = { completed: true, skippedAt: null, lastStep: stepIndex };

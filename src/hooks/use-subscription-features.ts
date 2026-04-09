@@ -37,13 +37,13 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
   const [localProjectLimit, setLocalProjectLimit] = useState<number | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [fallbackSubscription, setFallbackSubscription] = useState<any>(null);
-  const [logCount, setLogCount] = useState(0);
+  const logCountRef = useRef(0);
   
   const devLog = (message: string, data?: any) => {
-    if (process.env.NODE_ENV === 'development' && logCount < 3) {
+    if (process.env.NODE_ENV === 'development' && logCountRef.current < 3) {
       if (data) console.log(message, data);
       else console.log(message);
-      setLogCount(prev => prev + 1);
+      logCountRef.current += 1;
     }
   };
   
@@ -72,12 +72,6 @@ export function useSubscriptionFeatures(): SubscriptionFeaturesResult {
       const safeLimit = getSafeProjectLimit(normalizedPlanType, subscription.project_limit);
       setLocalProjectLimit(safeLimit);
       
-      // Check for incorrect project limit
-      const expectedLimit = getProjectLimitForPlan(normalizedPlanType);
-      if (subscription.project_limit !== expectedLimit) {
-        devLog("Detected incorrect project limit. Refreshing subscription data.");
-        checkSubscription();
-      }
       
       if (lastPlanType !== null && lastPlanType !== normalizedPlanType) {
         devLog(`Plan type changed from ${lastPlanType} to ${normalizedPlanType}. Clearing caches.`);

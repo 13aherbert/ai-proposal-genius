@@ -98,8 +98,8 @@ function RouteLoader() {
 }
 
 function AppContent() {
-  // Initialize analytics tracking for route changes
   useAnalytics();
+  useWebVitals();
   
   return (
     <Suspense fallback={<RouteLoader />}>

@@ -1,5 +1,5 @@
 import { useSubscription } from "./use-subscription";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SUBSCRIPTION_PLAN_LIMITS } from "@/types/subscription";
 import { 
   FeatureName, 

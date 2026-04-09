@@ -14,40 +14,22 @@ export const checkAdminRole = async (
   refs: UserRoleRefs,
   forceUpdate = false
 ): Promise<boolean> => {
-  if (!userId || (refs.checkingInProgress && !forceUpdate)) {
-    return refs.adminStatus;
-  }
-  
-  // Use cached value if available and not forced
-  const now = Date.now();
-  if (!forceUpdate && refs.lastCheckedTime && (now - refs.lastCheckedTime < CACHE_DURATION)) {
-    console.log("Using cached admin status:", refs.adminStatus);
+  if (!userId) {
     return refs.adminStatus;
   }
   
   try {
-    refs.checkingInProgress = true;
-    
-    // Use the is_admin RPC function
     const { data, error } = await supabase.rpc('is_admin');
     
     if (error) {
       console.error("Admin RPC check error:", error);
-      refs.checkingInProgress = false;
       return refs.adminStatus;
     }
     
-    // Update the last checked time
-    refs.lastCheckedTime = now;
-    
     console.log("Admin RPC check result:", data, "at", new Date().toISOString());
-    
-    // Return the result as a boolean
-    refs.checkingInProgress = false;
     return !!data;
   } catch (error) {
     console.error("Error in direct admin role check:", error);
-    refs.checkingInProgress = false;
     refs.lastNetworkErrorTime = Date.now();
     return refs.adminStatus;
   }
@@ -62,40 +44,22 @@ export const checkSystemAdminRole = async (
   refs: UserRoleRefs & { systemAdminStatus: boolean },
   forceUpdate = false
 ): Promise<boolean> => {
-  if (!userId || (refs.checkingInProgress && !forceUpdate)) {
-    return refs.systemAdminStatus;
-  }
-  
-  // Use cached value if available and not forced
-  const now = Date.now();
-  if (!forceUpdate && refs.lastCheckedTime && (now - refs.lastCheckedTime < CACHE_DURATION)) {
-    console.log("Using cached system admin status:", refs.systemAdminStatus);
+  if (!userId) {
     return refs.systemAdminStatus;
   }
   
   try {
-    refs.checkingInProgress = true;
-    
-    // Use the is_system_admin RPC function
     const { data, error } = await supabase.rpc('is_system_admin');
     
     if (error) {
       console.error("System Admin RPC check error:", error);
-      refs.checkingInProgress = false;
       return refs.systemAdminStatus;
     }
     
-    // Update the last checked time
-    refs.lastCheckedTime = now;
-    
     console.log("System Admin RPC check result:", data, "at", new Date().toISOString());
-    
-    // Return the result as a boolean
-    refs.checkingInProgress = false;
     return !!data;
   } catch (error) {
     console.error("Error in direct system admin role check:", error);
-    refs.checkingInProgress = false;
     refs.lastNetworkErrorTime = Date.now();
     return refs.systemAdminStatus;
   }

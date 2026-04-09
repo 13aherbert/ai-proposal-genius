@@ -36,7 +36,6 @@ export const useRoleCheckEffect = (
     }
     
     try {
-      refs.checkingInProgress = true;
       
       if (!refs.rolesInitialized) {
         setIsCheckingRoles(true);
@@ -96,7 +95,7 @@ export const useRoleCheckEffect = (
       setIsCheckingRoles(false);
       refs.lastNetworkErrorTime = now;
     } finally {
-      refs.checkingInProgress = false;
+      // Don't reset checkingInProgress here - child functions manage their own flag
     }
   }, [session, setIsAdmin, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
 

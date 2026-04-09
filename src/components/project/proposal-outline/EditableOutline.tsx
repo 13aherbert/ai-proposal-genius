@@ -108,13 +108,16 @@ export function EditableOutline({ outlineMarkdown, onOutlineChange }: EditableOu
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
           <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {sections.map((section) => (
+              {sections.map((section, idx) => (
                 <SortableOutlineCard
                   key={section.id}
                   section={section}
+                  index={idx}
                   onUpdateTitle={updateTitle}
                   onUpdateDescription={updateDescription}
                   onDelete={deleteSection}
+                  onMoveUp={(i) => { if (i > 0) reorder(i, i - 1); }}
+                  onMoveDown={(i) => { if (i < sections.length - 1) reorder(i, i + 1); }}
                   totalSections={sections.length}
                 />
               ))}

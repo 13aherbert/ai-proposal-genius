@@ -17,8 +17,10 @@ export function WorkflowStatusBadge({ status, className }: WorkflowStatusBadgePr
     <Badge
       variant="outline"
       className={cn("text-[10px] font-medium border-0 gap-1 py-0 px-1.5", WORKFLOW_COLORS[status], className)}
+      role="status"
+      aria-label={`Section status: ${WORKFLOW_LABELS[status]}`}
     >
-      {WORKFLOW_ICONS[status]} {WORKFLOW_LABELS[status]}
+      <span aria-hidden="true">{WORKFLOW_ICONS[status]}</span> {WORKFLOW_LABELS[status]}
     </Badge>
   );
 }

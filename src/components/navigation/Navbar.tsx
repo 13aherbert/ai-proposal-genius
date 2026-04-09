@@ -51,6 +51,7 @@ import {
   Compass,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilitySettings } from "@/components/accessibility/AccessibilitySettings";
 
 const ListItem = React.forwardRef<
   React.ElementRef<typeof Link>,
@@ -216,6 +217,7 @@ export function Navbar() {
 
           {/* Desktop profile dropdown */}
           <div className="hidden md:flex items-center gap-2">
+            <AccessibilitySettings />
             <ThemeToggle />
             {/* Enterprise Badge */}
             {session && isEnterprise && (

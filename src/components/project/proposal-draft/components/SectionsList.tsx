@@ -69,16 +69,34 @@ export function SectionsList({
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-4">
-          {sections.map((section) => (
+          {sections.map((section, idx) => (
             <SortableSection
               key={section.section_id}
               section={section}
+              index={idx}
+              totalSections={sections.length}
               isSelected={selectedSection === section.section_id}
               onSelect={() => onSelectSection(section.section_id)}
               onSaveStatusChange={onSaveStatusChange}
               members={members}
               showTeamFeatures={showTeamFeatures}
               onComment={onComment}
+              onMoveUp={() => {
+                if (idx > 0) {
+                  const next = [...sections];
+                  const [moved] = next.splice(idx, 1);
+                  next.splice(idx - 1, 0, moved);
+                  onReorderSections(next);
+                }
+              }}
+              onMoveDown={() => {
+                if (idx < sections.length - 1) {
+                  const next = [...sections];
+                  const [moved] = next.splice(idx, 1);
+                  next.splice(idx + 1, 0, moved);
+                  onReorderSections(next);
+                }
+              }}
             />
           ))}
         </div>

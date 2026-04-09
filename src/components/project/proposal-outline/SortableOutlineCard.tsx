@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { KeyboardReorderButtons } from "@/components/accessibility/KeyboardReorderButtons";
 import { OutlineSection } from "./useOutlineSections";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,17 +21,23 @@ import {
 
 interface SortableOutlineCardProps {
   section: OutlineSection;
+  index: number;
   onUpdateTitle: (id: string, title: string) => void;
   onUpdateDescription: (id: string, desc: string) => void;
   onDelete: (id: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
   totalSections: number;
 }
 
 export function SortableOutlineCard({
   section,
+  index,
   onUpdateTitle,
   onUpdateDescription,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   totalSections,
 }: SortableOutlineCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -81,10 +88,18 @@ export function SortableOutlineCard({
         {...attributes}
         {...listeners}
         className="mt-1 cursor-grab touch-none text-muted-foreground hover:text-foreground transition-colors shrink-0"
-        aria-label="Drag to reorder"
+        aria-label={`Drag to reorder ${section.title}`}
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
       </button>
+      {/* Keyboard reorder */}
+      <KeyboardReorderButtons
+        index={index}
+        total={totalSections}
+        label={section.title}
+        onMoveUp={() => onMoveUp(index)}
+        onMoveDown={() => onMoveDown(index)}
+      />
 
       {/* Content */}
       <div className="flex-1 min-w-0">

@@ -2,8 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserRoleRefs } from "./types";
 
-// Cache duration in milliseconds (10 seconds - increased from 5)
-const CACHE_DURATION = 10000;
 
 /**
  * Dedicated function to check admin role using direct RPC

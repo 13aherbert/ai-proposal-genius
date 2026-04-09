@@ -35,6 +35,7 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { FeatureGate } from "@/components/subscription/FeatureGate";
 import { UsageProgressWidget } from "@/components/subscription/UsageProgressWidget";
 import { DashboardUpgradeBanner } from "@/components/subscription/DashboardUpgradeBanner";
+import { ProductTour } from "@/components/tour/ProductTour";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -156,7 +157,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
 
-      <DashboardHeader />
+      <div data-tour="dashboard-header">
+        <DashboardHeader />
+      </div>
+
+      {/* Product Tour */}
+      <ProductTour />
 
       {/* Progressive Onboarding Wizard */}
       <ProgressiveOnboarding
@@ -232,11 +238,13 @@ export default function Dashboard() {
       <div className={showSidebar ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : ""}>
         <div className={showSidebar ? "lg:col-span-3 space-y-6" : "space-y-6"}>
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <QuickUploadZone onFileSelect={(file) => {
-              quickUpload.openModal();
-              setTimeout(() => quickUpload.uploadAndCreate(file), 100);
-            }} />
+          <div data-tour="quick-actions" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div data-tour="quick-upload">
+              <QuickUploadZone onFileSelect={(file) => {
+                quickUpload.openModal();
+                setTimeout(() => quickUpload.uploadAndCreate(file), 100);
+              }} />
+            </div>
             <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
             <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
             {hasOpportunities ? (
@@ -249,6 +257,7 @@ export default function Dashboard() {
           </div>
 
           {/* Usage Progress */}
+          <div data-tour="usage-widget">
           {!isEnterprise && (
             <UsageProgressWidget
               projectCount={dashboardStats.projectCount}
@@ -263,11 +272,12 @@ export default function Dashboard() {
               currentPlan="enterprise"
             />
           )}
+          </div>
           {/* Upgrade Banner for Free Tier */}
           <DashboardUpgradeBanner />
 
           {/* Recent Activity */}
-          <div className="space-y-3">
+          <div data-tour="recent-activity" className="space-y-3">
             <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
             <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
           </div>

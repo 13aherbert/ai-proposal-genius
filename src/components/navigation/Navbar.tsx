@@ -48,6 +48,7 @@ import {
   Calendar,
   Shield,
   BarChart3,
+  Compass,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -161,7 +162,7 @@ export function Navbar() {
                   </NavigationMenuItem>
 
                   {/* Manage */}
-                  <NavigationMenuItem>
+                  <NavigationMenuItem data-tour="nav-projects">
                     <NavigationMenuTrigger
                       className={cn(
                         isActiveGroup("/projects", "/knowledge-base", "/organization", "/analytics") &&
@@ -175,7 +176,7 @@ export function Navbar() {
                         <ListItem to="/projects" title="Projects">
                           View and manage all your proposal projects
                         </ListItem>
-                        <ListItem to="/knowledge-base" title="Knowledge Base">
+                        <ListItem to="/knowledge-base" title="Knowledge Base" data-tour="nav-knowledge">
                           Manage your content library and templates
                         </ListItem>
                         {showOrg && (
@@ -196,7 +197,7 @@ export function Navbar() {
                   </NavigationMenuItem>
 
                   {/* Discover */}
-                  <NavigationMenuItem>
+                  <NavigationMenuItem data-tour="nav-discover">
                     <Link to="/opportunities">
                       <NavigationMenuLink
                         className={cn(
@@ -264,7 +265,7 @@ export function Navbar() {
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button data-tour="user-menu" variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                     </Avatar>
@@ -306,6 +307,15 @@ export function Navbar() {
                       Restart Onboarding
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('restart-product-tour'));
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Compass className="mr-2 h-4 w-4" />
+                    Restart Tour
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -532,6 +542,15 @@ export function Navbar() {
                         <DollarSign className="h-5 w-5 text-muted-foreground" />
                         Plans & Pricing
                       </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('restart-product-tour'))}
+                        className="flex items-center gap-4 min-h-[56px] py-4 px-4 text-base rounded-lg hover:bg-muted active:bg-muted/70 transition-colors w-full text-left"
+                      >
+                        <Compass className="h-5 w-5 text-muted-foreground" />
+                        Restart Tour
+                      </button>
                     </SheetClose>
                     <SheetClose asChild>
                       <button

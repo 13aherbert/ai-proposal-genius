@@ -97,7 +97,7 @@ export const useRoleCheckEffect = (
     } finally {
       // Don't reset checkingInProgress here - child functions manage their own flag
     }
-  }, [session, setIsAdmin, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
+  }, [session?.user?.id, setIsAdmin, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
 
   // Return the checkRoles function for external use
   return { checkRoles };

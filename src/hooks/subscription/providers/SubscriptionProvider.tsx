@@ -255,8 +255,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setSubscription(cachedData);
       }
       
-      // Show a toast message
-      toast.error('Failed to fetch subscription data. Using cached data if available.');
+      // Error state is set above; consumers can react to it. No toast here to avoid spam.
     } finally {
       setIsLoading(false);
       setHasCheckedSubscription(true);

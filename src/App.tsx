@@ -67,6 +67,7 @@ import { RecentProjectsRedirect, ProjectDetailsRedirect } from "./components/rou
 import { Navigate } from "react-router-dom";
 import { SecurityProvider } from "@/components/security/SecurityProvider";
 import { KeyboardShortcutsProvider } from "@/components/keyboard/KeyboardShortcutsProvider";
+import { AriaLiveAnnouncer } from "@/components/accessibility/AriaLiveAnnouncer";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -168,9 +169,11 @@ export default function App() {
               <SecurityProvider>
                 <SubscriptionProvider>
                   <KeyboardShortcutsProvider>
-                    <ErrorBoundary>
-                      <AppContent />
-                    </ErrorBoundary>
+                    <AriaLiveAnnouncer>
+                      <ErrorBoundary>
+                        <AppContent />
+                      </ErrorBoundary>
+                    </AriaLiveAnnouncer>
                   </KeyboardShortcutsProvider>
                   <Toaster position="bottom-right" richColors closeButton visibleToasts={3} duration={4000} />
                   <NetworkStatusIndicator />

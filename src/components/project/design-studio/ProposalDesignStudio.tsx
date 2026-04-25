@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Loader2, Eye, Edit, Undo2, Redo2, Wand2, Sparkles } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Loader2, Eye, Edit, Undo2, Redo2, Wand2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -26,6 +26,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
   const { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
+  const [showClassic, setShowClassic] = useState(false);
+  const autoImportedRef = useRef(false);
 
   const handleScrollTo = useCallback((blockId: string) => {
     const el = document.getElementById(`block-${blockId}`);
@@ -37,26 +39,30 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
     updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
   }, [design, updateSettings]);
 
-  const enableCanvasMode = useCallback(() => {
-    if (!design) return;
-    let doc = design.design_settings.canvasDocument;
-    if (!doc) {
-      // Seed from existing blocks if any, otherwise blank.
-      doc = design.content_blocks?.length
-        ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
-        : makeBlankDocument();
+  // Auto-import proposal into canvas on first load (no manual step required)
+  useEffect(() => {
+    if (!design || autoImportedRef.current) return;
+    if (design.design_settings.canvasDocument) {
+      autoImportedRef.current = true;
+      return;
     }
+    autoImportedRef.current = true;
+    const doc = design.content_blocks?.length
+      ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
+      : makeBlankDocument();
     updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
-    toast.success(
-      design.content_blocks?.length
-        ? 'Imported your proposal into the canvas — drag anything to edit'
-        : 'Switched to canvas editor'
-    );
+    if (design.content_blocks?.length) {
+      toast.success('Proposal imported — drag any element to edit');
+    }
   }, [design, updateSettings]);
 
-  const switchToClassic = useCallback(() => {
+  const reimportFromProposal = useCallback(() => {
     if (!design) return;
-    updateSettings({ ...design.design_settings, schemaVersion: 1 });
+    const doc = design.content_blocks?.length
+      ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
+      : makeBlankDocument();
+    updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
+    toast.success('Re-imported the latest proposal content');
   }, [design, updateSettings]);
 
   if (isLoading || !design) {
@@ -67,7 +73,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
     );
   }
 
-  const isCanvasMode = design.design_settings.schemaVersion === 2;
+  const isCanvasMode = !showClassic && (design.design_settings.schemaVersion === 2 || !!design.design_settings.canvasDocument);
+
 
   return (
     <div className="space-y-4">
@@ -80,39 +87,57 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {!isCanvasMode ? (
-            <Button variant="default" size="sm" className="gap-1.5 mr-2" onClick={enableCanvasMode}>
-              <Sparkles className="h-4 w-4" /> Try Canvas Editor
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="gap-1.5 mr-2" onClick={switchToClassic}>
-              Back to Classic
-            </Button>
-          )}
-          {!isCanvasMode && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="default" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
-                  {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                  Generate Designed Proposal
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Regenerate Design?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will replace all current design blocks with a fresh layout generated from your proposal content and brand guidelines. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={regenerateDesign}>Regenerate</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          {!isCanvasMode && (
+          {isCanvasMode ? (
             <>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
+                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    Re-import from Proposal
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Re-import the latest proposal?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This replaces every page on the canvas with a fresh layout built from your current proposal sections. Any visual edits you've made on the canvas will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={reimportFromProposal}>Re-import</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button variant="ghost" size="sm" className="mr-2" onClick={() => setShowClassic(true)}>
+                Classic view
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="default" size="sm" className="gap-1.5 mr-2" onClick={() => setShowClassic(false)}>
+                Back to Canvas
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
+                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    Regenerate Design
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Regenerate Design?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will replace all current design blocks with a fresh layout generated from your proposal content and brand guidelines. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={regenerateDesign}>Regenerate</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
                 <Undo2 className="h-4 w-4" />
               </Button>

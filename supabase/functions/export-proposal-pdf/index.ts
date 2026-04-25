@@ -353,6 +353,195 @@ function renderBlockToHtml(block: ContentBlock, allBlocks: ContentBlock[], setti
   }
 }
 
+// =============================================================================
+// Canvas (v2) renderer — renders a CanvasDocument as fixed-size pages.
+// =============================================================================
+
+interface CanvasTextProps {
+  html: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  italic?: boolean;
+  underline?: boolean;
+  color: string;
+  align: 'left' | 'center' | 'right' | 'justify';
+  lineHeight: number;
+  letterSpacing: number;
+}
+interface CanvasImageProps {
+  url: string;
+  objectFit: 'cover' | 'contain';
+  opacity: number;
+  borderRadius: number;
+  shadow: 'none' | 'soft' | 'medium' | 'hard';
+  filter: 'none' | 'grayscale' | 'sepia' | 'blur';
+  flipH?: boolean;
+  flipV?: boolean;
+}
+interface CanvasShapeProps {
+  kind: 'rect' | 'circle' | 'triangle' | 'line' | 'arrow';
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  borderRadius: number;
+  shadow: 'none' | 'soft' | 'medium' | 'hard';
+  opacity: number;
+}
+interface CanvasIconProps {
+  name: string;
+  color: string;
+  strokeWidth: number;
+}
+interface CanvasElementJSON {
+  id: string;
+  type: 'text' | 'image' | 'shape' | 'icon' | 'line';
+  x: number; y: number; width: number; height: number;
+  rotation: number; zIndex: number;
+  text?: CanvasTextProps;
+  image?: CanvasImageProps;
+  shape?: CanvasShapeProps;
+  icon?: CanvasIconProps;
+}
+interface CanvasBackgroundJSON {
+  type: 'solid' | 'gradient' | 'image';
+  color?: string;
+  gradient?: { from: string; to: string; angle: number };
+  imageUrl?: string;
+  overlayOpacity?: number;
+}
+interface CanvasPageJSON {
+  id: string;
+  background: CanvasBackgroundJSON;
+  elements: CanvasElementJSON[];
+}
+interface CanvasDocumentJSON {
+  pages: CanvasPageJSON[];
+  pageSize: { width: number; height: number };
+}
+
+function shadowCss(s: CanvasShapeProps['shadow']): string {
+  switch (s) {
+    case 'soft': return '0 4px 12px rgba(0,0,0,0.08)';
+    case 'medium': return '0 8px 24px rgba(0,0,0,0.15)';
+    case 'hard': return '0 16px 40px rgba(0,0,0,0.28)';
+    default: return 'none';
+  }
+}
+
+function filterCss(f: CanvasImageProps['filter']): string {
+  switch (f) {
+    case 'grayscale': return 'grayscale(100%)';
+    case 'sepia': return 'sepia(80%)';
+    case 'blur': return 'blur(3px)';
+    default: return 'none';
+  }
+}
+
+function backgroundCss(bg: CanvasBackgroundJSON): string {
+  if (bg.type === 'gradient' && bg.gradient) {
+    return `background:linear-gradient(${bg.gradient.angle}deg,${bg.gradient.from},${bg.gradient.to});`;
+  }
+  if (bg.type === 'image' && bg.imageUrl) {
+    return `background-image:url(${escapeHtml(bg.imageUrl)});background-size:cover;background-position:center;`;
+  }
+  return `background-color:${bg.color || '#ffffff'};`;
+}
+
+function renderCanvasTextElement(el: CanvasElementJSON): string {
+  const t = el.text!;
+  const transform = el.rotation ? `transform:rotate(${el.rotation}deg);transform-origin:center;` : '';
+  const decor: string[] = [];
+  if (t.italic) decor.push('font-style:italic');
+  if (t.underline) decor.push('text-decoration:underline');
+  return `<div style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;${transform}font-family:${t.fontFamily},sans-serif;font-size:${t.fontSize}px;font-weight:${t.fontWeight};color:${t.color};text-align:${t.align};line-height:${t.lineHeight};letter-spacing:${t.letterSpacing}px;overflow:hidden;${decor.join(';')}">${sanitiseRichHtml(t.html)}</div>`;
+}
+
+function renderCanvasImageElement(el: CanvasElementJSON): string {
+  const i = el.image!;
+  const transforms: string[] = [];
+  if (el.rotation) transforms.push(`rotate(${el.rotation}deg)`);
+  if (i.flipH) transforms.push('scaleX(-1)');
+  if (i.flipV) transforms.push('scaleY(-1)');
+  const tr = transforms.length ? `transform:${transforms.join(' ')};` : '';
+  return `<div style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;border-radius:${i.borderRadius}px;overflow:hidden;box-shadow:${shadowCss(i.shadow)};opacity:${i.opacity};${tr}">
+    <img src="${escapeHtml(i.url)}" style="width:100%;height:100%;object-fit:${i.objectFit};filter:${filterCss(i.filter)};display:block;" />
+  </div>`;
+}
+
+function renderCanvasShapeElement(el: CanvasElementJSON): string {
+  const s = el.shape!;
+  const transform = el.rotation ? `transform:rotate(${el.rotation}deg);` : '';
+  const common = `position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;opacity:${s.opacity};box-shadow:${shadowCss(s.shadow)};${transform}`;
+  switch (s.kind) {
+    case 'rect':
+      return `<div style="${common}background:${s.fill};border:${s.strokeWidth}px solid ${s.stroke};border-radius:${s.borderRadius}px;"></div>`;
+    case 'circle':
+      return `<div style="${common}background:${s.fill};border:${s.strokeWidth}px solid ${s.stroke};border-radius:50%;"></div>`;
+    case 'line':
+      return `<div style="${common}background:${s.fill || s.stroke};"></div>`;
+    case 'triangle':
+      return `<div style="${common}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,0 100,100 0,100" fill="${s.fill}" stroke="${s.stroke}" stroke-width="${s.strokeWidth}"/></svg></div>`;
+    case 'arrow':
+      return `<div style="${common}"><svg width="100%" height="100%" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 10 L90 10 M75 0 L100 10 L75 20" stroke="${s.stroke || s.fill}" stroke-width="${Math.max(2, s.strokeWidth)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+    default:
+      return '';
+  }
+}
+
+function renderCanvasIconElement(el: CanvasElementJSON): string {
+  // Icons require a symbol font on the print engine; render a labelled placeholder
+  // so layout is preserved. Future enhancement: ship lucide SVG paths.
+  const ic = el.icon!;
+  const transform = el.rotation ? `transform:rotate(${el.rotation}deg);` : '';
+  return `<div style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;display:flex;align-items:center;justify-content:center;color:${ic.color};font-family:sans-serif;font-size:10px;${transform}">[${escapeHtml(ic.name)}]</div>`;
+}
+
+function renderCanvasElement(el: CanvasElementJSON): string {
+  switch (el.type) {
+    case 'text':  return el.text  ? renderCanvasTextElement(el)  : '';
+    case 'image': return el.image ? renderCanvasImageElement(el) : '';
+    case 'shape': return el.shape ? renderCanvasShapeElement(el) : '';
+    case 'icon':  return el.icon  ? renderCanvasIconElement(el)  : '';
+    default: return '';
+  }
+}
+
+function renderCanvasPage(page: CanvasPageJSON, w: number, h: number, isLast: boolean): string {
+  const sorted = [...page.elements].sort((a, b) => a.zIndex - b.zIndex);
+  const overlay = page.background.type === 'image' && (page.background.overlayOpacity ?? 0) > 0
+    ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,${page.background.overlayOpacity});pointer-events:none;"></div>`
+    : '';
+  const breakStyle = isLast ? '' : 'page-break-after:always;';
+  return `<section class="canvas-page" style="position:relative;width:${w}px;height:${h}px;${backgroundCss(page.background)}overflow:hidden;${breakStyle}">
+    ${overlay}
+    ${sorted.map(renderCanvasElement).join('\n')}
+  </section>`;
+}
+
+function renderCanvasDocumentHtml(doc: CanvasDocumentJSON): string {
+  const { width, height } = doc.pageSize;
+  return doc.pages.map((p, i) => renderCanvasPage(p, width, height, i === doc.pages.length - 1)).join('\n');
+}
+
+async function resolveCanvasAssetUrls(
+  doc: CanvasDocumentJSON,
+  adminClient: ReturnType<typeof createClient>,
+): Promise<void> {
+  for (const page of doc.pages) {
+    if (page.background.type === 'image' && page.background.imageUrl && !page.background.imageUrl.startsWith('http')) {
+      const { data } = await adminClient.storage.from('rfp-files').createSignedUrl(page.background.imageUrl, 3600);
+      if (data?.signedUrl) page.background.imageUrl = data.signedUrl;
+    }
+    for (const el of page.elements) {
+      if (el.type === 'image' && el.image?.url && !el.image.url.startsWith('http')) {
+        const { data } = await adminClient.storage.from('rfp-files').createSignedUrl(el.image.url, 3600);
+        if (data?.signedUrl) el.image.url = data.signedUrl;
+      }
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -405,7 +594,10 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const settings = design.design_settings as DesignSettings;
+    const settings = design.design_settings as DesignSettings & {
+      schemaVersion?: number;
+      canvasDocument?: CanvasDocumentJSON;
+    };
 
     // Resolve logo storage path to signed URL if needed
     if (settings.logoUrl && !settings.logoUrl.startsWith('http')) {
@@ -417,39 +609,52 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const blocks = (design.content_blocks as ContentBlock[]) || [];
+    const isCanvas = settings.schemaVersion === 2 && !!settings.canvasDocument?.pages?.length;
+    let bodyHtml = '';
+    let bodyStyles = '';
 
-    // Resolve cover image URLs in cover blocks
-    for (const block of blocks) {
-      if (block.type === 'cover' && block.content.coverImageUrl) {
-        const imgPath = String(block.content.coverImageUrl);
-        if (!imgPath.startsWith('http')) {
-          const { data: signedData } = await adminClient.storage
-            .from('rfp-files')
-            .createSignedUrl(imgPath, 3600);
-          if (signedData?.signedUrl) {
-            block.content.coverImageUrl = signedData.signedUrl;
+    if (isCanvas) {
+      const doc = settings.canvasDocument!;
+      await resolveCanvasAssetUrls(doc, adminClient);
+      bodyHtml = renderCanvasDocumentHtml(doc);
+      // Canvas pages are absolute, fixed-size — no body padding.
+      bodyStyles = `body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: 0; margin: 0; }
+      .canvas-page { margin: 0 auto; }`;
+    } else {
+      const blocks = (design.content_blocks as ContentBlock[]) || [];
+
+      // Resolve cover image URLs in cover blocks
+      for (const block of blocks) {
+        if (block.type === 'cover' && block.content.coverImageUrl) {
+          const imgPath = String(block.content.coverImageUrl);
+          if (!imgPath.startsWith('http')) {
+            const { data: signedData } = await adminClient.storage
+              .from('rfp-files')
+              .createSignedUrl(imgPath, 3600);
+            if (signedData?.signedUrl) {
+              block.content.coverImageUrl = signedData.signedUrl;
+            }
+          }
+        }
+        if (block.type === 'image' && block.content.url) {
+          const imgPath = String(block.content.url);
+          if (!imgPath.startsWith('http')) {
+            const { data: signedData } = await adminClient.storage
+              .from('rfp-files')
+              .createSignedUrl(imgPath, 3600);
+            if (signedData?.signedUrl) {
+              block.content.url = signedData.signedUrl;
+            }
           }
         }
       }
-      // Resolve image block URLs
-      if (block.type === 'image' && block.content.url) {
-        const imgPath = String(block.content.url);
-        if (!imgPath.startsWith('http')) {
-          const { data: signedData } = await adminClient.storage
-            .from('rfp-files')
-            .createSignedUrl(imgPath, 3600);
-          if (signedData?.signedUrl) {
-            block.content.url = signedData.signedUrl;
-          }
-        }
-      }
+
+      const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
+      const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
+      bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings, sectionMap)).join("\n");
+      bodyStyles = `body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: ${marginPx[settings.margins] || "48px"}; }
+      @media print { body { padding: ${marginPx[settings.margins] || "48px"}; } }`;
     }
-
-    const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
-    const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
-
-    const bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings, sectionMap)).join("\n");
 
     const fullHtml = `<!DOCTYPE html>
 <html>
@@ -459,17 +664,15 @@ Deno.serve(async (req: Request) => {
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Georgia&family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: ${marginPx[settings.margins] || "48px"}; }
-    @media print {
-      body { padding: ${marginPx[settings.margins] || "48px"}; }
-      @page { margin: 0; size: letter; }
-    }
+    ${bodyStyles}
+    @page { margin: 0; size: letter; }
     img { max-width: 100%; }
     h1, h2, h3, h4 { font-family: ${settings.headerFont}, sans-serif; }
     p { margin: 8px 0; }
     ul, ol { padding-left: 20px; }
     li { margin: 4px 0; }
     table { page-break-inside: avoid; }
+    .canvas-page { page-break-inside: avoid; }
     /* Rich-text content styles */
     strong { font-weight: 700; }
     em { font-style: italic; }

@@ -14,6 +14,7 @@ import { ChevronDown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CanvasEditor } from './canvas/CanvasEditor';
 import { makeBlankDocument } from './canvas/elementFactory';
+import { blocksToCanvasDocument } from './canvas/autoLayout';
 import { CanvasDocument } from './canvas/types';
 import { toast } from 'sonner';
 
@@ -38,9 +39,19 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
 
   const enableCanvasMode = useCallback(() => {
     if (!design) return;
-    const doc = design.design_settings.canvasDocument ?? makeBlankDocument();
+    let doc = design.design_settings.canvasDocument;
+    if (!doc) {
+      // Seed from existing blocks if any, otherwise blank.
+      doc = design.content_blocks?.length
+        ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
+        : makeBlankDocument();
+    }
     updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
-    toast.success('Switched to canvas editor');
+    toast.success(
+      design.content_blocks?.length
+        ? 'Imported your proposal into the canvas — drag anything to edit'
+        : 'Switched to canvas editor'
+    );
   }, [design, updateSettings]);
 
   const switchToClassic = useCallback(() => {

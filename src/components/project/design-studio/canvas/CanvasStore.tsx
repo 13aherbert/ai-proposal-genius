@@ -1,5 +1,6 @@
 import { createContext, useContext, useCallback, useState, useRef, useMemo, ReactNode, useEffect } from 'react';
-import { CanvasDocument, CanvasElement, CanvasPage, makeBlankDocument } from './types';
+import { CanvasDocument, CanvasElement, CanvasPage } from './types';
+import { makeBlankDocument } from './elementFactory';
 import { v4 as uuidv4 } from 'uuid';
 
 const MAX_HISTORY = 50;

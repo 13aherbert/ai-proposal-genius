@@ -1,9 +1,9 @@
-import React from 'npm:react@18.2.0';
+import React from 'https://esm.sh/react@18.2.0';
 import { 
   Html, Head, Body, Container, 
   Section, Text, Hr, Link, 
   Heading 
-} from 'npm:@react-email/components@0.0.12';
+} from 'https://esm.sh/@react-email/components@0.0.12';
 
 interface SupportEmailProps {
   name: string;

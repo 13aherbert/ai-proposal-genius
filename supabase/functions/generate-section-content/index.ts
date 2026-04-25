@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import pdfParse from "npm:pdf-parse@1.1.1";
-import mammoth from "npm:mammoth@1.6.0";
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 import { generatePrompt } from './prompt.ts';
 import { KnowledgeEntry, Project } from './types.ts';

@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import pdfParse from "npm:pdf-parse@1.1.1";
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {

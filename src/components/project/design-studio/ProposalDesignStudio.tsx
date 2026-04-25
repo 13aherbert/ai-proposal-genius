@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Loader2, Eye, Edit, Undo2, Redo2, Wand2, Sparkles } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Loader2, Eye, Edit, Undo2, Redo2, Wand2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -26,6 +26,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
   const { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
+  const [showClassic, setShowClassic] = useState(false);
+  const autoImportedRef = useRef(false);
 
   const handleScrollTo = useCallback((blockId: string) => {
     const el = document.getElementById(`block-${blockId}`);
@@ -37,26 +39,30 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
     updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
   }, [design, updateSettings]);
 
-  const enableCanvasMode = useCallback(() => {
-    if (!design) return;
-    let doc = design.design_settings.canvasDocument;
-    if (!doc) {
-      // Seed from existing blocks if any, otherwise blank.
-      doc = design.content_blocks?.length
-        ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
-        : makeBlankDocument();
+  // Auto-import proposal into canvas on first load (no manual step required)
+  useEffect(() => {
+    if (!design || autoImportedRef.current) return;
+    if (design.design_settings.canvasDocument) {
+      autoImportedRef.current = true;
+      return;
     }
+    autoImportedRef.current = true;
+    const doc = design.content_blocks?.length
+      ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
+      : makeBlankDocument();
     updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
-    toast.success(
-      design.content_blocks?.length
-        ? 'Imported your proposal into the canvas — drag anything to edit'
-        : 'Switched to canvas editor'
-    );
+    if (design.content_blocks?.length) {
+      toast.success('Proposal imported — drag any element to edit');
+    }
   }, [design, updateSettings]);
 
-  const switchToClassic = useCallback(() => {
+  const reimportFromProposal = useCallback(() => {
     if (!design) return;
-    updateSettings({ ...design.design_settings, schemaVersion: 1 });
+    const doc = design.content_blocks?.length
+      ? blocksToCanvasDocument(design.content_blocks, design.design_settings)
+      : makeBlankDocument();
+    updateSettings({ ...design.design_settings, schemaVersion: 2, canvasDocument: doc });
+    toast.success('Re-imported the latest proposal content');
   }, [design, updateSettings]);
 
   if (isLoading || !design) {
@@ -67,7 +73,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
     );
   }
 
-  const isCanvasMode = design.design_settings.schemaVersion === 2;
+  const isCanvasMode = !showClassic && (design.design_settings.schemaVersion === 2 || !!design.design_settings.canvasDocument);
+
 
   return (
     <div className="space-y-4">

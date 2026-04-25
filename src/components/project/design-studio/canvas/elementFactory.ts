@@ -69,7 +69,7 @@ export function makeImageElement(url: string, partial: Partial<CanvasElement> = 
 }
 
 export function makeShapeElement(kind: ShapeKind, partial: Partial<CanvasElement> = {}): CanvasElement {
-  const base: Partial<CanvasElement> =
+  const size =
     kind === 'line' || kind === 'arrow'
       ? { width: 200, height: 4 }
       : kind === 'circle'
@@ -80,10 +80,11 @@ export function makeShapeElement(kind: ShapeKind, partial: Partial<CanvasElement
     id: uuidv4(),
     type: 'shape',
     x: 120, y: 120,
+    width: size.width,
+    height: size.height,
     rotation: 0,
     zIndex: nextZ(),
     shape: { ...DEFAULT_SHAPE, kind, borderRadius: kind === 'rect' ? 8 : 0 },
-    ...base,
     ...partial,
   };
 }

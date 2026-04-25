@@ -20,6 +20,10 @@ export interface DesignSettings {
   headerStyle?: HeaderStyle;
   coverLayout?: CoverLayout;
   sectionNumbering?: boolean;
+  /** Schema 2 = free-form Canva-style canvas; absent or 1 = legacy block flow. */
+  schemaVersion?: 1 | 2;
+  /** Present when schemaVersion === 2. */
+  canvasDocument?: import('./canvas/types').CanvasDocument;
 }
 
 export interface TemplateConfig {

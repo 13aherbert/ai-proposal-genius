@@ -1,8 +1,8 @@
 
 // Import React for the email templates
-import React from 'npm:react@18.2.0';
-import { renderAsync } from 'npm:@react-email/render@0.0.10';
-import { Resend } from 'npm:resend@2.0.0';
+import React from 'https://esm.sh/react@18.2.0';
+import { renderAsync } from 'https://esm.sh/@react-email/render@0.0.10';
+import { Resend } from 'https://esm.sh/resend@2.0.0';
 
 // Import email templates
 import WelcomeEmail from './templates/Welcome.tsx';

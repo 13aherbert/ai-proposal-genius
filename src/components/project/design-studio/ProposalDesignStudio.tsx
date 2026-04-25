@@ -14,6 +14,7 @@ import { ChevronDown } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CanvasEditor } from './canvas/CanvasEditor';
 import { makeBlankDocument } from './canvas/elementFactory';
+import { blocksToCanvasDocument } from './canvas/autoLayout';
 import { CanvasDocument } from './canvas/types';
 import { toast } from 'sonner';
 

@@ -162,10 +162,11 @@ Deno.serve(async (req) => {
         console.log('Template rendered successfully');
       } catch (templateError) {
         console.error('Error rendering template:', templateError);
+        const templateErrorMessage = templateError instanceof Error ? templateError.message : String(templateError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Template rendering failed: ${templateError.message}` 
+            error: `Template rendering failed: ${templateErrorMessage}` 
           }),
           {
             status: 400,

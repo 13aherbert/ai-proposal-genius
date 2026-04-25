@@ -594,7 +594,10 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const settings = design.design_settings as DesignSettings;
+    const settings = design.design_settings as DesignSettings & {
+      schemaVersion?: number;
+      canvasDocument?: CanvasDocumentJSON;
+    };
 
     // Resolve logo storage path to signed URL if needed
     if (settings.logoUrl && !settings.logoUrl.startsWith('http')) {
@@ -606,39 +609,52 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const blocks = (design.content_blocks as ContentBlock[]) || [];
+    const isCanvas = settings.schemaVersion === 2 && !!settings.canvasDocument?.pages?.length;
+    let bodyHtml = '';
+    let bodyStyles = '';
 
-    // Resolve cover image URLs in cover blocks
-    for (const block of blocks) {
-      if (block.type === 'cover' && block.content.coverImageUrl) {
-        const imgPath = String(block.content.coverImageUrl);
-        if (!imgPath.startsWith('http')) {
-          const { data: signedData } = await adminClient.storage
-            .from('rfp-files')
-            .createSignedUrl(imgPath, 3600);
-          if (signedData?.signedUrl) {
-            block.content.coverImageUrl = signedData.signedUrl;
+    if (isCanvas) {
+      const doc = settings.canvasDocument!;
+      await resolveCanvasAssetUrls(doc, adminClient);
+      bodyHtml = renderCanvasDocumentHtml(doc);
+      // Canvas pages are absolute, fixed-size — no body padding.
+      bodyStyles = `body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: 0; margin: 0; }
+      .canvas-page { margin: 0 auto; }`;
+    } else {
+      const blocks = (design.content_blocks as ContentBlock[]) || [];
+
+      // Resolve cover image URLs in cover blocks
+      for (const block of blocks) {
+        if (block.type === 'cover' && block.content.coverImageUrl) {
+          const imgPath = String(block.content.coverImageUrl);
+          if (!imgPath.startsWith('http')) {
+            const { data: signedData } = await adminClient.storage
+              .from('rfp-files')
+              .createSignedUrl(imgPath, 3600);
+            if (signedData?.signedUrl) {
+              block.content.coverImageUrl = signedData.signedUrl;
+            }
+          }
+        }
+        if (block.type === 'image' && block.content.url) {
+          const imgPath = String(block.content.url);
+          if (!imgPath.startsWith('http')) {
+            const { data: signedData } = await adminClient.storage
+              .from('rfp-files')
+              .createSignedUrl(imgPath, 3600);
+            if (signedData?.signedUrl) {
+              block.content.url = signedData.signedUrl;
+            }
           }
         }
       }
-      // Resolve image block URLs
-      if (block.type === 'image' && block.content.url) {
-        const imgPath = String(block.content.url);
-        if (!imgPath.startsWith('http')) {
-          const { data: signedData } = await adminClient.storage
-            .from('rfp-files')
-            .createSignedUrl(imgPath, 3600);
-          if (signedData?.signedUrl) {
-            block.content.url = signedData.signedUrl;
-          }
-        }
-      }
+
+      const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
+      const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
+      bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings, sectionMap)).join("\n");
+      bodyStyles = `body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: ${marginPx[settings.margins] || "48px"}; }
+      @media print { body { padding: ${marginPx[settings.margins] || "48px"}; } }`;
     }
-
-    const sectionMap = settings.sectionNumbering ? computeSectionNumbers(blocks) : {};
-    const marginPx: Record<string, string> = { narrow: "24px", normal: "48px", wide: "72px" };
-
-    const bodyHtml = blocks.map((b) => renderBlockToHtml(b, blocks, settings, sectionMap)).join("\n");
 
     const fullHtml = `<!DOCTYPE html>
 <html>
@@ -648,17 +664,15 @@ Deno.serve(async (req: Request) => {
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Georgia&family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: ${settings.bodyFont}, sans-serif; color: #1a1a1a; padding: ${marginPx[settings.margins] || "48px"}; }
-    @media print {
-      body { padding: ${marginPx[settings.margins] || "48px"}; }
-      @page { margin: 0; size: letter; }
-    }
+    ${bodyStyles}
+    @page { margin: 0; size: letter; }
     img { max-width: 100%; }
     h1, h2, h3, h4 { font-family: ${settings.headerFont}, sans-serif; }
     p { margin: 8px 0; }
     ul, ol { padding-left: 20px; }
     li { margin: 4px 0; }
     table { page-break-inside: avoid; }
+    .canvas-page { page-break-inside: avoid; }
     /* Rich-text content styles */
     strong { font-weight: 700; }
     em { font-style: italic; }

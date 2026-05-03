@@ -25,6 +25,8 @@ import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = [
   { id: "welcome", title: "Welcome", description: "Get started" },

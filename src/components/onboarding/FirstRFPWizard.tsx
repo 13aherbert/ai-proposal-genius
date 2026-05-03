@@ -25,6 +25,8 @@ import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = [
   { id: "welcome", title: "Welcome", description: "Get started" },
@@ -51,6 +53,7 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
   const navigate = useNavigate();
   const quickUpload = useQuickUpload();
   const { trackEvent } = useAnalytics();
+  const { session } = useAuth();
   const trackedStart = useRef(false);
 
   // Track wizard opened
@@ -110,11 +113,39 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
     [trackEvent]
   );
 
+  const persistDismissal = useCallback(
+    async (reason: "skipped" | "dismissed") => {
+      localStorage.setItem("optirfp_wizard_skipped", "true");
+      trackEvent("first_rfp_wizard_skipped", { reason });
+      const userId = session?.user?.id;
+      if (userId) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ onboarding_skipped_at: new Date().toISOString() })
+            .eq("profile_id", userId);
+        } catch (err) {
+          console.error("Failed to persist wizard dismissal", err);
+        }
+      }
+    },
+    [session, trackEvent]
+  );
+
   const handleSkip = useCallback(() => {
-    localStorage.setItem("optirfp_wizard_skipped", "true");
-    trackEvent("first_rfp_wizard_skipped", {});
+    void persistDismissal("skipped");
     onOpenChange(false);
-  }, [onOpenChange, trackEvent]);
+  }, [onOpenChange, persistDismissal]);
+
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && !isComplete) {
+        void persistDismissal("dismissed");
+      }
+      onOpenChange(nextOpen);
+    },
+    [isComplete, onOpenChange, persistDismissal]
+  );
 
   const handleFinish = useCallback(() => {
     localStorage.setItem("optirfp_first_rfp_complete", "true");
@@ -142,7 +173,7 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
       : 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
         {!isComplete ? (
           <>

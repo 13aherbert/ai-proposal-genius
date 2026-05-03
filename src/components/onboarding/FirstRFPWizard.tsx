@@ -113,11 +113,39 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
     [trackEvent]
   );
 
+  const persistDismissal = useCallback(
+    async (reason: "skipped" | "dismissed") => {
+      localStorage.setItem("optirfp_wizard_skipped", "true");
+      trackEvent("first_rfp_wizard_skipped", { reason });
+      const userId = session?.user?.id;
+      if (userId) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ onboarding_skipped_at: new Date().toISOString() })
+            .eq("profile_id", userId);
+        } catch (err) {
+          console.error("Failed to persist wizard dismissal", err);
+        }
+      }
+    },
+    [session, trackEvent]
+  );
+
   const handleSkip = useCallback(() => {
-    localStorage.setItem("optirfp_wizard_skipped", "true");
-    trackEvent("first_rfp_wizard_skipped", {});
+    void persistDismissal("skipped");
     onOpenChange(false);
-  }, [onOpenChange, trackEvent]);
+  }, [onOpenChange, persistDismissal]);
+
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && !isComplete) {
+        void persistDismissal("dismissed");
+      }
+      onOpenChange(nextOpen);
+    },
+    [isComplete, onOpenChange, persistDismissal]
+  );
 
   const handleFinish = useCallback(() => {
     localStorage.setItem("optirfp_first_rfp_complete", "true");

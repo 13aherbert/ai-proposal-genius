@@ -173,7 +173,7 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
       : 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
         {!isComplete ? (
           <>

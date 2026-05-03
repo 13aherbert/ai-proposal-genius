@@ -68,7 +68,11 @@ export default function Dashboard() {
 
   // Listen for reopen-onboarding event from Navbar
   useEffect(() => {
-    const handler = () => onboarding.reopen();
+    const handler = () => {
+      localStorage.removeItem('optirfp_wizard_skipped');
+      localStorage.removeItem('optirfp_first_rfp_complete');
+      onboarding.reopen();
+    };
     window.addEventListener('reopen-onboarding', handler);
     return () => window.removeEventListener('reopen-onboarding', handler);
   }, [onboarding.reopen]);

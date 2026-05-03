@@ -53,6 +53,7 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
   const navigate = useNavigate();
   const quickUpload = useQuickUpload();
   const { trackEvent } = useAnalytics();
+  const { session } = useAuth();
   const trackedStart = useRef(false);
 
   // Track wizard opened

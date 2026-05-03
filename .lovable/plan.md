@@ -1,79 +1,86 @@
-## Problem
+# Enterprise & White-Label Signup + Setup Automation
 
-Two separate "welcome" surfaces auto-open on the dashboard:
+Goal: Replace today's manual, sales-assisted flow with a real lead-capture pipeline, an admin "Convert to Enterprise/White-Label" action, and a guided setup wizard for newly provisioned orgs.
 
-1. **`FirstRFPWizard`** (`src/components/onboarding/FirstRFPWizard.tsx`) — opened from `Dashboard.tsx` (line 86–94) whenever the user has no projects and `localStorage` flags `optirfp_first_rfp_complete` / `optirfp_wizard_skipped` are missing.
-2. **`ProgressiveOnboarding`** — driven by `useOnboardingFlow()` which already persists `onboarding_completed` / `onboarding_skipped_at` to the `profiles` table.
+## 1. Lead capture (public)
 
-The bug is in **#1**:
-- `Dialog`'s `onOpenChange` is wired directly to `setShowFirstRFPWizard`, so closing via the X button, ESC, or outside-click sets the dialog closed but **never writes the skip flag**.
-- The skip flag is only written when the user explicitly clicks the "Skip for now" button (`handleSkip`).
-- The flag is also localStorage-only, so logging in from another browser/device replays the wizard.
+**`EnterpriseSalesModal.tsx`** — replace the `mailto:` fallback with a real submission.
 
-Result: every login re-opens the welcome wizard.
+- New table `enterprise_leads` (public insert via RLS, admin select):
+  - `id`, `company_name`, `email`, `team_size`, `message`, `source` (`pricing` | `contact` | `csm`), `requested_tier` (`enterprise` | `white_label`), `status` (`new` | `contacted` | `converted` | `rejected`), `created_at`, `converted_org_id`.
+- Edge function `submit-enterprise-lead`:
+  - Zod-validate payload, insert row, send notification email to `sales@optirfp.ai` via Resend, send auto-reply to requester.
+  - Optionally push to HubSpot (existing `hubspot-sync` function) when connector is connected — create Contact + Deal in "Enterprise Pipeline".
+- Add a "Request White-Label Demo" CTA on `WhiteLabelDashboard` upsell state and on `/pricing` Enterprise card so both tiers funnel to the same modal with `requested_tier` preset.
 
-## Fix
+## 2. Admin provisioning
 
-### 1. Persist dismissal on every close path (`FirstRFPWizard.tsx`)
+New page `src/pages/admin/AdminLeads.tsx` (linked from `AdminDashboard`):
 
-Wrap the `Dialog`'s `onOpenChange` so any close — X, ESC, outside click, or programmatic — writes the skip flag (unless the wizard was completed):
+- List `enterprise_leads` with filters by status/tier.
+- Row action **"Convert to Enterprise"** / **"Convert to White-Label"** opens a dialog:
+  - Pick existing org (search) OR create new org on behalf of lead email.
+  - Choose tier, seat limit, project limit, billing model (`flat_rate` | `per_user` | `usage_based`), custom price, trial end date, CSM (name/email/calendly/phone).
+  - Submit calls new edge function `admin-provision-enterprise` (service role) which:
+    1. Creates/updates `organizations` row (`subscription_tier`, `is_white_label`).
+    2. Upserts `organization_subscriptions` with chosen limits/features.
+    3. Writes CSM fields onto org (used by `useCSMContact`).
+    4. For white-label: seeds default `organization_branding` row + enables `white_label`, `custom_domain`, `sso`, `api_access` flags in `organization_features`.
+    5. Marks lead `status='converted'`, sets `converted_org_id`.
+    6. Sends welcome email to lead with magic-link to `/onboarding/enterprise`.
 
-```tsx
-const handleDialogOpenChange = useCallback((nextOpen: boolean) => {
-  if (!nextOpen && !isComplete) {
-    localStorage.setItem("optirfp_wizard_skipped", "true");
-    trackEvent("first_rfp_wizard_skipped", { reason: "dismissed" });
-  }
-  onOpenChange(nextOpen);
-}, [isComplete, onOpenChange, trackEvent]);
+All admin checks via existing `is_system_admin()` RPC.
 
-<Dialog open={open} onOpenChange={handleDialogOpenChange}>
-```
+## 3. Guided setup wizard for the customer
 
-### 2. Persist dismissal server-side (cross-device)
+New route `/onboarding/enterprise` (gated to org owners of enterprise/white-label tiers, uses `DashboardLayout`).
 
-Reuse the existing `profiles.onboarding_skipped_at` column (already used by `useOnboardingFlow`) so a single skip survives across browsers/devices.
+Component `EnterpriseSetupWizard.tsx` — stepper with persistence in `organizations.settings.setup_progress`:
 
-In `Dashboard.tsx`'s auto-open effect, also gate on `onboarding.isSkipped` / `onboarding.isCompleted` from `useOnboardingFlow()`:
+1. **Welcome** — confirms tier, CSM contact card, schedule kickoff (Calendly embed).
+2. **Company profile** — legal name, support email, terms/privacy URLs → writes `organization_branding`.
+3. **Branding** (white-label only) — reuses `BrandingEditor` + `AssetUploader` (logo, favicon, colors, font).
+4. **Custom domain** (white-label only) — reuses `DomainManager`; shows DNS records, polls verification.
+5. **Team invites** — bulk invite via existing `team-invite` function, role templates (Admin/Manager/Editor/Viewer).
+6. **SSO** (optional, enterprise/white-label) — reuses `manage-sso-config` to drop in SAML/OIDC metadata.
+7. **API keys** (white-label) — reuses `ApiKeyManagement`.
+8. **Done** — checklist summary, link to dashboard.
 
-```ts
-useEffect(() => {
-  if (dashboardStats.hasProjects) return;
-  if (onboarding.isOpen || onboarding.isSkipped || onboarding.isCompleted) return;
-  const completed = localStorage.getItem('optirfp_first_rfp_complete');
-  const skipped = localStorage.getItem('optirfp_wizard_skipped');
-  if (!completed && !skipped && session?.user) {
-    setShowFirstRFPWizard(true);
-  }
-}, [dashboardStats.hasProjects, session, onboarding.isOpen, onboarding.isSkipped, onboarding.isCompleted]);
-```
+Each step marks complete in `setup_progress` JSON so the wizard is resumable. A persistent "Finish setup" banner appears in `DashboardLayout` until all required steps are done.
 
-And in `FirstRFPWizard`'s `handleSkip` + new `handleDialogOpenChange`, call a small helper that also updates the profile row:
+## 4. Self-serve "Talk to sales" polish
 
-```ts
-await supabase
-  .from('profiles')
-  .update({ onboarding_skipped_at: new Date().toISOString() })
-  .eq('profile_id', userId);
-```
+- `Pricing.tsx` Enterprise card → opens `EnterpriseSalesModal` (already present).
+- `EnterpriseSupport.tsx` for non-enterprise users → CTA to same modal.
+- Add `/contact` form to also write to `enterprise_leads` with `source='contact'`.
 
-(Use the already-imported `supabase` client and the user id from `useAuth()`.)
+## Technical notes
 
-### 3. Keep "Show welcome again" escape hatch
+- **DB migration**: `enterprise_leads` table + RLS (anon insert, system_admin select/update); add `csm_name/email/calendly_url/phone` columns to `organizations` if not already present; ensure `organization_branding`/`organization_features` exist (per project knowledge they're planned — create if missing).
+- **Edge functions** (new): `submit-enterprise-lead`, `admin-provision-enterprise`. Both use Zod validation, manual JWT validation where applicable, service-role client for admin op.
+- **Secrets needed**: `RESEND_API_KEY` (via Resend connector). HubSpot push uses existing connector if linked — skipped silently otherwise.
+- **Reuses**: `BrandingEditor`, `AssetUploader`, `DomainManager`, `ApiKeyManagement`, `EmailTemplateEditor`, `team-invite`, `manage-sso-config`, `useCSMContact`, `is_system_admin`.
 
-The Navbar already dispatches `reopen-onboarding`, which calls `onboarding.reopen()` and clears both the profile flags and `localStorage`. We'll extend that handler in `Dashboard.tsx` to also clear `optirfp_wizard_skipped` and `optirfp_first_rfp_complete` so users who explicitly request the tour again still see it.
+## Out of scope (call out, don't build)
 
-## Files to change
+- Stripe checkout for enterprise (contract-billed).
+- Automatic SSL provisioning (DomainManager already shows DNS instructions).
+- Building new SSO providers beyond what `manage-sso-config` supports.
 
-- `src/components/onboarding/FirstRFPWizard.tsx` — wrap `onOpenChange`, write skip flag + profile update on any dismissal.
-- `src/pages/Dashboard.tsx` — gate auto-open on `onboarding.isSkipped/isCompleted`; clear local flags inside the existing `reopen-onboarding` handler.
+## Files to add
 
-No database migration is needed — the `profiles.onboarding_skipped_at` column already exists.
+- `supabase/migrations/<ts>_enterprise_leads.sql`
+- `supabase/functions/submit-enterprise-lead/index.ts`
+- `supabase/functions/admin-provision-enterprise/index.ts`
+- `src/pages/admin/AdminLeads.tsx`
+- `src/components/admin/ConvertLeadDialog.tsx`
+- `src/pages/onboarding/EnterpriseOnboarding.tsx`
+- `src/components/onboarding/EnterpriseSetupWizard.tsx` (+ step components)
+- `src/components/layout/EnterpriseSetupBanner.tsx`
 
-## Verification
+## Files to edit
 
-1. Fresh login → wizard appears.
-2. Close via X / ESC / outside click → reload → wizard does **not** reappear.
-3. Click "Skip for now" → reload → wizard does **not** reappear.
-4. Log in from a different browser (same user) → wizard does **not** reappear (server-side flag).
-5. Open Navbar → "Show welcome again" → wizard reappears as expected.
+- `src/components/blocks/pricing/EnterpriseSalesModal.tsx` — submit to edge function instead of mailto.
+- `src/pages/AdminDashboard.tsx` — nav entry for Leads.
+- `src/layouts/DashboardLayout.tsx` — mount setup banner.
+- `src/App.tsx` — register new routes.

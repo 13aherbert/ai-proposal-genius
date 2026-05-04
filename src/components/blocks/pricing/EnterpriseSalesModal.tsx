@@ -22,6 +22,8 @@ const formSchema = z.object({
 interface EnterpriseSalesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  source?: "pricing" | "contact" | "csm" | "white_label" | "other";
+  requestedTier?: "enterprise" | "white_label";
 }
 
 type ViewState = "calendly" | "form" | "confirmed";

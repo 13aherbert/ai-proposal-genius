@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         }
       }
-    }, 7000);
+    }, 4000);
 
     const fetchSession = async () => {
       if (sessionFetchAttempted.current) return;

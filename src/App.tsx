@@ -145,6 +145,7 @@ function AppContent() {
           <Route path="/admin/billing" element={<AdminBilling />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/source-health" element={<SourceStatusDashboard />} />
+          <Route path="/admin/leads" element={<AdminLeads />} />
         </Route>
         
         <Route path="/reset-password" element={<ResetPassword />} />

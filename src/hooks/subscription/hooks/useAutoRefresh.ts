@@ -9,20 +9,15 @@ export function useAutoRefresh(
 ) {
   useEffect(() => {
     if (!session?.user) return;
-    
-    // Initial check on mount
-    checkSubscription().catch(err => {
-      console.error("Error during initial subscription check in auto-refresh:", err);
-    });
-    
-    // Set up auto-refresh interval
+
+    // Skip the on-mount fetch — SubscriptionProvider already fetches on session/org changes.
+    // Only refresh in the background to catch webhook-driven plan changes.
     const intervalId = setInterval(() => {
-      console.log("Auto-refreshing subscription data");
       checkSubscription().catch(err => {
         console.error("Error during auto-refresh of subscription:", err);
       });
-    }, 300000); // 5 minutes
-    
+    }, 600000); // 10 minutes
+
     return () => {
       clearInterval(intervalId);
     };

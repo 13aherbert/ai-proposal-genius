@@ -125,6 +125,6 @@ export function useSubscriptionPlans() {
 
       return data;
     },
-    staleTime: 600000, // 10 minutes
+    staleTime: 3600000, // 1 hour — plan templates rarely change
   });
 }

@@ -36,6 +36,8 @@ const AdminSecurity = lazy(() => import("@/pages/admin/AdminSecurity"));
 const AdminBilling = lazy(() => import("@/pages/admin/AdminBilling"));
 const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 const SourceStatusDashboard = lazy(() => import("@/pages/admin/SourceStatusDashboard"));
+const AdminLeads = lazy(() => import("@/pages/admin/AdminLeads"));
+const EnterpriseOnboarding = lazy(() => import("@/pages/EnterpriseOnboarding"));
 const Organization = lazy(() => import("@/pages/Organization"));
 const WhiteLabel = lazy(() => import("@/pages/WhiteLabel"));
 const Opportunities = lazy(() => import("@/pages/Opportunities"));

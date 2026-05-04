@@ -54,8 +54,10 @@ export function useOrganizationSubscription() {
       return data as OrganizationSubscription;
     },
     enabled: !!organization?.id,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes
+    staleTime: 600000, // 10 minutes — subscription state changes infrequently
+    gcTime: 1800000, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const updateSubscriptionMutation = useMutation({

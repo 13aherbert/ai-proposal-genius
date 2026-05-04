@@ -183,8 +183,8 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Enterprise Onboarding - Show for new enterprise users */}
-      {isEnterprise && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && (
+      {/* Enterprise Onboarding - Show only for genuinely new enterprise users who haven't dismissed */}
+      {isEnterprise && isNewUser && !localStorage.getItem('enterprise-onboarding-skipped') && (
         <EnterpriseOnboarding />
       )}
 

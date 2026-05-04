@@ -22,11 +22,13 @@ const formSchema = z.object({
 interface EnterpriseSalesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  source?: "pricing" | "contact" | "csm" | "white_label" | "other";
+  requestedTier?: "enterprise" | "white_label";
 }
 
 type ViewState = "calendly" | "form" | "confirmed";
 
-export function EnterpriseSalesModal({ open, onOpenChange }: EnterpriseSalesModalProps) {
+export function EnterpriseSalesModal({ open, onOpenChange, source = "pricing", requestedTier = "enterprise" }: EnterpriseSalesModalProps) {
   const [view, setView] = useState<ViewState>("calendly");
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,7 +59,9 @@ export function EnterpriseSalesModal({ open, onOpenChange }: EnterpriseSalesModa
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
@@ -71,20 +75,29 @@ export function EnterpriseSalesModal({ open, onOpenChange }: EnterpriseSalesModa
       return;
     }
 
-    const subject = encodeURIComponent(`Enterprise Inquiry from ${companyName}`);
-    const body = encodeURIComponent(
-      `Company: ${companyName}\nEmail: ${email}\nTeam Size: ${teamSize}\n\n${message || "No additional message."}`
-    );
-    window.location.href = `mailto:sales@optirfp.ai?subject=${subject}&body=${body}`;
-
-    toast.success("Opening your email client...", {
-      description: "We'll get back to you within 24 hours.",
-    });
-    onOpenChange(false);
-    setCompanyName("");
-    setEmail("");
-    setTeamSize("");
-    setMessage("");
+    setSubmitting(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.functions.invoke("submit-enterprise-lead", {
+        body: {
+          company_name: companyName,
+          email,
+          team_size: teamSize,
+          message: message || null,
+          source,
+          requested_tier: requestedTier,
+        },
+      });
+      if (error) throw error;
+      toast.success("Thanks! Our team will be in touch within 24 hours.");
+      setView("confirmed");
+      setCompanyName(""); setEmail(""); setTeamSize(""); setMessage("");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not submit your request. Please try again or email sales@optirfp.ai.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -172,7 +185,7 @@ export function EnterpriseSalesModal({ open, onOpenChange }: EnterpriseSalesModa
                 <Label htmlFor="message">Message (optional)</Label>
                 <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell us about your needs..." rows={3} />
               </div>
-              <Button type="submit" className="w-full">Send Inquiry</Button>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? "Sending..." : "Send Inquiry"}</Button>
             </form>
           </>
         )}

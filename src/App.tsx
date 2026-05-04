@@ -36,6 +36,8 @@ const AdminSecurity = lazy(() => import("@/pages/admin/AdminSecurity"));
 const AdminBilling = lazy(() => import("@/pages/admin/AdminBilling"));
 const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 const SourceStatusDashboard = lazy(() => import("@/pages/admin/SourceStatusDashboard"));
+const AdminLeads = lazy(() => import("@/pages/admin/AdminLeads"));
+const EnterpriseOnboarding = lazy(() => import("@/pages/EnterpriseOnboarding"));
 const Organization = lazy(() => import("@/pages/Organization"));
 const WhiteLabel = lazy(() => import("@/pages/WhiteLabel"));
 const Opportunities = lazy(() => import("@/pages/Opportunities"));
@@ -125,6 +127,7 @@ function AppContent() {
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/enterprise-support" element={<EnterpriseSupport />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/onboarding/enterprise" element={<EnterpriseOnboarding />} />
           
           {/* Legacy route redirects */}
           <Route path="/recent-projects" element={<RecentProjectsRedirect />} />
@@ -142,6 +145,7 @@ function AppContent() {
           <Route path="/admin/billing" element={<AdminBilling />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="/admin/source-health" element={<SourceStatusDashboard />} />
+          <Route path="/admin/leads" element={<AdminLeads />} />
         </Route>
         
         <Route path="/reset-password" element={<ResetPassword />} />

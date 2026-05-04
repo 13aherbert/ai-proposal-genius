@@ -127,6 +127,7 @@ function AppContent() {
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/enterprise-support" element={<EnterpriseSupport />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/onboarding/enterprise" element={<EnterpriseOnboarding />} />
           
           {/* Legacy route redirects */}
           <Route path="/recent-projects" element={<RecentProjectsRedirect />} />

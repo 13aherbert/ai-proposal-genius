@@ -27,6 +27,7 @@ const adminNavItems = [
   { title: "Billing", url: "/admin/billing", icon: CreditCard },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "Source Health", url: "/admin/source-health", icon: Activity },
+  { title: "Enterprise Leads", url: "/admin/leads", icon: Briefcase },
 ];
 
 export default function AdminLayout() {

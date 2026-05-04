@@ -760,12 +760,15 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   const titleLower = (opp.title || "").toLowerCase();
   const deptLower = (opp.department || "").toLowerCase();
   const solNumLower = (opp.solicitation_number || "").toLowerCase();
-  // Gather all useful text from raw_data for broader matching
-  const rawDataStr = Object.values(opp.raw_data || {})
-    .filter(v => typeof v === "string")
-    .join(" ")
-    .toLowerCase();
-  const descLower = rawDataStr;
+  // Recursively gather all useful text from raw_data for broader matching
+  // (SAM.gov returns nested objects; flat Object.values misses descriptions)
+  const collectStrings = (v: unknown): string => {
+    if (typeof v === "string") return v;
+    if (Array.isArray(v)) return v.map(collectStrings).join(" ");
+    if (v && typeof v === "object") return Object.values(v).map(collectStrings).join(" ");
+    return "";
+  };
+  const descLower = collectStrings(opp.raw_data || {}).toLowerCase();
 
   let score = 0;
   if (titleLower.includes(phrase)) score += 100;

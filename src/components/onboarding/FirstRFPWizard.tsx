@@ -122,7 +122,10 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
         try {
           await supabase
             .from("profiles")
-            .update({ onboarding_skipped_at: new Date().toISOString() })
+            .update({
+              onboarding_completed: true,
+              onboarding_skipped_at: new Date().toISOString(),
+            })
             .eq("profile_id", userId);
         } catch (err) {
           console.error("Failed to persist wizard dismissal", err);

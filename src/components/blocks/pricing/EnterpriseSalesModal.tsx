@@ -28,7 +28,7 @@ interface EnterpriseSalesModalProps {
 
 type ViewState = "calendly" | "form" | "confirmed";
 
-export function EnterpriseSalesModal({ open, onOpenChange }: EnterpriseSalesModalProps) {
+export function EnterpriseSalesModal({ open, onOpenChange, source = "pricing", requestedTier = "enterprise" }: EnterpriseSalesModalProps) {
   const [view, setView] = useState<ViewState>("calendly");
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");

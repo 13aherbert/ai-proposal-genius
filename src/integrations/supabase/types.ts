@@ -477,6 +477,62 @@ export type Database = {
           },
         ]
       }
+      enterprise_leads: {
+        Row: {
+          company_name: string
+          converted_org_id: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          notes: string | null
+          requested_tier: string
+          source: string
+          status: string
+          submitted_by: string | null
+          team_size: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          converted_org_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          requested_tier?: string
+          source?: string
+          status?: string
+          submitted_by?: string | null
+          team_size?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          converted_org_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          notes?: string | null
+          requested_tier?: string
+          source?: string
+          status?: string
+          submitted_by?: string | null
+          team_size?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_leads_converted_org_id_fkey"
+            columns: ["converted_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_field_mappings: {
         Row: {
           created_at: string | null

@@ -799,9 +799,9 @@ function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): Normal
   const scored = opps.map(opp => ({ opp, score: scoreRelevance(opp, keyword) }));
 
   // When a keyword is active, filter out zero-relevance results.
-  // SAM.gov does server-side matching but can still return loosely related items;
-  // Grants.gov and California results need strict local gating.
-  const filtered = scored.filter(({ score }) => score > 0);
+  // EXCEPTION: SAM.gov performs server-side keyword matching, so trust its results
+  // even when our local text scoring misses (e.g. match was in nested description).
+  const filtered = scored.filter(({ opp, score }) => score > 0 || opp.source === "sam_gov");
 
   console.log(`[Relevance] keyword="${keyword}": ${opps.length} in → ${filtered.length} after relevance gate (removed ${opps.length - filtered.length} zero-score)`);
 

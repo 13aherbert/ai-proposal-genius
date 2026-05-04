@@ -185,7 +185,7 @@ export function EnterpriseSalesModal({ open, onOpenChange, source = "pricing", r
                 <Label htmlFor="message">Message (optional)</Label>
                 <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell us about your needs..." rows={3} />
               </div>
-              <Button type="submit" className="w-full">Send Inquiry</Button>
+              <Button type="submit" className="w-full" disabled={submitting}>{submitting ? "Sending..." : "Send Inquiry"}</Button>
             </form>
           </>
         )}

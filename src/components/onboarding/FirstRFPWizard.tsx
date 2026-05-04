@@ -147,15 +147,26 @@ export function FirstRFPWizard({ open, onOpenChange }: FirstRFPWizardProps) {
     [isComplete, onOpenChange, persistDismissal]
   );
 
-  const handleFinish = useCallback(() => {
+  const handleFinish = useCallback(async () => {
     localStorage.setItem("optirfp_first_rfp_complete", "true");
+    const userId = session?.user?.id;
+    if (userId) {
+      try {
+        await supabase
+          .from("profiles")
+          .update({ onboarding_completed: true, onboarding_skipped_at: null })
+          .eq("profile_id", userId);
+      } catch (err) {
+        console.error("Failed to persist wizard completion", err);
+      }
+    }
     onOpenChange(false);
     if (quickUpload.projectId) {
       navigate(`/projects/${quickUpload.projectId}`);
     } else {
       navigate("/upload-rfp");
     }
-  }, [onOpenChange, navigate, quickUpload.projectId]);
+  }, [onOpenChange, navigate, quickUpload.projectId, session]);
 
   const handleReset = useCallback(() => {
     setCurrentStep(0);

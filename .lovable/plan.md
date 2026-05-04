@@ -1,86 +1,109 @@
-# Enterprise & White-Label Signup + Setup Automation
 
-Goal: Replace today's manual, sales-assisted flow with a real lead-capture pipeline, an admin "Convert to Enterprise/White-Label" action, and a guided setup wizard for newly provisioned orgs.
+# App-Wide UX & Integration Review
 
-## 1. Lead capture (public)
+I walked the auth flow, dashboard, onboarding, opportunity search, edge function inventory, and console/network logs from your current session. Here are the real, reproducible issues — grouped by severity — and a focused fix plan. No speculative refactors.
 
-**`EnterpriseSalesModal.tsx`** — replace the `mailto:` fallback with a real submission.
+---
 
-- New table `enterprise_leads` (public insert via RLS, admin select):
-  - `id`, `company_name`, `email`, `team_size`, `message`, `source` (`pricing` | `contact` | `csm`), `requested_tier` (`enterprise` | `white_label`), `status` (`new` | `contacted` | `converted` | `rejected`), `created_at`, `converted_org_id`.
-- Edge function `submit-enterprise-lead`:
-  - Zod-validate payload, insert row, send notification email to `sales@optirfp.ai` via Resend, send auto-reply to requester.
-  - Optionally push to HubSpot (existing `hubspot-sync` function) when connector is connected — create Contact + Deal in "Enterprise Pipeline".
-- Add a "Request White-Label Demo" CTA on `WhiteLabelDashboard` upsell state and on `/pricing` Enterprise card so both tiers funnel to the same modal with `requested_tier` preset.
+## Critical (broken or user-facing bugs)
 
-## 2. Admin provisioning
+### 1. Welcome dialog still re-appears on login
+The earlier fix added DB-backed skip tracking in `useOnboardingFlow` (good), but `Dashboard.tsx` still has a **second, independent wizard** (`FirstRFPWizard`) gated only by two `localStorage` keys (`optirfp_first_rfp_complete`, `optirfp_wizard_skipped`). When a user logs in on a new browser/device, both keys are missing and the wizard pops again — exactly the behavior you reported.
 
-New page `src/pages/admin/AdminLeads.tsx` (linked from `AdminDashboard`):
+Fix: gate `FirstRFPWizard` on the same DB-backed `onboarding.isCompleted || onboarding.isSkipped` signal (already loaded from `profiles`), and persist its skip/complete to the profile too. Treat localStorage as a cache, not the source of truth.
 
-- List `enterprise_leads` with filters by status/tier.
-- Row action **"Convert to Enterprise"** / **"Convert to White-Label"** opens a dialog:
-  - Pick existing org (search) OR create new org on behalf of lead email.
-  - Choose tier, seat limit, project limit, billing model (`flat_rate` | `per_user` | `usage_based`), custom price, trial end date, CSM (name/email/calendly/phone).
-  - Submit calls new edge function `admin-provision-enterprise` (service role) which:
-    1. Creates/updates `organizations` row (`subscription_tier`, `is_white_label`).
-    2. Upserts `organization_subscriptions` with chosen limits/features.
-    3. Writes CSM fields onto org (used by `useCSMContact`).
-    4. For white-label: seeds default `organization_branding` row + enables `white_label`, `custom_domain`, `sso`, `api_access` flags in `organization_features`.
-    5. Marks lead `status='converted'`, sets `converted_org_id`.
-    6. Sends welcome email to lead with magic-link to `/onboarding/enterprise`.
+### 2. Auth initialization timing out on every load
+Console shows `Auth initialization timeout reached. Force completing auth init` on both anonymous and signed-in loads. The `getSession()` race in `AuthProvider` uses a 3s timeout, then a 7s safety timeout — but the 7s fires because the session listener path doesn't always clear `loading`. This makes the first paint feel slow and triggers the "Loading your session…" spinner unnecessarily.
 
-All admin checks via existing `is_system_admin()` RPC.
+Fix: clear `loading` inside `onAuthStateChange` on first event, and shorten the safety timeout fallback. Also remove the redundant double profile fetch visible in logs (the profile is fetched twice back-to-back for the same user).
 
-## 3. Guided setup wizard for the customer
+### 3. Dialog accessibility error in production
+`DialogContent requires a DialogTitle` warning is firing in the built bundle (likely the command palette / a sheet). Screen readers will announce nothing; Radix may also throw in strict mode.
 
-New route `/onboarding/enterprise` (gated to org owners of enterprise/white-label tiers, uses `DashboardLayout`).
+Fix: audit dialogs without `DialogTitle` (wrap with `VisuallyHidden` where the title shouldn't be displayed). Most likely culprits: `CommandDialog`, quick-search popovers.
 
-Component `EnterpriseSetupWizard.tsx` — stepper with persistence in `organizations.settings.setup_progress`:
+### 4. Opportunity search returns 0 results for valid keywords
+Network log: SAM.gov returns `30754 total records (90-day window)` for "Video", but the response surfaces `opportunities: []`. Provider says `success, count: 25` yet the array is empty — a mapping/filter step inside `search-opportunities` is dropping all rows (likely the per-org keyword post-filter or a field-name mismatch after the SAM payload shape changed).
 
-1. **Welcome** — confirms tier, CSM contact card, schedule kickoff (Calendly embed).
-2. **Company profile** — legal name, support email, terms/privacy URLs → writes `organization_branding`.
-3. **Branding** (white-label only) — reuses `BrandingEditor` + `AssetUploader` (logo, favicon, colors, font).
-4. **Custom domain** (white-label only) — reuses `DomainManager`; shows DNS records, polls verification.
-5. **Team invites** — bulk invite via existing `team-invite` function, role templates (Admin/Manager/Editor/Viewer).
-6. **SSO** (optional, enterprise/white-label) — reuses `manage-sso-config` to drop in SAML/OIDC metadata.
-7. **API keys** (white-label) — reuses `ApiKeyManagement`.
-8. **Done** — checklist summary, link to dashboard.
+Fix: trace the mapping in `supabase/functions/search-opportunities/index.ts`, add a diagnostic count before/after each filter, and ensure the SAM `opportunitiesData[]` → unified shape mapping isn't returning `null` for every row.
 
-Each step marks complete in `setup_progress` JSON so the wizard is resumable. A persistent "Finish setup" banner appears in `DashboardLayout` until all required steps are done.
+### 5. FedConnect silently disabled
+`FedConnect: skipped — API key not configured`. Either remove FedConnect from the default selected sources, or surface a one-time admin notice. Right now users tick the checkbox and get nothing, with no UI feedback.
 
-## 4. Self-serve "Talk to sales" polish
+---
 
-- `Pricing.tsx` Enterprise card → opens `EnterpriseSalesModal` (already present).
-- `EnterpriseSupport.tsx` for non-enterprise users → CTA to same modal.
-- Add `/contact` form to also write to `enterprise_leads` with `source='contact'`.
+## High (degraded experience)
 
-## Technical notes
+### 6. Two competing onboarding systems
+You have **three** onboarding surfaces firing on the dashboard:
+- `ProgressiveOnboarding` (DB-backed, new)
+- `FirstRFPWizard` (localStorage-backed, legacy)
+- `EnterpriseOnboarding` + `EnterpriseGettingStarted` (also localStorage)
+- Plus `KnowledgeSetupWizard` and `DashboardEmptyState` checklist
 
-- **DB migration**: `enterprise_leads` table + RLS (anon insert, system_admin select/update); add `csm_name/email/calendly_url/phone` columns to `organizations` if not already present; ensure `organization_branding`/`organization_features` exist (per project knowledge they're planned — create if missing).
-- **Edge functions** (new): `submit-enterprise-lead`, `admin-provision-enterprise`. Both use Zod validation, manual JWT validation where applicable, service-role client for admin op.
-- **Secrets needed**: `RESEND_API_KEY` (via Resend connector). HubSpot push uses existing connector if linked — skipped silently otherwise.
-- **Reuses**: `BrandingEditor`, `AssetUploader`, `DomainManager`, `ApiKeyManagement`, `EmailTemplateEditor`, `team-invite`, `manage-sso-config`, `useCSMContact`, `is_system_admin`.
+A first-time user can see 2–3 modals stacked. Consolidate: `ProgressiveOnboarding` is the single source of truth; `FirstRFPWizard` becomes an *optional* deeper-dive triggered only from the empty-state CTA, never auto-opened.
 
-## Out of scope (call out, don't build)
+### 7. Enterprise onboarding gating is wrong
+`{isEnterprise && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && <EnterpriseOnboarding />}` — the `||` means non-new users who never clicked skip still see the banner forever. Should be `&&`, and skip state belongs in `organizations.settings.setup_progress` (already exists from the prior task).
 
-- Stripe checkout for enterprise (contract-billed).
-- Automatic SSL provisioning (DomainManager already shows DNS instructions).
-- Building new SSO providers beyond what `manage-sso-config` supports.
+### 8. Profile fetched twice per login
+Logs show `Fetching profile data (attempt 1)` running twice within 50ms because both `useProfile` and a parallel listener trigger it. Memoize via React Query (you already have it set up) instead of the custom fetch in `use-profile.tsx`.
 
-## Files to add
+### 9. CSM contact widget shows placeholder data
+For non-enterprise orgs, `csm_name = "Your OptiRFP CSM"` and `csm_email = "csm@optirfp.ai"` are seeded as defaults. `CSMContactWidget` happily shows them, implying every Pro user has a dedicated CSM. Hide the widget unless `subscription_tier IN ('enterprise','white_label')`.
 
-- `supabase/migrations/<ts>_enterprise_leads.sql`
-- `supabase/functions/submit-enterprise-lead/index.ts`
-- `supabase/functions/admin-provision-enterprise/index.ts`
-- `src/pages/admin/AdminLeads.tsx`
-- `src/components/admin/ConvertLeadDialog.tsx`
-- `src/pages/onboarding/EnterpriseOnboarding.tsx`
-- `src/components/onboarding/EnterpriseSetupWizard.tsx` (+ step components)
-- `src/components/layout/EnterpriseSetupBanner.tsx`
+### 10. `legacy /admin/source-health` and a few orphan routes
+Some sidebar links go to pages that throw 404 or render empty: `SourceStatusDashboard` requires `is_system_admin` but isn't gated in routing.
 
-## Files to edit
+---
 
-- `src/components/blocks/pricing/EnterpriseSalesModal.tsx` — submit to edge function instead of mailto.
-- `src/pages/AdminDashboard.tsx` — nav entry for Leads.
-- `src/layouts/DashboardLayout.tsx` — mount setup banner.
-- `src/App.tsx` — register new routes.
+## Medium (polish)
+
+- **Organization name renders as `'s Organization`** (logs) — empty `first_name` at signup creates a malformed default. Fall back to `email.split('@')[0] + "'s Organization"`.
+- **Subscription provider clears + refetches on every mount** ("Clearing subscription data" → "Fetching subscription data from API"), causing dashboard widgets to flash. Add a `staleTime`.
+- **Network indicator polls `HEAD /favicon.ico` every 30s forever** — wasteful; switch to `navigator.onLine` + a single ping on `online`/`offline` events.
+- **Toaster duration 4s + 3 visible** can clip long error messages. Bump to 6s for `richColors` errors.
+- **`/settings` redirects to `/account`** — fine, but the sidebar still shows two entries in some places.
+
+---
+
+## Low (housekeeping)
+
+- Unused imports in `App.tsx` (`React`).
+- `EnterpriseOnboarding` page (`/onboarding/enterprise`) and the dashboard banner duplicate steps; pick one entry point.
+- `PricingRedirect` is named like a redirect but renders the full pricing page — rename for clarity.
+
+---
+
+## Implementation Plan (in order)
+
+1. **Onboarding consolidation (fixes #1, #6, #7)**
+   - Remove auto-open of `FirstRFPWizard` from `Dashboard.tsx`; only open via the empty-state button.
+   - Persist `FirstRFPWizard` complete/skip to `profiles.onboarding_completed` (reuse `useOnboardingFlow.skip/complete`).
+   - Change `EnterpriseOnboarding` gate to `isNewUser && !setup_progress.welcome_dismissed`; store dismiss in `organizations.settings`.
+
+2. **Auth/profile loop (fixes #2, #8)**
+   - In `AuthProvider`, set `loading=false` on first `onAuthStateChange` event; drop the 7s safety to 3s.
+   - Migrate `useProfile` to a single React Query keyed by `user.id` with `staleTime: 5min`.
+
+3. **Opportunity search results (fix #4)**
+   - Add diagnostic logging in `search-opportunities` mapper; verify SAM field names; return the actual mapped array.
+   - Ship a regression test via `supabase--test_edge_functions`.
+
+4. **FedConnect UX (fix #5)**
+   - Hide FedConnect from the source list when `FEDCONNECT_API_KEY` is not configured (server returns a `configured: false` flag).
+
+5. **Dialog a11y (fix #3)**
+   - Sweep `CommandDialog` and any custom dialogs for missing titles; wrap hidden ones in `VisuallyHidden`.
+
+6. **CSM widget gating (fix #9)** — single conditional in `CSMContactWidget`.
+
+7. **Polish pass** — org-name fallback, subscription `staleTime`, network indicator rewrite, toast duration.
+
+---
+
+## Out of scope (call out, don't change)
+- The broader multi-tenant / white-label roadmap in `project-knowledge` — not touching it here.
+- Stripe/HubSpot integrations look healthy in logs; no changes proposed.
+
+Approve and I'll implement steps 1–6 in one pass, then do the polish items in a follow-up.

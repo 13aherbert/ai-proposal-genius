@@ -760,12 +760,15 @@ function scoreRelevance(opp: NormalizedOpportunity, keyword: string): number {
   const titleLower = (opp.title || "").toLowerCase();
   const deptLower = (opp.department || "").toLowerCase();
   const solNumLower = (opp.solicitation_number || "").toLowerCase();
-  // Gather all useful text from raw_data for broader matching
-  const rawDataStr = Object.values(opp.raw_data || {})
-    .filter(v => typeof v === "string")
-    .join(" ")
-    .toLowerCase();
-  const descLower = rawDataStr;
+  // Recursively gather all useful text from raw_data for broader matching
+  // (SAM.gov returns nested objects; flat Object.values misses descriptions)
+  const collectStrings = (v: unknown): string => {
+    if (typeof v === "string") return v;
+    if (Array.isArray(v)) return v.map(collectStrings).join(" ");
+    if (v && typeof v === "object") return Object.values(v).map(collectStrings).join(" ");
+    return "";
+  };
+  const descLower = collectStrings(opp.raw_data || {}).toLowerCase();
 
   let score = 0;
   if (titleLower.includes(phrase)) score += 100;
@@ -796,9 +799,9 @@ function rankByRelevance(opps: NormalizedOpportunity[], keyword: string): Normal
   const scored = opps.map(opp => ({ opp, score: scoreRelevance(opp, keyword) }));
 
   // When a keyword is active, filter out zero-relevance results.
-  // SAM.gov does server-side matching but can still return loosely related items;
-  // Grants.gov and California results need strict local gating.
-  const filtered = scored.filter(({ score }) => score > 0);
+  // EXCEPTION: SAM.gov performs server-side keyword matching, so trust its results
+  // even when our local text scoring misses (e.g. match was in nested description).
+  const filtered = scored.filter(({ opp, score }) => score > 0 || opp.source === "sam_gov");
 
   console.log(`[Relevance] keyword="${keyword}": ${opps.length} in → ${filtered.length} after relevance gate (removed ${opps.length - filtered.length} zero-score)`);
 

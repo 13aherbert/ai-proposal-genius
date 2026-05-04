@@ -86,16 +86,10 @@ export default function Dashboard() {
     }
   }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
 
-  // Show first RFP wizard for new users without projects (only if progressive onboarding isn't open/skipped/completed)
-  useEffect(() => {
-    if (dashboardStats.hasProjects) return;
-    if (onboarding.isOpen || onboarding.isSkipped || onboarding.isCompleted) return;
-    const completed = localStorage.getItem('optirfp_first_rfp_complete');
-    const skipped = localStorage.getItem('optirfp_wizard_skipped');
-    if (!completed && !skipped && session?.user) {
-      setShowFirstRFPWizard(true);
-    }
-  }, [dashboardStats.hasProjects, session, onboarding.isOpen, onboarding.isSkipped, onboarding.isCompleted]);
+  // FirstRFPWizard is no longer auto-opened. It is launched only from the
+  // empty-state CTA. The DB-backed `useOnboardingFlow` (ProgressiveOnboarding)
+  // is the single source of truth for first-run prompts, so users who skip
+  // never see another welcome modal on subsequent logins.
 
   const handleKBWizardClose = (open: boolean) => {
     setShowKBWizard(open);
@@ -189,8 +183,8 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Enterprise Onboarding - Show for new enterprise users */}
-      {isEnterprise && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && (
+      {/* Enterprise Onboarding - Show only for genuinely new enterprise users who haven't dismissed */}
+      {isEnterprise && isNewUser && !localStorage.getItem('enterprise-onboarding-skipped') && (
         <EnterpriseOnboarding />
       )}
 

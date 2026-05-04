@@ -78,7 +78,7 @@ export default function EnterpriseOnboarding() {
   const markComplete = async (id: StepId) => {
     const next = { ...progress, [id]: true };
     setProgress(next);
-    const settings = { ...(organization.settings || {}), setup_progress: next };
+    const settings = { ...((organization.settings as Record<string, unknown>) || {}), setup_progress: next };
     const { error } = await supabase
       .from("organizations")
       .update({ settings })

@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
@@ -114,12 +114,15 @@ async function extractTextFromFile(arrayBuffer: ArrayBuffer, filePath: string): 
 
   try {
     switch (fileType) {
-      case 'pdf':
-        console.log('Starting PDF text extraction');
+      case 'pdf': {
+        console.log('Starting PDF text extraction (unpdf)');
         const uint8Array = new Uint8Array(arrayBuffer);
-        const data = await pdfParse(uint8Array);
-        console.log('PDF text extraction completed, text length:', data.text.length);
-        return data.text;
+        const pdf = await getDocumentProxy(uint8Array);
+        const { text } = await extractText(pdf, { mergePages: true });
+        const fullText = Array.isArray(text) ? text.join('\n') : text;
+        console.log('PDF text extraction completed, length:', fullText.length);
+        return fullText;
+      }
       
       case 'txt':
       case 'text':

@@ -2,7 +2,11 @@ import { useState, useRef } from 'react';
 import { useCanvasStore } from '../CanvasStore';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Type, Square, Image as ImageIcon, Layout, Palette } from 'lucide-react';
+import {
+  Type, Square, Image as ImageIcon, Layout, Palette,
+  Star, Heart, Check, Award, Zap, Target, TrendingUp, Shield, Lightbulb, Rocket,
+  type LucideIcon,
+} from 'lucide-react';
 import { makeTextElement, makeShapeElement, makeImageElement, makeIconElement, TEXT_PRESETS } from '../elementFactory';
 import { ShapeKind, BackgroundType } from '../types';
 import { HexColorPicker } from 'react-colorful';

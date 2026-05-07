@@ -239,7 +239,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 </>
               )}
               <SaveStatusIndicator status={status} onRetry={retry} />
-              {!isReadOnly && (
+              {isSelected && !isReadOnly && (
                 <Button
                   onClick={(e) => { e.stopPropagation(); generateContent(); }}
                   disabled={isGenerating}

@@ -28,7 +28,12 @@ const SHAPE_OPTIONS: Array<{ kind: ShapeKind; label: string }> = [
   { kind: 'arrow', label: 'Arrow' },
 ];
 
-const ICON_OPTIONS = ['Star', 'Heart', 'Check', 'Award', 'Zap', 'Target', 'TrendingUp', 'Shield', 'Lightbulb', 'Rocket'];
+const ICON_OPTIONS: Array<{ name: string; Icon: LucideIcon }> = [
+  { name: 'Star', Icon: Star }, { name: 'Heart', Icon: Heart }, { name: 'Check', Icon: Check },
+  { name: 'Award', Icon: Award }, { name: 'Zap', Icon: Zap }, { name: 'Target', Icon: Target },
+  { name: 'TrendingUp', Icon: TrendingUp }, { name: 'Shield', Icon: Shield },
+  { name: 'Lightbulb', Icon: Lightbulb }, { name: 'Rocket', Icon: Rocket },
+];
 
 export function InsertSidebar({ organizationId }: InsertSidebarProps) {
   const store = useCanvasStore();

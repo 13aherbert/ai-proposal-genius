@@ -129,10 +129,7 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
               <section.icon className="h-4 w-4" />
               <span className="flex-1 text-left">{section.label}</span>
               {locked && requiredTier && (
-                <span className="flex items-center gap-1">
-                  <Lock className="h-3 w-3 text-muted-foreground" />
-                  <TierBadge tier={requiredTier} size="sm" />
-                </span>
+                <Lock className="h-3 w-3 text-muted-foreground" />
               )}
             </Button>
           );

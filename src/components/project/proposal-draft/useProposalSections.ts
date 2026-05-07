@@ -190,6 +190,16 @@ export function useProposalSections(projectId: string) {
         throw new Error('User organization not found');
       }
 
+      // Determine next sort_order so concurrent inserts stay deterministic
+      const { data: maxRow } = await supabase
+        .from("proposal_sections")
+        .select("sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextSortOrder = ((maxRow?.sort_order ?? -1) as number) + 1;
+
       const { data, error } = await supabase
         .from("proposal_sections")
         .insert({
@@ -197,6 +207,7 @@ export function useProposalSections(projectId: string) {
           section_title: title,
           user_id: session.user.id,
           organization_id: profile.current_organization_id,
+          sort_order: nextSortOrder,
         })
         .select()
         .single();

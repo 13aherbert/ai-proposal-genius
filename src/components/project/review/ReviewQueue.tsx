@@ -43,8 +43,8 @@ export function ReviewQueue({ projectId, members }: ReviewQueueProps) {
       : sections.filter((s) => (s.workflow_status || "draft") === statusFilter);
     // Always display in outline order (sort_order ASC, created_at as tiebreaker)
     return result.sort((a, b) => {
-      const ao = (a as any).sort_order ?? 0;
-      const bo = (b as any).sort_order ?? 0;
+      const ao = a.sort_order ?? 0;
+      const bo = b.sort_order ?? 0;
       if (ao !== bo) return ao - bo;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });

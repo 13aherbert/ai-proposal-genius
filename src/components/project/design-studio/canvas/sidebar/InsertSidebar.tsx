@@ -103,10 +103,11 @@ export function InsertSidebar({ organizationId }: InsertSidebarProps) {
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Icons</p>
               <div className="grid grid-cols-5 gap-1">
-                {ICON_OPTIONS.map(name => (
+                {ICON_OPTIONS.map(({ name, Icon }) => (
                   <button key={name} onClick={() => addEl(() => makeIconElement(name))}
-                    className="aspect-square flex items-center justify-center border rounded hover:bg-muted text-xs" title={name}>
-                    {name.slice(0, 2)}
+                    className="aspect-square flex items-center justify-center border rounded hover:bg-muted text-foreground"
+                    title={name}>
+                    <Icon className="h-4 w-4" />
                   </button>
                 ))}
               </div>

@@ -38,25 +38,17 @@ export function ReviewQueue({ projectId, members }: ReviewQueueProps) {
   }, [sections]);
 
   const filteredSections = useMemo(() => {
-    let result = statusFilter === "all"
-      ? sections
+    const result = statusFilter === "all"
+      ? [...sections]
       : sections.filter((s) => (s.workflow_status || "draft") === statusFilter);
-    // Sort: in_review first, then assigned-to-me, then by updated_at
+    // Always display in outline order (sort_order ASC, created_at as tiebreaker)
     return result.sort((a, b) => {
-      const priority = (s: ProposalSection) => {
-        if (s.workflow_status === "in_review") return 0;
-        if (s.workflow_status === "needs_revision") return 1;
-        if (s.workflow_status === "draft") return 2;
-        return 3;
-      };
-      const pa = priority(a), pb = priority(b);
-      if (pa !== pb) return pa - pb;
-      const aMe = a.assigned_to === currentUserId ? 0 : 1;
-      const bMe = b.assigned_to === currentUserId ? 0 : 1;
-      if (aMe !== bMe) return aMe - bMe;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      const ao = a.sort_order ?? 0;
+      const bo = b.sort_order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [sections, statusFilter, currentUserId]);
+  }, [sections, statusFilter]);
 
   const getMemberName = (userId: string | null) => {
     if (!userId) return "Unassigned";

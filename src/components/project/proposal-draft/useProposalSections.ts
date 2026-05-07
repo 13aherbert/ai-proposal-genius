@@ -14,6 +14,7 @@ export interface ProposalSection {
   workflow_status: string;
   due_date: string | null;
   review_comment: string | null;
+  sort_order?: number;
 }
 
 export function useProposalSections(projectId: string) {

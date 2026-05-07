@@ -89,9 +89,14 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
     setPendingComment({ sectionId, quotedText, from, to });
   }, []);
 
-  // Filtered sections
+  // Filtered sections — always start from outline order (sort_order ASC)
   const filteredSections = useMemo(() => {
-    let result = sections;
+    let result = [...sections].sort((a, b) => {
+      const ao = a.sort_order ?? 0;
+      const bo = b.sort_order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
     if (filter.status) {
       result = result.filter(s => (s.workflow_status || "draft") === filter.status);
     }

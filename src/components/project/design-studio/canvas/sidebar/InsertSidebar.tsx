@@ -2,7 +2,11 @@ import { useState, useRef } from 'react';
 import { useCanvasStore } from '../CanvasStore';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Type, Square, Image as ImageIcon, Layout, Palette } from 'lucide-react';
+import {
+  Type, Square, Image as ImageIcon, Layout, Palette,
+  Star, Heart, Check, Award, Zap, Target, TrendingUp, Shield, Lightbulb, Rocket,
+  type LucideIcon,
+} from 'lucide-react';
 import { makeTextElement, makeShapeElement, makeImageElement, makeIconElement, TEXT_PRESETS } from '../elementFactory';
 import { ShapeKind, BackgroundType } from '../types';
 import { HexColorPicker } from 'react-colorful';
@@ -24,7 +28,12 @@ const SHAPE_OPTIONS: Array<{ kind: ShapeKind; label: string }> = [
   { kind: 'arrow', label: 'Arrow' },
 ];
 
-const ICON_OPTIONS = ['Star', 'Heart', 'Check', 'Award', 'Zap', 'Target', 'TrendingUp', 'Shield', 'Lightbulb', 'Rocket'];
+const ICON_OPTIONS: Array<{ name: string; Icon: LucideIcon }> = [
+  { name: 'Star', Icon: Star }, { name: 'Heart', Icon: Heart }, { name: 'Check', Icon: Check },
+  { name: 'Award', Icon: Award }, { name: 'Zap', Icon: Zap }, { name: 'Target', Icon: Target },
+  { name: 'TrendingUp', Icon: TrendingUp }, { name: 'Shield', Icon: Shield },
+  { name: 'Lightbulb', Icon: Lightbulb }, { name: 'Rocket', Icon: Rocket },
+];
 
 export function InsertSidebar({ organizationId }: InsertSidebarProps) {
   const store = useCanvasStore();
@@ -61,11 +70,11 @@ export function InsertSidebar({ organizationId }: InsertSidebarProps) {
     <div className="w-64 shrink-0 bg-background border rounded-lg overflow-hidden flex flex-col">
       <Tabs defaultValue="text" className="flex flex-col h-full">
         <TabsList className="grid grid-cols-5 m-2 h-9">
-          <TabsTrigger value="text" className="px-1"><Type className="h-3.5 w-3.5" /></TabsTrigger>
-          <TabsTrigger value="elements" className="px-1"><Square className="h-3.5 w-3.5" /></TabsTrigger>
-          <TabsTrigger value="images" className="px-1"><ImageIcon className="h-3.5 w-3.5" /></TabsTrigger>
-          <TabsTrigger value="bg" className="px-1"><Palette className="h-3.5 w-3.5" /></TabsTrigger>
-          <TabsTrigger value="pages" className="px-1"><Layout className="h-3.5 w-3.5" /></TabsTrigger>
+          <TabsTrigger value="text" className="px-1 gap-1 text-[11px]" title="Text"><Type className="h-3.5 w-3.5" /><span className="hidden xl:inline">Text</span></TabsTrigger>
+          <TabsTrigger value="elements" className="px-1 gap-1 text-[11px]" title="Shapes & icons"><Square className="h-3.5 w-3.5" /><span className="hidden xl:inline">Shapes</span></TabsTrigger>
+          <TabsTrigger value="images" className="px-1 gap-1 text-[11px]" title="Images"><ImageIcon className="h-3.5 w-3.5" /><span className="hidden xl:inline">Image</span></TabsTrigger>
+          <TabsTrigger value="bg" className="px-1 gap-1 text-[11px]" title="Background"><Palette className="h-3.5 w-3.5" /><span className="hidden xl:inline">BG</span></TabsTrigger>
+          <TabsTrigger value="pages" className="px-1 gap-1 text-[11px]" title="Pages"><Layout className="h-3.5 w-3.5" /><span className="hidden xl:inline">Pages</span></TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto px-3 pb-3">
@@ -94,10 +103,11 @@ export function InsertSidebar({ organizationId }: InsertSidebarProps) {
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Icons</p>
               <div className="grid grid-cols-5 gap-1">
-                {ICON_OPTIONS.map(name => (
+                {ICON_OPTIONS.map(({ name, Icon }) => (
                   <button key={name} onClick={() => addEl(() => makeIconElement(name))}
-                    className="aspect-square flex items-center justify-center border rounded hover:bg-muted text-xs" title={name}>
-                    {name.slice(0, 2)}
+                    className="aspect-square flex items-center justify-center border rounded hover:bg-muted text-foreground"
+                    title={name}>
+                    <Icon className="h-4 w-4" />
                   </button>
                 ))}
               </div>

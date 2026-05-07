@@ -90,13 +90,17 @@ function CanvasElementInner({ element, scale, selected }: CanvasElementProps) {
     left: element.x,
     top: element.y,
     width: element.width,
-    height: element.height,
+    // Text elements grow with content — give a min-height instead of a fixed height
+    // so wrapping text is never clipped at the bottom of the box.
+    ...(element.type === 'text'
+      ? { minHeight: element.height }
+      : { height: element.height }),
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     transformOrigin: 'center center',
     zIndex: element.zIndex,
     cursor: editing ? 'text' : 'move',
     touchAction: 'none',
-  }), [element.x, element.y, element.width, element.height, element.rotation, element.zIndex, editing]);
+  }), [element.x, element.y, element.width, element.height, element.rotation, element.zIndex, element.type, editing]);
 
   return (
     <div

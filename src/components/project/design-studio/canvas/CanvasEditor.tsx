@@ -25,7 +25,7 @@ export function CanvasEditor(props: CanvasEditorProps) {
 function CanvasEditorInner({ organizationId }: { organizationId?: string }) {
   const store = useCanvasStore();
   const { doc, activePageId, selectedIds, isEditingTextId } = store;
-  const [zoom, setZoom] = useState(0.6);
+  const [zoom, setZoom] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activePage = doc.pages.find(p => p.id === activePageId) ?? doc.pages[0];
@@ -47,12 +47,13 @@ function CanvasEditorInner({ organizationId }: { organizationId?: string }) {
     isEditingText: () => isEditingTextId !== null,
   });
 
+  // "Fit width" — make the page fill the available width (capped at 1.0).
+  // Falls back to fit-to-container when the page is taller than the viewport.
   const fitToContainer = useCallback(() => {
     if (!containerRef.current) return;
     const w = containerRef.current.clientWidth - 48;
-    const h = containerRef.current.clientHeight - 48;
-    const s = Math.min(w / doc.pageSize.width, h / doc.pageSize.height, 1);
-    setZoom(Math.max(0.2, s));
+    const widthScale = Math.min(w / doc.pageSize.width, 1);
+    setZoom(Math.max(0.3, widthScale));
   }, [doc.pageSize]);
 
   useEffect(() => {

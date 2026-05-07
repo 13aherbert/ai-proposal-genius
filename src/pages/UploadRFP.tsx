@@ -72,27 +72,20 @@ const UploadRFP = () => {
     if (session?.user) {
       fetchProjectCount();
     }
-  }, [fetchProjectCount, session, subscription]);
-  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
+
   const planType = normalizePlanType(subscription?.plan_type);
-  
+
   // Calculate limits early so they can be used in effects
-  const hasReachedLimit = 
-    projectLimit !== null && 
-    currentProjectCount !== null && 
+  const hasReachedLimit =
+    projectLimit !== null &&
+    currentProjectCount !== null &&
     currentProjectCount >= projectLimit;
 
-  const isLoading = currentProjectCount === null || subscriptionLoading;
-  
-  useEffect(() => {
-    if (!session?.user) return;
-    
-    const interval = setInterval(() => {
-      fetchProjectCount();
-    }, 10000); // Every 10 seconds
-    
-    return () => clearInterval(interval);
-  }, [fetchProjectCount, session]);
+  // Only show the loading wheel during the initial load — once we have a
+  // project count, background subscription refreshes shouldn't flash the spinner.
+  const isLoading = currentProjectCount === null && subscriptionLoading;
 
   // Route-level gate: show upgrade modal if at limit and no project created yet
   useEffect(() => {

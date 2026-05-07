@@ -239,6 +239,21 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 </>
               )}
               <SaveStatusIndicator status={status} onRetry={retry} />
+              {!isReadOnly && (
+                <Button
+                  onClick={(e) => { e.stopPropagation(); generateContent(); }}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 sm:h-9 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green px-2"
+                  title="Generate with AI"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">
+                    {isGenerating ? "Generating..." : "Generate with AI"}
+                  </span>
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 size="sm"

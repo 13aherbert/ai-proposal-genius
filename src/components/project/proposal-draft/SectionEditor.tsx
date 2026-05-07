@@ -288,20 +288,6 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                   : "This section is in review and read-only for the assignee."}
               </div>
             )}
-            {!isReadOnly && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={generateContent}
-                  disabled={isGenerating}
-                  variant="outline"
-                  size="sm"
-                  className="h-8 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
-                >
-                  <Wand2 className="h-3.5 w-3.5" />
-                  {isGenerating ? "Generating..." : "Generate with AI"}
-                </Button>
-              </div>
-            )}
             {isGenerating && <AIProgress progress={progress} label="Generating content" />}
             <RichTextEditor
               content={content}

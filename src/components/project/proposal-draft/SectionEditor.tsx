@@ -264,7 +264,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
           )}
         </CardHeader>
         {isSelected && (
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-2">
             {isReadOnly && (
               <div className="bg-muted/50 border rounded p-2 text-xs text-muted-foreground flex items-center gap-1.5">
                 <Lock className="h-3.5 w-3.5" />
@@ -274,15 +274,18 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               </div>
             )}
             {!isReadOnly && (
-              <Button
-                onClick={generateContent}
-                disabled={isGenerating}
-                variant="outline"
-                className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
-              >
-                <Wand2 className="h-4 w-4" />
-                {isGenerating ? "Generating..." : "Generate with AI"}
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  onClick={generateContent}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                  {isGenerating ? "Generating..." : "Generate with AI"}
+                </Button>
+              </div>
             )}
             {isGenerating && <AIProgress progress={progress} label="Generating content" />}
             <RichTextEditor

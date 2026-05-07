@@ -212,7 +212,18 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <WorkflowStatusBadge status={workflowStatus} />
+              {showTeamFeatures ? (
+                <SectionStatusControl
+                  currentStatus={workflowStatus}
+                  isAssignee={isAssignee}
+                  isReviewer={isReviewer}
+                  isAdmin={isAdmin}
+                  onTransition={handleTransition}
+                  disabled={workflow.isTransitioning}
+                />
+              ) : (
+                <WorkflowStatusBadge status={workflowStatus} />
+              )}
               {showTeamFeatures && (
                 <>
                   <SectionAssignee
@@ -227,16 +238,6 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                     compact
                   />
                 </>
-              )}
-              {showTeamFeatures && (
-                <WorkflowActions
-                  currentStatus={workflowStatus}
-                  isAssignee={isAssignee}
-                  isReviewer={isReviewer}
-                  isAdmin={isAdmin}
-                  onTransition={handleTransition}
-                  disabled={workflow.isTransitioning}
-                />
               )}
               <SaveStatusIndicator status={status} onRetry={retry} />
               <Button

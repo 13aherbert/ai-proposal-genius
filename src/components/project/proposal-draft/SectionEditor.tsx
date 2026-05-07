@@ -53,8 +53,9 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
   const workflowStatus = (section.workflow_status || "draft") as WorkflowStatus;
   const isAssignee = section.assigned_to === currentUserId;
   const currentMember = members.find(m => m.user_id === currentUserId);
-  const isAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
-  const isReviewer = isAdmin; // Admins can review
+  // Solo project (no member rows) → treat current user as admin so workflow controls work.
+  const isAdmin = !currentMember || currentMember.role === "owner" || currentMember.role === "admin";
+  const isReviewer = isAdmin;
 
   // Locking logic
   const isLockedForAssignee = workflowStatus === "in_review" && isAssignee && !isAdmin;

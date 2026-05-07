@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileEdit, BookOpen, Wand, Lock } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '@/components/ui/resizable';
+import { FileEdit, Wand, Lock, Columns2, BookOpen } from 'lucide-react';
 import { useSubscriptionFeatures } from '@/hooks/use-subscription-features';
 import { lazy, Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { GatedFeature } from '@/components/subscription/GatedFeature';
-import { TierBadge } from '@/components/subscription/TierBadge';
 
 // Lazy load components
 const ProposalDraft = lazy(() => import('@/components/project/proposal-draft/ProposalDraft').then(mod => ({ default: mod.ProposalDraft })));
@@ -31,84 +36,127 @@ const TIER_ORDER: Record<string, number> = {
   enterprise: 3,
 };
 
+type ViewMode = 'draft' | 'compiled' | 'split';
+
 export function UnifiedProposalView({ projectId, analysis, proposalOutline }: UnifiedProposalViewProps) {
-  const [activeTab, setActiveTab] = useState('draft');
+  const [activeTab, setActiveTab] = useState<'editor' | 'auto'>('editor');
+  const [viewMode, setViewMode] = useState<ViewMode>('draft');
   const { plan, isLoading } = useSubscriptionFeatures();
 
   const currentLevel = TIER_ORDER[plan] ?? 0;
+  const compiledLocked = !isLoading && currentLevel < (TIER_ORDER.growth ?? 1);
+  const autoLocked = !isLoading && currentLevel < (TIER_ORDER.business ?? 2);
 
-  const tabs = [
-    {
-      id: 'draft',
-      label: 'Draft',
-      icon: FileEdit,
-      requiredTier: null,
-    },
-    {
-      id: 'compiled',
-      label: 'Compiled',
-      icon: BookOpen,
-      requiredTier: 'growth' as const,
-    },
-    {
-      id: 'auto',
-      label: 'Auto-Generated',
-      icon: Wand,
-      requiredTier: 'business' as const,
-    },
-  ];
-
-  const isLocked = (requiredTier: string | null): boolean => {
-    if (!requiredTier || isLoading) return false;
-    return currentLevel < (TIER_ORDER[requiredTier] ?? 1);
+  const handleViewChange = (val: string) => {
+    if (!val) return;
+    setViewMode(val as ViewMode);
   };
 
   return (
     <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          {tabs.map((tab) => {
-            const locked = isLocked(tab.requiredTier);
-            return (
-              <TabsTrigger 
-                key={tab.id} 
-                value={tab.id}
-                className="flex items-center gap-1.5"
-              >
-                <tab.icon className="h-4 w-4" />
-                <span className={`text-[10px] sm:text-sm ${locked ? 'opacity-70' : ''}`}>{tab.label}</span>
-                {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'editor' | 'auto')} className="w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList className="grid grid-cols-2 w-full sm:w-auto">
+            <TabsTrigger value="editor" className="flex items-center gap-1.5">
+              <FileEdit className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Editor</span>
+            </TabsTrigger>
+            <TabsTrigger value="auto" className="flex items-center gap-1.5">
+              <Wand className="h-4 w-4" />
+              <span className={`text-xs sm:text-sm ${autoLocked ? 'opacity-70' : ''}`}>Auto-Generated</span>
+              {autoLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="draft" className="mt-4">
+          {activeTab === 'editor' && (
+            <ToggleGroup
+              type="single"
+              size="sm"
+              value={viewMode}
+              onValueChange={handleViewChange}
+              className="self-start sm:self-auto"
+            >
+              <ToggleGroupItem value="draft" aria-label="Draft view" className="gap-1.5 px-3">
+                <FileEdit className="h-3.5 w-3.5" />
+                <span className="text-xs">Draft</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="compiled"
+                aria-label="Compiled view"
+                className="gap-1.5 px-3"
+                disabled={compiledLocked}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="text-xs">Compiled</span>
+                {compiledLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="split"
+                aria-label="Split view"
+                className="gap-1.5 px-3"
+                disabled={compiledLocked}
+              >
+                <Columns2 className="h-3.5 w-3.5" />
+                <span className="text-xs">Split</span>
+                {compiledLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          )}
+        </div>
+
+        <TabsContent value="editor" className="mt-4">
           <ErrorBoundary>
             <Suspense fallback={<SectionLoading />}>
-              <ProposalDraft projectId={projectId} mode="draft" />
+              {viewMode === 'draft' && <ProposalDraft projectId={projectId} mode="draft" />}
+
+              {viewMode === 'compiled' && (
+                <GatedFeature
+                  featureName="Compiled Proposal"
+                  requiredTier="growth"
+                  description="View your entire proposal as a single, continuous document. Perfect for final review and one-click copying."
+                  benefits={[
+                    "See your entire proposal as a continuous document",
+                    "Interactive table of contents with section navigation",
+                    "Print-ready preview matching final export",
+                    "Copy full proposal text with one click",
+                  ]}
+                >
+                  <ProposalDraft projectId={projectId} mode="compiled" />
+                </GatedFeature>
+              )}
+
+              {viewMode === 'split' && (
+                <GatedFeature
+                  featureName="Split View"
+                  requiredTier="growth"
+                  description="Edit the draft on one side and watch the compiled, print-ready document update on the other."
+                  benefits={[
+                    "Live side-by-side editing and preview",
+                    "Resizable panels — give each side the space it needs",
+                    "Spot formatting and flow issues as you write",
+                    "Faster final review without switching tabs",
+                  ]}
+                >
+                  <ResizablePanelGroup
+                    direction="horizontal"
+                    className="min-h-[600px] rounded-lg border"
+                  >
+                    <ResizablePanel defaultSize={50} minSize={30}>
+                      <div className="h-full overflow-auto p-2">
+                        <ProposalDraft projectId={projectId} mode="draft" />
+                      </div>
+                    </ResizablePanel>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel defaultSize={50} minSize={30}>
+                      <div className="h-full overflow-auto p-2 bg-muted/20">
+                        <ProposalDraft projectId={projectId} mode="compiled" />
+                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                </GatedFeature>
+              )}
             </Suspense>
           </ErrorBoundary>
-        </TabsContent>
-
-        <TabsContent value="compiled" className="mt-4">
-          <GatedFeature
-            featureName="Compiled Proposal"
-            requiredTier="growth"
-            description="View your entire proposal as a single, continuous document. Perfect for final review and one-click copying."
-            benefits={[
-              "See your entire proposal as a continuous document",
-              "Interactive table of contents with section navigation",
-              "Print-ready preview matching final export",
-              "Copy full proposal text with one click",
-            ]}
-          >
-            <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
-                <ProposalDraft projectId={projectId} mode="compiled" />
-              </Suspense>
-            </ErrorBoundary>
-          </GatedFeature>
         </TabsContent>
 
         <TabsContent value="auto" className="mt-4">
@@ -125,8 +173,8 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
           >
             <ErrorBoundary>
               <Suspense fallback={<SectionLoading />}>
-                <AutoGeneratedProposal 
-                  projectId={projectId} 
+                <AutoGeneratedProposal
+                  projectId={projectId}
                   analysis={analysis}
                   proposalOutline={proposalOutline}
                 />

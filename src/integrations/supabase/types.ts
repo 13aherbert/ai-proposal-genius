@@ -2537,6 +2537,7 @@ export type Database = {
           review_comment: string | null
           section_id: string
           section_title: string
+          sort_order: number
           updated_at: string
           user_id: string
           workflow_status: string
@@ -2551,6 +2552,7 @@ export type Database = {
           review_comment?: string | null
           section_id?: string
           section_title: string
+          sort_order?: number
           updated_at?: string
           user_id: string
           workflow_status?: string
@@ -2565,6 +2567,7 @@ export type Database = {
           review_comment?: string | null
           section_id?: string
           section_title?: string
+          sort_order?: number
           updated_at?: string
           user_id?: string
           workflow_status?: string

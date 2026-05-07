@@ -50,6 +50,7 @@ export function useProposalSections(projectId: string) {
         .from("proposal_sections")
         .select("*")
         .eq("project_id", projectId)
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
 
       if (error) throw error;
@@ -189,6 +190,16 @@ export function useProposalSections(projectId: string) {
         throw new Error('User organization not found');
       }
 
+      // Determine next sort_order so concurrent inserts stay deterministic
+      const { data: maxRow } = await supabase
+        .from("proposal_sections")
+        .select("sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextSortOrder = ((maxRow?.sort_order ?? -1) as number) + 1;
+
       const { data, error } = await supabase
         .from("proposal_sections")
         .insert({
@@ -196,6 +207,7 @@ export function useProposalSections(projectId: string) {
           section_title: title,
           user_id: session.user.id,
           organization_id: profile.current_organization_id,
+          sort_order: nextSortOrder,
         })
         .select()
         .single();
@@ -250,17 +262,32 @@ export function useProposalSections(projectId: string) {
   });
 
   const reorderSectionsMutation = useMutation({
-    mutationFn: async (sections: ProposalSection[]) => {
-      return sections;
+    mutationFn: async (newSections: ProposalSection[]) => {
+      // Optimistically update cache with new sort_order values
+      const withOrder = newSections.map((s, i) => ({ ...s, sort_order: i }));
+      queryClient.setQueryData(["proposal-sections", projectId], withOrder);
+
+      // Persist new sort_order values to the database
+      const updates = withOrder.map((s, i) =>
+        supabase
+          .from("proposal_sections")
+          .update({ sort_order: i })
+          .eq("section_id", s.section_id)
+      );
+      const results = await Promise.all(updates);
+      const firstError = results.find(r => r.error)?.error;
+      if (firstError) throw firstError;
+      return withOrder;
     },
-    onSuccess: (newSections) => {
-      queryClient.setQueryData(["proposal-sections", projectId], newSections);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
       toast.success("Sections reordered successfully");
       setTimeout(createLocalBackup, 1000);
     },
     onError: (error: Error) => {
       console.error("Error reordering sections:", error);
       toast.error("Failed to reorder sections");
+      queryClient.invalidateQueries({ queryKey: ["proposal-sections", projectId] });
       setError(error);
     },
   });
@@ -270,8 +297,8 @@ export function useProposalSections(projectId: string) {
     isLoading,
     error,
     localBackups,
-    addSection: (title: string, suppressToast?: boolean) => 
-      addSectionMutation.mutate({ title, suppressToast }),
+    addSection: (title: string, suppressToast?: boolean) =>
+      addSectionMutation.mutateAsync({ title, suppressToast }),
     updateSection: (sectionId: string, content: string, title: string) =>
       updateSectionMutation.mutate({ sectionId, content, title }),
     reorderSections: (sections: ProposalSection[]) =>

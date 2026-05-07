@@ -246,17 +246,6 @@ export const useRFPUpload = () => {
       clearInterval(interval);
       setUploadProgress(60);
       
-      // Get user's current organization
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('current_organization_id')
-        .eq('profile_id', session.user.id)
-        .single();
-
-      if (!profile?.current_organization_id) {
-        throw new Error('User organization not found');
-      }
-      
       const newProject = {
         project_id: uuidv4(),
         user_id: session.user.id,
@@ -264,7 +253,7 @@ export const useRFPUpload = () => {
         status: "draft",
         rfp_file_path: fileName,
         deadline: deadline ? deadline.toISOString() : null,
-        organization_id: profile.current_organization_id,
+        organization_id: organizationId,
       };
       
       setUploadProgress(70);

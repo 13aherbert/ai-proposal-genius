@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Calendar, FileText, User, Building } from "lucide-react";
+import { Calendar, FileText, Building } from "lucide-react";
 import type { Project } from "@/hooks/use-project-details";
 
 interface ProjectDetailsProps {
@@ -8,35 +8,22 @@ interface ProjectDetailsProps {
 
 export function ProjectDetails({ project }: ProjectDetailsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          <span>Title: {project.title}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          <span>Status: {project.status}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <User className="h-4 w-4" />
-          <span>Client: {project.client_name || "Not specified"}</span>
-        </div>
+    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+      <div className="flex items-center gap-2">
+        <FileText className="h-4 w-4 text-muted-foreground" />
+        <dt className="text-muted-foreground">Title:</dt>
+        <dd className="font-medium truncate">{project.title}</dd>
       </div>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Building className="h-4 w-4" />
-          <span>Business: {project.business_name || "Not specified"}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>Created: {format(new Date(project.created_at), "PPP")}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>Due Date: {project.deadline ? format(new Date(project.deadline), "PPP") : "Not specified"}</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <Building className="h-4 w-4 text-muted-foreground" />
+        <dt className="text-muted-foreground">Business:</dt>
+        <dd className="font-medium truncate">{project.business_name || "—"}</dd>
       </div>
-    </div>
+      <div className="flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <dt className="text-muted-foreground">Created:</dt>
+        <dd className="font-medium">{format(new Date(project.created_at), "PP")}</dd>
+      </div>
+    </dl>
   );
 }

@@ -13,7 +13,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { AIProgress } from "@/components/shared/AIProgress";
 import { useAutoSave, SaveStatus } from "@/hooks/use-auto-save";
 import { SaveStatusIndicator } from "./components/SaveStatusIndicator";
-import { WorkflowStatusBadge } from "./components/WorkflowStatusBadge";
 import { SectionStatusControl } from "./components/SectionStatusControl";
 import { SectionAssignee } from "./components/SectionAssignee";
 import { SectionDueDate } from "./components/SectionDueDate";

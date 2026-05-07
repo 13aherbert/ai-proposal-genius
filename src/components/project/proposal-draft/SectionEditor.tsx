@@ -13,7 +13,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { AIProgress } from "@/components/shared/AIProgress";
 import { useAutoSave, SaveStatus } from "@/hooks/use-auto-save";
 import { SaveStatusIndicator } from "./components/SaveStatusIndicator";
-import { WorkflowStatusBadge } from "./components/WorkflowStatusBadge";
 import { SectionStatusControl } from "./components/SectionStatusControl";
 import { SectionAssignee } from "./components/SectionAssignee";
 import { SectionDueDate } from "./components/SectionDueDate";
@@ -180,7 +179,10 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
         "transition-all duration-200 hover:shadow-md",
         isSelected && "border-l-4 border-l-[hsl(var(--brand-green,142_76%_36%))] shadow-sm"
       )}>
-        <CardHeader className="cursor-pointer" onClick={onSelect}>
+        <CardHeader
+          className={cn("cursor-pointer", isSelected && "pb-2")}
+          onClick={onSelect}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               {isEditing && !isReadOnly ? (
@@ -212,18 +214,14 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              {showTeamFeatures ? (
-                <SectionStatusControl
-                  currentStatus={workflowStatus}
-                  isAssignee={isAssignee}
-                  isReviewer={isReviewer}
-                  isAdmin={isAdmin}
-                  onTransition={handleTransition}
-                  disabled={workflow.isTransitioning}
-                />
-              ) : (
-                <WorkflowStatusBadge status={workflowStatus} />
-              )}
+              <SectionStatusControl
+                currentStatus={workflowStatus}
+                isAssignee={isAssignee}
+                isReviewer={isReviewer}
+                isAdmin={isAdmin}
+                onTransition={handleTransition}
+                disabled={workflow.isTransitioning}
+              />
               {showTeamFeatures && (
                 <>
                   <SectionAssignee
@@ -265,7 +263,7 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
           )}
         </CardHeader>
         {isSelected && (
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-2">
             {isReadOnly && (
               <div className="bg-muted/50 border rounded p-2 text-xs text-muted-foreground flex items-center gap-1.5">
                 <Lock className="h-3.5 w-3.5" />
@@ -275,15 +273,18 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               </div>
             )}
             {!isReadOnly && (
-              <Button
-                onClick={generateContent}
-                disabled={isGenerating}
-                variant="outline"
-                className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
-              >
-                <Wand2 className="h-4 w-4" />
-                {isGenerating ? "Generating..." : "Generate with AI"}
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  onClick={generateContent}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                  {isGenerating ? "Generating..." : "Generate with AI"}
+                </Button>
+              </div>
             )}
             {isGenerating && <AIProgress progress={progress} label="Generating content" />}
             <RichTextEditor

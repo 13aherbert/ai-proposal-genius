@@ -53,8 +53,9 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
   const workflowStatus = (section.workflow_status || "draft") as WorkflowStatus;
   const isAssignee = section.assigned_to === currentUserId;
   const currentMember = members.find(m => m.user_id === currentUserId);
-  const isAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
-  const isReviewer = isAdmin; // Admins can review
+  // Solo project (no member rows) → treat current user as admin so workflow controls work.
+  const isAdmin = !currentMember || currentMember.role === "owner" || currentMember.role === "admin";
+  const isReviewer = isAdmin;
 
   // Locking logic
   const isLockedForAssignee = workflowStatus === "in_review" && isAssignee && !isAdmin;
@@ -238,6 +239,21 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 </>
               )}
               <SaveStatusIndicator status={status} onRetry={retry} />
+              {!isReadOnly && (
+                <Button
+                  onClick={(e) => { e.stopPropagation(); generateContent(); }}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 sm:h-9 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green px-2"
+                  title="Generate with AI"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">
+                    {isGenerating ? "Generating..." : "Generate with AI"}
+                  </span>
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 size="sm"
@@ -270,20 +286,6 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
                 {isLockedForAll
                   ? "This section is approved and locked. Only admins can edit."
                   : "This section is in review and read-only for the assignee."}
-              </div>
-            )}
-            {!isReadOnly && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={generateContent}
-                  disabled={isGenerating}
-                  variant="outline"
-                  size="sm"
-                  className="h-8 flex items-center gap-1.5 bg-brand-green hover:bg-brand-green/50 text-white border-brand-green"
-                >
-                  <Wand2 className="h-3.5 w-3.5" />
-                  {isGenerating ? "Generating..." : "Generate with AI"}
-                </Button>
               </div>
             )}
             {isGenerating && <AIProgress progress={progress} label="Generating content" />}

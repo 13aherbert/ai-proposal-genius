@@ -232,17 +232,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       setSubscription(subscriptionPlan);
       storeSubscriptionDataLocally(subscriptionPlan);
+    } catch (err) {
       console.error('Error in fetchSubscriptionData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error fetching subscription'));
-      
+
       // On error, try to use cached data
       const cachedData = getStoredSubscriptionData();
       if (cachedData) {
         console.log('Using cached subscription data after error');
         setSubscription(cachedData);
       }
-      
-      // Error state is set above; consumers can react to it. No toast here to avoid spam.
     } finally {
       setIsLoading(false);
       setHasCheckedSubscription(true);

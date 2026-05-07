@@ -214,63 +214,24 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return defaultSub;
       }
 
-      // Fetch organization subscription from database
-      const { data, error: fetchError } = await supabase
-        .from('organization_subscriptions')
-        .select('*')
-        .eq('organization_id', organization.id)
-        .single();
+      // Convert organization subscription to SubscriptionPlan format
+      const subscriptionPlan: SubscriptionPlan = {
+        subscription_id: data.subscription_id,
+        user_id: userId,
+        status: data.status as SubscriptionPlan['status'],
+        plan_type: data.plan_type,
+        current_period_end: data.current_period_end,
+        project_limit: data.project_limit,
+        features: (data.features as Record<string, any>) || {},
+        stripe_customer_id: data.stripe_customer_id,
+        stripe_subscription_id: data.stripe_subscription_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        cancel_at_period_end: data.cancel_at_period_end || false,
+      };
 
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          // No subscription found, create a default one
-          console.log('No organization subscription found, creating default');
-          const defaultSub = await createDefaultSubscription(
-            userId,
-            setSubscription,
-            undefined,
-            setIsLoading,
-            setHasCheckedSubscription
-          );
-          return defaultSub;
-        } else {
-          console.error('Error fetching organization subscription:', fetchError);
-          throw new Error(`Failed to fetch subscription: ${fetchError.message}`);
-        }
-      }
-
-      if (data) {
-        console.log('Organization subscription found:', data);
-        // Convert organization subscription to SubscriptionPlan format
-        const subscriptionPlan: SubscriptionPlan = {
-          subscription_id: data.subscription_id,
-          user_id: userId,
-          status: data.status as SubscriptionPlan['status'],
-          plan_type: data.plan_type,
-          current_period_end: data.current_period_end,
-          project_limit: data.project_limit,
-          features: (data.features as Record<string, any>) || {},
-          stripe_customer_id: data.stripe_customer_id,
-          stripe_subscription_id: data.stripe_subscription_id,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          cancel_at_period_end: data.cancel_at_period_end || false,
-        };
-        
-        setSubscription(subscriptionPlan);
-        storeSubscriptionDataLocally(subscriptionPlan);
-      } else {
-        console.log('No subscription data, creating default');
-        const defaultSub = await createDefaultSubscription(
-          userId,
-          setSubscription,
-          undefined,
-          setIsLoading,
-          setHasCheckedSubscription
-        );
-        return defaultSub;
-      }
-    } catch (err) {
+      setSubscription(subscriptionPlan);
+      storeSubscriptionDataLocally(subscriptionPlan);
       console.error('Error in fetchSubscriptionData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error fetching subscription'));
       

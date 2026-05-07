@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
@@ -105,16 +105,18 @@ async function parsePDF(fileData: Blob): Promise<string> {
   try {
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
-    
-    // Use pdf-parse to extract text
-    const pdfData = await pdfParse(buffer);
-    
-    if (!pdfData.text || pdfData.text.trim().length < 10) {
+
+    // Use unpdf (Deno/edge-friendly) to extract text
+    const pdf = await getDocumentProxy(buffer);
+    const { text, totalPages } = await extractText(pdf, { mergePages: true });
+    const extracted = Array.isArray(text) ? text.join('\n') : text;
+
+    if (!extracted || extracted.trim().length < 10) {
       throw new Error('Could not extract sufficient text from PDF');
     }
-    
-    console.log(`Extracted ${pdfData.text.length} characters from PDF with ${pdfData.numpages} pages`);
-    return pdfData.text;
+
+    console.log(`Extracted ${extracted.length} characters from PDF with ${totalPages} pages`);
+    return extracted;
   } catch (error) {
     console.error('PDF parsing error:', error);
     throw new Error(`PDF parsing failed: ${error.message}`);

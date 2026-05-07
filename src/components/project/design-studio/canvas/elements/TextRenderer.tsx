@@ -70,9 +70,10 @@ export function TextRenderer({ text, editing, onChange, onExitEdit }: TextRender
     lineHeight: text.lineHeight,
     letterSpacing: text.letterSpacing,
     width: '100%',
-    height: '100%',
+    minHeight: '100%',
     cursor: editing ? 'text' : 'inherit',
-    overflow: 'hidden',
+    // Allow text to overflow its measured box rather than clipping mid-line.
+    overflow: 'visible',
     wordBreak: 'break-word',
   };
 

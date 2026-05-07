@@ -1,6 +1,5 @@
 {
   "imports": {
-    "pdf-parse": "https://esm.sh/pdf-parse@1.1.1",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.38.4",
     "https://deno.land/x/xhr/": "https://deno.land/x/xhr@0.1.0/",
     "https://deno.land/std/http/server.ts": "https://deno.land/std@0.168.0/http/server.ts",

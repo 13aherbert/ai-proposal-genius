@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 import { generatePrompt } from './prompt.ts';
@@ -262,8 +262,9 @@ serve(async (req) => {
             let extractedRfpText = '';
             if (fileType === 'pdf') {
               const uint8Array = new Uint8Array(arrayBuffer);
-              const data = await pdfParse(uint8Array);
-              extractedRfpText = data.text;
+              const pdf = await getDocumentProxy(uint8Array);
+              const { text } = await extractText(pdf, { mergePages: true });
+              extractedRfpText = Array.isArray(text) ? text.join('\n') : text;
             } else if (fileType === 'doc' || fileType === 'docx') {
               try {
                 const result = await mammoth.extractRawText({ arrayBuffer });

@@ -180,7 +180,10 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
         "transition-all duration-200 hover:shadow-md",
         isSelected && "border-l-4 border-l-[hsl(var(--brand-green,142_76%_36%))] shadow-sm"
       )}>
-        <CardHeader className="cursor-pointer" onClick={onSelect}>
+        <CardHeader
+          className={cn("cursor-pointer", isSelected && "pb-2")}
+          onClick={onSelect}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               {isEditing && !isReadOnly ? (
@@ -212,18 +215,14 @@ export function SectionEditor({ section, isSelected, onSelect, onSaveStatusChang
               )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              {showTeamFeatures ? (
-                <SectionStatusControl
-                  currentStatus={workflowStatus}
-                  isAssignee={isAssignee}
-                  isReviewer={isReviewer}
-                  isAdmin={isAdmin}
-                  onTransition={handleTransition}
-                  disabled={workflow.isTransitioning}
-                />
-              ) : (
-                <WorkflowStatusBadge status={workflowStatus} />
-              )}
+              <SectionStatusControl
+                currentStatus={workflowStatus}
+                isAssignee={isAssignee}
+                isReviewer={isReviewer}
+                isAdmin={isAdmin}
+                onTransition={handleTransition}
+                disabled={workflow.isTransitioning}
+              />
               {showTeamFeatures && (
                 <>
                   <SectionAssignee

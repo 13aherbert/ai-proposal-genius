@@ -1,29 +1,17 @@
-## Goal
-Sections in both the Review tab and Proposal Draft tab must display in the saved outline order (`sort_order` ascending), matching the Compiled view.
-
-## Root cause
-- `src/components/project/review/ReviewQueue.tsx` re-sorts sections by workflow status → "assigned to me" → `updated_at DESC`, which throws away outline order entirely.
-- `src/components/project/proposal-draft/ProposalDraft.tsx` (`filteredSections`) preserves the array as returned by the hook, but there is no defensive resort. Any stale optimistic cache write from `reorderSectionsMutation` (or legacy data without `sort_order`) can make the displayed order drift from the database.
+## Issues
+1. The new `SectionStatusControl` (clickable status badge) is gated behind `showTeamFeatures` (`plan !== "starter" && members.length > 1`), so solo users still see only a static badge with no way to change status.
+2. When a section is expanded in the Draft view, there's excessive vertical whitespace between the title row, the status, and the "Generate with AI" button — caused by full `CardHeader` bottom padding plus a full-width "Generate with AI" button taking its own row at the top of `CardContent`.
 
 ## Changes
 
-### 1. `src/components/project/review/ReviewQueue.tsx`
-- Replace the priority/me/updated_at sort in `filteredSections` with a strict `sort_order ASC` sort (with `created_at` as tiebreaker).
-- Keep the status filter as-is.
-- Remove the now-unused `currentUserId` priority logic from this sort (status grouping is already exposed via the filter chips above the list, so reordering the rows is unnecessary and confusing).
-
-### 2. `src/components/project/proposal-draft/ProposalDraft.tsx`
-- In `filteredSections`, defensively sort by `sort_order` (ascending), then `created_at` ascending, before applying status/myOnly filters. This guarantees the Draft list matches the outline regardless of cache state.
-
-### 3. `src/components/project/proposal-draft/useProposalSections.ts`
-- In `reorderSectionsMutation`, when writing the optimistic cache via `setQueryData`, ensure the array is sorted by the new `sort_order` (it already is, but make this explicit to prevent regressions).
-- No schema change needed — `sort_order` already exists and is populated correctly (verified against DB for the current project).
-
-## Out of scope
-- No database migration. Existing rows already have correct `sort_order` values (verified via direct query).
-- No changes to Compiled view or Auto-Generated proposal — those already respect order.
+### `src/components/project/proposal-draft/SectionEditor.tsx`
+- **Always render `SectionStatusControl`** (drop the `showTeamFeatures` ternary that falls back to the static `WorkflowStatusBadge`). Status changes apply to all users; team-only controls (assignee, due date) stay gated.
+- **Tighten expanded spacing:**
+  - Add `pb-2` to `CardHeader` when `isSelected` so the header doesn't keep its full bottom padding when expanded.
+  - Reduce `CardContent` top spacing: change `space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0` to `space-y-2 sm:space-y-3 p-3 sm:p-6 pt-2`.
+  - Move the "Generate with AI" button inline (right-aligned, `size="sm"`, `w-auto`) instead of a full-width row, so it sits compactly above the editor without dominating the top of the expanded area. Keep it hidden when `isReadOnly`.
+- Remove the now-unused `WorkflowStatusBadge` import.
 
 ## Verification
-- Open Review tab: sections appear top-to-bottom in outline order (Executive Summary → Conclusion), independent of workflow status or last-edited time. Filter chips still narrow the list by status.
-- Open Proposal (Draft) tab: same outline order.
-- Drag-reorder a section in Draft, refresh, then open Review tab: new order persists in both tabs.
+- As a solo (single-member) user, click the status pill on any section in the Draft tab → dropdown opens with "Submit for Review" / etc.
+- Expand a section: the gap between the title bar and the editor is visibly reduced; "Generate with AI" sits as a small inline button on the right rather than a full-width bar.

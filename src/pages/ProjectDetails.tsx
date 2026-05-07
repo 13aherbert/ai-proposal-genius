@@ -23,7 +23,12 @@ const ProjectDetails = () => {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-8">
-      <ProjectHeader title={project.title} />
+      <ProjectHeader
+        title={project.title}
+        status={project.status}
+        clientName={project.client_name}
+        deadline={project.deadline}
+      />
       <ProjectContent project={project} />
     </div>
   );

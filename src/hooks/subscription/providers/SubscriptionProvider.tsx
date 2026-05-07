@@ -155,7 +155,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Org finished loading but is null -- fall through to check
         // the user's individual subscription table as a fallback
         console.log('No organization found, checking user subscription table');
-        const { data: userSub, error: userSubError } = await supabase
+        const { data: userSub } = await supabase
           .from('subscriptions')
           .select('*')
           .eq('user_id', userId)
@@ -182,6 +182,32 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Only create a default starter if there's truly no subscription anywhere
+        const defaultSub = await createDefaultSubscription(
+          userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
+        );
+        return defaultSub;
+      }
+
+      // Fetch organization subscription from database
+      const { data, error: fetchError } = await supabase
+        .from('organization_subscriptions')
+        .select('*')
+        .eq('organization_id', organization.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error fetching organization subscription:', fetchError);
+        // Fall back to a default starter so consumers can render instead of
+        // hanging in a loading state.
+        const defaultSub = await createDefaultSubscription(
+          userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
+        );
+        return defaultSub;
+      }
+
+      if (!data) {
+        // No subscription row found — use default starter.
+        console.log('No organization subscription found, creating default');
         const defaultSub = await createDefaultSubscription(
           userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
         );

@@ -149,17 +149,21 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
         onSectionChange={setActiveSection}
       />
       <div className="flex-1 p-3 sm:p-6">
-        {showPresence && presenceUsers.length > 0 && (
-          <div className="mb-4 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Online:</span>
-            <PresenceAvatars presenceUsers={presenceUsers} members={membersList} />
+        {(showPresence && presenceUsers.length > 0) || isTestMode ? (
+          <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+            {showPresence && presenceUsers.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Online:</span>
+                <PresenceAvatars presenceUsers={presenceUsers} members={membersList} />
+              </div>
+            ) : <span />}
+            {isTestMode && (
+              <div className="text-xs px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-400">
+                Test mode active
+              </div>
+            )}
           </div>
-        )}
-        {isTestMode && (
-          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-md p-2 text-sm text-amber-700">
-            Test mode active. Your subscription features are being simulated.
-          </div>
-        )}
+        ) : null}
         <ErrorBoundary>
           {renderSection()}
         </ErrorBoundary>

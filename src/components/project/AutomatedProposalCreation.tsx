@@ -3,7 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Clock, Play, Square, RotateCcw, AlertCircle, Zap } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CheckCircle,
+  Clock,
+  Play,
+  Square,
+  RotateCcw,
+  AlertCircle,
+  Zap,
+  Info,
+  ChevronDown,
+  MoreHorizontal,
+} from "lucide-react";
 import { useAutomatedProposalCreation, type AutomationStep } from "@/hooks/use-automated-proposal-creation";
 import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
 
@@ -22,7 +50,7 @@ const stepDisplayNames: Record<AutomationStep, string> = {
   sections: "Section Creation",
   content: "Content Generation",
   evaluation: "Proposal Evaluation",
-  completed: "Completed"
+  completed: "Completed",
 };
 
 const stepDescriptions: Record<AutomationStep, string> = {
@@ -31,245 +59,218 @@ const stepDescriptions: Record<AutomationStep, string> = {
   sections: "Creating proposal sections from the generated outline",
   content: "Generating AI-powered content for each section",
   evaluation: "Evaluating the completed proposal against RFP requirements",
-  completed: "All automation steps completed successfully"
+  completed: "All automation steps completed successfully",
 };
-function ElapsedTimer({ startTime, isRunning, overallProgress }: { startTime?: Date; isRunning: boolean; overallProgress: number }) {
+
+function ElapsedTimer({ startTime }: { startTime?: Date }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (!isRunning) return;
     const origin = startTime ? startTime.getTime() : Date.now();
     const tick = () => setElapsed(Math.floor((Date.now() - origin) / 1000));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [isRunning, startTime]);
+  }, [startTime]);
 
   const mins = Math.floor(elapsed / 60);
   const secs = elapsed % 60;
-  const formatted = `${mins}:${secs.toString().padStart(2, '0')}`;
-  const isLong = elapsed > 300; // > 5 minutes
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm text-muted-foreground">
-        <span>Overall Progress</span>
-        <span className="flex items-center gap-2">
-          <span className="text-xs">Elapsed: {formatted}</span>
-          <span>{overallProgress}%</span>
-        </span>
-      </div>
-      <Progress value={overallProgress} className="h-2" />
-      {isLong && (
-        <div className="text-xs text-muted-foreground text-center">
-          Taking a bit longer than usual — hang tight!
-        </div>
-      )}
-    </div>
-  );
+  return <span className="tabular-nums">{`${mins}:${secs.toString().padStart(2, "0")}`}</span>;
 }
 
+const STEPS: AutomationStep[] = ["analysis", "outline", "sections", "content", "evaluation"];
 
 const AutomatedProposalCreation = forwardRef<AutomatedProposalCreationRef, AutomatedProposalCreationProps>(
   ({ projectId, filePath }, ref) => {
-    const { progress, startAutomation, stopAutomation, resetAutomation } = useAutomatedProposalCreation(projectId, filePath);
+    const { progress, startAutomation, stopAutomation, resetAutomation } =
+      useAutomatedProposalCreation(projectId, filePath);
 
-    useImperativeHandle(ref, () => ({
-      startAutomation
-    }), [startAutomation]);
+    useImperativeHandle(ref, () => ({ startAutomation }), [startAutomation]);
 
-  const renderStepStatus = (step: AutomationStep) => {
-    if (progress.completedSteps.includes(step)) {
-      return <CheckCircle className="h-4 w-4 text-green-600" />;
-    }
-    if (progress.currentStep === step && progress.isRunning) {
-      return <Clock className="h-4 w-4 text-blue-600 animate-pulse" />;
-    }
-    if (progress.errors.some(error => error.step === step)) {
-      return <AlertCircle className="h-4 w-4 text-red-600" />;
-    }
-    return <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />;
-  };
+    const hasStarted = progress.completedSteps.length > 0 || progress.isRunning;
+    const isComplete = progress.currentStep === "completed" && progress.completedSteps.length === 5;
+    // Collapsed by default once any step has completed and not currently running
+    const [open, setOpen] = useState(!hasStarted || progress.isRunning);
 
-  const getStepBadgeVariant = (step: AutomationStep) => {
-    if (progress.completedSteps.includes(step)) {
-      return "default" as const;
-    }
-    if (progress.currentStep === step && progress.isRunning) {
-      return "secondary" as const;
-    }
-    if (progress.errors.some(error => error.step === step)) {
-      return "destructive" as const;
-    }
-    return "outline" as const;
-  };
+    useEffect(() => {
+      if (progress.isRunning) setOpen(true);
+    }, [progress.isRunning]);
 
-  const formatTimeRemaining = () => {
-    if (!progress.estimatedTimeRemaining) return null;
-    const minutes = Math.floor(progress.estimatedTimeRemaining / 60);
-    const seconds = progress.estimatedTimeRemaining % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+    const stepStatusIcon = (step: AutomationStep) => {
+      if (progress.completedSteps.includes(step))
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      if (progress.currentStep === step && progress.isRunning)
+        return <Clock className="h-4 w-4 text-blue-600 animate-pulse" />;
+      if (progress.errors.some((e) => e.step === step))
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
+      return <div className="h-3 w-3 rounded-full border-2 border-muted-foreground/40" />;
+    };
 
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-brand-green" />
-            <CardTitle className="text-lg sm:text-xl">Automated Proposal Creation</CardTitle>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            {!progress.isRunning && progress.completedSteps.length > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={resetAutomation}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </Button>
-            )}
-            {progress.isRunning ? (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={stopAutomation}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <Square className="h-4 w-4" />
-                Stop
-              </Button>
-            ) : (
-              <Button 
-                onClick={startAutomation}
-                disabled={progress.isRunning}
-                className="bg-brand-green hover:bg-brand-green-dark text-white gap-2 w-full sm:w-auto"
-                size="sm"
-              >
-                <Play className="h-4 w-4" />
-                {progress.completedSteps.length > 0 ? 'Resume' : 'Start'} Automation
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        {progress.isRunning && (
-          <ElapsedTimer startTime={progress.startTime} isRunning={progress.isRunning} overallProgress={progress.overallProgress} />
-        )}
-      </CardHeader>
-      
-      <CardContent className="space-y-4 sm:space-y-6">
-        {/* Current Step Highlight */}
-        {progress.isRunning && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <Clock className="h-4 w-4 text-blue-700" />
-            <AlertDescription>
-              <div className="font-semibold text-blue-900">
-                {stepDisplayNames[progress.currentStep]}
-              </div>
-              <div className="text-sm mt-1 text-blue-800">
-                {stepDescriptions[progress.currentStep]}
-              </div>
-              {progress.stepProgress > 0 && (
-                <div className="mt-2">
-                  <Progress value={progress.stepProgress} className="h-1" />
-                  <div className="text-xs text-blue-700 mt-1 font-medium">
-                    Step Progress: {progress.stepProgress}%
-                  </div>
-                </div>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
+    const primaryAction = progress.isRunning ? (
+      <Button variant="outline" size="sm" onClick={stopAutomation} className="gap-2">
+        <Square className="h-4 w-4" />
+        Stop
+      </Button>
+    ) : (
+      <Button
+        onClick={startAutomation}
+        size="sm"
+        className="bg-brand-green hover:bg-brand-green-dark text-white gap-2"
+      >
+        <Play className="h-4 w-4" />
+        {progress.completedSteps.length > 0 ? "Resume" : "Start"}
+      </Button>
+    );
 
-        {/* Steps Overview */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">
-            Process Steps
-          </h4>
-          
-          {(['analysis', 'outline', 'sections', 'content', 'evaluation'] as AutomationStep[]).map((step, index) => (
-            <div key={step} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border">
-              <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full border shrink-0">
-                <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm sm:text-base truncate">{stepDisplayNames[step]}</span>
-                  <Badge variant={getStepBadgeVariant(step)} className="text-xs shrink-0">
-                    {progress.completedSteps.includes(step) ? 'Completed' :
-                     progress.currentStep === step && progress.isRunning ? 'In Progress' :
-                     progress.errors.some(error => error.step === step) ? 'Failed' : 'Pending'}
+    return (
+      <Card className="w-full">
+        <Collapsible open={open} onOpenChange={setOpen}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-left group">
+                <Zap className="h-5 w-5 text-brand-green" />
+                <CardTitle className="text-base sm:text-lg">Automated Proposal Creation</CardTitle>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info
+                        className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">
+                        Typically 2–5 minutes. Each step builds on the previous one. You can stop
+                        and resume anytime. Keep this page open during automation.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {progress.isRunning && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    <ElapsedTimer startTime={progress.startTime} /> · {progress.overallProgress}%
+                  </span>
+                )}
+                {!progress.isRunning && hasStarted && !isComplete && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {progress.completedSteps.length}/{STEPS.length} steps
                   </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  {stepDescriptions[step]}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-2 shrink-0">
-                {renderStepStatus(step)}
+                )}
+                {isComplete && (
+                  <Badge className="ml-2 text-xs bg-green-600 hover:bg-green-600">Complete</Badge>
+                )}
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                    open ? "rotate-180" : ""
+                  } ml-auto`}
+                />
+              </CollapsibleTrigger>
+              <div className="flex items-center gap-1 shrink-0">
+                {primaryAction}
+                {!progress.isRunning && hasStarted && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={resetAutomation} className="gap-2">
+                        <RotateCcw className="h-4 w-4" />
+                        Reset progress
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Errors Display */}
-        {progress.errors.length > 0 && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="font-medium mb-2">Errors occurred during automation:</div>
-              <ul className="space-y-1">
-                {progress.errors.map((error, index) => (
-                  <li key={index} className="text-sm">
-                    <strong>{stepDisplayNames[error.step]}:</strong> {error.message}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 text-sm">
-                You can retry the automation or continue manually from the project details page.
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+            {progress.isRunning && (
+              <Progress value={progress.overallProgress} className="h-1.5 mt-3" />
+            )}
+          </CardHeader>
 
-        {/* Completion Status */}
-        {progress.currentStep === 'completed' && progress.completedSteps.length === 5 && (
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription>
-              <div className="font-medium text-green-800">
-                🎉 Automation Completed Successfully!
-              </div>
-              <div className="text-sm text-green-700 mt-1">
-                Your complete proposal has been generated and is ready for review. 
-                You can now navigate to the project details to review and edit the content.
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              {/* Current Step Highlight */}
+              {progress.isRunning && (
+                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900">
+                  <Clock className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                  <AlertDescription>
+                    <div className="font-semibold text-blue-900 dark:text-blue-200">
+                      {stepDisplayNames[progress.currentStep]}
+                    </div>
+                    <div className="text-sm mt-0.5 text-blue-800 dark:text-blue-300">
+                      {stepDescriptions[progress.currentStep]}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-        {/* Information Box */}
-        <Alert>
-          <AlertDescription className="text-sm">
-            <div className="font-medium mb-2">About Automated Proposal Creation</div>
-            <ul className="space-y-1 text-xs">
-              <li>• This process typically takes 2-5 minutes to complete</li>
-              <li>• Each step builds on the previous one for best results</li>
-              <li>• You can stop and resume the process at any time</li>
-              <li>• Content can be reviewed and edited after generation</li>
-              <li>• Keep this page open during the automation process</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
-  );
-});
+              {/* Steps Overview — compact */}
+              <ol className="space-y-1.5">
+                {STEPS.map((step) => {
+                  const isCurrent = progress.currentStep === step && progress.isRunning;
+                  const isDone = progress.completedSteps.includes(step);
+                  const hasError = progress.errors.some((e) => e.step === step);
+                  return (
+                    <li
+                      key={step}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm ${
+                        isCurrent ? "bg-muted" : ""
+                      }`}
+                    >
+                      <div className="w-4 flex justify-center shrink-0">{stepStatusIcon(step)}</div>
+                      <span
+                        className={`flex-1 ${
+                          isDone ? "text-muted-foreground" : "font-medium"
+                        }`}
+                      >
+                        {stepDisplayNames[step]}
+                      </span>
+                      {hasError && (
+                        <Badge variant="destructive" className="text-xs">
+                          Failed
+                        </Badge>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              {/* Errors */}
+              {progress.errors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium mb-1">Errors occurred during automation</div>
+                    <ul className="space-y-1">
+                      {progress.errors.map((error, i) => (
+                        <li key={i} className="text-sm">
+                          <strong>{stepDisplayNames[error.step]}:</strong> {error.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Completion */}
+              {isComplete && (
+                <Alert className="border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-sm text-green-800 dark:text-green-200">
+                    Your proposal has been generated. Open the Proposal tab to review and edit.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+    );
+  }
+);
 
 AutomatedProposalCreation.displayName = "AutomatedProposalCreation";
 

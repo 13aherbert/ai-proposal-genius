@@ -114,12 +114,15 @@ async function extractTextFromFile(arrayBuffer: ArrayBuffer, filePath: string): 
 
   try {
     switch (fileType) {
-      case 'pdf':
-        console.log('Starting PDF text extraction');
+      case 'pdf': {
+        console.log('Starting PDF text extraction (unpdf)');
         const uint8Array = new Uint8Array(arrayBuffer);
-        const data = await pdfParse(uint8Array);
-        console.log('PDF text extraction completed, text length:', data.text.length);
-        return data.text;
+        const pdf = await getDocumentProxy(uint8Array);
+        const { text } = await extractText(pdf, { mergePages: true });
+        const fullText = Array.isArray(text) ? text.join('\n') : text;
+        console.log('PDF text extraction completed, length:', fullText.length);
+        return fullText;
+      }
       
       case 'txt':
       case 'text':

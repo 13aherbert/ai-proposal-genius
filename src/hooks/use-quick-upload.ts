@@ -79,7 +79,7 @@ export function useQuickUpload() {
       // Generate unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `${session.user.id}/${fileName}`;
+      const filePath = `${organization.id}/${session.user.id}/${fileName}`;
 
       // Upload file to Supabase storage
       setState(prev => ({ ...prev, progress: 25 }));

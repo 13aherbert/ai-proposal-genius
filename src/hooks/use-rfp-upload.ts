@@ -209,9 +209,22 @@ export const useRFPUpload = () => {
     setUploadProgress(0);
     
     try {
+      // Fetch organization first - storage RLS requires {orgId}/{userId}/{filename}
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('current_organization_id')
+        .eq('profile_id', session.user.id)
+        .single();
+
+      if (!profile?.current_organization_id) {
+        throw new Error('User organization not found');
+      }
+      const organizationId = profile.current_organization_id;
+
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 7);
-      const fileName = `${timestamp}-${randomId}-${file.name}`;
+      const safeName = file.name.replace(/[\/\\]/g, '_');
+      const fileName = `${organizationId}/${session.user.id}/${timestamp}-${randomId}-${safeName}`;
       
       const { data: fileData, error: uploadError } = await supabase.storage
         .from('rfp-files')

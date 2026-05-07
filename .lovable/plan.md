@@ -1,109 +1,68 @@
+## Diagnosis
 
-# App-Wide UX & Integration Review
+The flashing `Loading subscription data...` state is coming from the `/upload-rfp` project creation page. I found three contributing issues:
 
-I walked the auth flow, dashboard, onboarding, opportunity search, edge function inventory, and console/network logs from your current session. Here are the real, reproducible issues — grouped by severity — and a focused fix plan. No speculative refactors.
+1. **Refresh loop in `use-rfp-upload`**
+   - The hook compares the subscription row’s stored `project_limit` with the app’s normalized plan limits.
+   - Current app constants are `starter=6`, `growth/basic=36`, `business/pro=120`.
+   - Existing database rows still contain older limits like `starter=3`, `starter=10`, `pro=30`.
+   - When a mismatch is detected, the hook calls `refreshSubscription()`, which toggles subscription loading back to `true`. Since refreshing does not repair the database value, the mismatch remains and the loading indicator can flash repeatedly.
 
----
+2. **Duplicate project-count polling/fetching**
+   - `UploadRFP.tsx` calls `fetchProjectCount()` when the subscription object changes.
+   - `use-rfp-upload.ts` also calls `fetchProjectCount()` when the subscription changes.
+   - `UploadRFP.tsx` additionally polls project count every 10 seconds.
+   - This creates unnecessary re-renders around the same UI area.
 
-## Critical (broken or user-facing bugs)
+3. **Missing organization subscription rows in live data**
+   - A read-only database check shows several profiles have a `current_organization_id` but no matching `organization_subscriptions` row.
+   - The provider has a fallback path, but because project creation depends on subscription loading and project count together, missing rows can keep this flow fragile.
 
-### 1. Welcome dialog still re-appears on login
-The earlier fix added DB-backed skip tracking in `useOnboardingFlow` (good), but `Dashboard.tsx` still has a **second, independent wizard** (`FirstRFPWizard`) gated only by two `localStorage` keys (`optirfp_first_rfp_complete`, `optirfp_wizard_skipped`). When a user logs in on a new browser/device, both keys are missing and the wizard pops again — exactly the behavior you reported.
+## Plan
 
-Fix: gate `FirstRFPWizard` on the same DB-backed `onboarding.isCompleted || onboarding.isSkipped` signal (already loaded from `profiles`), and persist its skip/complete to the profile too. Treat localStorage as a cache, not the source of truth.
+### 1. Stop the subscription refresh loop
 
-### 2. Auth initialization timing out on every load
-Console shows `Auth initialization timeout reached. Force completing auth init` on both anonymous and signed-in loads. The `getSession()` race in `AuthProvider` uses a 3s timeout, then a 7s safety timeout — but the 7s fires because the session listener path doesn't always clear `loading`. This makes the first paint feel slow and triggers the "Loading your session…" spinner unnecessarily.
+Update `src/hooks/use-rfp-upload.ts` so it no longer calls `refreshSubscription()` just because `subscriptionData.project_limit` differs from the normalized app limit.
 
-Fix: clear `loading` inside `onAuthStateChange` on first event, and shorten the safety timeout fallback. Also remove the redundant double profile fetch visible in logs (the profile is fetched twice back-to-back for the same user).
+Instead:
+- Use the normalized app limit for UI gating.
+- Treat the database `project_limit` as legacy/possibly stale display data.
+- Keep `refreshSubscription()` only for explicit user-triggered refresh actions.
 
-### 3. Dialog accessibility error in production
-`DialogContent requires a DialogTitle` warning is firing in the built bundle (likely the command palette / a sheet). Screen readers will announce nothing; Radix may also throw in strict mode.
+This directly addresses the flashing spinner.
 
-Fix: audit dialogs without `DialogTitle` (wrap with `VisuallyHidden` where the title shouldn't be displayed). Most likely culprits: `CommandDialog`, quick-search popovers.
+### 2. Stabilize the upload page loading state
 
-### 4. Opportunity search returns 0 results for valid keywords
-Network log: SAM.gov returns `30754 total records (90-day window)` for "Video", but the response surfaces `opportunities: []`. Provider says `success, count: 25` yet the array is empty — a mapping/filter step inside `search-opportunities` is dropping all rows (likely the per-org keyword post-filter or a field-name mismatch after the SAM payload shape changed).
+Update `src/pages/UploadRFP.tsx` to avoid tying project-count fetching to the entire `subscription` object identity.
 
-Fix: trace the mapping in `supabase/functions/search-opportunities/index.ts`, add a diagnostic count before/after each filter, and ensure the SAM `opportunitiesData[]` → unified shape mapping isn't returning `null` for every row.
+Changes:
+- Depend on stable fields like `session?.user?.id` and `subscription?.subscription_id` or remove the duplicate subscription-triggered fetch entirely if `use-rfp-upload` already handles it.
+- Remove or reduce the 10-second polling; project count only needs to refresh on mount, after upload/import, and on explicit refresh.
+- Make the loading message appear only during the initial load, not during background refreshes.
 
-### 5. FedConnect silently disabled
-`FedConnect: skipped — API key not configured`. Either remove FedConnect from the default selected sources, or surface a one-time admin notice. Right now users tick the checkbox and get nothing, with no UI feedback.
+### 3. Make subscription loading resilient to legacy/missing rows
 
----
+Update `src/hooks/subscription/providers/SubscriptionProvider.tsx` to make fallback behavior safer:
+- If an organization subscription row is missing, create/use the in-memory starter subscription fallback immediately so consumers can render.
+- Ensure `setIsLoading(false)` always happens after fallback paths.
+- Avoid toggling global subscription loading for background refreshes unless this is an explicit manual refresh.
 
-## High (degraded experience)
+### 4. Align default subscription limits in code/database migrations
 
-### 6. Two competing onboarding systems
-You have **three** onboarding surfaces firing on the dashboard:
-- `ProgressiveOnboarding` (DB-backed, new)
-- `FirstRFPWizard` (localStorage-backed, legacy)
-- `EnterpriseOnboarding` + `EnterpriseGettingStarted` (also localStorage)
-- Plus `KnowledgeSetupWizard` and `DashboardEmptyState` checklist
+Add a migration to normalize future and existing organization subscription data:
+- Update default organization subscription creation to use current plan limits (`starter=6`, `growth/basic=36`, `business/pro=120`, `enterprise=-1`).
+- Backfill existing `organization_subscriptions` rows with legacy plan names/limits to current normalized values.
+- Insert missing `organization_subscriptions` rows for organizations that currently have members/profile references but no subscription, defaulting to active starter with 6 projects.
 
-A first-time user can see 2–3 modals stacked. Consolidate: `ProgressiveOnboarding` is the single source of truth; `FirstRFPWizard` becomes an *optional* deeper-dive triggered only from the empty-state CTA, never auto-opened.
+### 5. Verify the fix
 
-### 7. Enterprise onboarding gating is wrong
-`{isEnterprise && (isNewUser || !localStorage.getItem('enterprise-onboarding-skipped')) && <EnterpriseOnboarding />}` — the `||` means non-new users who never clicked skip still see the banner forever. Should be `&&`, and skip state belongs in `organizations.settings.setup_progress` (already exists from the prior task).
+After implementation:
+- Open `/upload-rfp` while signed in.
+- Confirm `Loading subscription data...` appears only briefly on first load and does not flash repeatedly.
+- Confirm project usage displays correctly.
+- Confirm creating/uploading a project still respects plan limits.
+- Check console/network for repeated subscription fetches or refresh-loop logs.
 
-### 8. Profile fetched twice per login
-Logs show `Fetching profile data (attempt 1)` running twice within 50ms because both `useProfile` and a parallel listener trigger it. Memoize via React Query (you already have it set up) instead of the custom fetch in `use-profile.tsx`.
+## Expected outcome
 
-### 9. CSM contact widget shows placeholder data
-For non-enterprise orgs, `csm_name = "Your OptiRFP CSM"` and `csm_email = "csm@optirfp.ai"` are seeded as defaults. `CSMContactWidget` happily shows them, implying every Pro user has a dedicated CSM. Hide the widget unless `subscription_tier IN ('enterprise','white_label')`.
-
-### 10. `legacy /admin/source-health` and a few orphan routes
-Some sidebar links go to pages that throw 404 or render empty: `SourceStatusDashboard` requires `is_system_admin` but isn't gated in routing.
-
----
-
-## Medium (polish)
-
-- **Organization name renders as `'s Organization`** (logs) — empty `first_name` at signup creates a malformed default. Fall back to `email.split('@')[0] + "'s Organization"`.
-- **Subscription provider clears + refetches on every mount** ("Clearing subscription data" → "Fetching subscription data from API"), causing dashboard widgets to flash. Add a `staleTime`.
-- **Network indicator polls `HEAD /favicon.ico` every 30s forever** — wasteful; switch to `navigator.onLine` + a single ping on `online`/`offline` events.
-- **Toaster duration 4s + 3 visible** can clip long error messages. Bump to 6s for `richColors` errors.
-- **`/settings` redirects to `/account`** — fine, but the sidebar still shows two entries in some places.
-
----
-
-## Low (housekeeping)
-
-- Unused imports in `App.tsx` (`React`).
-- `EnterpriseOnboarding` page (`/onboarding/enterprise`) and the dashboard banner duplicate steps; pick one entry point.
-- `PricingRedirect` is named like a redirect but renders the full pricing page — rename for clarity.
-
----
-
-## Implementation Plan (in order)
-
-1. **Onboarding consolidation (fixes #1, #6, #7)**
-   - Remove auto-open of `FirstRFPWizard` from `Dashboard.tsx`; only open via the empty-state button.
-   - Persist `FirstRFPWizard` complete/skip to `profiles.onboarding_completed` (reuse `useOnboardingFlow.skip/complete`).
-   - Change `EnterpriseOnboarding` gate to `isNewUser && !setup_progress.welcome_dismissed`; store dismiss in `organizations.settings`.
-
-2. **Auth/profile loop (fixes #2, #8)**
-   - In `AuthProvider`, set `loading=false` on first `onAuthStateChange` event; drop the 7s safety to 3s.
-   - Migrate `useProfile` to a single React Query keyed by `user.id` with `staleTime: 5min`.
-
-3. **Opportunity search results (fix #4)**
-   - Add diagnostic logging in `search-opportunities` mapper; verify SAM field names; return the actual mapped array.
-   - Ship a regression test via `supabase--test_edge_functions`.
-
-4. **FedConnect UX (fix #5)**
-   - Hide FedConnect from the source list when `FEDCONNECT_API_KEY` is not configured (server returns a `configured: false` flag).
-
-5. **Dialog a11y (fix #3)**
-   - Sweep `CommandDialog` and any custom dialogs for missing titles; wrap hidden ones in `VisuallyHidden`.
-
-6. **CSM widget gating (fix #9)** — single conditional in `CSMContactWidget`.
-
-7. **Polish pass** — org-name fallback, subscription `staleTime`, network indicator rewrite, toast duration.
-
----
-
-## Out of scope (call out, don't change)
-- The broader multi-tenant / white-label roadmap in `project-knowledge` — not touching it here.
-- Stripe/HubSpot integrations look healthy in logs; no changes proposed.
-
-Approve and I'll implement steps 1–6 in one pass, then do the polish items in a follow-up.
+The project creation page should stop flashing the subscription loading wheel, use stable project-limit calculations, avoid unnecessary refetches, and remain correct even for older accounts with legacy or missing organization subscription rows.

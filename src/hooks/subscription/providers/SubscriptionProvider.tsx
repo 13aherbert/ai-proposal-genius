@@ -155,7 +155,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Org finished loading but is null -- fall through to check
         // the user's individual subscription table as a fallback
         console.log('No organization found, checking user subscription table');
-        const { data: userSub, error: userSubError } = await supabase
+        const { data: userSub } = await supabase
           .from('subscriptions')
           .select('*')
           .eq('user_id', userId)
@@ -193,69 +193,55 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .from('organization_subscriptions')
         .select('*')
         .eq('organization_id', organization.id)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          // No subscription found, create a default one
-          console.log('No organization subscription found, creating default');
-          const defaultSub = await createDefaultSubscription(
-            userId,
-            setSubscription,
-            undefined,
-            setIsLoading,
-            setHasCheckedSubscription
-          );
-          return defaultSub;
-        } else {
-          console.error('Error fetching organization subscription:', fetchError);
-          throw new Error(`Failed to fetch subscription: ${fetchError.message}`);
-        }
-      }
-
-      if (data) {
-        console.log('Organization subscription found:', data);
-        // Convert organization subscription to SubscriptionPlan format
-        const subscriptionPlan: SubscriptionPlan = {
-          subscription_id: data.subscription_id,
-          user_id: userId,
-          status: data.status as SubscriptionPlan['status'],
-          plan_type: data.plan_type,
-          current_period_end: data.current_period_end,
-          project_limit: data.project_limit,
-          features: (data.features as Record<string, any>) || {},
-          stripe_customer_id: data.stripe_customer_id,
-          stripe_subscription_id: data.stripe_subscription_id,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          cancel_at_period_end: data.cancel_at_period_end || false,
-        };
-        
-        setSubscription(subscriptionPlan);
-        storeSubscriptionDataLocally(subscriptionPlan);
-      } else {
-        console.log('No subscription data, creating default');
+        console.error('Error fetching organization subscription:', fetchError);
+        // Fall back to a default starter so consumers can render instead of
+        // hanging in a loading state.
         const defaultSub = await createDefaultSubscription(
-          userId,
-          setSubscription,
-          undefined,
-          setIsLoading,
-          setHasCheckedSubscription
+          userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
         );
         return defaultSub;
       }
+
+      if (!data) {
+        // No subscription row found — use default starter.
+        console.log('No organization subscription found, creating default');
+        const defaultSub = await createDefaultSubscription(
+          userId, setSubscription, undefined, setIsLoading, setHasCheckedSubscription
+        );
+        return defaultSub;
+      }
+
+      // Convert organization subscription to SubscriptionPlan format
+      const subscriptionPlan: SubscriptionPlan = {
+        subscription_id: data.subscription_id,
+        user_id: userId,
+        status: data.status as SubscriptionPlan['status'],
+        plan_type: data.plan_type,
+        current_period_end: data.current_period_end,
+        project_limit: data.project_limit,
+        features: (data.features as Record<string, any>) || {},
+        stripe_customer_id: data.stripe_customer_id,
+        stripe_subscription_id: data.stripe_subscription_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        cancel_at_period_end: data.cancel_at_period_end || false,
+      };
+
+      setSubscription(subscriptionPlan);
+      storeSubscriptionDataLocally(subscriptionPlan);
     } catch (err) {
       console.error('Error in fetchSubscriptionData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error fetching subscription'));
-      
+
       // On error, try to use cached data
       const cachedData = getStoredSubscriptionData();
       if (cachedData) {
         console.log('Using cached subscription data after error');
         setSubscription(cachedData);
       }
-      
-      // Error state is set above; consumers can react to it. No toast here to avoid spam.
     } finally {
       setIsLoading(false);
       setHasCheckedSubscription(true);

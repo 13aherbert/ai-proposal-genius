@@ -107,20 +107,16 @@ export const useRFPUpload = () => {
     }
   }, [session, fetchProjectCount]);
   
+  // Refresh project count once when subscription identity changes.
+  // Do NOT call refreshSubscription() here — the database may legitimately
+  // store a legacy project_limit, and refreshing on every mismatch caused
+  // an infinite "Loading subscription data..." flash on the upload page.
   useEffect(() => {
-    if (!subscriptionLoading && subscriptionData) {
-      const expectedLimit = getProjectLimitForPlan(normalizePlanType(subscriptionData.plan_type || 'trial'));
-      
-      if ((!subscriptionData.project_limit || subscriptionData.project_limit !== expectedLimit) && 
-          normalizePlanType(subscriptionData.plan_type || '') !== 'trial') {
-        console.log('Project limit mismatch, forcing refresh. Expected:', expectedLimit, 
-                   'Actual:', subscriptionData.project_limit);
-        refreshSubscription();
-      }
-      
+    if (!subscriptionLoading && subscriptionData?.subscription_id) {
       fetchProjectCount();
     }
-  }, [subscriptionData, subscriptionLoading, fetchProjectCount, refreshSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscriptionData?.subscription_id, subscriptionLoading]);
 
   const handleUrlUpload = useCallback(async (url: string, deadline?: Date) => {
     if (!session?.user) {

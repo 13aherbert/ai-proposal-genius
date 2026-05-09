@@ -211,37 +211,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Auth state changed:', event);
       
       try {
-        if (isSubscribed && JSON.stringify(session) !== JSON.stringify(currentSession)) {
+        const newToken = currentSession?.access_token ?? null;
+        if (isSubscribed && newToken !== lastAccessTokenRef.current) {
+          lastAccessTokenRef.current = newToken;
           setSession(currentSession);
-          
-          // SECURITY: Don't store access_token in localStorage
-          // Fetch and cache non-sensitive metadata only
-          if (currentSession?.access_token) {
-            try {
-              // Fetch user roles in the background for faster access (cached for UI purposes only)
-              Promise.race([
-                supabase.functions.invoke('get-user-roles', {
-                  headers: {
-                    Authorization: `Bearer ${currentSession.access_token}`
-                  }
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Roles fetch timeout")), 3000))
-              ]).then(({ data: roleData, error: roleError }: any) => {
-                if (!roleError && roleData) {
-                  // Cache roles for UI display purposes only (not for auth decisions)
-                  localStorage.setItem('userRoles', JSON.stringify(roleData.roles));
-                }
-              }).catch(err => {
-                console.error("Failed to fetch user roles (non-blocking):", err);
-              });
-            } catch (roleErr) {
-              console.error("Exception in background roles fetch:", roleErr);
-            }
-          } else if (event === 'SIGNED_OUT') {
+
+          if (event === 'SIGNED_OUT') {
             // SECURITY: Clear cached data on sign out
             localStorage.removeItem('subscriptionData');
             localStorage.removeItem('userRoles');
           }
+          // Note: user roles are fetched by useUserRoles hook (single source of truth);
+          // no background invocation here to avoid duplicate edge-function calls.
         }
         
         if (isSubscribed) {

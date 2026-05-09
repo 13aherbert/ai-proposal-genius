@@ -1348,7 +1348,11 @@ export type Database = {
           configuration: Json | null
           created_at: string | null
           credentials: Json | null
+          credentials_ciphertext: string | null
+          credentials_iv: string | null
+          credentials_updated_at: string | null
           error_message: string | null
+          has_credentials: boolean
           id: string
           integration_name: string
           integration_type: string
@@ -1362,7 +1366,11 @@ export type Database = {
           configuration?: Json | null
           created_at?: string | null
           credentials?: Json | null
+          credentials_ciphertext?: string | null
+          credentials_iv?: string | null
+          credentials_updated_at?: string | null
           error_message?: string | null
+          has_credentials?: boolean
           id?: string
           integration_name: string
           integration_type: string
@@ -1376,7 +1384,11 @@ export type Database = {
           configuration?: Json | null
           created_at?: string | null
           credentials?: Json | null
+          credentials_ciphertext?: string | null
+          credentials_iv?: string | null
+          credentials_updated_at?: string | null
           error_message?: string | null
+          has_credentials?: boolean
           id?: string
           integration_name?: string
           integration_type?: string
@@ -1868,6 +1880,7 @@ export type Database = {
           created_at: string
           events: string[]
           failure_count: number
+          has_secret: boolean
           headers: Json
           id: string
           is_active: boolean
@@ -1876,6 +1889,10 @@ export type Database = {
           organization_id: string
           retry_count: number
           secret_key: string
+          secret_key_ciphertext: string | null
+          secret_key_iv: string | null
+          secret_key_last4: string | null
+          secret_key_updated_at: string | null
           success_count: number
           timeout_seconds: number
           updated_at: string
@@ -1885,6 +1902,7 @@ export type Database = {
           created_at?: string
           events?: string[]
           failure_count?: number
+          has_secret?: boolean
           headers?: Json
           id?: string
           is_active?: boolean
@@ -1893,6 +1911,10 @@ export type Database = {
           organization_id: string
           retry_count?: number
           secret_key: string
+          secret_key_ciphertext?: string | null
+          secret_key_iv?: string | null
+          secret_key_last4?: string | null
+          secret_key_updated_at?: string | null
           success_count?: number
           timeout_seconds?: number
           updated_at?: string
@@ -1902,6 +1924,7 @@ export type Database = {
           created_at?: string
           events?: string[]
           failure_count?: number
+          has_secret?: boolean
           headers?: Json
           id?: string
           is_active?: boolean
@@ -1910,6 +1933,10 @@ export type Database = {
           organization_id?: string
           retry_count?: number
           secret_key?: string
+          secret_key_ciphertext?: string | null
+          secret_key_iv?: string | null
+          secret_key_last4?: string | null
+          secret_key_updated_at?: string | null
           success_count?: number
           timeout_seconds?: number
           updated_at?: string
@@ -3451,6 +3478,20 @@ export type Database = {
           subscription_plan: string
           subscription_status: string
           user_id: string
+        }[]
+      }
+      get_my_stripe_ids: {
+        Args: never
+        Returns: {
+          stripe_customer_id: string
+          stripe_subscription_id: string
+        }[]
+      }
+      get_org_stripe_ids: {
+        Args: { _org_id: string }
+        Returns: {
+          stripe_customer_id: string
+          stripe_subscription_id: string
         }[]
       }
       get_organization_by_domain: {

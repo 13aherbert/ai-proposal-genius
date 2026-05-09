@@ -1,56 +1,63 @@
 ## Goal
-Stop OptiRFP team-invitation emails (sent via Resend from `updates.optirfp.ai`) from landing in the spam folder.
+Give the `List-Unsubscribe` link in OptiRFP team-invite emails a real destination by adding a public `/unsubscribe` route plus a tiny edge function that records the opt-out, so Gmail/Yahoo's one-click unsubscribe requirement is satisfied end-to-end.
 
-## Why it's happening
-Gmail flagged the test for a few well-known reasons that stack up:
-1. **Brand-new sending subdomain** with zero reputation and a single one-off send.
-2. **DMARC not enforced** on `optirfp.ai` (Resend verifies SPF + DKIM, but without a DMARC record Gmail/Yahoo's 2024 bulk-sender rules treat the message as suspicious).
-3. **No List-Unsubscribe headers** — required by Gmail/Yahoo for any automated mail.
-4. **Thin HTML** — the current test body is one short sentence with no plain-text alternative, which scores high on spam filters.
-5. **From name / address** uses `noreply@` which trips engagement-based filters.
+## Scope
+- One new public page `/unsubscribe` (no auth required)
+- One new edge function `email-unsubscribe` (no JWT, public)
+- One new table `email_unsubscribes` to store opt-outs
+- Wire `send-team-invite-email` to (a) skip sending if the recipient is unsubscribed and (b) point its `List-Unsubscribe` URL at `https://optirfp.ai/unsubscribe?email=…&token=…`
+
+Out of scope: a full preference center, per-category opt-outs, resubscribe UI, or changes to other email flows beyond the suppression check.
 
 ## Plan
 
-### 1. DNS / domain authentication (highest impact)
-- Verify in Resend dashboard that **SPF** and **DKIM** for `updates.optirfp.ai` show ✅ Verified.
-- Add a **DMARC** TXT record on the root domain at the user's DNS provider:
-  - Host: `_dmarc.optirfp.ai`
-  - Value: `v=DMARC1; p=none; rua=mailto:dmarc@optirfp.ai; pct=100; adkim=s; aspf=s`
-  - Start at `p=none` for monitoring, move to `quarantine` later.
-- Confirm a sensible reverse-DNS / MX exists on `optirfp.ai` (Resend handles return-path).
+### 1. Database
+New table `public.email_unsubscribes`:
+- `email text primary key` (lowercased)
+- `token text not null unique` (random, used to validate one-click POSTs)
+- `unsubscribed_at timestamptz default now()`
+- `source text` (e.g. `team-invite`, `manual`)
+- `user_agent text`, `ip text` (best-effort metadata)
 
-### 2. Update the invitation email template (`send-team-invite-email`)
-- Switch From to a person-style address: `OptiRFP Team <team@updates.optirfp.ai>` (or `invites@…`) instead of `noreply@`.
-- Add a `Reply-To` of `support@optirfp.ai` so replies are routable (engagement signal).
-- Add required headers in the Resend payload:
-  - `List-Unsubscribe: <mailto:unsubscribe@optirfp.ai>, <https://optirfp.ai/unsubscribe?token=…>`
-  - `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
-- Send both `html` and `text` versions (Resend supports a `text` field). The text version mirrors the HTML.
-- Improve the HTML body:
-  - Real subject like `{Inviter} invited you to join {Org} on OptiRFP`
-  - Balanced text/image ratio, no link shorteners, no all-caps, no excessive punctuation.
-  - Clear single CTA button with the accept URL (already present).
-  - Plain footer with company name, mailing address, and an unsubscribe line (legal + deliverability).
+RLS: enabled, no public select/insert/update/delete policies. Only the edge function (service role) reads/writes. A `has_unsubscribed(_email text)` SECURITY DEFINER function returns boolean for use from other edge functions.
 
-### 3. Warm up the subdomain
-- Send a handful of low-volume real invitations over the next few days rather than a burst.
-- Ask the first recipients (yourself, teammates) to mark the email **Not spam** and **Add to contacts** — this is the single biggest short-term lift.
+### 2. Edge function `email-unsubscribe` (public, `verify_jwt = false`)
+Two methods:
+- `GET /email-unsubscribe?email=…&token=…` → validates the token, upserts a row with `source='team-invite'`, returns `{ success: true, email }`. Used as the link target's API call.
+- `POST /email-unsubscribe` with `{ email, token }` JSON or `email=…&token=…` form body → same behavior. This is what Gmail's "one-click" client hits via `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
 
-### 4. Verification after changes
-- Re-send the test invite and inspect Gmail's "Show original":
-  - SPF: PASS, DKIM: PASS, DMARC: PASS
-  - `List-Unsubscribe` header present
-- Optionally run the message through `mail-tester.com` and aim for 9+/10.
+Token strategy: HMAC of the email using a new `UNSUBSCRIBE_SECRET` env var so we don't need to pre-issue tokens — anyone with a valid signed link can opt that address out, but random URLs can't. Idempotent: calling twice is a no-op.
 
-## Technical details (for the agent during build)
-- File: `supabase/functions/send-team-invite-email/index.ts`
-  - Read `INVITE_FROM_ADDRESS` (already set), default to `OptiRFP Team <team@updates.optirfp.ai>`.
-  - Add new env (optional): `INVITE_REPLY_TO` defaulting to `support@optirfp.ai`.
-  - Extend the Resend POST body with `reply_to`, `text`, and a `headers` object for List-Unsubscribe.
-- File: existing HTML template inside the function — restructure with proper heading, paragraph, CTA button, and footer (mailing address + unsubscribe link).
-- No DB changes. No new edge functions.
-- DMARC and any DNS records must be added by the user at their domain registrar — the agent cannot do this.
+### 3. Public page `src/pages/Unsubscribe.tsx`
+- Reads `email` and `token` from query string
+- On mount, calls the edge function (GET) and shows one of three states: success ("You've been unsubscribed from OptiRFP team invitations"), already-unsubscribed (same UI), or error (invalid/expired link with a `mailto:support@optirfp.ai` fallback)
+- Branded with the existing public layout styling, dark-mode aware
+- No auth required
 
-## Out of scope
-- Building a real unsubscribe handler page (can be a follow-up). For now the List-Unsubscribe mailto satisfies Gmail's requirement.
-- Switching off Resend or adding a second ESP.
+Routing: add `<Route path="/unsubscribe" element={<Unsubscribe />} />` in `src/App.tsx` outside `ProtectedRoute` and outside `PublicLayout` (standalone, like `/reset-password` and `/accept-invitation`).
+
+### 4. Update `send-team-invite-email`
+- Compute `token = HMAC(UNSUBSCRIBE_SECRET, recipientEmail)`
+- Build `unsubscribeUrl = https://optirfp.ai/unsubscribe?email=…&token=…`
+- Replace the current header value with:
+  - `List-Unsubscribe: <https://…/email-unsubscribe?email=…&token=…>, <mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>`
+  - Keep `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+- Replace the footer "Unsubscribe" link in the HTML/text with the same `unsubscribeUrl`
+- Before sending, call `has_unsubscribed(recipientEmail)`; if true, short-circuit with `{ success: false, suppressed: true }` and log it
+
+### 5. Secret
+Add `UNSUBSCRIBE_SECRET` (random 32-byte string) via the secrets tool. Used by both edge functions.
+
+### 6. Verification
+- Send a test invite to a Gmail address, click the footer Unsubscribe link → page shows success, row appears in `email_unsubscribes`.
+- Re-send the invite → function returns `suppressed: true`, no Resend call made.
+- In Gmail "Show original", confirm the `List-Unsubscribe` header now contains an HTTPS URL and `List-Unsubscribe-Post: One-Click`.
+
+## Technical notes (for build phase)
+- Files touched:
+  - new: `supabase/functions/email-unsubscribe/index.ts`
+  - new: `src/pages/Unsubscribe.tsx`
+  - edit: `src/App.tsx` (one route)
+  - edit: `supabase/functions/send-team-invite-email/index.ts` (token + headers + suppression check)
+  - new migration: `email_unsubscribes` table + `has_unsubscribed` function + RLS
+- No changes to other email flows in this pass; suppression check is opt-in per function.

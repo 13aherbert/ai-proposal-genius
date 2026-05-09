@@ -53,8 +53,8 @@ const plans = [
     isPopular: false,
     badge: "Best for small teams",
     priceId: {
-      monthly: "prod_Rn5Qc3JRlG2dP5",
-      annual: "prod_Rn5Qc3JRlG2dP5",
+      monthly: STRIPE_PRICE_IDS.growth.monthly,
+      annual: STRIPE_PRICE_IDS.growth.annual,
     },
   },
   {

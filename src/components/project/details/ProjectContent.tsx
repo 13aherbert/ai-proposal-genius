@@ -27,12 +27,6 @@ const ReviewQueue = lazy(() => import("@/components/project/review/ReviewQueue")
 import { UnifiedAnalysisView } from "@/components/project/unified-analysis/UnifiedAnalysisView";
 import { UnifiedProposalView } from "@/components/project/unified-proposal/UnifiedProposalView";
 
-// Fallback loading component
-const SectionLoading = () => (
-  <div className="flex justify-center items-center h-[400px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
 
 interface ProjectContentProps {
   project: Project;

@@ -70,7 +70,7 @@ export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesPro
           title={selectedEntry.title}
           category={selectedEntry.category}
           categories={categories}
-          onEntryUpdated={fetchEntries}
+          onEntryUpdated={invalidateCache}
         />
       )}
     </>

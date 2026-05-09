@@ -21,7 +21,7 @@ export default function SubscriptionSuccess() {
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
   const sessionId = searchParams.get('session_id');
-  const isLifetime = searchParams.get('lifetime') === '1' || !!subscription?.is_lifetime;
+  const isLifetime = searchParams.get('lifetime') === '1' || (subscription as any)?.is_lifetime === true;
 
   // Trigger confetti on successful load
   useEffect(() => {

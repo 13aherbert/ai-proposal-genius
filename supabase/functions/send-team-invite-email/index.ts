@@ -74,8 +74,9 @@ function renderHtml(p: InvitePayload): string {
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;line-height:1.5;">This invitation expires on <strong>${expires}</strong>.</p>
           <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">If the button doesn't work, copy and paste this URL into your browser:<br/><a href="${p.acceptUrl}" style="color:#7c3aed;word-break:break-all;">${p.acceptUrl}</a></p>
         </td></tr>
-        <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
-          You received this email because someone invited you to join their team on OptiRFP. If you weren't expecting this, you can safely ignore it.
+        <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">
+          You received this email because ${escapeHtml(p.inviterName)} invited you to join ${escapeHtml(p.organizationName)} on OptiRFP. If you weren't expecting this, you can safely ignore it.<br/>
+          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="mailto:unsubscribe@optirfp.ai?subject=Unsubscribe" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
         </td></tr>
       </table>
     </td></tr>

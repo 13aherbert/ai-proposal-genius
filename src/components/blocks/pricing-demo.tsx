@@ -82,8 +82,8 @@ const plans = [
     isPopular: true,
     badge: "Most Popular",
     priceId: {
-      monthly: "prod_Rn5STkpd7teaIR",
-      annual: "prod_Rn5STkpd7teaIR",
+      monthly: STRIPE_PRICE_IDS.business.monthly,
+      annual: STRIPE_PRICE_IDS.business.annual,
     },
   },
   {

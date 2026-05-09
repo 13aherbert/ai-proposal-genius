@@ -184,3 +184,8 @@ import_map = "import_map.json"
 name = "email-unsubscribe"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "create-webhook"
+verify_jwt = false
+import_map = "import_map.json"

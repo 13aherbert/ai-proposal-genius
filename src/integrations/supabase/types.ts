@@ -3480,13 +3480,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_my_stripe_ids: {
-        Args: never
-        Returns: {
-          stripe_customer_id: string
-          stripe_subscription_id: string
-        }[]
-      }
       get_org_stripe_ids: {
         Args: { _org_id: string }
         Returns: {

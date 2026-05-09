@@ -111,30 +111,47 @@ export function WebhookManager() {
       return;
     }
     try {
-      const secretBytes = new Uint8Array(24);
-      crypto.getRandomValues(secretBytes);
-      const secretKey = 'whsec_' + Array.from(secretBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      const { error } = await supabase.from('organization_webhooks').insert({
-        organization_id: organization.id,
-        name: newWebhook.name,
-        url: newWebhook.url,
-        events: newWebhook.events,
-        is_active: newWebhook.is_active,
-        secret_key: secretKey,
-        retry_count: newWebhook.retry_count,
-        timeout_seconds: newWebhook.timeout_seconds,
-        headers: newWebhook.headers,
+      // Secret is generated + encrypted server-side; the plaintext value is
+      // returned exactly once for the user to copy. Direct INSERTs from the
+      // client are blocked by the column-level revoke on `secret_key`.
+      const { data, error } = await supabase.functions.invoke('create-webhook', {
+        body: {
+          organization_id: organization.id,
+          name: newWebhook.name,
+          url: newWebhook.url,
+          events: newWebhook.events,
+          is_active: newWebhook.is_active,
+          retry_count: newWebhook.retry_count,
+          timeout_seconds: newWebhook.timeout_seconds,
+          headers: newWebhook.headers,
+        },
       });
       if (error) throw error;
 
-      toast.success('Webhook created successfully');
+      const oneTimeSecret = (data as { secret_key?: string })?.secret_key;
+      if (oneTimeSecret) {
+        try {
+          await navigator.clipboard.writeText(oneTimeSecret);
+          toast.success('Webhook created — secret copied to clipboard', {
+            description: `Save it securely. It will not be shown again. Last 4: ${oneTimeSecret.slice(-4)}`,
+            duration: 12000,
+          });
+        } catch {
+          toast.success('Webhook created', {
+            description: `Signing secret (save it now, shown only once): ${oneTimeSecret}`,
+            duration: 30000,
+          });
+        }
+      } else {
+        toast.success('Webhook created successfully');
+      }
+
       setShowCreateDialog(false);
       setNewWebhook({ name: '', url: '', events: [], is_active: true, retry_count: 3, timeout_seconds: 30, headers: {} });
       fetchWebhooks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating webhook:', error);
-      toast.error('Failed to create webhook');
+      toast.error(error?.message || 'Failed to create webhook');
     }
   };
 

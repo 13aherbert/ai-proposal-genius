@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { organizationId, email, role, department, message } = await req.json();
+    const { organizationId, email, role, department, message, origin } = await req.json();
 
     if (!organizationId || !email || !role) {
       return new Response(JSON.stringify({ error: "Missing required fields: organizationId, email, role" }), {
@@ -160,12 +160,69 @@ Deno.serve(async (req) => {
     }
 
     const isUnlimited = usersLimit === -1;
+
+    // Send invitation email via Resend (best-effort).
+    let emailStatus: "sent" | "failed" = "failed";
+    try {
+      const [{ data: inviterProfile }, { data: org }] = await Promise.all([
+        supabaseAdmin
+          .from("profiles")
+          .select("first_name, last_name, username")
+          .eq("profile_id", user.id)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("organizations")
+          .select("name")
+          .eq("id", organizationId)
+          .maybeSingle(),
+      ]);
+
+      const inviterName = [inviterProfile?.first_name, inviterProfile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+        || inviterProfile?.username
+        || user.email
+        || "A teammate";
+
+      const baseUrl = (typeof origin === "string" && origin.startsWith("http"))
+        ? origin.replace(/\/$/, "")
+        : "https://optirfp.ai";
+      const acceptUrl = `${baseUrl}/accept-invitation?token=${encodeURIComponent(invitationToken)}`;
+
+      const { data: emailResult, error: emailError } = await supabaseAdmin.functions.invoke(
+        "send-team-invite-email",
+        {
+          body: {
+            recipientEmail: email,
+            inviterName,
+            inviterEmail: user.email,
+            organizationName: org?.name ?? "your team",
+            role,
+            personalMessage: message ?? null,
+            acceptUrl,
+            expiresAt: expiresAt.toISOString(),
+          },
+        },
+      );
+
+      if (!emailError && emailResult?.success) {
+        emailStatus = "sent";
+      } else {
+        console.error("Email send failed:", emailError, emailResult);
+      }
+    } catch (e) {
+      console.error("Email dispatch threw:", e);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       invitation,
-      message: isUnlimited
-        ? "Team member invited. You can invite unlimited users on your plan."
-        : `Invitation sent to ${email}.`,
+      email_status: emailStatus,
+      message: emailStatus === "sent"
+        ? `Invitation email sent to ${email}.`
+        : `Invitation created. We couldn't send the email — copy the invite link to share manually.`,
+      ...(isUnlimited ? { note: "You can invite unlimited users on your plan." } : {}),
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

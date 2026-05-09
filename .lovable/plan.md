@@ -1,76 +1,74 @@
-## Performance Audit — Findings & Fix Plan
+## Goal
+Make the Projects list and Knowledge Base page feel instant by removing redundant queries, slimming payloads, lazy-loading non-visible panels, and adding the right DB indexes.
 
-After reviewing the auth, subscription, organization, and project-section code paths, the slow "section load" feel is caused by a small number of high-impact issues that compound: the auth effect re-runs on every session change, the same profile/organization is queried 3-4× per page, members are refetched without any cache, and every section tab waits for a serial chunk download + DB round-trip before showing anything.
+## What's slow today
 
-### Findings (highest impact first)
+**Knowledge Base page** fires **5+ independent queries on mount**, several of them duplicates or unnecessary:
+1. `useKnowledgeBase` (search infra)
+2. `useEntries` — paginated entries, runs **count + data sequentially** (2 round-trips)
+3. `useKnowledgeReadiness` — pulls every entry's `content` + `parsed_content` just to count categories (huge payload on a populated KB)
+4. `KnowledgeBase.tsx` — separate `select('category, updated_at')` over all entries (third pass on the same table)
+5. `useKBGovernance` — runs **on mount even though the Governance panel is hidden**: re-fetches the user's org via its own profile query, then 3 more selects (`kb_review_cycles`, `kb_health_scores`, `kb_qa_pairs`)
+6. `useStarterTemplates` — also runs on mount
+7. `RecentEntries` calls `fetchEntries()` in a `useEffect` even though react-query already auto-fetches → duplicate request on every category change
 
-**1. AuthProvider re-subscribes on every session change** (`src/components/AuthProvider.tsx`)
-- `useEffect` deps include `session`, so each `setSession` tears down and re-creates the `onAuthStateChange` listener, the 60s timeout interval, and the timeout. It also runs `JSON.stringify(session) !== JSON.stringify(currentSession)` on every event.
-- Side effect: a background `get-user-roles` edge call fires on every auth event and times out at 3s (visible in console: `Roles fetch timeout`).
+**Projects list (`useProjects`)**:
+- Sequential **count query + data query** (2 round-trips per page)
+- Hard-coded `setTimeout(500ms)` "dev delay" still in the fetch path
+- Waits up to 5s on `useCurrentOrganization` before firing
+- `useCurrentOrganization` itself does **profile then organizations** as 2 sequential round-trips
 
-**2. Profile/organization queried 3-4× per project page**
-- `useCurrentOrganization` (react-query, cached) — good.
-- `ProjectContent.tsx` lines 44-49 — independent `profiles.current_organization_id` fetch.
-- `ProposalDraft.tsx` lines 62-69 — same independent fetch.
-- `useProposalSections.addSection` — fetches profile again on every insert.
-- All four return the same value `useCurrentOrganization` already has.
+**Project detail (`use-project-details`)**:
+- Custom retry-with-backoff (1s/2s/3s) **wrapped inside** react-query's own `retry: 3` → up to 9 attempts on a real "not found", multi-second blocking spinner
 
-**3. `useOrganizationMembers` has no caching** (`src/hooks/useOrganizationMembers.ts`)
-- Plain `useState` + `useEffect` — refetches on every mount with `select(*)` and a join to `profiles`. Called in both `ProjectContent` and `ProposalDraft`, so the same query runs twice per project page open and again on every tab switch that remounts.
+## Plan
 
-**4. Dual role-check pipeline** (`src/hooks/user-roles/`, `AuthProvider`)
-- `AuthProvider` calls the `get-user-roles` edge function on every auth event (3s timeout, frequently fails).
-- `useUserRoles` separately fires `is_admin` and `is_system_admin` RPCs on a 60s interval and after every session change, with its own delay/retry logic.
-- Console shows duplicate "Forced role check" / "Skipping role check" — two consumers fighting over the same state.
+### Phase 1 — Knowledge Base (biggest win)
+- **Lazy-load `useKBGovernance`**: only run when `showGovernance` is true. Pass an `enabled` flag.
+- **Replace `useKnowledgeReadiness` payload**: select only `category` (drop `content`/`parsed_content`); detect template-only categories via a separate, cheap `head: true` count grouped by category, or move template detection to KB-server side. Convert hook to react-query with org-keyed `staleTime: 5min` so navigating away/back is instant.
+- **Merge category-dates fetch into `useKnowledgeReadiness`** (one trip instead of two over the same table). Convert to react-query.
+- **Combine count+data in `useEntries`** using a single `select('*', { count: 'exact' }).range(from, to)` call. Drop unused columns from the select.
+- **Remove duplicate `fetchEntries()` effect in `RecentEntries`** (react-query handles it via the queryKey).
+- **Defer `useStarterTemplates` seeding** to idle / first KB write instead of mount.
 
-**5. Section tabs are cold every time**
-- `ProjectContent` lazy-loads `UnifiedAnalysisView`, `UnifiedProposalView`, `ReviewQueue`, `ProposalDesignStudio` — each is a fresh chunk download + DB query (`proposal-sections`, `proposal_outline`, `comments`, `members`) on first click.
-- No prefetch, so the spinner is chunk-fetch + data-fetch in series.
+### Phase 2 — Projects
+- **Single round-trip in `useProjects`**: `select('project_id,title,status,…', { count: 'exact' }).range()` instead of separate count + data queries.
+- **Remove the `process.env.NODE_ENV === 'development'` 500ms delay** from `fetchProjects`.
+- **Collapse `useCurrentOrganization` into one query** using a Supabase relational select: `profiles.select("current_organization_id, organization:organizations!profiles_current_organization_id_fkey(*)").eq("profile_id", uid).single()`. Falls from 2 → 1 round-trip and shaves ~150–300ms off every page that depends on org.
+- **Drop the 5s "org loading" timeout branch in `useProjects`** once the above merge lands (org resolves much faster).
+- **Prefetch projects on Dashboard / app-shell mount** via `queryClient.prefetchQuery` so opening `/projects` is instant when coming from Dashboard.
 
-**6. `useEntries` caches via `useState`** (`src/components/knowledge-base/entries/useEntries.ts`)
-- Manual cache map in component state causes re-renders on every cache write and never deduplicates concurrent requests. Should be react-query (already in the project).
+### Phase 3 — Project detail
+- **Remove the custom retry loop in `fetchProjectWithRetry`** and rely on react-query's `retry`/`retryDelay` only. Cuts worst-case wait from ~9s to ~3s and removes the double-spinner experience.
 
-**7. Misc**
-- `BrowserRouter` query client has `refetchOnWindowFocus: false` (good) but no `refetchOnMount: false` — keys missing from cache still re-fetch on every section mount.
-- `useProposalSections` 5-minute `setInterval` + `localStorage.setItem` of full sections array on every save is fine, but the effect deps don't include `sections`, so it captures a stale closure (already a latent bug, low impact).
+### Phase 4 — Database indexes
+Add covering indexes (verify via `pg_indexes` first; create only if missing):
+- `projects (user_id, organization_id, last_update_at DESC)` — matches the list query order/filters
+- `knowledge_entries (organization_id, category)` — for readiness + category counts
+- `knowledge_entries (user_id, updated_at DESC)` — for `useEntries` ordering
+- `knowledge_entries USING gin (to_tsvector('english', coalesce(title,'') || ' ' || coalesce(content,'')))` — only if KB search latency shows up; defer otherwise
 
-### Fix Plan
+Migration will be a single SQL file with `CREATE INDEX IF NOT EXISTS …` statements. No table or RLS changes.
 
-**Phase 1 — Auth & role stabilization (biggest win, isolated)**
-1. `AuthProvider.tsx`
-   - Remove `session` from the main `useEffect` deps; keep `[navigate, location.pathname]` only. Use a ref for the previous session JSON comparison (or compare `currentSession?.access_token`).
-   - Move the background `get-user-roles` invocation out of `AuthProvider` entirely — `useUserRoles` already covers it.
-   - Drop the per-event `JSON.stringify(session)` comparison; compare `access_token` strings.
-2. `useUserRoles`
-   - Single source of truth. Cache result in a module-level promise so multiple consumers share one in-flight request. Keep the 60s refresh, but only when the tab is visible (`document.visibilityState === 'visible'`).
+### Phase 5 — Verify
+- Reload `/knowledge-base` cold and warm: confirm only 2–3 KB requests on first paint (entries + readiness + categories combined), 0 governance requests until panel opened.
+- Reload `/projects`: confirm 1 list request (no separate count), no 500ms artificial delay.
+- Open a project: confirm spinner ≤ ~1s on cache hit, ≤ 3s on miss.
+- Confirm no regressions in pagination, search, governance panel, KB seeding.
 
-**Phase 2 — Deduplicate profile/org/member fetches**
-1. Remove the inline `profiles.current_organization_id` lookups in `ProjectContent.tsx` and `ProposalDraft.tsx`. Replace with `useCurrentOrganization()` (already cached 5 min).
-2. In `useProposalSections.addSection`, read the org id from a passed-in prop or from `useCurrentOrganization`; do not fetch it inside the mutation.
-3. Convert `useOrganizationMembers` to react-query:
-   - Key: `["organization-members", organizationId]`.
-   - `staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`.
-   - Slim the select: only `id, user_id, role, status, joined_at, profiles(first_name,last_name,username,avatar_url)`.
-4. Lift presence/member loading to `ProjectContent` only; pass `members` down to `ProposalDraft` via props (or rely on the shared react-query cache so the second call is free).
+## Out of scope
+- Server-side full-text search migration for KB (separate effort)
+- Edge-function cold start tuning
+- Changes to RLS policies or table schemas (only indexes)
 
-**Phase 3 — Faster section switching**
-1. Prefetch the next section's chunk on hover/focus of the sidebar item:
-   ```ts
-   onMouseEnter={() => import('@/components/project/proposal-draft/ProposalDraft')}
-   ```
-   Apply to Analysis, Proposal, Review, Design entries in `ProjectSidebar`.
-2. Add `queryClient.prefetchQuery` for `proposal-sections` and `proposal-outline` when the user opens a project (idle callback).
-3. Tighten react-query defaults in `App.tsx`: add `refetchOnReconnect: false` and ensure heavy queries (`proposal-sections`, `proposal-outline`, `organization-members`, `current-organization`) declare appropriate `staleTime` so tab re-mounts don't refetch.
-
-**Phase 4 — Knowledge base**
-1. Replace the manual cache in `useEntries.ts` with a react-query `useQuery` keyed on `[user_id, category, page, pageSize]`. Removes re-renders, dedupes concurrent calls, and gives free background revalidation.
-
-**Phase 5 — Verification**
-1. Reproduce on `/projects/:id`: open DevTools → Network. Confirm only one `profiles`, one `organizations`, one `organization_members` request per project view.
-2. Switch between Overview → Analysis → Proposal → Review and confirm chunks are cached after first hover, and no spinner > 200ms once data is warm.
-3. Watch console: no more `Roles fetch timeout`; `Forced role check` should appear once on login, not on every navigation.
-
-### Out of scope (can follow up)
-- Edge-function cold start optimization for `get-user-roles`.
-- Splitting `ProposalDesignStudio` into smaller chunks (it pulls in TipTap + canvas).
-- Server-side denormalization of `current_organization_id` into the auth JWT (would eliminate the profile read entirely).
+## Files expected to change
+- `src/components/knowledge-base/governance/useKBGovernance.ts` (lazy enable, use `useCurrentOrganization`)
+- `src/components/knowledge-base/RecentEntries.tsx` (remove duplicate effect)
+- `src/components/knowledge-base/entries/useEntries.ts` (combine count+data)
+- `src/components/knowledge-base/hooks/useStarterTemplates.ts` (defer)
+- `src/hooks/use-knowledge-readiness.ts` (slim payload, react-query, merge category-dates)
+- `src/pages/KnowledgeBase.tsx` (drop direct category-dates query, pass it from readiness)
+- `src/hooks/use-projects.ts` (combined query, drop dev delay, drop org timeout)
+- `src/hooks/use-current-organization.ts` (single relational query)
+- `src/hooks/use-project-details.ts` (drop custom retry)
+- One Supabase migration adding indexes

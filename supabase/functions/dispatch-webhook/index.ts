@@ -18,6 +18,35 @@ async function hmacSign(secret: string, payload: string): Promise<string> {
   return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function base64ToBytes(b64: string): Uint8Array {
+  const s = atob(b64);
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+
+async function decryptSecret(ciphertextB64: string, ivB64: string): Promise<string> {
+  const rawB64 = Deno.env.get('INTEGRATIONS_ENCRYPTION_KEY');
+  if (!rawB64) throw new Error('INTEGRATIONS_ENCRYPTION_KEY not configured');
+  const raw = base64ToBytes(rawB64);
+  if (raw.byteLength !== 32) throw new Error('INTEGRATIONS_ENCRYPTION_KEY must decode to 32 bytes');
+  const key = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['decrypt']);
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: base64ToBytes(ivB64) },
+    key,
+    base64ToBytes(ciphertextB64),
+  );
+  return new TextDecoder().decode(plaintext);
+}
+
+async function resolveSigningSecret(webhook: { secret_key?: string | null; secret_key_ciphertext?: string | null; secret_key_iv?: string | null }): Promise<string | null> {
+  if (webhook.secret_key_ciphertext && webhook.secret_key_iv) {
+    return await decryptSecret(webhook.secret_key_ciphertext, webhook.secret_key_iv);
+  }
+  // Legacy plaintext fallback (for any rows that pre-date the encryption migration).
+  return webhook.secret_key ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -69,7 +98,9 @@ Deno.serve(async (req) => {
       let delivered = false;
 
       try {
-        const signature = await hmacSign(webhook.secret_key, eventPayload);
+        const signingSecret = await resolveSigningSecret(webhook);
+        if (!signingSecret) throw new Error('Webhook signing secret unavailable');
+        const signature = await hmacSign(signingSecret, eventPayload);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), (webhook.timeout_seconds || 30) * 1000);

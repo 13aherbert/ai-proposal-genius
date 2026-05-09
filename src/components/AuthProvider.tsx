@@ -132,9 +132,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const lastAccessTokenRef = useRef<string | null>(null);
+
   useEffect(() => {
     let isSubscribed = true;
-    
+
     const timeoutId = setTimeout(() => {
       if (loading && !authInitialized) {
         console.warn("Auth initialization timeout reached. Force completing auth init.");

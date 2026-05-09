@@ -188,6 +188,16 @@ serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
+      try {
+        await supabase.from('error_logs').insert({
+          severity: 'critical',
+          source: 'edge:stripe-webhook',
+          message: `Signature verification failed: ${err.message}`.slice(0, 2000),
+          context: { stage: 'signature_verification' },
+          url: req.url,
+          user_agent: req.headers.get('user-agent'),
+        });
+      } catch {}
       return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
     }
 
@@ -554,6 +564,18 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('Error processing webhook:', err);
+    try {
+      await supabase.from('error_logs').insert({
+        severity: 'critical',
+        source: 'edge:stripe-webhook',
+        message: `Webhook handler failed: ${err?.message ?? String(err)}`.slice(0, 2000),
+        context: { stack: err?.stack ?? null, signature_present: !!req.headers.get('stripe-signature') },
+        url: req.url,
+        user_agent: req.headers.get('user-agent'),
+      });
+    } catch (logErr) {
+      console.error('Failed to write error_logs:', logErr);
+    }
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 });

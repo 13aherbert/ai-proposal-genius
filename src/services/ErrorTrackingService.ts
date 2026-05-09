@@ -185,6 +185,11 @@ class ErrorTrackingService {
       this.sendToSentry(fullErrorData);
     }
 
+    // Persist non-info events to error_logs (fire-and-forget)
+    if (fullErrorData.severity !== ErrorSeverity.INFO) {
+      void this.persistToDatabase(fullErrorData);
+    }
+
     // Check if this is a critical error for alerting
     if (fullErrorData.severity === ErrorSeverity.CRITICAL) {
       this.triggerAlerts(fullErrorData);
@@ -268,6 +273,25 @@ class ErrorTrackingService {
         console.error('Error in alert callback', err);
       }
     });
+  }
+
+  private async persistToDatabase(error: ErrorData): Promise<void> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: auth } = await supabase.auth.getUser();
+      await supabase.from('error_logs').insert({
+        severity: error.severity,
+        source: error.category || 'frontend',
+        message: error.message.slice(0, 2000),
+        context: (error.context ?? {}) as any,
+        url: error.url ?? (typeof window !== 'undefined' ? window.location.href : null),
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        user_id: auth?.user?.id ?? null,
+      });
+    } catch (e) {
+      // Never throw from logger
+      console.warn('Failed to persist error to error_logs', e);
+    }
   }
 
   // Record user feedback about an error

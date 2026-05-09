@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Infinity as InfinityIcon, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 
 type ValidationState =
   | { status: "loading" }
@@ -38,9 +39,10 @@ export default function LifetimeDeal() {
   const [state, setState] = useState<ValidationState>({ status: "loading" });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    document.title = "Lifetime Deal — OptiRFP";
-  }, []);
+  useSEO({
+    title: "Lifetime Deal — One-Time Purchase | OptiRFP",
+    description: "Claim your OptiRFP lifetime deal: 36 RFP projects per year, unlimited team members, forever.",
+  });
 
   useEffect(() => {
     let cancelled = false;

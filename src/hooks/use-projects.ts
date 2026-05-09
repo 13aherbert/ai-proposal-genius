@@ -31,25 +31,9 @@ export function useProjects(user: User | null) {
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
-  // Get user's current organization with safety timeout
   const { organization, loading: orgLoading, error: orgError } = useCurrentOrganization();
   const organizationId = organization?.id;
-  
-  // Safety timeout: if org loading takes > 5s, bypass it
-  const [orgLoadingTimedOut, setOrgLoadingTimedOut] = useState(false);
-  useEffect(() => {
-    if (!orgLoading) {
-      setOrgLoadingTimedOut(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      console.warn("useProjects: orgLoading timed out after 5s, bypassing org filter");
-      setOrgLoadingTimedOut(true);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [orgLoading]);
-  
-  const effectiveOrgLoading = orgLoading && !orgLoadingTimedOut;
+  const effectiveOrgLoading = orgLoading;
   
   useEffect(() => {
     const subscriptionData = getStoredSubscriptionData();

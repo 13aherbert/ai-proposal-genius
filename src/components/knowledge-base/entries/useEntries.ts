@@ -56,32 +56,17 @@ export const useEntries = (selectedCategory: string | null) => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      let countQuery = supabase
-        .from("knowledge_entries")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if (selectedCategory) {
-        countQuery = countQuery.eq(
-          "category",
-          formatCategoryForQuery(selectedCategory)
-        );
-      }
-      const { count, error: countError } = await countQuery;
-      if (countError) throw countError;
-
+      // Single round-trip: count + data in one query
       let query = supabase
         .from("knowledge_entries")
-        .select("*")
+        .select("title, category, content, updated_at, created_at", { count: "exact" })
         .eq("user_id", userId)
         .order("updated_at", { ascending: false })
         .range(from, to);
       if (selectedCategory) {
-        query = query.eq(
-          "category",
-          formatCategoryForQuery(selectedCategory)
-        );
+        query = query.eq("category", formatCategoryForQuery(selectedCategory));
       }
-      const { data: rows, error } = await query;
+      const { data: rows, count, error } = await query;
       if (error) throw error;
 
       const entries = (rows || []).map((entry) => ({

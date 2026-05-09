@@ -55,6 +55,34 @@ Deno.serve(async (req) => {
     return corsResponse;
   }
 
+  // Authenticate caller — must be a signed-in user OR an internal service-role call
+  const authHeader = req.headers.get('Authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  let isAuthorized = false;
+  if (token && serviceRoleKey && token === serviceRoleKey) {
+    isAuthorized = true;
+  } else if (token) {
+    try {
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: { user } } = await authClient.auth.getUser();
+      if (user) isAuthorized = true;
+    } catch (e) {
+      console.error('JWT validation error:', e);
+    }
+  }
+  if (!isAuthorized) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    );
+  }
+
   try {
     // Get request payload
     const payload = await req.json();

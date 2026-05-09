@@ -76,7 +76,7 @@ function renderHtml(p: InvitePayload, unsubscribeUrl: string): string {
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">
           You received this email because ${escapeHtml(p.inviterName)} invited you to join ${escapeHtml(p.organizationName)} on OptiRFP. If you weren't expecting this, you can safely ignore it.<br/>
-          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="mailto:unsubscribe@optirfp.ai?subject=Unsubscribe" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
         </td></tr>
       </table>
     </td></tr>

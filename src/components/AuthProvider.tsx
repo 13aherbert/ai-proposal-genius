@@ -285,13 +285,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const sessionTimeoutCheck = setInterval(() => {
-      if (session && new Date(session.expires_at * 1000) < new Date()) {
-        toast.warning("Your session has expired", {
-          description: "Please sign in again",
-          duration: 5000,
-        });
-        signOut();
-      }
+      const expiresAt = lastAccessTokenRef.current ? null : null;
+      // Read latest session via state setter pattern to avoid stale closure
+      setSession(s => {
+        if (s && new Date(s.expires_at * 1000) < new Date()) {
+          toast.warning("Your session has expired", {
+            description: "Please sign in again",
+            duration: 5000,
+          });
+          signOut();
+        }
+        return s;
+      });
     }, 60000);
 
     return () => {
@@ -300,7 +305,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       clearInterval(sessionTimeoutCheck);
       clearTimeout(timeoutId);
     };
-  }, [navigate, location.pathname, session]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, location.pathname]);
 
   return (
     <AuthContext.Provider value={{ 

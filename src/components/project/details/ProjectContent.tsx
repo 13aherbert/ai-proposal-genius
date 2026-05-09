@@ -4,8 +4,14 @@ import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import {
+  OverviewSkeleton,
+  AnalysisSkeleton,
+  ProposalSkeleton,
+  ReviewSkeleton,
+  DesignSkeleton,
+} from "./SectionSkeletons";
 import { GatedFeature } from "@/components/subscription/GatedFeature";
 import { useProjectPresence } from "@/hooks/useProjectPresence";
 import { PresenceAvatars } from "@/components/project/presence";

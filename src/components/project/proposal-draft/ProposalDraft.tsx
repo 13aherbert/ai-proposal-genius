@@ -21,6 +21,7 @@ import { SaveStatus } from "@/hooks/use-auto-save";
 import { countWords } from "@/utils/wordCount";
 import { useAuth } from "@/components/AuthProvider";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { WorkflowStatus } from "./hooks/useSectionWorkflow";
 

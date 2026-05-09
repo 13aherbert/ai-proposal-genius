@@ -123,15 +123,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP <onboarding@resend.dev>";
+    const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP Team <team@updates.optirfp.ai>";
+    const replyTo = payload.inviterEmail || Deno.env.get("INVITE_REPLY_TO") || "support@optirfp.ai";
+
+    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?email=${encodeURIComponent(payload.recipientEmail)}`;
 
     const body: Record<string, unknown> = {
       from: fromAddress,
       to: [payload.recipientEmail],
+      reply_to: replyTo,
       subject: `${payload.inviterName} invited you to join ${payload.organizationName} on OptiRFP`,
       html: renderHtml(payload),
+      text: renderText(payload),
+      headers: {
+        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     };
-    if (payload.inviterEmail) body.reply_to = payload.inviterEmail;
 
     const resp = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",

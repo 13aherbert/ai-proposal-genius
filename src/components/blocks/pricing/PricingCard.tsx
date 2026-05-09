@@ -342,7 +342,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
           })}
         </ul>
 
-        {isEnterprise && (
+        {false && isEnterprise && (
           <div className="mt-4 pt-3 border-t border-border">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Trusted by</p>
             <div className="flex items-center gap-3">

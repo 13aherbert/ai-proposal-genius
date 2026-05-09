@@ -199,7 +199,9 @@ serve(async (req) => {
       // ---------------------------------------------------------------
       case 'checkout.session.completed': {
         const session = event.data.object;
-        if (session.payment_status !== 'paid') break;
+        // NOTE: do not gate on session.payment_status — trial subscriptions
+        // arrive as 'no_payment_required' and we still need to write the row.
+        if (!session.subscription) break;
 
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const planSlug = resolvePlanSlug(subscription);

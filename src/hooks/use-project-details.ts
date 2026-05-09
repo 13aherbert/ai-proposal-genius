@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,61 +18,29 @@ export type Project = {
   last_update_at: string;
 };
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
-
-const fetchProjectWithRetry = async (projectId: string, userId: string, attempt = 1): Promise<Project> => {
-  try {
-    console.log(`Fetching project ${projectId} for user ${userId} (attempt ${attempt}/${MAX_RETRIES})`);
-    
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("project_id", projectId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Supabase error:", error);
-      throw error;
-    }
-
-    if (!data) {
-      console.error("No project found with ID:", projectId);
-      throw new Error("Project not found");
-    }
-
-    console.log("Project data retrieved:", data);
-    return data as Project;
-  } catch (error) {
-    if (attempt < MAX_RETRIES) {
-      console.log(`Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${RETRY_DELAY * attempt}ms`);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
-      return fetchProjectWithRetry(projectId, userId, attempt + 1);
-    }
-    throw error;
-  }
-};
-
 export function useProjectDetails(projectId: string | undefined, user: User | null) {
   return useQuery({
     queryKey: ["project", projectId, user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Project> => {
       if (!user?.id || !projectId) {
-        console.error("Missing user ID or project ID:", { userId: user?.id, projectId });
         throw new Error("No authenticated user or project ID");
       }
-
-      try {
-        return await fetchProjectWithRetry(projectId, user.id);
-      } catch (error) {
-        console.error("Failed to fetch project details:", error);
-        toast.error("Failed to load project details");
-        throw error;
-      }
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Project not found");
+      return data as Project;
     },
     enabled: !!user?.id && !!projectId,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(500 * Math.pow(2, attemptIndex), 3000),
+    staleTime: 60_000,
+    meta: {
+      onError: () => toast.error("Failed to load project details"),
+    },
   });
 }

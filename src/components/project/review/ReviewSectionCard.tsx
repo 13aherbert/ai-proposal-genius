@@ -12,6 +12,7 @@ import { useSectionWorkflow } from "@/components/project/proposal-draft/hooks/us
 import { useProposalComments } from "@/hooks/useProposalComments";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface ReviewSectionCardProps {
   section: ProposalSection;
@@ -160,7 +161,7 @@ export function ReviewSectionCard({
           <div className="border rounded-md p-4 bg-muted/30 max-h-64 overflow-y-auto">
             <div
               className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: section.content || "<p class='text-muted-foreground'>No content</p>" }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content || "<p class='text-muted-foreground'>No content</p>", { USE_PROFILES: { html: true } }) }}
             />
           </div>
 

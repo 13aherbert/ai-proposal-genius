@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { countWords } from "@/utils/wordCount";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface CompiledViewProps {
   sections: ProposalSection[];
@@ -200,7 +201,7 @@ export function CompiledView({ sections, projectId, projectTitle }: CompiledView
                       {section.content ? (
                         <div
                           className="prose prose-sm dark:prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: section.content }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content, { USE_PROFILES: { html: true } }) }}
                         />
                       ) : (
                         <p className="text-muted-foreground italic">Content not generated yet</p>

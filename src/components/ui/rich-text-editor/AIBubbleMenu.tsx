@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { aiTransform, type AIAction, type Tone } from "./aiTransform";
+import DOMPurify from "dompurify";
 
 interface AIBubbleMenuProps {
   editor: Editor;
@@ -208,7 +209,10 @@ export function AIBubbleMenu({ editor, sectionTitle, tone, onComment }: AIBubble
                 <div
                   className="text-xs leading-relaxed text-primary underline decoration-primary/30"
                   dangerouslySetInnerHTML={{
-                    __html: suggestion.length > 500 ? suggestion.substring(0, 500) + "..." : suggestion,
+                    __html: DOMPurify.sanitize(
+                      suggestion.length > 500 ? suggestion.substring(0, 500) + "..." : suggestion,
+                      { USE_PROFILES: { html: true } }
+                    ),
                   }}
                 />
               </div>

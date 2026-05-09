@@ -149,6 +149,8 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
                 locked && "opacity-70"
               )}
               onClick={() => handleSectionChange(section.id)}
+              onMouseEnter={() => prefetchSection(section.id)}
+              onFocus={() => prefetchSection(section.id)}
             >
               <section.icon className="h-4 w-4" />
               <span className="flex-1 text-left">{section.label}</span>

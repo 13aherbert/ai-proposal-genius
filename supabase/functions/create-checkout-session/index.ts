@@ -116,6 +116,9 @@ serve(async (req) => {
       console.log('Creating checkout session...');
       const session = await stripe.checkout.sessions.create({
         customer: customer.id,
+        // CRITICAL: client_reference_id is what stripe-webhook reads to link
+        // the resulting subscription row back to the Supabase user.
+        client_reference_id: user.id,
         line_items: [
           {
             price: priceId,

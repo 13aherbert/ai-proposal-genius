@@ -10,8 +10,7 @@ import { GatedFeature } from "@/components/subscription/GatedFeature";
 import { useProjectPresence } from "@/hooks/useProjectPresence";
 import { PresenceAvatars } from "@/components/project/presence";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
-import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
 
 // Lazy load heavy components
 const ProposalEvaluation = lazy(() => import("@/components/project/proposal-evaluation/ProposalEvaluation").then(mod => ({ default: mod.ProposalEvaluation })));

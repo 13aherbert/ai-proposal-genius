@@ -2,6 +2,7 @@ import { Pricing } from "./pricing";
 import { ROICalculator } from "./ROICalculator";
 import { CompetitorComparison } from "./CompetitorComparison";
 import { PricingFAQ } from "./PricingFAQ";
+import { STRIPE_PRICE_IDS } from "@/config/stripe-prices";
 
 const plans = [
   {
@@ -21,7 +22,7 @@ const plans = [
     subtitle: "Free forever",
     microcopy: "No credit card required",
     buttonText: "Get Started Free",
-    href: "/#signup",
+    href: "/auth?mode=signup",
     isPopular: false,
     badge: "",
     priceId: {
@@ -52,8 +53,8 @@ const plans = [
     isPopular: false,
     badge: "Best for small teams",
     priceId: {
-      monthly: "prod_Rn5Qc3JRlG2dP5",
-      annual: "prod_Rn5Qc3JRlG2dP5",
+      monthly: STRIPE_PRICE_IDS.growth.monthly,
+      annual: STRIPE_PRICE_IDS.growth.annual,
     },
   },
   {
@@ -81,8 +82,8 @@ const plans = [
     isPopular: true,
     badge: "Most Popular",
     priceId: {
-      monthly: "prod_Rn5STkpd7teaIR",
-      annual: "prod_Rn5STkpd7teaIR",
+      monthly: STRIPE_PRICE_IDS.business.monthly,
+      annual: STRIPE_PRICE_IDS.business.annual,
     },
   },
   {

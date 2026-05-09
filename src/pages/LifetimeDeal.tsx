@@ -39,9 +39,10 @@ export default function LifetimeDeal() {
   const [state, setState] = useState<ValidationState>({ status: "loading" });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    document.title = "Lifetime Deal — OptiRFP";
-  }, []);
+  useSEO({
+    title: "Lifetime Deal — One-Time Purchase | OptiRFP",
+    description: "Claim your OptiRFP lifetime deal: 36 RFP projects per year, unlimited team members, forever.",
+  });
 
   useEffect(() => {
     let cancelled = false;

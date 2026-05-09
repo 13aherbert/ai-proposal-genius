@@ -2,15 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 
-interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  subscription_tier: string;
-  is_white_label: boolean;
-  settings: any;
-}
-
 export function useCurrentOrganization() {
   const { session } = useAuth();
   const user = session?.user ?? null;
@@ -19,46 +10,41 @@ export function useCurrentOrganization() {
   const organizationQuery = useQuery({
     queryKey: ["current-organization", user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        throw new Error("No authenticated user");
-      }
+      if (!user?.id) throw new Error("No authenticated user");
 
-      console.log("Fetching current organization for user:", user.id);
-      
-      const { data: profile, error } = await supabase
+      // Single round-trip: fetch profile + joined organization in one query
+      const { data, error } = await supabase
         .from("profiles")
-        .select("current_organization_id")
+        .select("current_organization_id, organization:organizations!profiles_current_organization_id_fkey(*)")
         .eq("profile_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error("Error fetching user profile:", error);
-        throw error;
+        // Fallback: relational join may fail if FK is not detected. Run two-step.
+        console.warn("Relational org fetch failed, falling back:", error.message);
+        const { data: profile, error: pErr } = await supabase
+          .from("profiles")
+          .select("current_organization_id")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+        if (pErr) throw pErr;
+        if (!profile?.current_organization_id) return null;
+        const { data: org, error: oErr } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", profile.current_organization_id)
+          .maybeSingle();
+        if (oErr) throw oErr;
+        return org;
       }
 
-      if (!profile?.current_organization_id) {
-        console.warn("User has no current organization");
-        return null;
-      }
-
-      // Fetch organization details
-      const { data: org, error: orgError } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("id", profile.current_organization_id)
-        .single();
-
-      if (orgError) {
-        console.error("Error fetching organization:", orgError);
-        throw orgError;
-      }
-
-      console.log("User's current organization:", org);
-      return org;
+      if (!data?.current_organization_id) return null;
+      // PostgREST returns the joined object directly when FK is unique
+      return (data as any).organization ?? null;
     },
     enabled: !!user?.id,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes
+    staleTime: 300000,
+    gcTime: 600000,
   });
 
   const refreshOrganization = () => {
@@ -69,6 +55,6 @@ export function useCurrentOrganization() {
     organization: organizationQuery.data,
     loading: organizationQuery.isLoading,
     error: organizationQuery.error,
-    refreshOrganization
+    refreshOrganization,
   };
 }

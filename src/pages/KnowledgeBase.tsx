@@ -23,10 +23,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { SearchResult } from "@/components/knowledge-base/SearchResults";
 import { useKBGovernance } from "@/components/knowledge-base/governance/useKBGovernance";
 import { KBHealthDashboard } from "@/components/knowledge-base/governance/KBHealthDashboard";
+import { useSEO } from "@/hooks/use-seo";
 import { ReviewCycleManager } from "@/components/knowledge-base/governance/ReviewCycleManager";
 import { QAPairManager } from "@/components/knowledge-base/governance/QAPairManager";
 
 const KnowledgeBase = () => {
+  useSEO({ title: "Knowledge Base — OptiRFP", description: "Manage the company facts, case studies, and capabilities OptiRFP uses to draft proposals." });
   const navigate = useNavigate();
   const { session } = useAuth();
   const { 

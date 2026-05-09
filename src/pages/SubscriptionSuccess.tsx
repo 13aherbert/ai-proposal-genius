@@ -8,12 +8,14 @@ import { useSubscription } from "@/hooks/subscription";
 import { useAuth } from "@/components/AuthProvider";
 import { format, addMonths } from "date-fns";
 import confetti from "canvas-confetti";
+import { useSEO } from "@/hooks/use-seo";
 
 /**
  * SubscriptionSuccess - Post-checkout confirmation page
  * Shows purchase confirmation with plan details and next billing date
  */
 export default function SubscriptionSuccess() {
+  useSEO({ title: "Subscription Confirmed — OptiRFP", description: "Your OptiRFP subscription is active. Start drafting your next winning proposal." });
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { session } = useAuth();

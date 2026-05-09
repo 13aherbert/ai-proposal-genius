@@ -6,9 +6,11 @@ import { ProjectHeader } from "@/components/project/details/ProjectHeader";
 import { ProjectLoading } from "@/components/project/details/ProjectLoading";
 import { ProjectNotFound } from "@/components/project/details/ProjectNotFound";
 import { ProjectContent } from "@/components/project/details/ProjectContent";
+import { useSEO } from "@/hooks/use-seo";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
+  useSEO({ title: "Project — OptiRFP", description: "Work on your RFP project: analysis, outline, drafting, and export." });
   const { session } = useAuth();
   const { data: project, isLoading, error } = useProjectDetails(projectId, session?.user);
 

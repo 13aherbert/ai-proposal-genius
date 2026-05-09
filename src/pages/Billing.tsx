@@ -3,8 +3,10 @@ import { CreditCard } from 'lucide-react';
 import { SubscriptionCard } from '@/components/account/SubscriptionCard';
 import { SubscriptionManager } from '@/components/organization/SubscriptionManager';
 import { BillingHistory } from '@/components/account/BillingHistory';
+import { useSEO } from '@/hooks/use-seo';
 
 export default function Billing() {
+  useSEO({ title: "Billing & Subscription — OptiRFP", description: "Manage your OptiRFP plan, payment methods, and invoices." });
   return (
     <div className="space-y-8">
       <div>

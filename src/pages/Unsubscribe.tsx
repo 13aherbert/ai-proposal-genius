@@ -3,12 +3,14 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, Loader2, MailX } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 const FN_URL = `https://bmopbbkfxkgzlbmhhgox.supabase.co/functions/v1/email-unsubscribe`;
 
 type Status = "idle" | "verifying" | "ready" | "submitting" | "done" | "error";
 
 export default function Unsubscribe() {
+  useSEO({ title: "Unsubscribe — OptiRFP", description: "Manage your OptiRFP email preferences." });
   const [params] = useSearchParams();
   const email = params.get("email") ?? "";
   const token = params.get("token") ?? "";

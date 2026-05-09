@@ -13,6 +13,7 @@ import { AssetUploader } from "@/components/organization/AssetUploader";
 import { DomainManager } from "@/components/organization/DomainManager";
 import { ApiKeyManagement } from "@/components/organization/ApiKeyManagement";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 
 type StepId = "welcome" | "branding" | "assets" | "domain" | "team" | "api" | "done";
 
@@ -34,6 +35,7 @@ const ALL_STEPS: Step[] = [
 ];
 
 export default function EnterpriseOnboarding() {
+  useSEO({ title: "Enterprise Onboarding — OptiRFP", description: "Set up branding, custom domains, team, and API for your OptiRFP enterprise workspace." });
   const { organization, loading, refreshOrganization } = useCurrentOrganization();
   const { csm } = useCSMContact();
   const [activeId, setActiveId] = useState<StepId>("welcome");

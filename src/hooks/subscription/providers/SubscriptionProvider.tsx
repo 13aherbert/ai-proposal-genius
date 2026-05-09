@@ -85,11 +85,27 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const renewSubscription = useCallback(async () => {
     console.log('Renewing subscription');
     try {
-      const { data, error } = await supabase.functions.invoke('renew-subscription', {
-        body: { 
-          subscriptionId: subscription?.stripe_subscription_id,
-          customerId: subscription?.stripe_customer_id
+      // For org subscriptions, stripe IDs are not exposed to the client.
+      // Fetch them via the owner/admin-gated RPC when missing.
+      let subscriptionId = subscription?.stripe_subscription_id ?? null;
+      let customerId = subscription?.stripe_customer_id ?? null;
+
+      if (!subscriptionId && !customerId && organization?.id) {
+        const { data: ids, error: idsError } = await supabase.rpc(
+          'get_org_stripe_ids',
+          { _org_id: organization.id }
+        );
+        if (idsError) {
+          console.error('Error fetching org stripe ids:', idsError);
+          return { success: false, error: idsError };
         }
+        const row = Array.isArray(ids) ? ids[0] : ids;
+        subscriptionId = row?.stripe_subscription_id ?? null;
+        customerId = row?.stripe_customer_id ?? null;
+      }
+
+      const { data, error } = await supabase.functions.invoke('renew-subscription', {
+        body: { subscriptionId, customerId }
       });
       
       if (error) {
@@ -118,7 +134,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         error: err instanceof Error ? err : new Error('Unknown error') 
       };
     }
-  }, [subscription?.stripe_subscription_id, subscription?.stripe_customer_id]);
+  }, [subscription?.stripe_subscription_id, subscription?.stripe_customer_id, organization?.id]);
 
   // Fetch subscription data from the API
   const fetchSubscriptionData = useCallback(async () => {

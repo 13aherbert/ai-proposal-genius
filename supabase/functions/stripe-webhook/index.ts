@@ -504,6 +504,46 @@ serve(async (req) => {
         break;
       }
 
+      // ---------------------------------------------------------------
+      // CHARGE REFUNDED — handle lifetime deal refunds
+      // ---------------------------------------------------------------
+      case 'charge.refunded': {
+        const charge = event.data.object as any;
+        const paymentIntentId = charge.payment_intent as string | null;
+        if (!paymentIntentId) break;
+
+        const { data: redemption } = await supabase
+          .from('lifetime_deal_redemptions')
+          .select('id, user_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle();
+
+        if (!redemption) break;
+
+        await supabase
+          .from('lifetime_deal_redemptions')
+          .update({ refunded_at: new Date().toISOString() })
+          .eq('id', redemption.id);
+
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            plan_type: 'starter',
+            project_limit: SUBSCRIPTION_PLAN_LIMITS.starter.projects,
+            billing_interval: null,
+            is_lifetime: false,
+            lifetime_redemption_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', redemption.user_id)
+          .eq('lifetime_redemption_id', redemption.id);
+
+        await syncOrganizationTier(redemption.user_id, 'starter');
+        console.log('Lifetime refund processed for user:', redemption.user_id);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }

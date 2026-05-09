@@ -4,15 +4,7 @@ import { toast } from "sonner";
 import type { SubscriptionPlan } from "@/types/subscription";
 import { Loader2 } from "lucide-react";
 import { createCheckoutSession } from "@/hooks/subscription/use-subscription-actions";
-
-const PRICE_IDS = {
-  // Growth plan (formerly basic/starter paid)
-  growthMonthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
-  growthAnnual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
-  // Business plan (formerly pro)
-  businessMonthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
-  businessAnnual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa',
-};
+import { STRIPE_PRICE_IDS } from "@/config/stripe-prices";
 
 interface UpgradeButtonProps {
   currentPlan: SubscriptionPlan | null;
@@ -24,11 +16,8 @@ export function UpgradeButton({ currentPlan, targetPlan, variant = 'monthly' }: 
   const [isLoading, setIsLoading] = useState(false);
 
   const getPriceId = () => {
-    if (targetPlan === 'growth') {
-      return variant === 'monthly' ? PRICE_IDS.growthMonthly : PRICE_IDS.growthAnnual;
-    }
-    if (targetPlan === 'business') {
-      return variant === 'monthly' ? PRICE_IDS.businessMonthly : PRICE_IDS.businessAnnual;
+    if (targetPlan === 'growth' || targetPlan === 'business') {
+      return STRIPE_PRICE_IDS[targetPlan][variant];
     }
     return null;
   };

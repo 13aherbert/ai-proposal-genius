@@ -23,6 +23,27 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function renderText(p: InvitePayload): string {
+  const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+  });
+  const lines = [
+    `${p.inviterName} invited you to join ${p.organizationName} on OptiRFP as a ${p.role}.`,
+    "",
+    p.personalMessage ? `Personal message: ${p.personalMessage}` : "",
+    p.personalMessage ? "" : "",
+    `Accept your invitation: ${p.acceptUrl}`,
+    "",
+    `This invitation expires on ${expires}.`,
+    "",
+    "If you weren't expecting this email, you can safely ignore it.",
+    "",
+    "OptiRFP — https://optirfp.ai",
+    "To stop receiving these emails, reply with the word UNSUBSCRIBE.",
+  ];
+  return lines.filter((l) => l !== "" || true).join("\n");
+}
+
 function renderHtml(p: InvitePayload): string {
   const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
     month: "long",

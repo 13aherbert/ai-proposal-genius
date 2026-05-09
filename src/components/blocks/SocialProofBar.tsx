@@ -1,7 +1,6 @@
 import { Users, Zap, DollarSign } from "lucide-react";
 
 const stats = [
-  { icon: Users, value: "500+", label: "Trusted by 500+ proposal teams" },
   { icon: Zap, value: "93%", label: "93% faster proposal creation" },
   { icon: DollarSign, value: "$20K+", label: "Average yearly savings" },
 ];

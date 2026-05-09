@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KnowledgeEntry, KnowledgeCategory } from "./types";
 import { ViewEntryDialog } from "./ViewEntryDialog";
@@ -12,20 +12,10 @@ interface RecentEntriesProps {
   categories: KnowledgeCategory[];
 }
 
-/**
- * RecentEntries component displays a list of knowledge base entries
- * with filtering by category and entry viewing functionality
- */
 export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesProps) => {
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
-  const { entries, isLoading, fetchEntries } = useEntries(selectedCategory);
+  const { entries, isLoading } = useEntries(selectedCategory);
   const { session } = useAuth();
-
-  useEffect(() => {
-    if (session?.user) {
-      fetchEntries();
-    }
-  }, [selectedCategory, session?.user, fetchEntries]);
 
   if (isLoading) {
     return (

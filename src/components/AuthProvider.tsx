@@ -232,7 +232,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         switch (event) {
           case 'SIGNED_IN':
-            if (currentSession?.user && location.pathname === '/') {
+            // If the user picked a plan on the marketing pricing page before
+            // signing up, kick off Stripe Checkout now that we have a session.
+            if (currentSession?.user) {
+              const raw = localStorage.getItem('selected_plan');
+              if (raw) {
+                localStorage.removeItem('selected_plan');
+                try {
+                  const plan = JSON.parse(raw);
+                  const priceId = plan?.priceId;
+                  if (priceId) {
+                    const { createCheckoutSession } = await import(
+                      '@/hooks/subscription/use-subscription-actions'
+                    );
+                    toast.loading('Starting your checkout…');
+                    const { url, error } = await createCheckoutSession(priceId);
+                    toast.dismiss();
+                    if (url) {
+                      window.location.href = url;
+                      return;
+                    }
+                    if (error) console.error('selected_plan checkout failed:', error);
+                  }
+                } catch (e) {
+                  console.warn('Invalid selected_plan payload:', e);
+                }
+              }
+            }
+
+            if (currentSession?.user && (location.pathname === '/' || location.pathname === '/auth')) {
               const createdAt = new Date(currentSession.user.created_at);
               const now = new Date();
               const isNewUser = (now.getTime() - createdAt.getTime()) < 10000;

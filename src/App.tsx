@@ -62,6 +62,7 @@ const About = lazy(() => import("@/pages/About"));
 const HelpCenter = lazy(() => import("@/pages/HelpCenter"));
 const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const Auth = lazy(() => import("@/pages/Auth"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -150,6 +151,7 @@ function AppContent() {
           <Route path="/admin/leads" element={<AdminLeads />} />
         </Route>
         
+        <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />

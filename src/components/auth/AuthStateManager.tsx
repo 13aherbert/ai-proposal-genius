@@ -138,7 +138,8 @@ export function useAuthStateManager(): [AuthState, AuthActions] {
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
       

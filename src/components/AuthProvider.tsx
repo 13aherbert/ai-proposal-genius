@@ -232,6 +232,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         switch (event) {
           case 'SIGNED_IN':
+            // Lifetime deal handoff: if user landed via /lifetime?code=…, kick off
+            // the one-time payment checkout right after signup.
+            if (currentSession?.user) {
+              const ltdCode = localStorage.getItem('lifetime_deal_code');
+              if (ltdCode) {
+                localStorage.removeItem('lifetime_deal_code');
+                try {
+                  toast.loading('Starting your lifetime checkout…');
+                  const { data, error } = await supabase.functions.invoke(
+                    'create-lifetime-checkout',
+                    { body: { code: ltdCode } },
+                  );
+                  toast.dismiss();
+                  if (data?.url) {
+                    window.location.href = data.url;
+                    return;
+                  }
+                  if (error || data?.error) {
+                    console.error('Lifetime checkout failed:', error ?? data?.error);
+                    toast.error(data?.error ?? 'Could not start lifetime checkout');
+                  }
+                } catch (e) {
+                  console.warn('Lifetime checkout error:', e);
+                }
+              }
+            }
+
             // If the user picked a plan on the marketing pricing page before
             // signing up, kick off Stripe Checkout now that we have a session.
             if (currentSession?.user) {

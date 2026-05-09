@@ -21,6 +21,7 @@ export default function SubscriptionSuccess() {
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
   const sessionId = searchParams.get('session_id');
+  const isLifetime = searchParams.get('lifetime') === '1' || !!subscription?.is_lifetime;
 
   // Trigger confetti on successful load
   useEffect(() => {
@@ -124,9 +125,15 @@ export default function SubscriptionSuccess() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-6">
             <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
           </div>
-          <h1 className="text-3xl font-bold mb-3">Welcome to {getPlanDisplayName(planType)}!</h1>
+          <h1 className="text-3xl font-bold mb-3">
+            {isLifetime
+              ? `You're a ${getPlanDisplayName(planType)} member — for life! 🎉`
+              : `Welcome to ${getPlanDisplayName(planType)}!`}
+          </h1>
           <p className="text-lg text-muted-foreground">
-            Your subscription is now active. You're all set to create amazing proposals.
+            {isLifetime
+              ? "Your one-time payment is processed. No recurring charges, ever."
+              : "Your subscription is now active. You're all set to create amazing proposals."}
           </p>
         </div>
 
@@ -134,16 +141,18 @@ export default function SubscriptionSuccess() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Subscription Details
+              {isLifetime ? "Purchase Details" : "Subscription Details"}
             </CardTitle>
             <CardDescription>Here's a summary of your purchase</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center py-3 border-b">
               <span className="text-muted-foreground">Plan</span>
-              <span className="font-semibold">{getPlanDisplayName(planType)}</span>
+              <span className="font-semibold">
+                {getPlanDisplayName(planType)}{isLifetime ? " (Lifetime)" : ""}
+              </span>
             </div>
-            {getPlanPrice(planType) && (
+            {!isLifetime && getPlanPrice(planType) && (
               <div className="flex justify-between items-center py-3 border-b">
                 <span className="text-muted-foreground">Price</span>
                 <span className="font-semibold">{getPlanPrice(planType)}</span>
@@ -155,13 +164,21 @@ export default function SubscriptionSuccess() {
                 Active
               </span>
             </div>
-            <div className="flex justify-between items-center py-3">
-              <span className="text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Next billing date
-              </span>
-              <span className="font-semibold">{nextBillingDate}</span>
-            </div>
+            {!isLifetime && (
+              <div className="flex justify-between items-center py-3">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Next billing date
+                </span>
+                <span className="font-semibold">{nextBillingDate}</span>
+              </div>
+            )}
+            {isLifetime && (
+              <div className="flex justify-between items-center py-3">
+                <span className="text-muted-foreground">Billing</span>
+                <span className="font-semibold">One-time — no renewals</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 

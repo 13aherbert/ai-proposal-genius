@@ -22,7 +22,7 @@ const plans = [
     subtitle: "Free forever",
     microcopy: "No credit card required",
     buttonText: "Get Started Free",
-    href: "/#signup",
+    href: "/auth?mode=signup",
     isPopular: false,
     badge: "",
     priceId: {

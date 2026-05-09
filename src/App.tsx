@@ -38,6 +38,7 @@ const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
 const SourceStatusDashboard = lazy(() => import("@/pages/admin/SourceStatusDashboard"));
 const AdminLeads = lazy(() => import("@/pages/admin/AdminLeads"));
 const AdminLifetime = lazy(() => import("@/pages/admin/AdminLifetime"));
+const AdminErrorLogs = lazy(() => import("@/pages/admin/AdminErrorLogs"));
 const EnterpriseOnboarding = lazy(() => import("@/pages/EnterpriseOnboarding"));
 const Organization = lazy(() => import("@/pages/Organization"));
 const WhiteLabel = lazy(() => import("@/pages/WhiteLabel"));
@@ -152,6 +153,7 @@ function AppContent() {
           <Route path="/admin/source-health" element={<SourceStatusDashboard />} />
           <Route path="/admin/leads" element={<AdminLeads />} />
           <Route path="/admin/lifetime" element={<AdminLifetime />} />
+          <Route path="/admin/errors" element={<AdminErrorLogs />} />
         </Route>
         
         <Route path="/auth" element={<Auth />} />

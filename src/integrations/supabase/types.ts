@@ -477,6 +477,33 @@ export type Database = {
           },
         ]
       }
+      email_unsubscribes: {
+        Row: {
+          email: string
+          ip: string | null
+          source: string | null
+          token: string
+          unsubscribed_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          email: string
+          ip?: string | null
+          source?: string | null
+          token: string
+          unsubscribed_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          email?: string
+          ip?: string | null
+          source?: string | null
+          token?: string
+          unsubscribed_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       enterprise_leads: {
         Row: {
           company_name: string
@@ -3499,6 +3526,7 @@ export type Database = {
         }[]
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      has_unsubscribed: { Args: { _email: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_direct: { Args: never; Returns: boolean }
       is_admin_for_delete: { Args: never; Returns: boolean }

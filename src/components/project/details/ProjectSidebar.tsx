@@ -80,6 +80,28 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     onSectionChange(sectionId);
   };
 
+  // Prefetch lazy chunks on hover for faster section switching
+  const prefetchSection = (sectionId: string) => {
+    switch (sectionId) {
+      case "analysis":
+        import("@/components/project/unified-analysis/UnifiedAnalysisView");
+        import("@/components/project/RFPAnalysis");
+        import("@/components/project/proposal-outline/ProposalOutline");
+        break;
+      case "proposal":
+        import("@/components/project/unified-proposal/UnifiedProposalView");
+        import("@/components/project/proposal-draft/ProposalDraft");
+        break;
+      case "review":
+        import("@/components/project/review/ReviewQueue");
+        import("@/components/project/proposal-evaluation/ProposalEvaluation");
+        break;
+      case "design":
+        import("@/components/project/design-studio/ProposalDesignStudio");
+        break;
+    }
+  };
+
   return (
     <>
       {/* Mobile: horizontal scrollable tabs */}
@@ -99,6 +121,8 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
                   locked && "opacity-70"
                 )}
                 onClick={() => handleSectionChange(section.id)}
+                onMouseEnter={() => prefetchSection(section.id)}
+                onFocus={() => prefetchSection(section.id)}
               >
                 <section.icon className="h-3.5 w-3.5" />
                 {section.label}
@@ -125,6 +149,8 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
                 locked && "opacity-70"
               )}
               onClick={() => handleSectionChange(section.id)}
+              onMouseEnter={() => prefetchSection(section.id)}
+              onFocus={() => prefetchSection(section.id)}
             >
               <section.icon className="h-4 w-4" />
               <span className="flex-1 text-left">{section.label}</span>

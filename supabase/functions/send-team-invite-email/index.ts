@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
       to: [payload.recipientEmail],
       reply_to: replyTo,
       subject: `${payload.inviterName} invited you to join ${payload.organizationName} on OptiRFP`,
-      html: renderHtml(payload),
+      html: renderHtml(payload, unsubscribeUrl),
       text: renderText(payload),
       headers: {
         "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${oneClickUrl}>`,

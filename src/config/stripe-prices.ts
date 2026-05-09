@@ -12,12 +12,12 @@
  */
 export const STRIPE_PRICE_IDS = {
   growth: {
-    monthly: 'price_1QlhMNCcQ0GhLgJorKCY8aBE',
-    annual: 'price_1QlhMNCcQ0GhLgJoVMuDzJRp',
+    monthly: 'price_1QtVG4CcQ0GhLgJo2eeXvzLn',
+    annual: 'price_1QtVG4CcQ0GhLgJokdbitinB',
   },
   business: {
-    monthly: 'price_1QlhNHCcQ0GhLgJo8NIFKtlo',
-    annual: 'price_1QlhNHCcQ0GhLgJoKuBKfXLa',
+    monthly: 'price_1QtVHQCcQ0GhLgJoRBDC9L4g',
+    annual: 'price_1QtVHQCcQ0GhLgJos7ptpj8X',
   },
 } as const;
 

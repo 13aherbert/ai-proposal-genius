@@ -192,7 +192,9 @@ export function IntegrationManager() {
     try {
       const { data, error } = await (supabase as any)
         .from('organization_integrations')
-        .select('*')
+        .select(
+          'id, organization_id, integration_type, integration_name, configuration, is_active, last_sync_at, sync_status, error_message, created_at, updated_at, has_credentials, credentials_updated_at'
+        )
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false });
 

@@ -44,7 +44,7 @@ function renderText(p: InvitePayload): string {
   return lines.filter((l) => l !== "" || true).join("\n");
 }
 
-function renderHtml(p: InvitePayload): string {
+function renderHtml(p: InvitePayload, unsubscribeUrl: string): string {
   const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
@@ -76,7 +76,7 @@ function renderHtml(p: InvitePayload): string {
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">
           You received this email because ${escapeHtml(p.inviterName)} invited you to join ${escapeHtml(p.organizationName)} on OptiRFP. If you weren't expecting this, you can safely ignore it.<br/>
-          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="mailto:unsubscribe@optirfp.ai?subject=Unsubscribe" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
         </td></tr>
       </table>
     </td></tr>
@@ -114,6 +114,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Suppression check: skip sending if recipient previously unsubscribed.
+    const supabaseAdmin2 = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+    const { data: suppressed } = await supabaseAdmin2.rpc("has_unsubscribed", {
+      _email: payload.recipientEmail,
+    });
+    if (suppressed === true) {
+      return new Response(JSON.stringify({ success: false, suppressed: true, error: "Recipient unsubscribed" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!LOVABLE_API_KEY || !RESEND_API_KEY) {
@@ -126,17 +138,33 @@ Deno.serve(async (req) => {
     const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP Team <team@updates.optirfp.ai>";
     const replyTo = payload.inviterEmail || Deno.env.get("INVITE_REPLY_TO") || "support@optirfp.ai";
 
-    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?email=${encodeURIComponent(payload.recipientEmail)}`;
+    // Build signed unsubscribe URLs (HMAC-SHA256 of lowercased email).
+    const UNSUB_SECRET = Deno.env.get("UNSUBSCRIBE_SECRET") || "";
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(UNSUB_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload.recipientEmail.toLowerCase()));
+    const unsubToken = Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const qs = `email=${encodeURIComponent(payload.recipientEmail)}&token=${unsubToken}`;
+    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?${qs}`;
+    const oneClickUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/email-unsubscribe?${qs}`;
 
     const body: Record<string, unknown> = {
       from: fromAddress,
       to: [payload.recipientEmail],
       reply_to: replyTo,
       subject: `${payload.inviterName} invited you to join ${payload.organizationName} on OptiRFP`,
-      html: renderHtml(payload),
+      html: renderHtml(payload, unsubscribeUrl),
       text: renderText(payload),
       headers: {
-        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${oneClickUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     };

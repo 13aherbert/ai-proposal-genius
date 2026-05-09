@@ -180,3 +180,7 @@ import_map = "import_map.json"
 name = "ai-transform"
 verify_jwt = false
 import_map = "import_map.json"
+[[functions]]
+name = "email-unsubscribe"
+verify_jwt = false
+import_map = "import_map.json"

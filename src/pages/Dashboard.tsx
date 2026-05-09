@@ -123,6 +123,29 @@ export default function Dashboard() {
   const isEnterprise = organization?.subscription_tier === 'enterprise';
   const isEstablished = dashboardStats.hasProjects || dashboardStats.hasKnowledgeEntries;
   const showSidebar = !isEstablished || (knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading);
+  const isReady = !statsLoading && !knowledgeReadiness.isLoading && !subscriptionLoading;
+
+  if (!isReady) {
+    return (
+      <div className="space-y-6">
+        <div data-tour="dashboard-header">
+          <DashboardHeader />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

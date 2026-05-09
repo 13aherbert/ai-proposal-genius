@@ -2,6 +2,7 @@ import { Pricing } from "./pricing";
 import { ROICalculator } from "./ROICalculator";
 import { CompetitorComparison } from "./CompetitorComparison";
 import { PricingFAQ } from "./PricingFAQ";
+import { STRIPE_PRICE_IDS } from "@/config/stripe-prices";
 
 const plans = [
   {

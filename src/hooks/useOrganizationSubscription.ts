@@ -39,9 +39,15 @@ export function useOrganizationSubscription() {
 
       console.log("Fetching subscription for organization:", organization.id);
       
+      // NOTE: stripe_customer_id / stripe_subscription_id are intentionally
+      // excluded — they are revoked from authenticated clients at the column
+      // level and only fetched server-side (or via the get_org_stripe_ids RPC
+      // for owners/admins). Selecting them here would 401.
       const { data, error } = await supabase
         .from("organization_subscriptions")
-        .select("*")
+        .select(
+          "id, organization_id, subscription_id, status, plan_type, current_period_end, project_limit, member_limit, features, cancel_at_period_end, created_at, updated_at, billing_model, used_seats, max_seats, custom_pricing, billing_cycle, trial_ends_at, billing_contact_email, billing_address"
+        )
         .eq("organization_id", organization.id)
         .single();
 

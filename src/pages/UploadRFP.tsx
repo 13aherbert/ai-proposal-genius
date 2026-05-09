@@ -14,10 +14,12 @@ import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { toast } from "sonner";
 import AutomatedProposalCreation, { type AutomatedProposalCreationRef } from "@/components/project/AutomatedProposalCreation";
 import { UpgradeGateModal } from "@/components/subscription/UpgradeGateModal";
+import { useSEO } from "@/hooks/use-seo";
 
 const MemoizedUploadDropzone = memo(UploadDropzone);
 
 const UploadRFP = () => {
+  useSEO({ title: "Upload RFP — OptiRFP", description: "Upload an RFP document or paste a URL to start a new AI-drafted proposal." });
   const navigate = useNavigate();
   const location = useLocation();
   const prefillState = location.state as {

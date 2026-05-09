@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { emailService } from "@/services/EmailService";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function ResetPassword() {
+  useSEO({ title: "Reset Password — OptiRFP", description: "Set a new password for your OptiRFP account." });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);

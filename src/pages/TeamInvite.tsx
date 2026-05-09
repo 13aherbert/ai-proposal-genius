@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSEO } from '@/hooks/use-seo';
 
 export default function TeamInvite() {
+  useSEO({ title: "Invite Team Members — OptiRFP", description: "Invite collaborators to your OptiRFP organization." });
   const { organization } = useCurrentOrganization();
   const { members, fetchMembers } = useOrganizationMembers(organization?.id);
 

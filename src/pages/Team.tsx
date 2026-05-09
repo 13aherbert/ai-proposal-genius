@@ -5,8 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Users, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useSEO } from '@/hooks/use-seo';
 
 export default function Team() {
+  useSEO({ title: "Team — OptiRFP", description: "Manage members, roles, and invitations for your OptiRFP organization." });
   const { organization } = useCurrentOrganization();
   const { members } = useOrganizationMembers(organization?.id);
 

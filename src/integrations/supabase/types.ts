@@ -883,6 +883,98 @@ export type Database = {
           },
         ]
       }
+      lifetime_deal_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          notes: string | null
+          plan_slug: string
+          redemption_count: number
+          stripe_price_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          notes?: string | null
+          plan_slug?: string
+          redemption_count?: number
+          stripe_price_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          notes?: string | null
+          plan_slug?: string
+          redemption_count?: number
+          stripe_price_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lifetime_deal_redemptions: {
+        Row: {
+          amount_paid_cents: number | null
+          code_id: string
+          currency: string | null
+          email: string | null
+          id: string
+          redeemed_at: string
+          refunded_at: string | null
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid_cents?: number | null
+          code_id: string
+          currency?: string | null
+          email?: string | null
+          id?: string
+          redeemed_at?: string
+          refunded_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid_cents?: number | null
+          code_id?: string
+          currency?: string | null
+          email?: string | null
+          id?: string
+          redeemed_at?: string
+          refunded_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifetime_deal_redemptions_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "lifetime_deal_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -3081,6 +3173,8 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           features: Json | null
+          is_lifetime: boolean
+          lifetime_redemption_id: string | null
           plan_type: string
           project_limit: number | null
           status: string
@@ -3096,6 +3190,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           features?: Json | null
+          is_lifetime?: boolean
+          lifetime_redemption_id?: string | null
           plan_type: string
           project_limit?: number | null
           status: string
@@ -3111,6 +3207,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           features?: Json | null
+          is_lifetime?: boolean
+          lifetime_redemption_id?: string | null
           plan_type?: string
           project_limit?: number | null
           status?: string
@@ -3120,7 +3218,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_lifetime_redemption_id_fkey"
+            columns: ["lifetime_redemption_id"]
+            isOneToOne: false
+            referencedRelation: "lifetime_deal_redemptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_ticket_messages: {
         Row: {
@@ -3426,6 +3532,7 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      claim_lifetime_code_slot: { Args: { _code_id: string }; Returns: boolean }
       create_default_organization_for_user: {
         Args: { user_id_param: string }
         Returns: string
@@ -3675,6 +3782,7 @@ export type Database = {
         Args: { org_id_param: string; user_id_param: string }
         Returns: boolean
       }
+      validate_lifetime_code: { Args: { _code: string }; Returns: Json }
       validate_password_policy: {
         Args: { password: string }
         Returns: {

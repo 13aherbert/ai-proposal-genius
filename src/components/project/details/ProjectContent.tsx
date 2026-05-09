@@ -4,8 +4,14 @@ import { ProjectInfo } from "@/components/project/ProjectInfo";
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import {
+  OverviewSkeleton,
+  AnalysisSkeleton,
+  ProposalSkeleton,
+  ReviewSkeleton,
+  DesignSkeleton,
+} from "./SectionSkeletons";
 import { GatedFeature } from "@/components/subscription/GatedFeature";
 import { useProjectPresence } from "@/hooks/useProjectPresence";
 import { PresenceAvatars } from "@/components/project/presence";
@@ -21,12 +27,6 @@ const ReviewQueue = lazy(() => import("@/components/project/review/ReviewQueue")
 import { UnifiedAnalysisView } from "@/components/project/unified-analysis/UnifiedAnalysisView";
 import { UnifiedProposalView } from "@/components/project/unified-proposal/UnifiedProposalView";
 
-// Fallback loading component
-const SectionLoading = () => (
-  <div className="flex justify-center items-center h-[400px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
 
 interface ProjectContentProps {
   project: Project;
@@ -99,7 +99,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
             ]}
           >
             <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
+              <Suspense fallback={<ReviewSkeleton />}>
                 <div className="space-y-6">
                   <ReviewQueue projectId={project.project_id} members={membersList} />
                   <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />
@@ -123,7 +123,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
             ]}
           >
             <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
+              <Suspense fallback={<DesignSkeleton />}>
                 <ProposalDesignStudio projectId={project.project_id} />
               </Suspense>
             </ErrorBoundary>
@@ -158,7 +158,9 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
           </div>
         ) : null}
         <ErrorBoundary>
-          {renderSection()}
+          <div key={activeSection} className="animate-fade-in">
+            {renderSection()}
+          </div>
         </ErrorBoundary>
       </div>
     </div>

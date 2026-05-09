@@ -103,40 +103,7 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    if (session?.user) {
-      const userCreatedAt = new Date(session.user.created_at);
-      const now = new Date();
-      const isNew = now.getTime() - userCreatedAt.getTime() < 24 * 60 * 60 * 1000;
-      setIsNewUser(isNew);
-
-      const tutorialCompleted = localStorage.getItem('tutorial_completed') === 'true';
-      setHasCompletedTutorial(tutorialCompleted);
-      fetchDashboardStats();
-    }
-  }, [session]);
-
-  const fetchDashboardStats = async () => {
-    if (!session?.user?.id) return;
-    try {
-      const { data: projects, error: projectError } = await supabase
-        .from('projects').select('project_id').eq('user_id', session.user.id);
-      if (projectError) throw projectError;
-
-      const { data: knowledge, error: knowledgeError } = await supabase
-        .from('knowledge_entries').select('entry_id').eq('user_id', session.user.id);
-      if (knowledgeError) throw knowledgeError;
-
-      setDashboardStats({
-        projectCount: projects?.length || 0,
-        knowledgeCount: knowledge?.length || 0,
-        hasProjects: (projects?.length || 0) > 0,
-        hasKnowledgeEntries: (knowledge?.length || 0) > 0
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    }
-  };
+  // Stats and tutorial state are now derived synchronously / via React Query.
 
   const profileComplete = !!(profileData.first_name && profileData.last_name && profileData.business_name);
 

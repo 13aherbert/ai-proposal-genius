@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { useCurrentOrganization } from "@/hooks/use-current-organization";
 import { toast } from "sonner";
 
 export interface ReviewCycle {
@@ -43,28 +44,15 @@ export interface HealthScore {
   calculated_at: string;
 }
 
-export function useKBGovernance() {
+export function useKBGovernance(enabled: boolean = true) {
   const { session } = useAuth();
+  const { organization } = useCurrentOrganization();
+  const orgId = organization?.id ?? null;
   const [reviewCycles, setReviewCycles] = useState<ReviewCycle[]>([]);
   const [healthScores, setHealthScores] = useState<HealthScore[]>([]);
   const [qaPairs, setQAPairs] = useState<QAPair[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [orgId, setOrgId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    const fetchOrg = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("current_organization_id")
-        .eq("profile_id", session.user.id)
-        .single();
-      if (data?.current_organization_id) {
-        setOrgId(data.current_organization_id);
-      }
-    };
-    fetchOrg();
-  }, [session?.user?.id]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!orgId) return;
@@ -78,6 +66,7 @@ export function useKBGovernance() {
       if (cyclesRes.data) setReviewCycles(cyclesRes.data as ReviewCycle[]);
       if (healthRes.data) setHealthScores(healthRes.data as HealthScore[]);
       if (qaRes.data) setQAPairs(qaRes.data as QAPair[]);
+      setHasFetched(true);
     } catch (err) {
       console.error("Error fetching governance data:", err);
     } finally {
@@ -85,9 +74,12 @@ export function useKBGovernance() {
     }
   }, [orgId]);
 
+  // Lazy: only fetch when panel is opened (enabled=true) and org is known
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    if (enabled && orgId && !hasFetched) {
+      fetchAll();
+    }
+  }, [enabled, orgId, hasFetched, fetchAll]);
 
   const upsertReviewCycle = async (category: string, frequencyDays: number, assignedTo?: string | null) => {
     if (!orgId) return;

@@ -2016,7 +2016,6 @@ export type Database = {
           name: string
           organization_id: string
           retry_count: number
-          secret_key: string
           secret_key_ciphertext: string | null
           secret_key_iv: string | null
           secret_key_last4: string | null
@@ -2038,7 +2037,6 @@ export type Database = {
           name: string
           organization_id: string
           retry_count?: number
-          secret_key: string
           secret_key_ciphertext?: string | null
           secret_key_iv?: string | null
           secret_key_last4?: string | null
@@ -2060,7 +2058,6 @@ export type Database = {
           name?: string
           organization_id?: string
           retry_count?: number
-          secret_key?: string
           secret_key_ciphertext?: string | null
           secret_key_iv?: string | null
           secret_key_last4?: string | null

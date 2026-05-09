@@ -1,4 +1,4 @@
-import { Users, Zap, DollarSign } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 
 const stats = [
   { icon: Zap, value: "93%", label: "93% faster proposal creation" },

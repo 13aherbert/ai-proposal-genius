@@ -1,38 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SubscriptionPlan } from '@/types/subscription';
 import { toast } from 'sonner';
 
-/**
- * Creates a new trial subscription for a user
- * @param userId User ID to create subscription for
- * @returns New trial subscription
- */
-export const createTrialSubscription = async (userId: string): Promise<SubscriptionPlan | null> => {
-  const newSubscription: SubscriptionPlan = {
-    subscription_id: crypto.randomUUID(),
-    user_id: userId,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    status: 'trialing',
-    plan_type: 'trial',
-    project_limit: 3,
-    features: {},
-    current_period_end: null,
-    stripe_customer_id: null,
-    stripe_subscription_id: null,
-  };
-
-  const { error: insertError } = await supabase
-    .from('subscriptions')
-    .insert([newSubscription]);
-
-  if (insertError) {
-    console.error('Error creating trial subscription:', insertError);
-  }
-  
-  return newSubscription;
-};
 
 /**
  * Creates a checkout session for subscription upgrade

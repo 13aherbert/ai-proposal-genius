@@ -47,10 +47,13 @@ export default function SubscriptionSuccess() {
 
   const getPlanDisplayName = (planType: string) => {
     switch (planType) {
+      case 'growth': return 'Growth Plan';
+      case 'business': return 'Business Plan';
+      case 'enterprise': return 'Enterprise Plan';
+      case 'starter': return 'Starter Plan';
+      // Legacy slugs
       case 'pro': return 'Pro Plan';
       case 'basic': return 'Basic Plan';
-      case 'starter': return 'Starter Plan';
-      case 'enterprise': return 'Enterprise Plan';
       default: return 'Subscription';
     }
   };

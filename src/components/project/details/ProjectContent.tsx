@@ -99,7 +99,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
             ]}
           >
             <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
+              <Suspense fallback={<ReviewSkeleton />}>
                 <div className="space-y-6">
                   <ReviewQueue projectId={project.project_id} members={membersList} />
                   <ProposalEvaluation projectId={project.project_id} analysis={project.analysis} />

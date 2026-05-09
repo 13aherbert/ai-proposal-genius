@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft, Wrench, ChevronDown, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -43,33 +43,11 @@ const KnowledgeBase = () => {
   } = useKnowledgeBase();
   const { isSeeding, seedingProgress } = useStarterTemplates();
   const readiness = useKnowledgeReadiness();
-  const governance = useKBGovernance();
+  const [showGovernance, setShowGovernance] = useState(false);
+  const governance = useKBGovernance(showGovernance);
 
   const [selectedSearchEntry, setSelectedSearchEntry] = useState<SearchResult | null>(null);
-  const [categoryLastUpdated, setCategoryLastUpdated] = useState<Record<string, string>>({});
-  const [showGovernance, setShowGovernance] = useState(false);
-
-  // Fetch the most recent updated_at per category for staleness indicators
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    const fetchCategoryDates = async () => {
-      const { data } = await supabase
-        .from('knowledge_entries')
-        .select('category, updated_at')
-        .eq('user_id', session.user.id)
-        .order('updated_at', { ascending: false });
-      if (data) {
-        const map: Record<string, string> = {};
-        for (const row of data) {
-          if (!map[row.category]) {
-            map[row.category] = row.updated_at;
-          }
-        }
-        setCategoryLastUpdated(map);
-      }
-    };
-    fetchCategoryDates();
-  }, [session?.user?.id]);
+  const categoryLastUpdated = readiness.categoryLastUpdated;
 
   const isSearchActive = searchQuery.trim().length > 0;
 

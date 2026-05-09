@@ -332,7 +332,17 @@ export function useStarterTemplates() {
       }
     };
 
-    checkAndSeed();
+    // Defer to browser idle time so it doesn't block KB page paint
+    const ric = (window as any).requestIdleCallback as
+      | ((cb: () => void, opts?: { timeout: number }) => number)
+      | undefined;
+    const handle = ric
+      ? ric(() => { checkAndSeed(); }, { timeout: 3000 })
+      : (window.setTimeout(checkAndSeed, 1500) as unknown as number);
+    return () => {
+      const cancel = (window as any).cancelIdleCallback as ((h: number) => void) | undefined;
+      if (cancel && ric) cancel(handle); else window.clearTimeout(handle);
+    };
   }, [session?.user?.id]);
 
   return { isSeeding, seedingProgress };

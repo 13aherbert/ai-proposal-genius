@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/AuthProvider';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,84 +14,57 @@ export interface CategoryCoverage {
 }
 
 export interface KnowledgeReadiness {
-  // Overall scores
-  overallScore: number; // 0-100
-  essentialScore: number; // 0-100, based on essential categories only
-  
-  // Coverage details
+  overallScore: number;
+  essentialScore: number;
   totalEntries: number;
   categoryCoverage: CategoryCoverage[];
-  
-  // Status flags
-  isReady: boolean; // >= 60% essential coverage
-  needsAttention: boolean; // < 40% essential coverage
-  isEmpty: boolean; // 0 entries
-  
-  // Missing items
+  isReady: boolean;
+  needsAttention: boolean;
+  isEmpty: boolean;
   missingEssential: string[];
   missingRecommended: string[];
-
-  // Template detection
   templateOnlyCategories: string[];
-  
-  // Loading state
+  categoryLastUpdated: Record<string, string>;
   isLoading: boolean;
   error: string | null;
 }
 
-const READINESS_THRESHOLD = 60; // Minimum % for "ready"
-const ATTENTION_THRESHOLD = 40; // Below this needs attention
+const READINESS_THRESHOLD = 60;
+const ATTENTION_THRESHOLD = 40;
+const TEMPLATE_MARKER = "Replace with your content";
 
 export function useKnowledgeReadiness(): KnowledgeReadiness {
   const { session } = useAuth();
   const { organization } = useCurrentOrganization();
-  const [entries, setEntries] = useState<{ category: string; content: string | null; parsed_content: string | null }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const orgId = organization?.id ?? null;
 
-  useEffect(() => {
-    async function fetchEntries() {
-      if (!session?.user?.id) {
-        setIsLoading(false);
-        return;
-      }
-      if (!organization?.id) {
-        return; // Org still loading, keep isLoading = true
-      }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['kb-readiness', orgId],
+    enabled: !!session?.user?.id && !!orgId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      // Slim payload: only fields needed for readiness, template detection, and recency
+      const { data, error } = await supabase
+        .from('knowledge_entries')
+        .select('category, content, updated_at')
+        .eq('organization_id', orgId!)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-      try {
-        setIsLoading(true);
-        const { data, error: fetchError } = await supabase
-          .from('knowledge_entries')
-          .select('category, content, parsed_content')
-          .eq('organization_id', organization.id);
+  const entries = data ?? [];
 
-        if (fetchError) throw fetchError;
-        setEntries(data || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching knowledge entries:', err);
-        setError('Failed to load knowledge base');
-        setEntries([]);
-      } finally {
-        setIsLoading(false);
-      }
+  return useMemo<KnowledgeReadiness>(() => {
+    const entryCounts: Record<string, number> = {};
+    const categoryLastUpdated: Record<string, string> = {};
+    for (const e of entries) {
+      entryCounts[e.category] = (entryCounts[e.category] || 0) + 1;
+      if (!categoryLastUpdated[e.category]) categoryLastUpdated[e.category] = e.updated_at;
     }
 
-    fetchEntries();
-  }, [session?.user?.id, organization?.id]);
-
-  const readiness = useMemo((): Omit<KnowledgeReadiness, 'isLoading' | 'error'> => {
-    const TEMPLATE_MARKER = "Replace with your content";
-
-    // Count entries per category
-    const entryCounts: Record<string, number> = {};
-    entries.forEach(entry => {
-      const category = entry.category;
-      entryCounts[category] = (entryCounts[category] || 0) + 1;
-    });
-
-    // Detect template-only categories
     const templateOnlyCategories: string[] = [];
     enhancedKnowledgeCategories.forEach(cat => {
       const catEntries = entries.filter(e => e.category === cat.name);
@@ -99,7 +73,6 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
       }
     });
 
-    // Build category coverage
     const categoryCoverage: CategoryCoverage[] = enhancedKnowledgeCategories.map(cat => ({
       name: cat.name,
       priority: cat.priority,
@@ -108,39 +81,20 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
       description: cat.description,
     }));
 
-    // Calculate essential coverage
     const essentialCategories = getEssentialCategories();
-    const essentialCovered = categoryCoverage
-      .filter(c => c.priority === 'essential' && c.hasContent)
-      .length;
-    const essentialScore = Math.round((essentialCovered / essentialCategories.length) * 100);
+    const essentialCovered = categoryCoverage.filter(c => c.priority === 'essential' && c.hasContent).length;
+    const essentialScore = Math.round((essentialCovered / Math.max(essentialCategories.length, 1)) * 100);
 
-    // Calculate overall score (weighted: essential=60%, recommended=30%, optional=10%)
-    const recommendedCovered = categoryCoverage
-      .filter(c => c.priority === 'recommended' && c.hasContent)
-      .length;
-    const optionalCovered = categoryCoverage
-      .filter(c => c.priority === 'optional' && c.hasContent)
-      .length;
-    
-    const recommendedTotal = categoryCoverage.filter(c => c.priority === 'recommended').length;
-    const optionalTotal = categoryCoverage.filter(c => c.priority === 'optional').length;
-    
-    const weightedScore = 
-      (essentialCovered / essentialCategories.length) * 60 +
+    const recommendedCovered = categoryCoverage.filter(c => c.priority === 'recommended' && c.hasContent).length;
+    const optionalCovered = categoryCoverage.filter(c => c.priority === 'optional' && c.hasContent).length;
+    const recommendedTotal = Math.max(categoryCoverage.filter(c => c.priority === 'recommended').length, 1);
+    const optionalTotal = Math.max(categoryCoverage.filter(c => c.priority === 'optional').length, 1);
+
+    const overallScore = Math.round(
+      (essentialCovered / Math.max(essentialCategories.length, 1)) * 60 +
       (recommendedCovered / recommendedTotal) * 30 +
-      (optionalCovered / optionalTotal) * 10;
-    
-    const overallScore = Math.round(weightedScore);
-
-    // Determine missing categories
-    const missingEssential = categoryCoverage
-      .filter(c => c.priority === 'essential' && !c.hasContent)
-      .map(c => c.name);
-    
-    const missingRecommended = categoryCoverage
-      .filter(c => c.priority === 'recommended' && !c.hasContent)
-      .map(c => c.name);
+      (optionalCovered / optionalTotal) * 10
+    );
 
     return {
       overallScore,
@@ -150,15 +104,12 @@ export function useKnowledgeReadiness(): KnowledgeReadiness {
       isReady: essentialScore >= READINESS_THRESHOLD,
       needsAttention: essentialScore < ATTENTION_THRESHOLD,
       isEmpty: entries.length === 0,
-      missingEssential,
-      missingRecommended,
+      missingEssential: categoryCoverage.filter(c => c.priority === 'essential' && !c.hasContent).map(c => c.name),
+      missingRecommended: categoryCoverage.filter(c => c.priority === 'recommended' && !c.hasContent).map(c => c.name),
       templateOnlyCategories,
+      categoryLastUpdated,
+      isLoading,
+      error: error ? 'Failed to load knowledge base' : null,
     };
-  }, [entries]);
-
-  return {
-    ...readiness,
-    isLoading,
-    error,
-  };
+  }, [entries, isLoading, error]);
 }

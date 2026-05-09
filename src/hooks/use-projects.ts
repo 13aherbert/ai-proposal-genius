@@ -31,25 +31,9 @@ export function useProjects(user: User | null) {
   const [totalCount, setTotalCount] = useState(0);
   const [cachedProjectLimit, setCachedProjectLimit] = useState<number | null>(null);
   
-  // Get user's current organization with safety timeout
   const { organization, loading: orgLoading, error: orgError } = useCurrentOrganization();
   const organizationId = organization?.id;
-  
-  // Safety timeout: if org loading takes > 5s, bypass it
-  const [orgLoadingTimedOut, setOrgLoadingTimedOut] = useState(false);
-  useEffect(() => {
-    if (!orgLoading) {
-      setOrgLoadingTimedOut(false);
-      return;
-    }
-    const timer = setTimeout(() => {
-      console.warn("useProjects: orgLoading timed out after 5s, bypassing org filter");
-      setOrgLoadingTimedOut(true);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [orgLoading]);
-  
-  const effectiveOrgLoading = orgLoading && !orgLoadingTimedOut;
+  const effectiveOrgLoading = orgLoading;
   
   useEffect(() => {
     const subscriptionData = getStoredSubscriptionData();
@@ -114,76 +98,30 @@ export function useProjects(user: User | null) {
     organizationId: string | null | undefined;
   }) => {
     try {
-      console.log("fetchProjects - Starting fetch for user:", userId);
-      console.log("fetchProjects - Organization ID:", organizationId);
-      console.log("fetchProjects - Pagination:", { currentPage, pageSize });
-      
-      if (!userId) {
-        console.warn("Cannot fetch projects: No user ID provided");
-        return { data: [], totalCount: 0 };
-      }
-      
-      // If user has no organization, fetch by user_id only (no org filter)
-      
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      // Build the query with organization context
-      let countQuery = supabase
-        .from("projects")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
-      
-      // Only add organization filter if we have an organization ID
-      if (organizationId) {
-        countQuery = countQuery.eq("organization_id", organizationId);
-      }
-
-      const { count, error: countError } = await countQuery;
-
-      if (countError) {
-        console.error("Count error:", countError);
-        throw new Error(`Count query failed: ${countError.message}`);
-      }
-
-      const totalCount = count || 0;
-      console.log("Total project count:", totalCount);
+      if (!userId) return { data: [], totalCount: 0 };
 
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Build the main query with organization context
-      let dataQuery = supabase
+      // Single round-trip: count + data in one request
+      let query = supabase
         .from("projects")
-        .select(`
-          project_id,
-          title,
-          status,
-          created_at,
-          rfp_file_path,
-          last_update_at,
-          user_id,
-          deadline
-        `)
+        .select(
+          `project_id, title, status, created_at, rfp_file_path, last_update_at, user_id, deadline`,
+          { count: "exact" }
+        )
         .eq("user_id", userId)
         .order("last_update_at", { ascending: false })
         .range(from, to);
 
-      // Only add organization filter if we have an organization ID
       if (organizationId) {
-        dataQuery = dataQuery.eq("organization_id", organizationId);
+        query = query.eq("organization_id", organizationId);
       }
 
-      const { data, error } = await dataQuery;
+      const { data, count, error } = await query;
+      if (error) throw new Error(`Projects query failed: ${error.message}`);
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw new Error(`Projects query failed: ${error.message}`);
-      }
-
-      console.log("Projects fetched:", data);
-      return { data: data as Project[] || [], totalCount };
+      return { data: (data as Project[]) || [], totalCount: count || 0 };
     } catch (err) {
       console.error("fetchProjects - Error:", err);
       throw err;

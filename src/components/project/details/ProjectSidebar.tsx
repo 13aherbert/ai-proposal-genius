@@ -80,6 +80,28 @@ export function ProjectSidebar({ activeSection, onSectionChange }: ProjectSideba
     onSectionChange(sectionId);
   };
 
+  // Prefetch lazy chunks on hover for faster section switching
+  const prefetchSection = (sectionId: string) => {
+    switch (sectionId) {
+      case "analysis":
+        import("@/components/project/unified-analysis/UnifiedAnalysisView");
+        import("@/components/project/RFPAnalysis");
+        import("@/components/project/proposal-outline/ProposalOutline");
+        break;
+      case "proposal":
+        import("@/components/project/unified-proposal/UnifiedProposalView");
+        import("@/components/project/proposal-draft/ProposalDraft");
+        break;
+      case "review":
+        import("@/components/project/review/ReviewQueue");
+        import("@/components/project/proposal-evaluation/ProposalEvaluation");
+        break;
+      case "design":
+        import("@/components/project/design-studio/ProposalDesignStudio");
+        break;
+    }
+  };
+
   return (
     <>
       {/* Mobile: horizontal scrollable tabs */}

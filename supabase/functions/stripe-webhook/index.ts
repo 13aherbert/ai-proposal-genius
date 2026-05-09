@@ -199,6 +199,121 @@ serve(async (req) => {
       // ---------------------------------------------------------------
       case 'checkout.session.completed': {
         const session = event.data.object;
+
+        // -----------------------------------------------------------
+        // LIFETIME DEAL (one-time payment, no subscription)
+        // -----------------------------------------------------------
+        if (session.mode === 'payment' && session.metadata?.lifetime_code_id) {
+          if (session.payment_status !== 'paid') {
+            console.log('Lifetime checkout not paid yet, skipping:', session.id);
+            break;
+          }
+
+          const codeId = session.metadata.lifetime_code_id as string;
+          const codeStr = (session.metadata.lifetime_code as string) ?? '';
+          const planSlug = ((session.metadata.plan_slug as string) ?? 'growth').toLowerCase();
+          const userId =
+            (session.client_reference_id as string | null) ||
+            (session.metadata.user_id as string | undefined) ||
+            null;
+
+          if (!userId) {
+            console.error('Lifetime checkout missing user id', session.id);
+            break;
+          }
+
+          // Atomically claim a redemption slot
+          const { data: claimed, error: claimErr } = await supabase.rpc(
+            'claim_lifetime_code_slot',
+            { _code_id: codeId },
+          );
+
+          if (claimErr || !claimed) {
+            console.error('Could not claim lifetime slot, refunding:', claimErr);
+            try {
+              if (session.payment_intent) {
+                await stripe.refunds.create({
+                  payment_intent: session.payment_intent as string,
+                });
+              }
+            } catch (refundErr) {
+              console.error('Refund failed:', refundErr);
+            }
+            break;
+          }
+
+          // Get amount from session
+          const amount = session.amount_total ?? null;
+
+          // Idempotent insert
+          const { data: redemption, error: redErr } = await supabase
+            .from('lifetime_deal_redemptions')
+            .upsert(
+              {
+                code_id: codeId,
+                user_id: userId,
+                email: session.customer_details?.email ?? null,
+                stripe_customer_id: (session.customer as string) ?? null,
+                stripe_payment_intent_id: (session.payment_intent as string) ?? null,
+                stripe_checkout_session_id: session.id,
+                amount_paid_cents: amount,
+                currency: session.currency ?? 'usd',
+              },
+              { onConflict: 'stripe_checkout_session_id' },
+            )
+            .select('id')
+            .maybeSingle();
+
+          if (redErr) {
+            console.error('Error inserting lifetime redemption:', redErr);
+          }
+
+          const tier = await lookupPricingTier(planSlug);
+          const projectLimit = tier?.projects_limit ?? getProjectLimit(planSlug);
+
+          const { error: subErr } = await supabase.from('subscriptions').upsert(
+            {
+              user_id: userId,
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: null,
+              status: 'active',
+              plan_type: planSlug,
+              project_limit: projectLimit === -1 ? 999999 : projectLimit,
+              billing_interval: 'lifetime',
+              current_period_end: null,
+              cancel_at_period_end: false,
+              is_lifetime: true,
+              lifetime_redemption_id: redemption?.id ?? null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' },
+          );
+
+          if (subErr) {
+            console.error('Error storing lifetime subscription:', subErr);
+          } else {
+            console.log('Lifetime subscription stored for user:', userId);
+            await syncOrganizationTier(userId, planSlug);
+            const email = await getUserEmail(userId);
+            if (email) {
+              await sendInternalEmail(
+                email,
+                `🎉 Welcome to ${tier?.name ?? 'Growth'} — for life`,
+                `<div style="font-family:sans-serif;max-width:560px;margin:auto">
+                  <h2>You're in. For good.</h2>
+                  <p>Your one-time payment is complete. You now have <strong>${tier?.name ?? 'Growth'}</strong> access on OptiRFP — permanently. No subscription, no renewals.</p>
+                  <p><a href="https://optirfp.ai/dashboard" style="display:inline-block;padding:10px 24px;background:#3B82F6;color:#fff;text-decoration:none;border-radius:6px">Go to your dashboard →</a></p>
+                </div>`,
+              );
+            }
+          }
+          console.log('Lifetime code redeemed:', codeStr, 'by', userId);
+          break;
+        }
+
+        // -----------------------------------------------------------
+        // STANDARD SUBSCRIPTION CHECKOUT
+        // -----------------------------------------------------------
         // NOTE: do not gate on session.payment_status — trial subscriptions
         // arrive as 'no_payment_required' and we still need to write the row.
         if (!session.subscription) break;
@@ -219,6 +334,17 @@ serve(async (req) => {
 
         if (!userId) {
           console.error('checkout.session.completed: no user_id resolvable from session', session.id);
+          break;
+        }
+
+        // Don't overwrite a lifetime entitlement
+        const { data: existing } = await supabase
+          .from('subscriptions')
+          .select('is_lifetime')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (existing?.is_lifetime) {
+          console.log('User has lifetime entitlement, skipping subscription overwrite:', userId);
           break;
         }
 
@@ -375,6 +501,46 @@ serve(async (req) => {
             await notifyDowngradeWarning(subRow.user_id, teamSize);
           }
         }
+        break;
+      }
+
+      // ---------------------------------------------------------------
+      // CHARGE REFUNDED — handle lifetime deal refunds
+      // ---------------------------------------------------------------
+      case 'charge.refunded': {
+        const charge = event.data.object as any;
+        const paymentIntentId = charge.payment_intent as string | null;
+        if (!paymentIntentId) break;
+
+        const { data: redemption } = await supabase
+          .from('lifetime_deal_redemptions')
+          .select('id, user_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle();
+
+        if (!redemption) break;
+
+        await supabase
+          .from('lifetime_deal_redemptions')
+          .update({ refunded_at: new Date().toISOString() })
+          .eq('id', redemption.id);
+
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            plan_type: 'starter',
+            project_limit: SUBSCRIPTION_PLAN_LIMITS.starter.projects,
+            billing_interval: null,
+            is_lifetime: false,
+            lifetime_redemption_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', redemption.user_id)
+          .eq('lifetime_redemption_id', redemption.id);
+
+        await syncOrganizationTier(redemption.user_id, 'starter');
+        console.log('Lifetime refund processed for user:', redemption.user_id);
         break;
       }
 

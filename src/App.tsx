@@ -60,6 +60,7 @@ const Contact = lazy(() => import("@/pages/Contact"));
 const Integrations = lazy(() => import("@/pages/Integrations"));
 const About = lazy(() => import("@/pages/About"));
 const HelpCenter = lazy(() => import("@/pages/HelpCenter"));
+const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -149,6 +150,7 @@ function AppContent() {
         </Route>
         
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/accept-invitation" element={<AcceptInvitation />} />
         
         {/* Public pages with shared navbar + footer */}
         <Route element={<PublicLayout />}>

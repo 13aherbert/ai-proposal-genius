@@ -65,6 +65,7 @@ export function MemberInvitation({ organizationId, onInviteSent, teamSize }: Mem
           role: formData.role,
           department: formData.department || null,
           message: formData.message || null,
+          origin: typeof window !== 'undefined' ? window.location.origin : undefined,
         },
       });
 
@@ -83,9 +84,11 @@ export function MemberInvitation({ organizationId, onInviteSent, teamSize }: Mem
         throw new Error(data?.error || 'Failed to send invitation');
       }
 
+      const emailFailed = data?.email_status === 'failed';
       toast({
-        title: 'Invitation sent',
-        description: data?.message || `Invitation has been sent to ${formData.email}`,
+        title: emailFailed ? 'Invitation created' : 'Invitation sent',
+        description: data?.message || `Invitation created for ${formData.email}`,
+        variant: emailFailed ? 'destructive' : 'default',
       });
 
       setFormData({

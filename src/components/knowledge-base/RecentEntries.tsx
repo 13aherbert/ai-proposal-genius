@@ -14,7 +14,7 @@ interface RecentEntriesProps {
 
 export const RecentEntries = ({ selectedCategory, categories }: RecentEntriesProps) => {
   const [selectedEntry, setSelectedEntry] = useState<KnowledgeEntry | null>(null);
-  const { entries, isLoading } = useEntries(selectedCategory);
+  const { entries, isLoading, invalidateCache } = useEntries(selectedCategory);
   const { session } = useAuth();
 
   if (isLoading) {

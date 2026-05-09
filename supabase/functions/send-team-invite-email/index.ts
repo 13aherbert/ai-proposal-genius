@@ -23,6 +23,27 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function renderText(p: InvitePayload): string {
+  const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+  });
+  const lines = [
+    `${p.inviterName} invited you to join ${p.organizationName} on OptiRFP as a ${p.role}.`,
+    "",
+    p.personalMessage ? `Personal message: ${p.personalMessage}` : "",
+    p.personalMessage ? "" : "",
+    `Accept your invitation: ${p.acceptUrl}`,
+    "",
+    `This invitation expires on ${expires}.`,
+    "",
+    "If you weren't expecting this email, you can safely ignore it.",
+    "",
+    "OptiRFP — https://optirfp.ai",
+    "To stop receiving these emails, reply with the word UNSUBSCRIBE.",
+  ];
+  return lines.filter((l) => l !== "" || true).join("\n");
+}
+
 function renderHtml(p: InvitePayload): string {
   const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
     month: "long",
@@ -53,8 +74,9 @@ function renderHtml(p: InvitePayload): string {
           <p style="margin:0 0 8px;font-size:13px;color:#6b7280;line-height:1.5;">This invitation expires on <strong>${expires}</strong>.</p>
           <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">If the button doesn't work, copy and paste this URL into your browser:<br/><a href="${p.acceptUrl}" style="color:#7c3aed;word-break:break-all;">${p.acceptUrl}</a></p>
         </td></tr>
-        <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
-          You received this email because someone invited you to join their team on OptiRFP. If you weren't expecting this, you can safely ignore it.
+        <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">
+          You received this email because ${escapeHtml(p.inviterName)} invited you to join ${escapeHtml(p.organizationName)} on OptiRFP. If you weren't expecting this, you can safely ignore it.<br/>
+          OptiRFP · <a href="https://optirfp.ai" style="color:#9ca3af;text-decoration:underline;">optirfp.ai</a> · <a href="mailto:unsubscribe@optirfp.ai?subject=Unsubscribe" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
         </td></tr>
       </table>
     </td></tr>
@@ -101,15 +123,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP <onboarding@resend.dev>";
+    const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP Team <team@updates.optirfp.ai>";
+    const replyTo = payload.inviterEmail || Deno.env.get("INVITE_REPLY_TO") || "support@optirfp.ai";
+
+    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?email=${encodeURIComponent(payload.recipientEmail)}`;
 
     const body: Record<string, unknown> = {
       from: fromAddress,
       to: [payload.recipientEmail],
+      reply_to: replyTo,
       subject: `${payload.inviterName} invited you to join ${payload.organizationName} on OptiRFP`,
       html: renderHtml(payload),
+      text: renderText(payload),
+      headers: {
+        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     };
-    if (payload.inviterEmail) body.reply_to = payload.inviterEmail;
 
     const resp = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",

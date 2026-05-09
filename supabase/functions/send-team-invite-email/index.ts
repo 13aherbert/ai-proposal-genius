@@ -44,7 +44,7 @@ function renderText(p: InvitePayload): string {
   return lines.filter((l) => l !== "" || true).join("\n");
 }
 
-function renderHtml(p: InvitePayload): string {
+function renderHtml(p: InvitePayload, unsubscribeUrl: string): string {
   const expires = new Date(p.expiresAt).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",

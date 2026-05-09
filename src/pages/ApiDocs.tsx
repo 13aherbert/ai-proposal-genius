@@ -7,9 +7,15 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { ApiDocsContent } from "@/components/api-docs/ApiDocsContent";
 import { PlanComparisonModal } from "@/components/subscription/PlanComparisonModal";
 
+import { useSEO } from "@/hooks/use-seo";
+
 export default function ApiDocs() {
   const { hasFeature, isLoading } = useSubscriptionFeatures();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  useSEO({
+    title: "API Documentation — OptiRFP Developer Reference",
+    description: "Integrate OptiRFP into your workflow with our REST API. Auth, endpoints, and examples.",
+  });
 
   const hasApiAccess = hasFeature("api_access");
 

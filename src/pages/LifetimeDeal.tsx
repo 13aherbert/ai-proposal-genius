@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Infinity as InfinityIcon, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 
 type ValidationState =
   | { status: "loading" }

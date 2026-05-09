@@ -1,0 +1,1 @@
+ALTER TABLE public.organization_webhooks DROP COLUMN IF EXISTS secret_key;

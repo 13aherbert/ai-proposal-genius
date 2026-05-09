@@ -114,6 +114,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Suppression check: skip sending if recipient previously unsubscribed.
+    const supabaseAdmin2 = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+    const { data: suppressed } = await supabaseAdmin2.rpc("has_unsubscribed", {
+      _email: payload.recipientEmail,
+    });
+    if (suppressed === true) {
+      return new Response(JSON.stringify({ success: false, suppressed: true, error: "Recipient unsubscribed" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!LOVABLE_API_KEY || !RESEND_API_KEY) {
@@ -126,7 +138,23 @@ Deno.serve(async (req) => {
     const fromAddress = Deno.env.get("INVITE_FROM_ADDRESS") || "OptiRFP Team <team@updates.optirfp.ai>";
     const replyTo = payload.inviterEmail || Deno.env.get("INVITE_REPLY_TO") || "support@optirfp.ai";
 
-    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?email=${encodeURIComponent(payload.recipientEmail)}`;
+    // Build signed unsubscribe URLs (HMAC-SHA256 of lowercased email).
+    const UNSUB_SECRET = Deno.env.get("UNSUBSCRIBE_SECRET") || "";
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(UNSUB_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload.recipientEmail.toLowerCase()));
+    const unsubToken = Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const qs = `email=${encodeURIComponent(payload.recipientEmail)}&token=${unsubToken}`;
+    const unsubscribeUrl = `https://optirfp.ai/unsubscribe?${qs}`;
+    const oneClickUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/email-unsubscribe?${qs}`;
 
     const body: Record<string, unknown> = {
       from: fromAddress,
@@ -136,7 +164,7 @@ Deno.serve(async (req) => {
       html: renderHtml(payload),
       text: renderText(payload),
       headers: {
-        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${unsubscribeUrl}>`,
+        "List-Unsubscribe": `<mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>, <${oneClickUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     };

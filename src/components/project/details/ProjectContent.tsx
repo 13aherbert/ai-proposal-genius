@@ -123,7 +123,7 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
             ]}
           >
             <ErrorBoundary>
-              <Suspense fallback={<SectionLoading />}>
+              <Suspense fallback={<DesignSkeleton />}>
                 <ProposalDesignStudio projectId={project.project_id} />
               </Suspense>
             </ErrorBoundary>

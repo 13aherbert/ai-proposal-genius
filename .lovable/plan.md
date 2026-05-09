@@ -1,63 +1,70 @@
-## Goal
-Give the `List-Unsubscribe` link in OptiRFP team-invite emails a real destination by adding a public `/unsubscribe` route plus a tiny edge function that records the opt-out, so Gmail/Yahoo's one-click unsubscribe requirement is satisfied end-to-end.
+## Onboarding ↔ Stripe Checkout: Audit & Fix Plan
 
-## Scope
-- One new public page `/unsubscribe` (no auth required)
-- One new edge function `email-unsubscribe` (no JWT, public)
-- One new table `email_unsubscribes` to store opt-outs
-- Wire `send-team-invite-email` to (a) skip sending if the recipient is unsubscribed and (b) point its `List-Unsubscribe` URL at `https://optirfp.ai/unsubscribe?email=…&token=…`
+### What I found
 
-Out of scope: a full preference center, per-category opt-outs, resubscribe UI, or changes to other email flows beyond the suppression check.
+End-to-end trace of signup → upgrade → webhook → subscription state surfaced three real blockers and a few cleanup items. Onboarding itself (3-step `EnhancedSignupForm`, `handle_new_user` trigger creating profile + default org + `user` role, redirect to `/dashboard` with progressive wizard via `useOnboardingFlow`) is working. The break is in the marketing pricing → Stripe handoff.
 
-## Plan
+### Blockers
 
-### 1. Database
-New table `public.email_unsubscribes`:
-- `email text primary key` (lowercased)
-- `token text not null unique` (random, used to validate one-click POSTs)
-- `unsubscribed_at timestamptz default now()`
-- `source text` (e.g. `team-invite`, `manual`)
-- `user_agent text`, `ip text` (best-effort metadata)
+1. **Wrong ID type on the marketing pricing page.** `src/components/blocks/pricing-demo.tsx` uses Stripe **Product** IDs (`prod_Rn5Qc3JRlG2dP5`, `prod_Rn5STkpd7teaIR`) for both monthly and annual. `create-checkout-session/index.ts` calls `stripe.prices.retrieve(priceId)`, which only accepts `price_...` IDs — every checkout from the public pricing page throws "Invalid price ID" before opening Stripe. The monthly/annual toggle is also a no-op because both slots hold the same value.
 
-RLS: enabled, no public select/insert/update/delete policies. Only the edge function (service role) reads/writes. A `has_unsubscribed(_email text)` SECURITY DEFINER function returns boolean for use from other edge functions.
+2. **Webhook can't link the paying user to a subscription row.** `create-checkout-session/index.ts` sets only `subscription_data.metadata.user_id`. `stripe-webhook` reads `session.client_reference_id` on `checkout.session.completed` and writes that into `subscriptions.user_id`. Result: every successful checkout upserts a row with `user_id = null`, so `check-subscription`, `SubscriptionProvider`, and project-limit gating never see the upgrade and the user stays on Starter despite paying.
 
-### 2. Edge function `email-unsubscribe` (public, `verify_jwt = false`)
-Two methods:
-- `GET /email-unsubscribe?email=…&token=…` → validates the token, upserts a row with `source='team-invite'`, returns `{ success: true, email }`. Used as the link target's API call.
-- `POST /email-unsubscribe` with `{ email, token }` JSON or `email=…&token=…` form body → same behavior. This is what Gmail's "one-click" client hits via `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+3. **Two divergent sources of truth for price IDs.** `src/components/subscription/UpgradeButton.tsx` (used in the in-app `/subscription` page) hardcodes its own `price_1Qlh...` IDs that are different from the marketing page's `prod_...` IDs. Even once the marketing page is fixed, drift between the two will cause inconsistent behavior.
 
-Token strategy: HMAC of the email using a new `UNSUBSCRIBE_SECRET` env var so we don't need to pre-issue tokens — anyone with a valid signed link can opt that address out, but random URLs can't. Idempotent: calling twice is a no-op.
+### Other issues worth cleaning up in the same pass
 
-### 3. Public page `src/pages/Unsubscribe.tsx`
-- Reads `email` and `token` from query string
-- On mount, calls the edge function (GET) and shows one of three states: success ("You've been unsubscribed from OptiRFP team invitations"), already-unsubscribed (same UI), or error (invalid/expired link with a `mailto:support@optirfp.ai` fallback)
-- Branded with the existing public layout styling, dark-mode aware
-- No auth required
+- **`OnboardingRouter` welcome card is unreachable** — its `useEffect` always navigates to `/dashboard` before the card can render. Delete the dead UI.
+- **`createTrialSubscription` writes a client-side row** with a random UUID and `status: 'trialing'`. Stripe webhook is the source of truth; this drifts. Remove the call site.
+- **CTA routing inconsistencies** in `pricing-demo.tsx`: Starter `href: "/#signup"` (no anchor exists), Enterprise `href: "#"`, paid plans `href: "/subscription"` instead of triggering checkout directly.
 
-Routing: add `<Route path="/unsubscribe" element={<Unsubscribe />} />` in `src/App.tsx` outside `ProtectedRoute` and outside `PublicLayout` (standalone, like `/reset-password` and `/accept-invitation`).
+### Plan
 
-### 4. Update `send-team-invite-email`
-- Compute `token = HMAC(UNSUBSCRIBE_SECRET, recipientEmail)`
-- Build `unsubscribeUrl = https://optirfp.ai/unsubscribe?email=…&token=…`
-- Replace the current header value with:
-  - `List-Unsubscribe: <https://…/email-unsubscribe?email=…&token=…>, <mailto:unsubscribe@optirfp.ai?subject=Unsubscribe>`
-  - Keep `List-Unsubscribe-Post: List-Unsubscribe=One-Click`
-- Replace the footer "Unsubscribe" link in the HTML/text with the same `unsubscribeUrl`
-- Before sending, call `has_unsubscribed(recipientEmail)`; if true, short-circuit with `{ success: false, suppressed: true }` and log it
+**1. Centralize Stripe price IDs**
+Create `src/config/stripe-prices.ts` exporting one map used by both the marketing pricing page and `UpgradeButton`:
+```ts
+export const STRIPE_PRICE_IDS = {
+  growth:   { monthly: "<paste>", annual: "<paste>" },
+  business: { monthly: "<paste>", annual: "<paste>" },
+};
+```
+Update `UpgradeButton.tsx` and `pricing-demo.tsx` to import from this single source. **You'll paste the four `price_...` IDs after approval.**
 
-### 5. Secret
-Add `UNSUBSCRIBE_SECRET` (random 32-byte string) via the secrets tool. Used by both edge functions.
+**2. Wire the public pricing card to checkout**
+In `src/components/blocks/pricing/PricingCard.tsx`, route by plan name:
+- Starter → `navigate('/auth?mode=signup')`
+- Growth / Business → `createCheckoutSession(priceId)` then `window.location.href = url`
+- Enterprise → open the existing `EnterpriseLeadForm` modal (the one wired to `submit-enterprise-lead`)
 
-### 6. Verification
-- Send a test invite to a Gmail address, click the footer Unsubscribe link → page shows success, row appears in `email_unsubscribes`.
-- Re-send the invite → function returns `suppressed: true`, no Resend call made.
-- In Gmail "Show original", confirm the `List-Unsubscribe` header now contains an HTTPS URL and `List-Unsubscribe-Post: One-Click`.
+Remove the `/subscription` redirect for paid tiers so the public pricing page actually closes the deal.
 
-## Technical notes (for build phase)
-- Files touched:
-  - new: `supabase/functions/email-unsubscribe/index.ts`
-  - new: `src/pages/Unsubscribe.tsx`
-  - edit: `src/App.tsx` (one route)
-  - edit: `supabase/functions/send-team-invite-email/index.ts` (token + headers + suppression check)
-  - new migration: `email_unsubscribes` table + `has_unsubscribed` function + RLS
-- No changes to other email flows in this pass; suppression check is opt-in per function.
+**3. Fix the user → subscription link in checkout**
+In `supabase/functions/create-checkout-session/index.ts`, add `client_reference_id: user.id` to `stripe.checkout.sessions.create(...)` (keep `subscription_data.metadata.user_id` for redundancy). In `supabase/functions/stripe-webhook/index.ts`, add a fallback inside `checkout.session.completed`: if `session.client_reference_id` is null, read `subscription.metadata.user_id` instead before upserting.
+
+**4. Trim dead onboarding UI**
+- `OnboardingRouter.tsx`: keep the loading state + redirect, delete the unreachable welcome card and "profile not found" branch (kept simple — the dashboard already runs the progressive wizard).
+- Remove the `createTrialSubscription` invocation; let the DB / Starter default handle it.
+
+**5. Smoke test in Stripe test mode**
+- Sign up → land on dashboard with Starter
+- Click Upgrade to Growth (annual) on the public `/pricing` → Stripe Checkout opens with the right price → complete with test card `4242…`
+- Confirm webhook fires (`stripe-webhook` logs show `Subscription stored successfully`)
+- Confirm `subscriptions` row has correct `user_id`, `plan_type='growth'`, `billing_interval='year'`, `project_limit=36`
+- Confirm `useSubscription` reflects Growth in the dashboard immediately (or after one refresh)
+- Repeat the monthly/annual toggle to verify the two distinct price IDs are sent
+
+### Technical details
+
+- Files touched: `src/config/stripe-prices.ts` (new), `src/components/blocks/pricing-demo.tsx`, `src/components/blocks/pricing/PricingCard.tsx`, `src/components/subscription/UpgradeButton.tsx`, `src/components/auth/onboarding/OnboardingRouter.tsx`, `src/components/subscription/SubscriptionPlans.tsx` (remove `createDefaultSubscription` call site), `supabase/functions/create-checkout-session/index.ts`, `supabase/functions/stripe-webhook/index.ts`.
+- No DB migration required — `subscriptions` schema already has every column the webhook writes.
+- No new secrets required — `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are already configured.
+
+### What I need from you to start
+
+The four real `price_...` IDs from your Stripe dashboard:
+- Growth — monthly
+- Growth — annual
+- Business — monthly
+- Business — annual
+
+(They'll be listed under each product in Stripe → Products → click product → "Pricing" section. Each starts with `price_`.)

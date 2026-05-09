@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSEO } from "@/hooks/use-seo";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
@@ -42,14 +44,17 @@ export default function Dashboard() {
   useSEO({ title: "Dashboard | OptiRFP", description: "Manage your RFP projects and proposals." });
   const { profileData } = useProfile();
   const navigate = useNavigate();
-  const [dashboardStats, setDashboardStats] = useState({
-    projectCount: 0,
-    knowledgeCount: 0,
-    hasProjects: false,
-    hasKnowledgeEntries: false
-  });
-  const [isNewUser, setIsNewUser] = useState(false);
-  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+  const dashboardStats = useDashboardStats();
+  const statsLoading = dashboardStats.isLoading;
+
+  const isNewUser = useMemo(() => {
+    if (!session?.user?.created_at) return false;
+    return Date.now() - new Date(session.user.created_at).getTime() < 24 * 60 * 60 * 1000;
+  }, [session?.user?.created_at]);
+
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(
+    () => localStorage.getItem('tutorial_completed') === 'true'
+  );
   const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
   const { organization } = useCurrentOrganization();
   const knowledgeReadiness = useKnowledgeReadiness();
@@ -58,7 +63,7 @@ export default function Dashboard() {
   const [checklistDismissed, setChecklistDismissed] = useState(
     () => localStorage.getItem('onboarding_checklist_dismissed') === 'true'
   );
-  const { data: subscriptionData } = useSubscription();
+  const { data: subscriptionData, isLoading: subscriptionLoading } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const { getProjectLimit, hasFeature } = useSubscriptionFeatures();
   const hasOpportunities = hasFeature('opportunity_search');

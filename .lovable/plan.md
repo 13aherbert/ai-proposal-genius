@@ -1,79 +1,76 @@
+## Performance Audit — Findings & Fix Plan
 
-## Design Studio — UX Audit & Redesign Plan
+After reviewing the auth, subscription, organization, and project-section code paths, the slow "section load" feel is caused by a small number of high-impact issues that compound: the auth effect re-runs on every session change, the same profile/organization is queried 3-4× per page, members are refetched without any cache, and every section tab waits for a serial chunk download + DB round-trip before showing anything.
 
-After reviewing `ProposalDesignStudio.tsx`, the canvas system (`CanvasEditor`, `CanvasPage`, `CanvasElement`, `InsertSidebar`, `FloatingToolbar`, `autoLayout.ts`, `elementFactory.ts`, `TextRenderer`), and the live state of project `df1ae5e9…`, the default Design output is genuinely hard to use. Below is a critique grouped by severity, then a focused fix plan.
+### Findings (highest impact first)
 
-### Critical UX problems with the default design
+**1. AuthProvider re-subscribes on every session change** (`src/components/AuthProvider.tsx`)
+- `useEffect` deps include `session`, so each `setSession` tears down and re-creates the `onAuthStateChange` listener, the 60s timeout interval, and the timeout. It also runs `JSON.stringify(session) !== JSON.stringify(currentSession)` on every event.
+- Side effect: a background `get-user-roles` edge call fires on every auth event and times out at 3s (visible in console: `Roles fetch timeout`).
 
-1. **Auto-layout produces overlapping / clipped text.**
-   `autoLayout.ts` estimates text height with a fixed glyph-width constant (`AVG_CHAR_WIDTH = 0.52`) and renders into absolutely-positioned boxes with `overflow:hidden` (`TextRenderer` style). Real fonts wrap differently, so paragraphs routinely render taller than the box → bottom lines are clipped, and the next block sits on top of them.
-2. **Body text is split mid-sentence across pages.**
-   `addText()` slices the *plain-text* string at a character cut, then re-wraps the *remaining* text as `<p>${remaining}</p>` — losing the original HTML, lists, links, bold/italic. The page break is purely visual and breaks reading flow.
-3. **Cover page uses hard-coded coordinates.**
-   Title is pinned at `y = PAGE_H * 0.4` with width = full content width, so long titles wrap, push into the subtitle, and the date sits at the bottom margin regardless of what's above it.
-4. **Tables and TOC are silently dropped** (`case 'toc': break;`, table case missing). A user who built a careful proposal sees content disappear with no warning.
-5. **Default zoom is too small.**
-   `useState(0.6)` on an 816×1056 page inside a `h-[calc(100vh-280px)]` container at 1067px viewport → the page is tiny, text renders below the legibility threshold, and "Fit" recomputes to ~0.55 making it worse.
-6. **Insert sidebar is icon-only with no labels.**
-   Five tabs (`Type`, `Square`, `ImageIcon`, `Palette`, `Layout`) of unlabeled 14px icons — discoverability is near zero. Icons (`Star`, `Heart`, etc.) show only the first 2 characters of the name as a placeholder.
-7. **No templates / no thumbnails.**
-   Pages tab is just "Page 1 (3)" text rows. There's no page thumbnail strip, no template library in canvas mode, no way to preview a layout before applying it.
-8. **Branding (colors / fonts) is unreachable from canvas mode.**
-   `BrandingCustomizer` only renders in classic view, but canvas mode is the default. Users have to switch out of the canvas (losing context) just to change brand colors.
-9. **"Re-import from Proposal" is one-click destructive.**
-   The AlertDialog warns, but there's no "merge" or "import only new sections" option, so users avoid using it after any manual edit.
-10. **No alignment guides, snapping, rulers, or grid.**
-    Free-form drag with no visual aid → hand-built layouts look ragged.
-11. **Save / autosave state is invisible.**
-    `isSaving` is passed only into `ExportPanel`; users don't see when changes are persisted.
-12. **No print/export preview that matches the canvas.**
-    Preview tab only exists in classic view; canvas has no "see what the PDF will look like" affordance.
+**2. Profile/organization queried 3-4× per project page**
+- `useCurrentOrganization` (react-query, cached) — good.
+- `ProjectContent.tsx` lines 44-49 — independent `profiles.current_organization_id` fetch.
+- `ProposalDraft.tsx` lines 62-69 — same independent fetch.
+- `useProposalSections.addSection` — fetches profile again on every insert.
+- All four return the same value `useCurrentOrganization` already has.
 
-### Plan — phased fixes
+**3. `useOrganizationMembers` has no caching** (`src/hooks/useOrganizationMembers.ts`)
+- Plain `useState` + `useEffect` — refetches on every mount with `select(*)` and a join to `profiles`. Called in both `ProjectContent` and `ProposalDraft`, so the same query runs twice per project page open and again on every tab switch that remounts.
 
-**Phase 1 — Fix the default output (highest leverage)**
+**4. Dual role-check pipeline** (`src/hooks/user-roles/`, `AuthProvider`)
+- `AuthProvider` calls the `get-user-roles` edge function on every auth event (3s timeout, frequently fails).
+- `useUserRoles` separately fires `is_admin` and `is_system_admin` RPCs on a 60s interval and after every session change, with its own delay/retry logic.
+- Console shows duplicate "Forced role check" / "Skipping role check" — two consumers fighting over the same state.
 
-- **Replace heuristic text sizing with real measurement.** Add a hidden offscreen measurement node (matching `fontFamily`, `fontSize`, `lineHeight`, `width`) to compute actual rendered height for each text block before placing it. Use this in `autoLayout.ts` instead of `approxTextHeight`.
-- **Stop clipping text boxes.** Change `TextRenderer` style from `overflow: hidden` to `overflow: visible` and make the element height **auto-grow** based on content (use a `ResizeObserver` on the editor to write `height` back to the element). This eliminates the truncation problem entirely.
-- **Preserve HTML when paginating long text.** Rewrite `addText()` to walk the parsed HTML node-by-node (paragraphs, list items), measure each, and break at paragraph boundaries — never mid-sentence. Carry the original markup forward.
-- **Render TOC and tables.** Add `addToc()` (text list of headings, hyperlinked to page numbers) and `addTable()` (group of shape + text cells). Stop silently dropping content.
-- **Cover page becomes flow-based.** Center title vertically based on its measured height + subtitle + date stack; cap title width at 80% of content width for better line breaks.
+**5. Section tabs are cold every time**
+- `ProjectContent` lazy-loads `UnifiedAnalysisView`, `UnifiedProposalView`, `ReviewQueue`, `ProposalDesignStudio` — each is a fresh chunk download + DB query (`proposal-sections`, `proposal_outline`, `comments`, `members`) on first click.
+- No prefetch, so the spinner is chunk-fetch + data-fetch in series.
 
-**Phase 2 — Sensible defaults & legibility**
+**6. `useEntries` caches via `useState`** (`src/components/knowledge-base/entries/useEntries.ts`)
+- Manual cache map in component state causes re-renders on every cache write and never deduplicates concurrent requests. Should be react-query (already in the project).
 
-- **Default zoom = "Fit width"** rather than a fixed 0.6, computed on first mount and re-applied when the side panels resize.
-- **Add a visible page thumbnail rail** on the left (replacing the bare "Pages" tab), so users can jump between pages and reorder via drag.
-- **Promote alignment guides + snap** when dragging (snap to page center, margins, and other elements; show 1px guide lines).
+**7. Misc**
+- `BrowserRouter` query client has `refetchOnWindowFocus: false` (good) but no `refetchOnMount: false` — keys missing from cache still re-fetch on every section mount.
+- `useProposalSections` 5-minute `setInterval` + `localStorage.setItem` of full sections array on every save is fine, but the effect deps don't include `sections`, so it captures a stale closure (already a latent bug, low impact).
 
-**Phase 3 — Discoverability of the sidebar**
+### Fix Plan
 
-- **Label every tab** (`Text`, `Shapes`, `Images`, `Background`, `Pages`) — keep icons but show text on ≥md viewports.
-- **Real icon previews** in the icons grid — render the actual lucide icon, not the first 2 letters.
-- **Surface BrandingCustomizer in canvas mode** as a "Brand" tab in the sidebar, so colors/fonts/logo are one click away.
-- **Add a Templates tab** in canvas mode listing the existing `templates.ts` entries with thumbnails; selecting one rebuilds the canvas (with confirm).
+**Phase 1 — Auth & role stabilization (biggest win, isolated)**
+1. `AuthProvider.tsx`
+   - Remove `session` from the main `useEffect` deps; keep `[navigate, location.pathname]` only. Use a ref for the previous session JSON comparison (or compare `currentSession?.access_token`).
+   - Move the background `get-user-roles` invocation out of `AuthProvider` entirely — `useUserRoles` already covers it.
+   - Drop the per-event `JSON.stringify(session)` comparison; compare `access_token` strings.
+2. `useUserRoles`
+   - Single source of truth. Cache result in a module-level promise so multiple consumers share one in-flight request. Keep the 60s refresh, but only when the tab is visible (`document.visibilityState === 'visible'`).
 
-**Phase 4 — Editing affordances**
+**Phase 2 — Deduplicate profile/org/member fetches**
+1. Remove the inline `profiles.current_organization_id` lookups in `ProjectContent.tsx` and `ProposalDraft.tsx`. Replace with `useCurrentOrganization()` (already cached 5 min).
+2. In `useProposalSections.addSection`, read the org id from a passed-in prop or from `useCurrentOrganization`; do not fetch it inside the mutation.
+3. Convert `useOrganizationMembers` to react-query:
+   - Key: `["organization-members", organizationId]`.
+   - `staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`.
+   - Slim the select: only `id, user_id, role, status, joined_at, profiles(first_name,last_name,username,avatar_url)`.
+4. Lift presence/member loading to `ProjectContent` only; pass `members` down to `ProposalDraft` via props (or rely on the shared react-query cache so the second call is free).
 
-- **Persistent top toolbar** for the selected element (font family, size, weight, color, alignment) instead of only the floating one — the floating toolbar can stay for quick actions.
-- **Visible save state** ("Saved · 2s ago" / "Saving…") next to the zoom controls.
-- **Non-destructive re-import**: change "Re-import from Proposal" to offer "Replace all" vs "Append new sections only" (diff by section id).
-- **Inline preview / export**: add a "Preview" mode toggle in canvas (renders pages stacked, no chrome) so the user can see the export result without leaving the editor.
+**Phase 3 — Faster section switching**
+1. Prefetch the next section's chunk on hover/focus of the sidebar item:
+   ```ts
+   onMouseEnter={() => import('@/components/project/proposal-draft/ProposalDraft')}
+   ```
+   Apply to Analysis, Proposal, Review, Design entries in `ProjectSidebar`.
+2. Add `queryClient.prefetchQuery` for `proposal-sections` and `proposal-outline` when the user opens a project (idle callback).
+3. Tighten react-query defaults in `App.tsx`: add `refetchOnReconnect: false` and ensure heavy queries (`proposal-sections`, `proposal-outline`, `organization-members`, `current-organization`) declare appropriate `staleTime` so tab re-mounts don't refetch.
 
-### Files that will change
+**Phase 4 — Knowledge base**
+1. Replace the manual cache in `useEntries.ts` with a react-query `useQuery` keyed on `[user_id, category, page, pageSize]`. Removes re-renders, dedupes concurrent calls, and gives free background revalidation.
 
-- `src/components/project/design-studio/canvas/autoLayout.ts` — real measurement, HTML-preserving pagination, TOC + table, cover layout.
-- `src/components/project/design-studio/canvas/elements/TextRenderer.tsx` — auto-grow height, no clipping.
-- `src/components/project/design-studio/canvas/CanvasEditor.tsx` — fit-width default, save indicator, preview toggle, top toolbar slot.
-- `src/components/project/design-studio/canvas/CanvasElement.tsx` / new `hooks/useSnapGuides.ts` — snapping & guides during drag.
-- `src/components/project/design-studio/canvas/sidebar/InsertSidebar.tsx` — labelled tabs, real icons, new Brand and Templates tabs, page thumbnails.
-- `src/components/project/design-studio/ProposalDesignStudio.tsx` — non-destructive re-import options; remove the canvas-mode lockout of branding.
+**Phase 5 — Verification**
+1. Reproduce on `/projects/:id`: open DevTools → Network. Confirm only one `profiles`, one `organizations`, one `organization_members` request per project view.
+2. Switch between Overview → Analysis → Proposal → Review and confirm chunks are cached after first hover, and no spinner > 200ms once data is warm.
+3. Watch console: no more `Roles fetch timeout`; `Forced role check` should appear once on login, not on every navigation.
 
-### Out of scope (flag for later)
-
-- Replacing the canvas engine with a third-party library (e.g. tldraw, fabric).
-- Multi-user real-time collaboration on the canvas.
-- AI-driven layout suggestions ("rebalance this page").
-
-### Suggested rollout
-
-Phase 1 alone resolves the "near unusable" complaint. Phases 2–4 make the studio competitive with Canva-class tools. I'd recommend approving Phase 1 first, shipping it, then validating with the same proposal before deciding the order of 2–4.
+### Out of scope (can follow up)
+- Edge-function cold start optimization for `get-user-roles`.
+- Splitting `ProposalDesignStudio` into smaller chunks (it pulls in TipTap + canvas).
+- Server-side denormalization of `current_organization_id` into the auth JWT (would eliminate the profile read entirely).

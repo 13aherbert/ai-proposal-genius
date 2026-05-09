@@ -18,7 +18,8 @@ type State =
 export default function AcceptInvitation() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
-  const { user, loading: authLoading } = useAuth();
+  const { session, loading: authLoading } = useAuth();
+  const user = session?.user ?? null;
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: "loading" });
 

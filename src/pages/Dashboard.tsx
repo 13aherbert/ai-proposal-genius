@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSEO } from "@/hooks/use-seo";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
@@ -15,7 +17,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
-import { supabase } from "@/integrations/supabase/client";
+
 import { Database, FolderOpen, Search, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
@@ -42,14 +44,17 @@ export default function Dashboard() {
   useSEO({ title: "Dashboard | OptiRFP", description: "Manage your RFP projects and proposals." });
   const { profileData } = useProfile();
   const navigate = useNavigate();
-  const [dashboardStats, setDashboardStats] = useState({
-    projectCount: 0,
-    knowledgeCount: 0,
-    hasProjects: false,
-    hasKnowledgeEntries: false
-  });
-  const [isNewUser, setIsNewUser] = useState(false);
-  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+  const dashboardStats = useDashboardStats();
+  const statsLoading = dashboardStats.isLoading;
+
+  const isNewUser = useMemo(() => {
+    if (!session?.user?.created_at) return false;
+    return Date.now() - new Date(session.user.created_at).getTime() < 24 * 60 * 60 * 1000;
+  }, [session?.user?.created_at]);
+
+  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(
+    () => localStorage.getItem('tutorial_completed') === 'true'
+  );
   const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
   const { organization } = useCurrentOrganization();
   const knowledgeReadiness = useKnowledgeReadiness();
@@ -58,7 +63,7 @@ export default function Dashboard() {
   const [checklistDismissed, setChecklistDismissed] = useState(
     () => localStorage.getItem('onboarding_checklist_dismissed') === 'true'
   );
-  const { data: subscriptionData } = useSubscription();
+  const { data: subscriptionData, isLoading: subscriptionLoading } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
   const { getProjectLimit, hasFeature } = useSubscriptionFeatures();
   const hasOpportunities = hasFeature('opportunity_search');
@@ -98,40 +103,7 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    if (session?.user) {
-      const userCreatedAt = new Date(session.user.created_at);
-      const now = new Date();
-      const isNew = now.getTime() - userCreatedAt.getTime() < 24 * 60 * 60 * 1000;
-      setIsNewUser(isNew);
-
-      const tutorialCompleted = localStorage.getItem('tutorial_completed') === 'true';
-      setHasCompletedTutorial(tutorialCompleted);
-      fetchDashboardStats();
-    }
-  }, [session]);
-
-  const fetchDashboardStats = async () => {
-    if (!session?.user?.id) return;
-    try {
-      const { data: projects, error: projectError } = await supabase
-        .from('projects').select('project_id').eq('user_id', session.user.id);
-      if (projectError) throw projectError;
-
-      const { data: knowledge, error: knowledgeError } = await supabase
-        .from('knowledge_entries').select('entry_id').eq('user_id', session.user.id);
-      if (knowledgeError) throw knowledgeError;
-
-      setDashboardStats({
-        projectCount: projects?.length || 0,
-        knowledgeCount: knowledge?.length || 0,
-        hasProjects: (projects?.length || 0) > 0,
-        hasKnowledgeEntries: (knowledge?.length || 0) > 0
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    }
-  };
+  // Stats and tutorial state are now derived synchronously / via React Query.
 
   const profileComplete = !!(profileData.first_name && profileData.last_name && profileData.business_name);
 
@@ -151,6 +123,29 @@ export default function Dashboard() {
   const isEnterprise = organization?.subscription_tier === 'enterprise';
   const isEstablished = dashboardStats.hasProjects || dashboardStats.hasKnowledgeEntries;
   const showSidebar = !isEstablished || (knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading);
+  const isReady = !statsLoading && !knowledgeReadiness.isLoading && !subscriptionLoading;
+
+  if (!isReady) {
+    return (
+      <div className="space-y-6">
+        <div data-tour="dashboard-header">
+          <DashboardHeader />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

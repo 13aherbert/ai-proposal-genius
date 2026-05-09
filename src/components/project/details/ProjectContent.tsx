@@ -158,7 +158,9 @@ export function ProjectContent({ project, autoStart }: ProjectContentProps) {
           </div>
         ) : null}
         <ErrorBoundary>
-          {renderSection()}
+          <div key={activeSection} className="animate-fade-in">
+            {renderSection()}
+          </div>
         </ErrorBoundary>
       </div>
     </div>

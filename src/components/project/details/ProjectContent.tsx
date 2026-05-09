@@ -36,16 +36,10 @@ interface ProjectContentProps {
 export function ProjectContent({ project, autoStart }: ProjectContentProps) {
   const [activeSection, setActiveSection] = useState("overview");
   const { isTestMode, plan } = useSubscriptionFeatures();
-  const { session } = useAuth();
   const { presenceUsers } = useProjectPresence(project.project_id);
 
-  // Get org members for presence
-  const [orgId, setOrgId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    supabase.from("profiles").select("current_organization_id").eq("profile_id", session.user.id).single()
-      .then(({ data }) => { if (data) setOrgId(data.current_organization_id); });
-  }, [session?.user?.id]);
+  const { organization } = useCurrentOrganization();
+  const orgId = organization?.id ?? null;
 
   const { members } = useOrganizationMembers(orgId);
   const membersList = useMemo(() =>

@@ -208,12 +208,24 @@ serve(async (req) => {
         const projectLimit = tier?.projects_limit ?? getProjectLimit(planSlug);
         const usersLimit = tier?.users_limit ?? (hasUnlimitedUsers(planSlug) ? -1 : 1);
 
-        console.log('Checkout completed – plan:', planSlug, 'projects:', projectLimit, 'users:', usersLimit);
+        // Resolve the Supabase user id from client_reference_id, falling back to
+        // subscription metadata (older sessions, manually created subs, etc.).
+        const userId =
+          (session.client_reference_id as string | null) ||
+          (subscription.metadata?.user_id as string | undefined) ||
+          null;
+
+        if (!userId) {
+          console.error('checkout.session.completed: no user_id resolvable from session', session.id);
+          break;
+        }
+
+        console.log('Checkout completed – plan:', planSlug, 'projects:', projectLimit, 'users:', usersLimit, 'user:', userId);
 
         const billingInterval = resolveBillingInterval(subscription);
 
         const { error } = await supabase.from('subscriptions').upsert({
-          user_id: session.client_reference_id,
+          user_id: userId,
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           status: subscription.status,
@@ -229,12 +241,10 @@ serve(async (req) => {
         } else {
           console.log('Subscription stored successfully');
           // Sync org tier
-          if (session.client_reference_id) {
-            await syncOrganizationTier(session.client_reference_id, planSlug);
-          }
+          await syncOrganizationTier(userId, planSlug);
           // Notify about unlimited team if applicable
-          if (usersLimit === -1 && session.client_reference_id) {
-            await notifyTeamUnlocked(session.client_reference_id, tier?.name ?? planSlug);
+          if (usersLimit === -1) {
+            await notifyTeamUnlocked(userId, tier?.name ?? planSlug);
           }
         }
         break;

@@ -188,10 +188,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return defaultSub;
       }
 
-      // Fetch organization subscription from database
+      // Fetch organization subscription from database.
+      // NOTE: stripe_customer_id / stripe_subscription_id are intentionally
+      // omitted — they're column-revoked from the authenticated role and
+      // resolved server-side by the renew/cancel/portal edge functions when
+      // needed.
       const { data, error: fetchError } = await supabase
         .from('organization_subscriptions')
-        .select('*')
+        .select(
+          'id, organization_id, subscription_id, status, plan_type, current_period_end, project_limit, member_limit, features, cancel_at_period_end, created_at, updated_at, billing_model, used_seats, max_seats, custom_pricing, billing_cycle, trial_ends_at'
+        )
         .eq('organization_id', organization.id)
         .maybeSingle();
 
@@ -223,8 +229,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         current_period_end: data.current_period_end,
         project_limit: data.project_limit,
         features: (data.features as Record<string, any>) || {},
-        stripe_customer_id: data.stripe_customer_id,
-        stripe_subscription_id: data.stripe_subscription_id,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
         created_at: data.created_at,
         updated_at: data.updated_at,
         cancel_at_period_end: data.cancel_at_period_end || false,

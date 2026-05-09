@@ -33,7 +33,7 @@ function ModalBody({ onDismiss, onSignUp, trackEvent }: {
       </p>
 
       <ul className="space-y-2 mb-6 text-sm text-foreground">
-        {["AI-powered RFP analysis", "Save 30+ hours per proposal", "Trusted by 500+ teams"].map((text) => (
+        {["AI-powered RFP analysis", "Save 30+ hours per proposal", "Win more contracts with AI"].map((text) => (
           <li key={text} className="flex items-center gap-2">
             <Check className="w-4 h-4 text-brand-green shrink-0" />
             <span>{text}</span>

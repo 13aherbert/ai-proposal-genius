@@ -59,15 +59,8 @@ export function ProposalDraft({ projectId, mode = "draft" }: ProposalDraftProps)
   const { comments: allComments, addComment } = useProposalComments(projectId);
   const openCommentCount = allComments.filter(c => !c.is_resolved).length;
 
-  // Get org members for team features
-  const [orgId, setOrgId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    import("@/integrations/supabase/client").then(({ supabase }) => {
-      supabase.from("profiles").select("current_organization_id").eq("profile_id", session.user.id).single()
-        .then(({ data }) => { if (data) setOrgId(data.current_organization_id); });
-    });
-  }, [session?.user?.id]);
+  const { organization } = useCurrentOrganization();
+  const orgId = organization?.id ?? null;
 
   const { members } = useOrganizationMembers(orgId);
   const showTeamFeatures = plan !== "starter" && members.length > 1;

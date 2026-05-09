@@ -6,8 +6,10 @@ import { useCurrentOrganization } from "@/hooks/use-current-organization";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
 import { useAuth } from "@/components/AuthProvider";
 import { formatDistanceToNow } from "date-fns";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function AdminDashboard() {
+  useSEO({ title: "Admin Dashboard — OptiRFP", description: "System administration overview for OptiRFP." });
   const { organization } = useCurrentOrganization();
   const { session } = useAuth();
   const { recentActivity, isLoading: activityLoading } = useRecentActivity(session?.user ?? null);

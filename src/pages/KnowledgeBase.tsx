@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { SearchResult } from "@/components/knowledge-base/SearchResults";
 import { useKBGovernance } from "@/components/knowledge-base/governance/useKBGovernance";
 import { KBHealthDashboard } from "@/components/knowledge-base/governance/KBHealthDashboard";
+import { useSEO } from "@/hooks/use-seo";
 import { ReviewCycleManager } from "@/components/knowledge-base/governance/ReviewCycleManager";
 import { QAPairManager } from "@/components/knowledge-base/governance/QAPairManager";
 

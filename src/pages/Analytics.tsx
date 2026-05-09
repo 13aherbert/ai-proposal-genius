@@ -10,8 +10,10 @@ import { DeadlineCalendar } from "@/components/analytics/DeadlineCalendar";
 import { EmptyAnalytics } from "@/components/analytics/EmptyAnalytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, TrendingUp, Calendar, DollarSign, Target } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function Analytics() {
+  useSEO({ title: "Analytics — OptiRFP", description: "Track win rate, pipeline value, and proposal performance across your RFPs." });
   const { overview, monthlyData, pipeline, roiData, roiSettings, projects, isLoading, updateROI, recordOutcome } = useAnalyticsDashboard();
   
 

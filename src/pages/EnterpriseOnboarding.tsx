@@ -13,6 +13,7 @@ import { AssetUploader } from "@/components/organization/AssetUploader";
 import { DomainManager } from "@/components/organization/DomainManager";
 import { ApiKeyManagement } from "@/components/organization/ApiKeyManagement";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/use-seo";
 
 type StepId = "welcome" | "branding" | "assets" | "domain" | "team" | "api" | "done";
 

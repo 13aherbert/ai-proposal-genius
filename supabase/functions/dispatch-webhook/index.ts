@@ -73,6 +73,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'organization_id and event_type required' }), { status: 400, headers: corsHeaders });
     }
 
+    // Authorization: caller must be an active member of the target organization
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('id')
+      .eq('organization_id', organization_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (!member) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    }
+
     // Fetch active webhooks subscribed to this event
     const { data: webhooks, error: whError } = await supabase
       .from('organization_webhooks')

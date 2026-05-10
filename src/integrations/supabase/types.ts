@@ -1475,7 +1475,6 @@ export type Database = {
         Row: {
           configuration: Json | null
           created_at: string | null
-          credentials: Json | null
           credentials_ciphertext: string | null
           credentials_iv: string | null
           credentials_updated_at: string | null
@@ -1493,7 +1492,6 @@ export type Database = {
         Insert: {
           configuration?: Json | null
           created_at?: string | null
-          credentials?: Json | null
           credentials_ciphertext?: string | null
           credentials_iv?: string | null
           credentials_updated_at?: string | null
@@ -1511,7 +1509,6 @@ export type Database = {
         Update: {
           configuration?: Json | null
           created_at?: string | null
-          credentials?: Json | null
           credentials_ciphertext?: string | null
           credentials_iv?: string | null
           credentials_updated_at?: string | null
@@ -3636,6 +3633,10 @@ export type Database = {
           organization_name: string
           organization_slug: string
         }[]
+      }
+      get_organization_domain_verification_token: {
+        Args: { _domain_id: string }
+        Returns: string
       }
       get_plan_limits: { Args: { plan_type_param: string }; Returns: number }
       get_subscription_details: {

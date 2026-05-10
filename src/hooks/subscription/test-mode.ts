@@ -7,9 +7,25 @@ const TEST_PLAN_KEY = 'test_plan_type';
 const TEST_PROJECT_LIMIT_KEY = 'test_project_limit';
 
 /**
+ * SECURITY: Test mode is a developer-only escape hatch and is hard-disabled
+ * outside of localhost. In production, all subscription enforcement happens
+ * server-side regardless of any localStorage values an attacker might set.
+ */
+function isLocalDev(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Check if test mode is enabled
  */
 export function isTestModeEnabled(): boolean {
+  if (!isLocalDev()) return false;
   try {
     return localStorage.getItem(TEST_MODE_KEY) === 'true';
   } catch (e) {
@@ -52,6 +68,10 @@ export function getTestProjectLimit(): number {
  * Enable test mode with a specific plan type
  */
 export function enableTestMode(planType: 'starter' | 'growth' | 'business' | 'enterprise' = 'starter'): void {
+  if (!isLocalDev()) {
+    console.warn('Test mode is disabled outside localhost.');
+    return;
+  }
   try {
     localStorage.setItem(TEST_MODE_KEY, 'true');
     localStorage.setItem(TEST_PLAN_KEY, planType);

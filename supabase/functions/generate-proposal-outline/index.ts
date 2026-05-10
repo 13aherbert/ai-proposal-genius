@@ -2,6 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser, userCanAccessProject, forbidden } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
+
   try {
     console.log('Starting outline generation...');
     const { projectId, analysis } = await req.json();
@@ -21,6 +25,14 @@ serve(async (req) => {
     if (!projectId || !analysis) {
       console.error('Missing required fields:', { projectId, hasAnalysis: !!analysis });
       throw new Error('Missing required fields: projectId and analysis');
+    }
+
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    if (!(await userCanAccessProject(serviceClient, auth.id, projectId))) {
+      return forbidden('You do not have access to this project');
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');

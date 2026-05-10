@@ -77,8 +77,29 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(), // Ensure we're using Fetch
     });
 
+    // Validate priceId against server-side allowlist (subscription_plan_templates / pricing_tiers)
     try {
-      // Verify the price exists
+      const [{ data: tpl }, { data: tier }] = await Promise.all([
+        supabaseClient.from('subscription_plan_templates').select('stripe_price_id').eq('stripe_price_id', priceId).maybeSingle(),
+        supabaseClient.from('pricing_tiers').select('stripe_price_id_monthly,stripe_price_id_annual').or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`).maybeSingle(),
+      ]);
+      if (!tpl && !tier) {
+        console.error('priceId not in allowlist:', priceId);
+        return new Response(
+          JSON.stringify({ error: 'Invalid price ID' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (e) {
+      console.error('Allowlist check failed:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid price ID' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    try {
+      // Verify the price exists in Stripe
       const price = await stripe.prices.retrieve(priceId);
       console.log('Price verified:', price.id);
     } catch (stripeError) {

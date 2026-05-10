@@ -60,8 +60,13 @@ Deno.serve(async (req) => {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   let isAuthorized = false;
+  let isServiceRole = false;
+  let callerUserId: string | null = null;
+  let callerEmail: string | null = null;
+  let callerOrgId: string | null = null;
   if (token && serviceRoleKey && token === serviceRoleKey) {
     isAuthorized = true;
+    isServiceRole = true;
   } else if (token) {
     try {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
@@ -71,7 +76,19 @@ Deno.serve(async (req) => {
         { global: { headers: { Authorization: `Bearer ${token}` } } }
       );
       const { data: { user } } = await authClient.auth.getUser();
-      if (user) isAuthorized = true;
+      if (user) {
+        isAuthorized = true;
+        callerUserId = user.id;
+        callerEmail = (user.email || '').toLowerCase();
+        // Lookup caller's current organization for recipient allowlist
+        const svc = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
+        const { data: profile } = await svc
+          .from('profiles')
+          .select('current_organization_id')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+        callerOrgId = (profile as any)?.current_organization_id ?? null;
+      }
     } catch (e) {
       console.error('JWT validation error:', e);
     }

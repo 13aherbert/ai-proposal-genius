@@ -48,7 +48,7 @@ export async function userCanAccessProject(
   const { data: project } = await serviceClient
     .from("projects")
     .select("organization_id, user_id")
-    .eq("id", projectId)
+    .eq("project_id", projectId)
     .maybeSingle();
   if (!project) return false;
   if (project.user_id === userId) return true;

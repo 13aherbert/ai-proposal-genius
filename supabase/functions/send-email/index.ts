@@ -115,6 +115,44 @@ Deno.serve(async (req) => {
       console.error('Missing "subject" field');
       throw new Error('Missing "subject" field');
     }
+
+    // Anti-abuse: when called with a user JWT (not service-role), block raw HTML
+    // and restrict recipients to the caller themselves or members of their org.
+    if (!isServiceRole) {
+      if (payload.html && !payload.templateType) {
+        return new Response(
+          JSON.stringify({ error: 'Raw HTML emails are not permitted. Use templateType.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      const recipients: string[] = (payload.to as string[]).map((r) => String(r).toLowerCase());
+      let allowedEmails = new Set<string>();
+      if (callerEmail) allowedEmails.add(callerEmail);
+      if (callerOrgId) {
+        try {
+          const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+          const svc = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
+          const { data: members } = await svc
+            .from('organization_members')
+            .select('user_id, profiles:profiles!inner(username)')
+            .eq('organization_id', callerOrgId)
+            .eq('status', 'active');
+          for (const m of (members as any[]) || []) {
+            const e = m?.profiles?.username;
+            if (e) allowedEmails.add(String(e).toLowerCase());
+          }
+        } catch (e) {
+          console.error('Org member lookup failed:', e);
+        }
+      }
+      const disallowed = recipients.filter((r) => !allowedEmails.has(r));
+      if (disallowed.length > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Recipients must be the caller or members of their organization', disallowed }),
+          { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+    }
     
     // Create a unique request ID to detect duplicates
     const requestId = `${payload.to.join(',')}_${payload.subject}_${payload.templateType || 'direct'}`;

@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { selectOptimalModel, detectSectionType, calculateCostMetrics, aggregateCostStats, type ModelConfig } from './model-selector.ts';
 import { filterKnowledgeForSection, createCompanyProfile, type KnowledgeEntry } from './smart-knowledge-filter.ts';
 import { generateOptimizedPrompt, estimateTokenCount, type PromptConfig } from './optimized-prompt.ts';
+import { requireUser, userCanAccessProject, forbidden } from "../_shared/auth.ts";
 
 // === ANTHROPIC CLAUDE CLIENT WITH TIERED MODEL SUPPORT ===
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -279,6 +280,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
+
   let requestData: GenerateFullProposalRequest | null = null;
   
   try {
@@ -286,10 +290,12 @@ serve(async (req) => {
     console.log('Starting optimized full proposal generation...');
 
     requestData = await req.json();
-    const { projectId, userId, strictMode = false, sections: requestedSections, chunkIndex = 0, totalChunks = 1 } = requestData;
+    const { projectId, strictMode = false, sections: requestedSections, chunkIndex = 0, totalChunks = 1 } = requestData;
+    // SECURITY: Always derive userId from validated JWT, never from request body
+    const userId = auth.id;
 
-    if (!projectId || !userId) {
-      throw new ProposalGenerationError('Missing required parameters: projectId and userId', 400);
+    if (!projectId) {
+      throw new ProposalGenerationError('Missing required parameter: projectId', 400);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -301,6 +307,10 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (!(await userCanAccessProject(supabase, userId, projectId))) {
+      return forbidden('You do not have access to this project');
+    }
 
     console.log(`Fetching project data for projectId: ${projectId}`);
 

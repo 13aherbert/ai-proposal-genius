@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser, userCanAccessProject, forbidden } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -176,22 +177,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
+
   try {
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Get auth token from request
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
+
     const { projectId, evaluation, sections, analysis } = await req.json();
 
     if (!projectId || !evaluation || !sections || sections.length === 0) {
@@ -199,6 +194,10 @@ serve(async (req) => {
         JSON.stringify({ error: 'Missing required fields: projectId, evaluation, sections' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (!(await userCanAccessProject(supabase, auth.id, projectId))) {
+      return forbidden('You do not have access to this project');
     }
 
     console.log(`Applying suggestions to ${sections.length} sections for project ${projectId}`);

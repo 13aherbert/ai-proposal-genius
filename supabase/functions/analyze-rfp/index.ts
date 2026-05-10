@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
+import { requireUser, userCanAccessProject, forbidden } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -206,6 +207,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const auth = await requireUser(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -223,6 +227,10 @@ serve(async (req) => {
 
     if (!requestData.filePath || !requestData.projectId) {
       throw new Error('Missing required fields: filePath and projectId');
+    }
+
+    if (!(await userCanAccessProject(supabaseAdmin, auth.id, requestData.projectId))) {
+      return forbidden('You do not have access to this project');
     }
 
     // Fetch all project documents for multi-document analysis

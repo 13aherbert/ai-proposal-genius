@@ -30,6 +30,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'organization_id and report_type required' }), { status: 400, headers: corsHeaders });
     }
 
+    // Authorization: caller must be owner/admin of the target organization
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', organization_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .in('role', ['owner', 'admin'])
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: corsHeaders });
+    }
+
     // Gather org data
     const [membersRes, projectsRes, ssoRes, apiKeysRes, securityEventsRes, exportsRes] = await Promise.all([
       supabase.from('organization_members').select('id, role, status').eq('organization_id', organization_id),

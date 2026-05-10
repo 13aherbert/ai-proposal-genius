@@ -60,8 +60,13 @@ Deno.serve(async (req) => {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   let isAuthorized = false;
+  let isServiceRole = false;
+  let callerUserId: string | null = null;
+  let callerEmail: string | null = null;
+  let callerOrgId: string | null = null;
   if (token && serviceRoleKey && token === serviceRoleKey) {
     isAuthorized = true;
+    isServiceRole = true;
   } else if (token) {
     try {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
@@ -71,7 +76,19 @@ Deno.serve(async (req) => {
         { global: { headers: { Authorization: `Bearer ${token}` } } }
       );
       const { data: { user } } = await authClient.auth.getUser();
-      if (user) isAuthorized = true;
+      if (user) {
+        isAuthorized = true;
+        callerUserId = user.id;
+        callerEmail = (user.email || '').toLowerCase();
+        // Lookup caller's current organization for recipient allowlist
+        const svc = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
+        const { data: profile } = await svc
+          .from('profiles')
+          .select('current_organization_id')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+        callerOrgId = (profile as any)?.current_organization_id ?? null;
+      }
     } catch (e) {
       console.error('JWT validation error:', e);
     }
@@ -97,6 +114,44 @@ Deno.serve(async (req) => {
     if (!payload.subject) {
       console.error('Missing "subject" field');
       throw new Error('Missing "subject" field');
+    }
+
+    // Anti-abuse: when called with a user JWT (not service-role), block raw HTML
+    // and restrict recipients to the caller themselves or members of their org.
+    if (!isServiceRole) {
+      if (payload.html && !payload.templateType) {
+        return new Response(
+          JSON.stringify({ error: 'Raw HTML emails are not permitted. Use templateType.' }),
+          { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+      const recipients: string[] = (payload.to as string[]).map((r) => String(r).toLowerCase());
+      let allowedEmails = new Set<string>();
+      if (callerEmail) allowedEmails.add(callerEmail);
+      if (callerOrgId) {
+        try {
+          const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+          const svc = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey);
+          const { data: members } = await svc
+            .from('organization_members')
+            .select('user_id, profiles:profiles!inner(username)')
+            .eq('organization_id', callerOrgId)
+            .eq('status', 'active');
+          for (const m of (members as any[]) || []) {
+            const e = m?.profiles?.username;
+            if (e) allowedEmails.add(String(e).toLowerCase());
+          }
+        } catch (e) {
+          console.error('Org member lookup failed:', e);
+        }
+      }
+      const disallowed = recipients.filter((r) => !allowedEmails.has(r));
+      if (disallowed.length > 0) {
+        return new Response(
+          JSON.stringify({ error: 'Recipients must be the caller or members of their organization', disallowed }),
+          { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
     }
     
     // Create a unique request ID to detect duplicates

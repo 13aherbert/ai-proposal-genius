@@ -27,7 +27,17 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) throw new Error('Unauthorized: Invalid token');
-    
+
+    // SECURITY: require admin or system_admin role
+    const { data: isAdmin } = await supabase.rpc('direct_admin_check', { user_id_param: user.id });
+    const { data: isSysAdmin } = await supabase.rpc('check_system_admin_role', { user_id_param: user.id });
+    if (!isAdmin && !isSysAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: admin role required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+
     console.log("Authenticated admin user:", user.id);
 
     const requestBody = await req.json();

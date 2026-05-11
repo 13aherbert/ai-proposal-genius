@@ -107,9 +107,10 @@ export function TestingPanel() {
                   <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="trial">Trial</SelectItem>
                   <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="growth">Growth</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
             </div>

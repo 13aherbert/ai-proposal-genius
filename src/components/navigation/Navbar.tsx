@@ -28,10 +28,12 @@ import {
   Settings,
   Compass,
   RotateCcw,
+  Shield,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccessibilitySettings } from "@/components/accessibility/AccessibilitySettings";
 import { HelpFeedbackLauncher } from "@/components/feedback/HelpFeedbackLauncher";
+import useUserRoles from "@/hooks/user-roles";
 
 type NavItem = { label: string; to: string; matches?: string[] };
 

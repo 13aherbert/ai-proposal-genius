@@ -357,10 +357,15 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
    */
   const getPlanDisplayName = (planType: string) => {
     switch(planType) {
-      case 'pro': return 'Pro Plan';
+      case 'enterprise': return 'Enterprise Plan';
+      case 'business': return 'Business Plan';
+      case 'growth': return 'Growth Plan';
       case 'starter': return 'Starter Plan';
       case 'trial': return 'Starter Plan';
-      default: return 'Free Plan';
+      // Legacy slugs
+      case 'pro': return 'Business Plan';
+      case 'basic': return 'Growth Plan';
+      default: return 'Starter Plan';
     }
   };
   

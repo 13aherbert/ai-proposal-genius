@@ -42,10 +42,12 @@ export function TestingPanel() {
     localStorage.setItem('test_plan', newPlan);
     
     // Update project limit based on plan
-    let newLimit = 3;
-    if (newPlan === 'starter') newLimit = 10;
-    if (newPlan === 'pro') newLimit = 30;
-    
+    let newLimit = 6;
+    if (newPlan === 'starter') newLimit = 6;
+    if (newPlan === 'growth') newLimit = 36;
+    if (newPlan === 'business') newLimit = 120;
+    if (newPlan === 'enterprise') newLimit = -1;
+
     setProjectLimit(newLimit);
     localStorage.setItem('test_project_limit', newLimit.toString());
   };

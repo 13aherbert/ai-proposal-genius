@@ -294,6 +294,7 @@ export function SSOConfigPanel() {
 
   return (
     <>
+      {organization?.id && <SSODiagnosticsCard organizationId={organization.id} />}
       {/* Domains */}
       <Card>
         <CardHeader className="border-b">

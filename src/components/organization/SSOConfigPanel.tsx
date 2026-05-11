@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Shield, Plus, Trash2, Loader2, CheckCircle2, XCircle, Globe, Copy, RefreshCw } from 'lucide-react';
+import { Shield, Plus, Trash2, Loader2, CheckCircle2, XCircle, Globe, Copy, RefreshCw, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { toast } from 'sonner';
+import { SSODiagnosticsCard } from './SSODiagnosticsCard';
 
 interface SSOConfig {
   id: string;
@@ -57,6 +58,11 @@ export function SSOConfigPanel() {
   const [oidcDiscovery, setOidcDiscovery] = useState('');
   const [oidcClientId, setOidcClientId] = useState('');
   const [oidcClientSecret, setOidcClientSecret] = useState('');
+
+  // Rotate-secret dialog
+  const [rotateForId, setRotateForId] = useState<string | null>(null);
+  const [rotateValue, setRotateValue] = useState('');
+  const [rotating, setRotating] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!organization?.id) return;
@@ -206,7 +212,7 @@ export function SSOConfigPanel() {
       if (!dRes.ok) throw new Error(`Discovery doc returned ${dRes.status}`);
       const disc = await dRes.json();
 
-      const { error } = await supabase.from('organization_sso_config').insert({
+      const { data: inserted, error } = await supabase.from('organization_sso_config').insert({
         organization_id: organization!.id,
         provider_type: 'oidc',
         provider_name: oidcName,
@@ -218,12 +224,23 @@ export function SSOConfigPanel() {
           token_endpoint: disc.token_endpoint,
           jwks_uri: disc.jwks_uri,
           client_id: oidcClientId,
-          client_secret: oidcClientSecret || undefined,
           scopes: 'openid email profile',
           default_role: 'viewer',
         },
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      // Store client secret separately (encrypted) via edge function
+      if (oidcClientSecret && inserted?.id) {
+        const { error: secErr } = await supabase.functions.invoke('sso-set-client-secret', {
+          body: { sso_config_id: inserted.id, client_secret: oidcClientSecret },
+        });
+        if (secErr) {
+          toast.warning('Provider saved, but failed to store client secret', {
+            description: 'Use "Set client secret" on the provider to retry.',
+          });
+        }
+      }
 
       await supabase.from('organizations').update({ sso_enabled: true }).eq('id', organization!.id);
       toast.success('OIDC provider added');
@@ -247,6 +264,24 @@ export function SSOConfigPanel() {
     await loadAll();
   };
 
+  const submitRotateSecret = async () => {
+    if (!rotateForId || !rotateValue.trim()) return;
+    setRotating(true);
+    try {
+      const { error } = await supabase.functions.invoke('sso-set-client-secret', {
+        body: { sso_config_id: rotateForId, client_secret: rotateValue.trim() },
+      });
+      if (error) throw error;
+      toast.success('Client secret updated');
+      setRotateForId(null);
+      setRotateValue('');
+    } catch (err: unknown) {
+      toast.error('Failed to update secret', { description: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setRotating(false);
+    }
+  };
+
   const resetForm = () => {
     setProviderKind('native');
     setMetadataUrl(''); setMetadataXml('');
@@ -259,6 +294,7 @@ export function SSOConfigPanel() {
 
   return (
     <>
+      {organization?.id && <SSODiagnosticsCard organizationId={organization.id} />}
       {/* Domains */}
       <Card>
         <CardHeader className="border-b">
@@ -405,6 +441,12 @@ export function SSOConfigPanel() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {c.provider_type === 'oidc' && (
+                      <Button size="icon" variant="ghost" title="Set / rotate client secret"
+                        onClick={() => { setRotateForId(c.id); setRotateValue(''); }}>
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Switch checked={c.is_active} onCheckedChange={(v) => toggleProvider(c.id, v)} />
                     <Button size="icon" variant="ghost" onClick={() => deleteProvider(c.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -483,6 +525,29 @@ export function SSOConfigPanel() {
               </DialogFooter>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rotate client secret dialog */}
+      <Dialog open={!!rotateForId} onOpenChange={(o) => { if (!o) { setRotateForId(null); setRotateValue(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set OIDC client secret</DialogTitle>
+            <DialogDescription>
+              The secret is encrypted before storage and never returned to the browser.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Client secret</Label>
+            <Input type="password" value={rotateValue} onChange={(e) => setRotateValue(e.target.value)} autoFocus />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotateForId(null)}>Cancel</Button>
+            <Button onClick={submitRotateSecret} disabled={rotating || !rotateValue.trim()}>
+              {rotating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save secret
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

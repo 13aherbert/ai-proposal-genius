@@ -45,6 +45,7 @@ const Organization = lazy(() => import("@/pages/Organization"));
 
 const Opportunities = lazy(() => import("@/pages/Opportunities"));
 const EnterpriseSupport = lazy(() => import("@/pages/EnterpriseSupport"));
+const SsoSetupGuide = lazy(() => import("@/pages/SsoSetupGuide"));
 const ApiDocs = lazy(() => import("@/pages/ApiDocs"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const BlogPost = lazy(() => import("@/pages/BlogPost"));
@@ -134,6 +135,7 @@ function AppContent() {
           <Route path="/team/invite" element={<TeamInvite />} />
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/enterprise-support" element={<EnterpriseSupport />} />
+          <Route path="/docs/sso-setup" element={<SsoSetupGuide />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/onboarding/enterprise" element={<EnterpriseOnboarding />} />
           

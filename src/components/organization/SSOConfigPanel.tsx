@@ -13,6 +13,7 @@ import { Shield, Plus, Trash2, Loader2, CheckCircle2, XCircle, Globe, Copy, Refr
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { toast } from 'sonner';
+import { SSODiagnosticsCard } from './SSODiagnosticsCard';
 
 interface SSOConfig {
   id: string;

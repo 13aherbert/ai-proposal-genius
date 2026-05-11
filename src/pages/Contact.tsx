@@ -168,12 +168,16 @@ export default function Contact() {
                   <CardContent className="p-8 text-center">
                     <CheckCircle2 className="h-12 w-12 text-brand-green mx-auto mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Almost there!</h3>
-                    <p className="text-muted-foreground">Your default email client should have opened with a pre-filled message. If it didn't, you can email us directly at <a href="mailto:hello@optirfp.ai" className="text-brand-green hover:underline">hello@optirfp.ai</a>.</p>
+                    <p className="text-muted-foreground">Thanks for reaching out — we'll respond within 24 hours. You can also email us at <a href="mailto:hello@optirfp.ai" className="text-brand-green hover:underline">hello@optirfp.ai</a>.</p>
                     <Button className="mt-6" variant="outline" onClick={() => setSubmitted(false)}>
                       Send Another Message
                     </Button>
                   </CardContent>
                 </Card>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Honeypot field, hidden from users */}
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid sm:grid-cols-2 gap-5">

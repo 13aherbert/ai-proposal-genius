@@ -4,18 +4,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TierBadge } from "./TierBadge";
 import { useNavigate } from "react-router-dom";
 
-type RequiredTier = 'growth' | 'pro' | 'business' | 'enterprise';
+type RequiredTier = 'growth' | 'business' | 'enterprise';
 
 const TIER_PRICING: Record<RequiredTier, string> = {
   growth: "$199/month",
-  pro: "$499/month",
   business: "$499/month",
   enterprise: "Custom pricing",
 };
 
 const TIER_DISPLAY: Record<RequiredTier, string> = {
   growth: "Growth",
-  pro: "Pro",
   business: "Business",
   enterprise: "Enterprise",
 };

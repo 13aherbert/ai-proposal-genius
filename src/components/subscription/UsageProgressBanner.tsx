@@ -9,10 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight } from "lucide-react";
 
 const PLAN_DISPLAY_NAMES: Record<string, string> = {
-  starter: "Free Plan",
-  trial: "Free Plan",
-  basic: "Basic Plan",
-  pro: "Pro Plan",
+  starter: "Starter Plan",
+  trial: "Starter Plan",
+  growth: "Growth Plan",
+  business: "Business Plan",
+  enterprise: "Enterprise Plan",
+  // Legacy
+  basic: "Growth Plan",
+  pro: "Business Plan",
 };
 
 export function UsageProgressBanner() {

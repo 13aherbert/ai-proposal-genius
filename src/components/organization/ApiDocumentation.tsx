@@ -465,7 +465,11 @@ export function ApiDocumentation() {
                         <span>100 requests/hour</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Pro Plan:</span>
+                        <span>Growth Plan:</span>
+                        <span>500 requests/hour</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Business Plan:</span>
                         <span>1,000 requests/hour</span>
                       </div>
                       <div className="flex justify-between text-sm">

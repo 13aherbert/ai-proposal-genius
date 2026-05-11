@@ -139,7 +139,7 @@ export function SubscriptionManager() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Monthly Cost</p>
-                  <p className="text-2xl font-bold">${subscription?.plan_type === 'pro' ? '99' : subscription?.plan_type === 'enterprise' ? '199' : '49'}</p>
+                  <p className="text-2xl font-bold">${subscription?.plan_type === 'business' || subscription?.plan_type === 'pro' ? '499' : subscription?.plan_type === 'enterprise' ? '1499' : subscription?.plan_type === 'growth' ? '199' : '0'}</p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Billing Cycle</p>

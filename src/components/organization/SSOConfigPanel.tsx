@@ -525,6 +525,29 @@ export function SSOConfigPanel() {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Rotate client secret dialog */}
+      <Dialog open={!!rotateForId} onOpenChange={(o) => { if (!o) { setRotateForId(null); setRotateValue(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set OIDC client secret</DialogTitle>
+            <DialogDescription>
+              The secret is encrypted before storage and never returned to the browser.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Client secret</Label>
+            <Input type="password" value={rotateValue} onChange={(e) => setRotateValue(e.target.value)} autoFocus />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotateForId(null)}>Cancel</Button>
+            <Button onClick={submitRotateSecret} disabled={rotating || !rotateValue.trim()}>
+              {rotating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save secret
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

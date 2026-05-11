@@ -278,11 +278,13 @@ export function useProjects(user: User | null) {
     if (subscriptionData && subscriptionData.plan_type) {
       const planType = subscriptionData.plan_type.toLowerCase();
       
-      if (planType === 'pro') {
-        console.log("Setting pro project limit (30) for pro user");
-        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.pro);
+      if (planType === 'enterprise') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.enterprise);
+      } else if (planType === 'business' || planType === 'pro') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.business);
+      } else if (planType === 'growth' || planType === 'basic') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.growth);
       } else if (planType === 'starter') {
-        console.log("Setting starter project limit (10) for starter user");
         setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       } else {
         setCachedProjectLimit(newLimit);

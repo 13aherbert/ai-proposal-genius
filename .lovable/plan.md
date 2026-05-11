@@ -1,57 +1,51 @@
-# Standardize plan tiers — remove "Pro"
+## Goal
+Make tier access consistent across the app and fix the bug where Starter users are blocked from RFP Summary and Proposal Outline (they should have access).
 
-Canonical plans going forward: **Starter** (free), **Growth**, **Business**, **Enterprise**. Everywhere `pro` appears in UI copy, types, or comparisons it must be replaced or normalized to `business` (its closest equivalent — both `GatedFeature` and `use-pricing-tier` already map `pro → business`).
+## Canonical tier matrix (single source of truth)
 
-## 1. Type definitions & shared constants
+| Capability | Starter | Growth | Business | Enterprise |
+|---|---|---|---|---|
+| RFP Summary | ✅ | ✅ | ✅ | ✅ |
+| Proposal Outline | ✅ | ✅ | ✅ | ✅ |
+| Proposal Draft (editor) | ✅ | ✅ | ✅ | ✅ |
+| Compiled / Split view | — | ✅ | ✅ | ✅ |
+| AI Editor, Custom Templates, Data Export, Team Collab, Opportunity Search | — | ✅ | ✅ | ✅ |
+| Auto-Generated Proposal, Evaluation, Review Pipeline, Design Studio, Advanced Analytics, API, Priority Support | — | — | ✅ | ✅ |
+| White Label, SSO | — | — | — | ✅ |
+| Project limit | 6 | 36 | 120 | unlimited |
 
-- `src/types/subscription.ts` — drop the `pro: 120` entry from `SUBSCRIPTION_PLAN_LIMITS`. Confirm `business: 120` exists; if not, add it.
-- `src/components/subscription/TierBadge.tsx` — remove `'pro'` from `TierType`, `TIER_STYLES`, and `TIER_LABELS`. Keep the silent `pro → business` normalization for any legacy data still flowing in.
-- `src/components/subscription/GatedFeature.tsx` and `GatedFeatureModal.tsx` — remove `'pro'` from `RequiredTier` union, `TIER_LEVELS`, `TIER_PRICES`, and `TIER_LABELS`. Business covers what Pro used to.
-- `src/components/subscription/UsageProgressBanner.tsx` — drop the `pro: "Pro Plan"` label and the `plan === "pro"` early-return (let `business` flow through the existing branch).
-- `src/hooks/subscription/feature-access.ts` — keep `normalizePlanType` mapping legacy `pro` → `business` (defensive for old DB rows) but remove any UI surface that still calls it `Pro`.
+This matches `FEATURE_ACCESS_MAP` in `src/hooks/subscription/feature-access.ts` and the FAQ copy.
 
-## 2. UI copy
+## Bugs to fix
 
-- `src/components/account/SubscriptionCard.tsx` — replace the `'pro' → 'Pro Plan'` switch case, the `Upgrade to Pro` button copy, and the Pro-only downgrade branch with Business equivalents.
-- `src/pages/SubscriptionSuccess.tsx` — replace `'pro' → 'Pro Plan'` label and the `|| 'pro'` fallback (default to `'starter'`).
-- `src/components/organization/SubscriptionManager.tsx` — rename the `pro` tier card to `business` ($499) and remove the duplicate `business` card if both exist (verify when editing).
-- `src/components/organization/ApiDocumentation.tsx` — change "Pro Plan" rate-limit row label and the `subscription_tier: 'pro'` example payload to `business`.
-- `src/components/blocks/faq.tsx` — rewrite the two FAQ entries that mention "Pro" to reference Growth/Business.
-- `src/docs/KnownLimitations.md`, `src/docs/TroubleshootingGuide.md`, `src/docs/UserOnboardingGuide.md`, `src/docs/EnvironmentVariables.md` — replace "Pro plan / Pro" mentions with the correct tier (Growth for evaluation, Business for higher limits). Update the `VITE_MOCK_SUBSCRIPTION=pro` example to `business`.
+1. **Starter blocked from RFP Summary & Outline** — `src/components/project/unified-analysis/UnifiedAnalysisView.tsx` wraps both panels in `<GatedFeature requiredTier="growth">`, which forces a paywall regardless of `FEATURE_ACCESS_MAP`. Remove the GatedFeature wrappers around `RFPAnalysis` and `ProposalOutline` (they are starter-tier features). Also drop the `Lock` icon / locked state on the two tabs since `hasFeature` returns true for both on starter.
 
-## 3. Project-limit hooks
+2. **`compiled_draft` mismatch** — UI in `UnifiedProposalView.tsx` gates Compiled & Split views to `growth`, but `FEATURE_ACCESS_MAP.compiled_draft` is `['business','enterprise']`. Resolution: align the map to growth (Compiled/Split are presentation-only views of the existing draft, so growth is the right floor and matches the UI). Update `feature-access.ts`.
 
-- `src/hooks/use-projects.ts` and `src/hooks/use-project-limits.ts` — remove the `planType === 'pro'` branches that read `SUBSCRIPTION_PLAN_LIMITS.pro`. Falling through to the existing `business` branch covers users that get migrated. (Defensive normalization in `feature-access.ts` already maps `pro → business`.)
+## Files to change
 
-## 4. Routing / gating
+- `src/components/project/unified-analysis/UnifiedAnalysisView.tsx`
+  - Remove the two `GatedFeature` wrappers; render `RFPAnalysis` and `ProposalOutline` directly inside their `Suspense` boundaries.
+  - Simplify the tabs (no `locked` / `Lock` icon — both are available on every tier).
+  - Drop the now-unused `useSubscriptionFeatures`, `Lock`, `GatedFeature` imports.
 
-- `src/components/ProtectedRoute.tsx` — update the two checks that allow access only when `plan_type === 'pro'` to use `business` (and `enterprise`).
+- `src/hooks/subscription/feature-access.ts`
+  - Change `compiled_draft: ['business', 'enterprise']` → `compiled_draft: ['growth', 'business', 'enterprise']`.
 
-## 5. Admin & dev tools
+## Verified already-consistent (no change)
 
-- `src/pages/admin/components/UserSubscriptionManager.tsx` — change the `plans` array from `['trial','starter','pro']` to `['starter','growth','business','enterprise']` and update the badge label logic accordingly.
-- `src/components/development/TestingPanel.tsx` — extend `SubscriptionPlan` to the four canonical tiers and update the limit map (`growth: 30`, `business: 120`, `enterprise: -1`).
-- `src/scripts/fix-user-subscription.ts` — retarget the script copy/log strings to "Business" (or parameterize the tier).
-
-## 6. Edge functions
-
-- `supabase/functions/fetch-opportunity-documents/index.ts` — replace the `["pro","enterprise","white_label"]` allowlist with `["business","enterprise"]` (and keep `growth` if currently allowed elsewhere — verify against `_shared/subscription-limits.ts`). Update the error message to "Business or Enterprise subscription required".
-- `supabase/functions/public-api/index.ts` — same allowlist swap for API access; update the 403 message to "Business or Enterprise subscription required".
-- `supabase/functions/search-opportunities/index.ts` — drop `"pro"` from the allowlist (keep the others).
-- `supabase/functions/admin-update-subscription/index.ts` — keep the `'pro' → 'business'` migration mapping for incoming legacy values, but ensure the function does not re-emit `'pro'`.
-- `supabase/functions/_shared/subscription-limits.ts` — remove the `pro: { projects: 120 }` row; keep `business`.
-
-## 7. Database migrations
-
-Old migrations contain `'pro'` literals — those are historical and stay as-is. **No new migration is part of this UI/copy pass.** If the user wants the database normalized too, that becomes a separate follow-up that updates `subscription` rows where `plan_type = 'pro'` to `'business'` and adds a CHECK constraint limiting `plan_type` to the four canonical values.
+- `ProjectStageNav` deliver stage → growth (review starts at growth) ✅
+- `ProjectContent` Deliver tabs: Review → growth, Design → business ✅
+- `UnifiedProposalView` Auto-Generated → business ✅
+- `ProjectSidebar` SECTION_REQUIRED_TIER (overview/analysis/proposal=free, review=growth, design=business) ✅
+- `useFeatureGate` FEATURE_REQUIRED_PLAN, `SubscriptionManager` pricing copy, `faq.tsx` ✅
 
 ## Out of scope
-
-- DB data migration of any existing `plan_type = 'pro'` rows (call out separately if desired).
-- Stripe price IDs in `src/config/stripe-prices.ts` (verify it has no `pro` entry; if it does, flag it).
-- Marketing/legal pages outside the files listed above — none currently reference Pro per the search.
+- Pricing page marketing copy (already aligned)
+- Database `pricing_tiers` rows (handled by prior migration)
+- Stripe price IDs
 
 ## Verification
-
-- `rg -ni "\bpro plan\b|'pro'|\"pro\"" src/ supabase/functions/` should return only (a) the legacy normalization in `feature-access.ts` / `admin-update-subscription` and (b) historical SQL migration files.
-- Spot-check Pricing page, Subscription page, GatedFeature modal, and Account → Subscription card render with Starter/Growth/Business/Enterprise only.
+After changes, on a Starter account on `/projects/:id`:
+- Brief, Analyze (RFP Summary + Outline tabs both render content), Draft (Editor + Draft view) are all accessible.
+- Auto-Generated, Compiled, Split, Deliver stages still show the upgrade gate at the correct tiers.

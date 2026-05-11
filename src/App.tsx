@@ -135,6 +135,7 @@ function AppContent() {
           <Route path="/team/invite" element={<TeamInvite />} />
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/enterprise-support" element={<EnterpriseSupport />} />
+          <Route path="/docs/sso-setup" element={<SsoSetupGuide />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/onboarding/enterprise" element={<EnterpriseOnboarding />} />
           

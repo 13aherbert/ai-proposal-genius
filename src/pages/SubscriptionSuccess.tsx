@@ -55,8 +55,8 @@ export default function SubscriptionSuccess() {
       case 'enterprise': return 'Enterprise Plan';
       case 'starter': return 'Starter Plan';
       // Legacy slugs
-      case 'pro': return 'Pro Plan';
-      case 'basic': return 'Basic Plan';
+      case 'pro': return 'Business Plan';
+      case 'basic': return 'Growth Plan';
       default: return 'Subscription';
     }
   };

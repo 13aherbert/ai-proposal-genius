@@ -42,10 +42,12 @@ export function useProjects(user: User | null) {
       const planType = subscriptionData.plan_type.toLowerCase();
       let limit;
       
-      if (planType === 'pro') {
-        limit = SUBSCRIPTION_PLAN_LIMITS.pro;
-      } else if (planType === 'basic') {
-        limit = SUBSCRIPTION_PLAN_LIMITS.basic;
+      if (planType === 'enterprise') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+      } else if (planType === 'business' || planType === 'pro') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.business;
+      } else if (planType === 'growth' || planType === 'basic') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.growth;
       } else if (planType === 'starter') {
         limit = SUBSCRIPTION_PLAN_LIMITS.starter;
       } else {

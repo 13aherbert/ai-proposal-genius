@@ -1,9 +1,8 @@
-
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { UserProfile, UserRole } from "@/services/admin/types";
-import { Input } from "@/components/ui/input";
 import { UserTable } from "./UserTable";
 import { UserStatsCards } from "./UserStatsCards";
+import { UserFilters, RoleFilter, PlanFilter, StatusFilter } from "./UserFilters";
 
 interface UserListProps {
   users: UserProfile[];
@@ -24,6 +23,7 @@ interface UserListProps {
   handleDeleteUser: (userId: string) => Promise<void>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  reloadUsers: () => Promise<void>;
 }
 
 export function UserList({
@@ -44,29 +44,59 @@ export function UserList({
   handleUpdateSubscription,
   handleDeleteUser,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  reloadUsers,
 }: UserListProps) {
-  const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.businessName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [planFilter, setPlanFilter] = useState<PlanFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return users.filter((user) => {
+      if (q) {
+        const hit =
+          user.email?.toLowerCase().includes(q) ||
+          user.firstName?.toLowerCase().includes(q) ||
+          user.lastName?.toLowerCase().includes(q) ||
+          user.businessName?.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      if (roleFilter !== 'all' && !user.roles?.includes(roleFilter)) return false;
+
+      const planRaw = user.subscription?.plan?.toLowerCase() ?? null;
+      if (planFilter !== 'all') {
+        if (planFilter === 'none') {
+          if (planRaw) return false;
+        } else if (planRaw !== planFilter) {
+          return false;
+        }
+      }
+
+      if (statusFilter !== 'all') {
+        const s = user.subscription?.status?.toLowerCase() ?? null;
+        if (s !== statusFilter) return false;
+      }
+      return true;
+    });
+  }, [users, searchQuery, roleFilter, planFilter, statusFilter]);
 
   return (
     <div className="space-y-4">
-      {/* User Statistics Cards */}
       <UserStatsCards users={users} />
-      
-      {/* Search */}
-      <div className="flex gap-4 items-center">
-        <Input
-          placeholder="Search users..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
+
+      <UserFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        roleFilter={roleFilter}
+        setRoleFilter={setRoleFilter}
+        planFilter={planFilter}
+        setPlanFilter={setPlanFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        resultCount={filteredUsers.length}
+        totalCount={users.length}
+      />
 
       <UserTable
         users={filteredUsers}
@@ -85,6 +115,7 @@ export function UserList({
         handleRemoveRole={handleRemoveRole}
         handleUpdateSubscription={handleUpdateSubscription}
         handleDeleteUser={handleDeleteUser}
+        reloadUsers={reloadUsers}
       />
     </div>
   );

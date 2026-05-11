@@ -74,17 +74,20 @@ export function useProjects(user: User | null) {
         const planType = subscriptionData.plan_type.toLowerCase();
         let limit;
         
-        if (planType === 'pro') {
-          limit = SUBSCRIPTION_PLAN_LIMITS.pro;
-          console.log("PRO USER authenticated - using pro limits:", limit);
+        if (planType === 'enterprise') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+          setCachedProjectLimit(limit);
+        } else if (planType === 'business' || planType === 'pro') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.business;
+          setCachedProjectLimit(limit);
+        } else if (planType === 'growth' || planType === 'basic') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.growth;
           setCachedProjectLimit(limit);
         } else if (planType === 'starter') {
           limit = SUBSCRIPTION_PLAN_LIMITS.starter;
-          console.log("STARTER USER authenticated (from subscription) - using starter limits:", limit);
           setCachedProjectLimit(limit);
         } else {
           limit = SUBSCRIPTION_PLAN_LIMITS.starter;
-          console.log("DEFAULT STARTER USER authenticated - using starter limits:", limit);
           setCachedProjectLimit(limit);
         }
       }

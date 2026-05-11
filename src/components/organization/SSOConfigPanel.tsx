@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Shield, Plus, Trash2, Loader2, CheckCircle2, XCircle, Globe, Copy, RefreshCw } from 'lucide-react';
+import { Shield, Plus, Trash2, Loader2, CheckCircle2, XCircle, Globe, Copy, RefreshCw, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentOrganization } from '@/hooks/use-current-organization';
 import { toast } from 'sonner';

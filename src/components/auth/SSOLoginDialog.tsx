@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { lookupSSOForEmail, initiateSSO } from "@/utils/auth/sso";
 
 interface SSOLoginDialogProps {
   open: boolean;
@@ -26,20 +26,17 @@ export function SSOLoginDialog({ open, onOpenChange }: SSOLoginDialogProps) {
     setError("");
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('check-sso-domain', {
-        body: { email },
-      });
-
-      if (fnError) throw fnError;
-
-      if (data?.ssoEnabled && data?.ssoUrl) {
-        // Redirect to the IdP SSO URL
-        window.location.href = data.ssoUrl;
-      } else {
-        setError("No SSO configured for this domain. Please use password login.");
+      const info = await lookupSSOForEmail(email);
+      if (!info?.ssoEnabled) {
+        setError("No SSO is configured for this domain. Use email and password instead.");
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to check SSO configuration");
+      const started = await initiateSSO(info, email);
+      if (!started) {
+        setError("Could not start SSO sign-in. Contact your administrator.");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to check SSO configuration");
     } finally {
       setIsChecking(false);
     }

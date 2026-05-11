@@ -1,82 +1,76 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// Look up SSO configuration for an email domain. Public endpoint used during sign-in.
+// Rate-limited per IP. Returns minimal info — never echo internal IDs.
+import { adminClient, corsHeaders, jsonResponse, checkRateLimit, getClientIp } from "../_shared/sso.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
   try {
     const { email } = await req.json();
-    if (!email || !email.includes('@')) {
-      return new Response(JSON.stringify({ error: 'Valid email required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonResponse({ error: 'Valid email required' }, 400);
     }
+
+    const client = adminClient();
+    const ipOk = await checkRateLimit(client, getClientIp(req), 'check-sso-domain', 60, 60);
+    if (!ipOk) return jsonResponse({ error: 'Too many attempts' }, 429);
 
     const domain = email.split('@')[1].toLowerCase();
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    // Check if domain is verified for any organization
-    const { data: domainData } = await adminClient
+    const { data: domainData } = await client
       .from('organization_domains')
       .select('organization_id')
       .eq('domain', domain)
       .eq('is_verified', true)
-      .single();
+      .maybeSingle();
+    if (!domainData) return jsonResponse({ ssoEnabled: false });
 
-    if (!domainData) {
-      return new Response(JSON.stringify({ ssoEnabled: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check if org has SSO enabled and an active config
-    const { data: org } = await adminClient
+    const { data: org } = await client
       .from('organizations')
-      .select('id, name, sso_enabled')
+      .select('id, name, sso_enabled, sso_required, sso_auto_redirect, sso_allow_password_fallback')
       .eq('id', domainData.organization_id)
       .single();
+    if (!org?.sso_enabled) return jsonResponse({ ssoEnabled: false });
 
-    if (!org?.sso_enabled) {
-      return new Response(JSON.stringify({ ssoEnabled: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { data: ssoConfig } = await adminClient
+    const { data: cfg } = await client
       .from('organization_sso_config')
-      .select('provider_name, configuration')
+      .select('provider_type, provider_name, configuration')
       .eq('organization_id', org.id)
       .eq('is_active', true)
       .limit(1)
-      .single();
+      .maybeSingle();
+    if (!cfg) return jsonResponse({ ssoEnabled: false });
 
-    if (!ssoConfig) {
-      return new Response(JSON.stringify({ ssoEnabled: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Build the IdP initiation URL based on provider type.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const cfgObj = (cfg.configuration || {}) as Record<string, unknown>;
+    let initiateUrl: string | null = null;
+
+    if (cfg.provider_type === 'supabase_native') {
+      // Caller will use supabase.auth.signInWithSSO({ domain }) directly.
+      initiateUrl = null;
+    } else if (cfg.provider_type === 'oidc') {
+      initiateUrl = `${supabaseUrl}/functions/v1/sso-oidc-init?org=${org.id}&email=${encodeURIComponent(email)}`;
+    } else {
+      // Legacy SAML config — fall back to the IdP SSO URL string if present.
+      initiateUrl = (cfgObj.sso_url as string) || null;
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       ssoEnabled: true,
-      ssoUrl: (ssoConfig.configuration as any)?.sso_url || null,
-      providerName: ssoConfig.provider_name,
+      providerType: cfg.provider_type,
+      providerName: cfg.provider_name,
       organizationName: org.name,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      organizationId: org.id,
+      ssoRequired: !!org.sso_required,
+      ssoAutoRedirect: !!org.sso_auto_redirect,
+      passwordFallbackAllowed: org.sso_allow_password_fallback !== false,
+      domain,
+      initiateUrl,
     });
-  } catch (error) {
-    console.error('Error in check-sso-domain:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (err) {
+    console.error('check-sso-domain error', err);
+    return jsonResponse({ error: 'Internal error' }, 500);
   }
 });

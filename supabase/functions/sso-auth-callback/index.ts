@@ -1,143 +1,154 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// Hardened SSO sign-in callback.
+//
+// IMPORTANT: This endpoint no longer trusts an email passed in the request body.
+// A trusted server-side validator (Path A post-login hook or Path B OIDC callback)
+// must FIRST insert a single-use record into `sso_handoff_tokens` and pass the
+// raw token here. We hash the token, look it up, mark it consumed, then JIT-
+// provision and issue a magic link for the verified email.
+import { adminClient, corsHeaders, jsonResponse, hashToken, checkRateLimit, getClientIp } from "../_shared/sso.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
   try {
-    const body = await req.json();
-    const { email, firstName, lastName, organizationId, samlSessionId } = body;
-
-    if (!email || !organizationId) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const { handoffToken } = await req.json();
+    if (!handoffToken || typeof handoffToken !== 'string' || handoffToken.length < 32) {
+      return jsonResponse({ error: 'Invalid handoff token' }, 400);
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const client = adminClient();
 
-    // Verify organization exists and has SSO enabled
-    const { data: org } = await adminClient
+    const ipOk = await checkRateLimit(client, getClientIp(req), 'sso-auth-callback', 30, 60);
+    if (!ipOk) return jsonResponse({ error: 'Too many attempts' }, 429);
+
+    const tokenHash = await hashToken(handoffToken);
+
+    // Atomically consume: only succeeds if not yet consumed and not expired.
+    const { data: consumed, error: consumeErr } = await client
+      .from('sso_handoff_tokens')
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('token_hash', tokenHash)
+      .is('consumed_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .select('organization_id, email, first_name, last_name, provider')
+      .single();
+
+    if (consumeErr || !consumed) {
+      return jsonResponse({ error: 'Handoff token invalid or expired' }, 401);
+    }
+
+    const email = consumed.email.toLowerCase();
+    const organizationId = consumed.organization_id;
+
+    // Verify org still has SSO enabled
+    const { data: org } = await client
       .from('organizations')
       .select('id, name, sso_enabled')
       .eq('id', organizationId)
       .eq('sso_enabled', true)
       .single();
+    if (!org) return jsonResponse({ error: 'Organization no longer has SSO enabled' }, 403);
 
-    if (!org) {
-      return new Response(JSON.stringify({ error: 'Organization not found or SSO not enabled' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check if user already exists
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email === email.toLowerCase());
+    // Look up existing user by email
+    const { data: existingList } = await client.auth.admin.listUsers();
+    const existingUser = existingList?.users?.find((u) => u.email === email);
 
     let userId: string;
+    let isNewUser = false;
 
     if (existingUser) {
       userId = existingUser.id;
-
-      // Log SSO login
-      await adminClient.rpc('log_security_event', {
-        event_type_param: 'sso_login_success',
-        details_param: {
-          email,
-          organization_id: organizationId,
-          provider: 'saml',
-          timestamp: new Date().toISOString(),
-        },
-      });
     } else {
-      // JIT Provisioning: Create user account
+      // Seat-limit check before creating a new member
+      const { data: seatOk } = await client.rpc('check_organization_seat_limit', {
+        org_id: organizationId,
+      });
+      if (seatOk === false) {
+        return jsonResponse({ error: 'Organization seat limit reached. Contact your administrator.' }, 403);
+      }
+
       const tempPassword = crypto.randomUUID() + crypto.randomUUID();
-      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-        email: email.toLowerCase(),
+      const { data: created, error: createErr } = await client.auth.admin.createUser({
+        email,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
-          first_name: firstName || '',
-          last_name: lastName || '',
+          first_name: consumed.first_name || '',
+          last_name: consumed.last_name || '',
           sso_provisioned: true,
           organization_id: organizationId,
+          provider: consumed.provider,
         },
       });
-
-      if (createError || !newUser.user) {
-        console.error('JIT provisioning failed:', createError);
-        return new Response(JSON.stringify({ error: 'Failed to provision user account' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (createErr || !created.user) {
+        console.error('JIT create failed', createErr);
+        return jsonResponse({ error: 'Failed to provision user' }, 500);
       }
+      userId = created.user.id;
+      isNewUser = true;
 
-      userId = newUser.user.id;
-
-      // Ensure user is added to organization
-      const { data: existingMembership } = await adminClient
-        .from('organization_members')
-        .select('id')
-        .eq('organization_id', organizationId)
-        .eq('user_id', userId)
-        .single();
-
-      if (!existingMembership) {
-        await adminClient.from('organization_members').insert({
-          organization_id: organizationId,
-          user_id: userId,
-          role: 'viewer',
-          status: 'active',
-        });
-      }
-
-      // Log provisioning event
-      await adminClient.rpc('log_security_event', {
+      await client.rpc('log_security_event', {
         event_type_param: 'sso_user_provisioned',
-        details_param: {
-          email,
-          organization_id: organizationId,
-          user_id: userId,
-          timestamp: new Date().toISOString(),
-        },
+        details_param: { email, organization_id: organizationId, user_id: userId, provider: consumed.provider },
       });
     }
 
-    // Generate a magic link for seamless sign-in
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    // Ensure org membership
+    const { data: membership } = await client
+      .from('organization_members')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!membership) {
+      // Read default_role from active SSO config if present
+      const { data: ssoCfg } = await client
+        .from('organization_sso_config')
+        .select('configuration')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .maybeSingle();
+      const defaultRole = (ssoCfg?.configuration as { default_role?: string } | null)?.default_role || 'viewer';
+      await client.from('organization_members').insert({
+        organization_id: organizationId,
+        user_id: userId,
+        role: defaultRole,
+        status: 'active',
+      });
+    }
+
+    // Set current org on profile if unset
+    await client.from('profiles')
+      .update({ current_organization_id: organizationId })
+      .eq('profile_id', userId)
+      .is('current_organization_id', null);
+
+    await client.rpc('log_security_event', {
+      event_type_param: 'sso_login_success',
+      details_param: { email, organization_id: organizationId, provider: consumed.provider, isNewUser },
+    });
+
+    const origin = req.headers.get('origin') || Deno.env.get('SUPABASE_URL');
+    const { data: link, error: linkErr } = await client.auth.admin.generateLink({
       type: 'magiclink',
-      email: email.toLowerCase(),
-      options: {
-        redirectTo: `${req.headers.get('origin') || Deno.env.get('SUPABASE_URL')}/dashboard`,
-      },
+      email,
+      options: { redirectTo: `${origin}/dashboard` },
     });
-
-    if (linkError) {
-      console.error('Magic link generation failed:', linkError);
-      return new Response(JSON.stringify({ error: 'Failed to generate session' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (linkErr || !link?.properties?.action_link) {
+      console.error('magic link error', linkErr);
+      return jsonResponse({ error: 'Failed to generate session' }, 500);
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
-      redirectUrl: linkData?.properties?.action_link || '/dashboard',
+      redirectUrl: link.properties.action_link,
       userId,
-      isNewUser: !existingUser,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      isNewUser,
     });
-  } catch (error) {
-    console.error('Error in sso-auth-callback:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (err) {
+    console.error('sso-auth-callback error', err);
+    return jsonResponse({ error: 'Internal error' }, 500);
   }
 });

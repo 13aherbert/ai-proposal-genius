@@ -49,6 +49,7 @@ export function Navbar() {
   const { profileData } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showAdminButton } = useUserRoles();
 
   const initials =
     ((profileData.first_name?.[0] || "") + (profileData.last_name?.[0] || "")).toUpperCase() || "U";

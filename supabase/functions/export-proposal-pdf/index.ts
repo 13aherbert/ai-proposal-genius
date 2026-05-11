@@ -1,10 +1,128 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { zipSync, strToU8 } from "https://esm.sh/fflate@0.8.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const WATERMARK_PHRASE = "Generated with OptiRFP Free — Upgrade to remove watermark";
+
+function u8ToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+function buildSimpleProposalHtml(
+  projectTitle: string,
+  sections: { section_title: string; content: string | null }[],
+  watermark: { phrase: string; logoUrl?: string } | null,
+): string {
+  const safeTitle = escapeHtml(projectTitle || "Proposal");
+  const sectionsHtml = sections.map((s, i) => {
+    const title = escapeHtml(s.section_title || `Section ${i + 1}`);
+    const content = s.content
+      ? sanitiseRichHtml(s.content, { primaryColor: "#3b82f6" })
+      : `<p style="color:#888;font-style:italic;">Content not generated yet.</p>`;
+    return `<section style="${i > 0 ? "page-break-before:always;" : ""}margin-bottom:32px;">
+      <h2 style="font-size:22px;color:#1a1a2e;margin-bottom:12px;border-bottom:2px solid #3b82f6;padding-bottom:6px;">${title}</h2>
+      <div style="line-height:1.7;font-size:13px;">${content}</div>
+    </section>`;
+  }).join("\n");
+
+  const watermarkBlock = watermark
+    ? `<div class="optirfp-watermark" style="margin-top:48px;padding-top:16px;border-top:1px solid #e0e0e0;text-align:center;font-size:10pt;font-style:italic;color:rgba(0,0,0,0.45);">
+        ${watermark.logoUrl ? `<img src="${escapeHtml(watermark.logoUrl)}" alt="OptiRFP" style="height:20px;vertical-align:middle;margin-right:8px;" />` : ""}
+        <span style="vertical-align:middle;">${escapeHtml(watermark.phrase)}</span>
+      </div>`
+    : "";
+
+  const fixedFooter = watermark
+    ? `<div style="position:fixed;bottom:0;left:0;right:0;text-align:center;padding:8px;background:rgba(248,248,248,0.95);border-top:1px solid #e0e0e0;font-size:9pt;font-style:italic;color:rgba(0,0,0,0.4);font-family:sans-serif;">
+        ${watermark.logoUrl ? `<img src="${escapeHtml(watermark.logoUrl)}" alt="OptiRFP" style="height:14px;vertical-align:middle;margin-right:6px;" />` : ""}
+        <span style="vertical-align:middle;">${escapeHtml(watermark.phrase)}</span>
+      </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${safeTitle}</title>
+  <style>
+    @page { margin: 0.75in; size: letter; }
+    body { font-family: Inter, Arial, sans-serif; color: #1a1a1a; padding: 32px 40px 80px; margin: 0; }
+    h1 { font-size: 28px; margin-bottom: 8px; color: #1a1a2e; }
+    h2,h3,h4 { color: #1a1a2e; }
+    p { margin: 8px 0; }
+    ul, ol { padding-left: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 12px; }
+    img { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <header style="margin-bottom:24px;">
+    <h1>${safeTitle}</h1>
+  </header>
+  ${sectionsHtml}
+  ${watermarkBlock}
+  ${fixedFooter}
+</body>
+</html>`;
+}
+
+function buildWordHtmlDoc(html: string): string {
+  // Word-compatible HTML (.doc) — opens natively in Word & Google Docs.
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+${html}
+</html>`;
+}
+
+function buildDocxAltChunk(html: string): Uint8Array {
+  // Minimal valid .docx that embeds an HTML altChunk. Word renders the HTML faithfully.
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/afchunk.htm" ContentType="text/html"/>
+</Types>`;
+
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="htmlChunk1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk" Target="afchunk.htm"/>
+</Relationships>`;
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:altChunk r:id="htmlChunk1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+    <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const htmlPart = `<html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
+
+  const zipped = zipSync({
+    "[Content_Types].xml": strToU8(contentTypes),
+    "_rels/.rels": strToU8(rootRels),
+    "word/_rels/document.xml.rels": strToU8(docRels),
+    "word/document.xml": strToU8(documentXml),
+    "word/afchunk.htm": strToU8(htmlPart),
+  });
+  return zipped;
+}
 
 function escapeHtml(str: string): string {
   return str
@@ -566,12 +684,92 @@ Deno.serve(async (req: Request) => {
     }
     const userId = claimsData.user.id;
 
-    const { designId, plan } = await req.json();
-    if (!designId) {
-      return new Response(JSON.stringify({ error: "Missing designId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const body = await req.json();
+    const { designId, projectId, plan, format = "pdf", logoUrl } = body as {
+      designId?: string;
+      projectId?: string;
+      plan?: string;
+      format?: "pdf" | "doc" | "docx";
+      logoUrl?: string;
+    };
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ---- Lightweight project export path (Starter+, no Design Studio required) ----
+    if (!designId && projectId) {
+      const { data: project, error: projErr } = await adminClient
+        .from("projects")
+        .select("project_id, project_name, organization_id")
+        .eq("project_id", projectId)
+        .single();
+
+      if (projErr || !project) {
+        return new Response(JSON.stringify({ error: "Project not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: projMembership } = await adminClient
+        .from("organization_members")
+        .select("id")
+        .eq("organization_id", project.organization_id)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!projMembership) {
+        return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: sections } = await adminClient
+        .from("proposal_sections")
+        .select("section_title, content, sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: true });
+
+      const watermark = plan === "starter"
+        ? { phrase: WATERMARK_PHRASE, logoUrl }
+        : null;
+
+      const html = buildSimpleProposalHtml(
+        project.project_name || "Proposal",
+        sections || [],
+        watermark,
+      );
+
+      const safeName = (project.project_name || "proposal").replace(/[^\w\-]+/g, "_").slice(0, 60) || "proposal";
+
+      if (format === "pdf") {
+        return new Response(JSON.stringify({ html }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (format === "doc") {
+        const doc = buildWordHtmlDoc(html);
+        return new Response(JSON.stringify({
+          filename: `${safeName}.doc`,
+          mimeType: "application/msword",
+          base64: btoa(unescape(encodeURIComponent(doc))),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      if (format === "docx") {
+        const bytes = buildDocxAltChunk(html);
+        return new Response(JSON.stringify({
+          filename: `${safeName}.docx`,
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          base64: u8ToBase64(bytes),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      return new Response(JSON.stringify({ error: "Unsupported format" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (!designId) {
+      return new Response(JSON.stringify({ error: "Missing designId or projectId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // adminClient already declared above
+
     const { data: design, error: designErr } = await adminClient
       .from("proposal_designs")
       .select("*")

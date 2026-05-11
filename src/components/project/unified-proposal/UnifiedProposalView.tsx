@@ -44,7 +44,6 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
   const { plan, isLoading } = useSubscriptionFeatures();
 
   const currentLevel = TIER_ORDER[plan] ?? 0;
-  const compiledLocked = !isLoading && currentLevel < (TIER_ORDER.growth ?? 1);
   const autoLocked = !isLoading && currentLevel < (TIER_ORDER.business ?? 2);
 
   const handleViewChange = (val: string) => {
@@ -80,25 +79,13 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
                 <FileEdit className="h-3.5 w-3.5" />
                 <span className="text-xs">Draft</span>
               </ToggleGroupItem>
-              <ToggleGroupItem
-                value="compiled"
-                aria-label="Compiled view"
-                className="gap-1.5 px-3"
-                disabled={compiledLocked}
-              >
+              <ToggleGroupItem value="compiled" aria-label="Compiled view" className="gap-1.5 px-3">
                 <BookOpen className="h-3.5 w-3.5" />
                 <span className="text-xs">Compiled</span>
-                {compiledLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
               </ToggleGroupItem>
-              <ToggleGroupItem
-                value="split"
-                aria-label="Split view"
-                className="gap-1.5 px-3"
-                disabled={compiledLocked}
-              >
+              <ToggleGroupItem value="split" aria-label="Split view" className="gap-1.5 px-3">
                 <Columns2 className="h-3.5 w-3.5" />
                 <span className="text-xs">Split</span>
-                {compiledLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
               </ToggleGroupItem>
             </ToggleGroup>
           )}
@@ -109,51 +96,25 @@ export function UnifiedProposalView({ projectId, analysis, proposalOutline }: Un
             <Suspense fallback={<SectionLoading />}>
               {viewMode === 'draft' && <ProposalDraft projectId={projectId} mode="draft" />}
 
-              {viewMode === 'compiled' && (
-                <GatedFeature
-                  featureName="Compiled Proposal"
-                  requiredTier="growth"
-                  description="View your entire proposal as a single, continuous document. Perfect for final review and one-click copying."
-                  benefits={[
-                    "See your entire proposal as a continuous document",
-                    "Interactive table of contents with section navigation",
-                    "Print-ready preview matching final export",
-                    "Copy full proposal text with one click",
-                  ]}
-                >
-                  <ProposalDraft projectId={projectId} mode="compiled" />
-                </GatedFeature>
-              )}
+              {viewMode === 'compiled' && <ProposalDraft projectId={projectId} mode="compiled" />}
 
               {viewMode === 'split' && (
-                <GatedFeature
-                  featureName="Split View"
-                  requiredTier="growth"
-                  description="Edit the draft on one side and watch the compiled, print-ready document update on the other."
-                  benefits={[
-                    "Live side-by-side editing and preview",
-                    "Resizable panels — give each side the space it needs",
-                    "Spot formatting and flow issues as you write",
-                    "Faster final review without switching tabs",
-                  ]}
+                <ResizablePanelGroup
+                  direction="horizontal"
+                  className="min-h-[600px] rounded-lg border"
                 >
-                  <ResizablePanelGroup
-                    direction="horizontal"
-                    className="min-h-[600px] rounded-lg border"
-                  >
-                    <ResizablePanel defaultSize={50} minSize={30}>
-                      <div className="h-full overflow-auto p-2">
-                        <ProposalDraft projectId={projectId} mode="draft" />
-                      </div>
-                    </ResizablePanel>
-                    <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={50} minSize={30}>
-                      <div className="h-full overflow-auto p-2 bg-muted/20">
-                        <ProposalDraft projectId={projectId} mode="compiled" />
-                      </div>
-                    </ResizablePanel>
-                  </ResizablePanelGroup>
-                </GatedFeature>
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <div className="h-full overflow-auto p-2">
+                      <ProposalDraft projectId={projectId} mode="draft" />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <div className="h-full overflow-auto p-2 bg-muted/20">
+                      <ProposalDraft projectId={projectId} mode="compiled" />
+                    </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               )}
             </Suspense>
           </ErrorBoundary>

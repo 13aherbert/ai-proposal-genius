@@ -114,7 +114,7 @@ const FEATURE_ACCESS_MAP: Record<FeatureName, string[]> = {
   rfp_summary: ['starter', 'growth', 'business', 'enterprise'],
   proposal_outline: ['starter', 'growth', 'business', 'enterprise'],
   proposal_draft: ['starter', 'growth', 'business', 'enterprise'],
-  compiled_draft: ['growth', 'business', 'enterprise'],
+  compiled_draft: ['starter', 'growth', 'business', 'enterprise'],
   evaluation: ['business', 'enterprise'],
   auto_proposal_generation: ['business', 'enterprise'],
   data_export: ['growth', 'business', 'enterprise'],

@@ -74,10 +74,12 @@ export function useProjectLimits(user: User | null) {
       if (normalizedPlan === 'starter') {
         conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         return SUBSCRIPTION_PLAN_LIMITS.starter;
-      } else if (normalizedPlan === 'pro') {
-        return SUBSCRIPTION_PLAN_LIMITS.pro;
-      } else if (normalizedPlan === 'basic') {
-        return SUBSCRIPTION_PLAN_LIMITS.basic;
+      } else if (normalizedPlan === 'business') {
+        return SUBSCRIPTION_PLAN_LIMITS.business;
+      } else if (normalizedPlan === 'growth') {
+        return SUBSCRIPTION_PLAN_LIMITS.growth;
+      } else if (normalizedPlan === 'enterprise') {
+        return SUBSCRIPTION_PLAN_LIMITS.enterprise;
       }
       
       const safeLimit = getSafeProjectLimit(

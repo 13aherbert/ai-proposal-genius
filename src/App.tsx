@@ -25,7 +25,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
 const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
 const Referral = lazy(() => import("@/pages/Referral"));
-const Team = lazy(() => import("@/pages/Team"));
+
 const TeamInvite = lazy(() => import("@/pages/TeamInvite"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
@@ -42,7 +42,7 @@ const AdminErrorLogs = lazy(() => import("@/pages/admin/AdminErrorLogs"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
 const EnterpriseOnboarding = lazy(() => import("@/pages/EnterpriseOnboarding"));
 const Organization = lazy(() => import("@/pages/Organization"));
-const WhiteLabel = lazy(() => import("@/pages/WhiteLabel"));
+
 const Opportunities = lazy(() => import("@/pages/Opportunities"));
 const EnterpriseSupport = lazy(() => import("@/pages/EnterpriseSupport"));
 const ApiDocs = lazy(() => import("@/pages/ApiDocs"));
@@ -55,7 +55,7 @@ const CompareProposify = lazy(() => import("@/pages/CompareProposify"));
 const CompareQvidian = lazy(() => import("@/pages/CompareQvidian"));
 const ComparePandaDoc = lazy(() => import("@/pages/ComparePandaDoc"));
 const PricingRedirect = lazy(() => import("@/pages/Pricing"));
-const Billing = lazy(() => import("@/pages/Billing"));
+
 const FAQPage = lazy(() => import("@/pages/FAQ"));
 const SecurityPage = lazy(() => import("@/pages/Security"));
 const Demo = lazy(() => import("@/pages/Demo"));

@@ -1346,7 +1346,8 @@ export type Database = {
           organization_id: string
           ssl_certificate_status: string | null
           updated_at: string | null
-          verification_token: string | null
+          verification_token: string
+          verified_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1357,7 +1358,8 @@ export type Database = {
           organization_id: string
           ssl_certificate_status?: string | null
           updated_at?: string | null
-          verification_token?: string | null
+          verification_token?: string
+          verified_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1368,7 +1370,8 @@ export type Database = {
           organization_id?: string
           ssl_certificate_status?: string | null
           updated_at?: string | null
-          verification_token?: string | null
+          verification_token?: string
+          verified_at?: string | null
         }
         Relationships: [
           {
@@ -3094,6 +3097,74 @@ export type Database = {
           },
         ]
       }
+      sso_handoff_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          organization_id: string
+          provider: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          organization_id: string
+          provider: string
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          organization_id?: string
+          provider?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_handoff_tokens_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_rate_limits: {
+        Row: {
+          attempted_at: string
+          bucket_key: string
+          endpoint: string
+          id: string
+        }
+        Insert: {
+          attempted_at?: string
+          bucket_key: string
+          endpoint: string
+          id?: string
+        }
+        Update: {
+          attempted_at?: string
+          bucket_key?: string
+          endpoint?: string
+          id?: string
+        }
+        Relationships: []
+      }
       subscription_plan_templates: {
         Row: {
           base_price: number | null
@@ -3853,6 +3924,15 @@ export type Database = {
           target_user_id: string
         }
         Returns: string
+      }
+      sso_check_rate_limit: {
+        Args: {
+          _bucket_key: string
+          _endpoint: string
+          _max_attempts: number
+          _window_seconds: number
+        }
+        Returns: boolean
       }
       storage_user_in_org: { Args: { org_id_text: string }; Returns: boolean }
       storage_user_in_same_org: {

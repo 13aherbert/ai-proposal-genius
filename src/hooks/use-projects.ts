@@ -301,10 +301,12 @@ export function useProjects(user: User | null) {
   if (subscriptionData && subscriptionData.plan_type) {
     const planType = subscriptionData.plan_type.toLowerCase();
     
-    if (planType === 'pro') {
-      projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
-    } else if (planType === 'basic') {
-      projectLimit = SUBSCRIPTION_PLAN_LIMITS.basic;
+    if (planType === 'enterprise') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+    } else if (planType === 'business' || planType === 'pro') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.business;
+    } else if (planType === 'growth' || planType === 'basic') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.growth;
     } else if (planType === 'starter') {
       projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
     } else {

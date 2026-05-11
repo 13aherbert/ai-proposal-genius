@@ -28,10 +28,12 @@ import {
   Settings,
   Compass,
   RotateCcw,
+  Shield,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccessibilitySettings } from "@/components/accessibility/AccessibilitySettings";
 import { HelpFeedbackLauncher } from "@/components/feedback/HelpFeedbackLauncher";
+import useUserRoles from "@/hooks/user-roles";
 
 type NavItem = { label: string; to: string; matches?: string[] };
 
@@ -47,6 +49,7 @@ export function Navbar() {
   const { profileData } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showAdminButton } = useUserRoles();
 
   const initials =
     ((profileData.first_name?.[0] || "") + (profileData.last_name?.[0] || "")).toUpperCase() || "U";
@@ -166,6 +169,14 @@ export function Navbar() {
                       <Link to="/api-docs" className="w-full cursor-pointer">
                         <Code2 className="mr-2 h-4 w-4" />
                         API
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {showAdminButton && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="w-full cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin
                       </Link>
                     </DropdownMenuItem>
                   )}

@@ -105,6 +105,58 @@ export function CompiledView({ sections, projectId, projectTitle }: CompiledView
     window.print();
   };
 
+  const [exporting, setExporting] = useState<null | "pdf" | "doc" | "docx">(null);
+
+  const runExport = async (format: "pdf" | "doc" | "docx") => {
+    setExporting(format);
+    try {
+      const logoUrl = `${window.location.origin}${OPTIRFP_LOGO_PATH}`;
+      const { data, error } = await supabase.functions.invoke("export-proposal-pdf", {
+        body: { projectId, plan, format, logoUrl },
+      });
+      if (error) throw error;
+
+      if (format === "pdf") {
+        const html = (data as { html?: string })?.html;
+        if (!html) throw new Error("No HTML returned");
+        const w = window.open("", "_blank");
+        if (w) {
+          w.document.write(html);
+          w.document.close();
+          setTimeout(() => w.print(), 500);
+          toast.success("Print dialog opened — save as PDF");
+        }
+      } else {
+        const { filename, mimeType, base64 } = data as { filename: string; mimeType: string; base64: string };
+        if (!base64) throw new Error("No file returned");
+        const bin = atob(base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success(`Exported ${filename}`);
+      }
+
+      if (showWatermark) {
+        toast.info("This export includes a watermark. Upgrade to remove it.", {
+          action: { label: "Upgrade", onClick: () => navigate("/subscription") },
+        });
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="p-2 sm:p-6">
       <Card>

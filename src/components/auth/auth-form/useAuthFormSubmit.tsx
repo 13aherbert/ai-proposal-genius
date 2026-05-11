@@ -9,6 +9,7 @@ import { withRetry } from "@/utils/network/retry";
 import { setAuthToken, setUserRoles, setSubscriptionData } from "@/utils/network";
 import { PasswordSecurity, SessionSecurity } from "@/utils/security/auth-security";
 import { validateEmail } from "@/utils/security/input-sanitizer";
+import { lookupSSOForEmail, initiateSSO } from "@/utils/auth/sso";
 
 export const useAuthFormSubmit = () => {
   const { isSignUp, email, password, firstName, lastName, companyName, birthday, setError } = useAuthForm();

@@ -3343,6 +3343,69 @@ export type Database = {
           },
         ]
       }
+      user_feedback_submissions: {
+        Row: {
+          allow_contact: boolean
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          metadata: Json
+          name: string | null
+          organization_id: string | null
+          related_error_id: string | null
+          related_error_message: string | null
+          severity: string
+          status: string
+          subject: string | null
+          ticket_id: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          allow_contact?: boolean
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          metadata?: Json
+          name?: string | null
+          organization_id?: string | null
+          related_error_id?: string | null
+          related_error_message?: string | null
+          severity?: string
+          status?: string
+          subject?: string | null
+          ticket_id: string
+          type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          allow_contact?: boolean
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          metadata?: Json
+          name?: string | null
+          organization_id?: string | null
+          related_error_id?: string | null
+          related_error_message?: string | null
+          severity?: string
+          status?: string
+          subject?: string | null
+          ticket_id?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

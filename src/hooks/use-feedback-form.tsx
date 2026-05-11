@@ -73,7 +73,7 @@ export function useFeedbackForm({
     try {
       // 1) Persist to database (source of truth)
       if (session?.user?.id) {
-        const { error: insertError } = await supabase.from('support_tickets').insert({
+        const { error: insertError } = await supabase.from('user_feedback_submissions').insert({
           ticket_id: ticketId,
           user_id: session.user.id,
           type: feedbackType,

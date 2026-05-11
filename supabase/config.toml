@@ -189,3 +189,9 @@ import_map = "import_map.json"
 name = "create-webhook"
 verify_jwt = false
 import_map = "import_map.json"
+
+[[functions]]
+name = "submit-contact-message"
+verify_jwt = false
+import_map = "import_map.json"
+

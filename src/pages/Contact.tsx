@@ -62,18 +62,35 @@ export default function Contact() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement)?.value;
-    const company = (form.elements.namedItem("company") as HTMLInputElement)?.value;
-    const message = (form.elements.namedItem("message") as HTMLTextAreaElement)?.value;
+    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value?.trim();
+    const email = (form.elements.namedItem("email") as HTMLInputElement)?.value?.trim();
+    const company = (form.elements.namedItem("company") as HTMLInputElement)?.value?.trim();
+    const message = (form.elements.namedItem("message") as HTMLTextAreaElement)?.value?.trim();
+    const hp = (form.elements.namedItem("website") as HTMLInputElement)?.value?.trim();
 
-    const subject = encodeURIComponent(`Contact from ${name}${company ? ` (${company})` : ""}`);
-    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\n\n${message}`);
-    window.open(`mailto:hello@optirfp.ai?subject=${subject}&body=${body}`, "_self");
+    if (!name || !email || !message || message.length < 10) {
+      toast.error("Please fill in name, email, and a message of at least 10 characters.");
+      return;
+    }
 
-    setSending(false);
-    setSubmitted(true);
-    toast.success("Opening your email client. You can also email us directly at hello@optirfp.ai.");
+    setSending(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase.functions.invoke("submit-contact-message", {
+        body: { name, email, company: company || null, message, hp: hp || null },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error((data as any)?.error || error?.message || "Submission failed");
+      }
+      setSubmitted(true);
+      toast.success("Message sent — we'll get back to you within 24 hours.");
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not send your message. Please email hello@optirfp.ai directly.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -151,7 +168,7 @@ export default function Contact() {
                   <CardContent className="p-8 text-center">
                     <CheckCircle2 className="h-12 w-12 text-brand-green mx-auto mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Almost there!</h3>
-                    <p className="text-muted-foreground">Your default email client should have opened with a pre-filled message. If it didn't, you can email us directly at <a href="mailto:hello@optirfp.ai" className="text-brand-green hover:underline">hello@optirfp.ai</a>.</p>
+                    <p className="text-muted-foreground">Thanks for reaching out — we'll respond within 24 hours. You can also email us at <a href="mailto:hello@optirfp.ai" className="text-brand-green hover:underline">hello@optirfp.ai</a>.</p>
                     <Button className="mt-6" variant="outline" onClick={() => setSubmitted(false)}>
                       Send Another Message
                     </Button>
@@ -159,6 +176,8 @@ export default function Contact() {
                 </Card>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Honeypot field, hidden from users */}
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>

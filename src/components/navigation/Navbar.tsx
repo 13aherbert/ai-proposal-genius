@@ -298,6 +298,12 @@ export function Navbar() {
                       Plans & Pricing
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/help" className="w-full cursor-pointer">
+                      <Mail className="mr-2 h-4 w-4" />
+                      Help & Support
+                    </Link>
+                  </DropdownMenuItem>
                   {(localStorage.getItem('onboarding_skipped') === 'true' || localStorage.getItem('onboarding_completed') !== 'true') && (
                     <DropdownMenuItem
                       onClick={() => {

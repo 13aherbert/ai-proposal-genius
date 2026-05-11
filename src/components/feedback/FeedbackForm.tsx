@@ -64,13 +64,14 @@ export function FeedbackForm({
         <RadioGroup 
           value={feedbackType}
           onValueChange={(value) => setFeedbackType(value as FeedbackType)}
-          className="flex space-x-2"
+          className="flex flex-wrap gap-x-3 gap-y-2"
         >
           {[
+            { value: 'general', label: 'Feedback' },
             { value: 'bug', label: 'Bug' },
-            { value: 'feature', label: 'Feature Request' },
+            { value: 'feature', label: 'Feature' },
             { value: 'improvement', label: 'Improvement' },
-            { value: 'general', label: 'General' }
+            { value: 'support', label: 'Support' },
           ].map((option) => (
             <div key={option.value} className="flex items-center space-x-1">
               <RadioGroupItem value={option.value} id={`feedback-type-${option.value}`} />

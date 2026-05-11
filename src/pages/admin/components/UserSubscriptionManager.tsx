@@ -30,14 +30,16 @@ export function UserSubscriptionManager({
   handleUpdateSubscription,
   isEditing
 }: UserSubscriptionManagerProps) {
-  const plans = ['trial', 'starter', 'pro'];
+  const plans = ['starter', 'growth', 'business', 'enterprise'];
   const statuses = ['trialing', 'active', 'canceled', 'past_due'];
+
+  const isPaid = currentPlan === 'business' || currentPlan === 'enterprise' || currentPlan === 'growth';
 
   return (
     <div className="space-y-3">
       <div>
         {currentPlan ? (
-          <Badge variant={currentPlan === 'pro' ? 'default' : 'secondary'} className="px-2 py-1">
+          <Badge variant={isPaid ? 'default' : 'secondary'} className="px-2 py-1 capitalize">
             {currentPlan}
           </Badge>
         ) : (

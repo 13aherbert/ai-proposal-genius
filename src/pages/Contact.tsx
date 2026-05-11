@@ -62,18 +62,35 @@ export default function Contact() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement)?.value;
-    const company = (form.elements.namedItem("company") as HTMLInputElement)?.value;
-    const message = (form.elements.namedItem("message") as HTMLTextAreaElement)?.value;
+    const name = (form.elements.namedItem("name") as HTMLInputElement)?.value?.trim();
+    const email = (form.elements.namedItem("email") as HTMLInputElement)?.value?.trim();
+    const company = (form.elements.namedItem("company") as HTMLInputElement)?.value?.trim();
+    const message = (form.elements.namedItem("message") as HTMLTextAreaElement)?.value?.trim();
+    const hp = (form.elements.namedItem("website") as HTMLInputElement)?.value?.trim();
 
-    const subject = encodeURIComponent(`Contact from ${name}${company ? ` (${company})` : ""}`);
-    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\n\n${message}`);
-    window.open(`mailto:hello@optirfp.ai?subject=${subject}&body=${body}`, "_self");
+    if (!name || !email || !message || message.length < 10) {
+      toast.error("Please fill in name, email, and a message of at least 10 characters.");
+      return;
+    }
 
-    setSending(false);
-    setSubmitted(true);
-    toast.success("Opening your email client. You can also email us directly at hello@optirfp.ai.");
+    setSending(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase.functions.invoke("submit-contact-message", {
+        body: { name, email, company: company || null, message, hp: hp || null },
+      });
+      if (error || (data && (data as any).error)) {
+        throw new Error((data as any)?.error || error?.message || "Submission failed");
+      }
+      setSubmitted(true);
+      toast.success("Message sent — we'll get back to you within 24 hours.");
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not send your message. Please email hello@optirfp.ai directly.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

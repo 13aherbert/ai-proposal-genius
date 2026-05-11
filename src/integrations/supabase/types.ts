@@ -3097,6 +3097,41 @@ export type Database = {
           },
         ]
       }
+      sso_client_secrets: {
+        Row: {
+          ciphertext: string
+          created_at: string
+          iv: string
+          last_set_at: string
+          set_by: string | null
+          sso_config_id: string
+        }
+        Insert: {
+          ciphertext: string
+          created_at?: string
+          iv: string
+          last_set_at?: string
+          set_by?: string | null
+          sso_config_id: string
+        }
+        Update: {
+          ciphertext?: string
+          created_at?: string
+          iv?: string
+          last_set_at?: string
+          set_by?: string | null
+          sso_config_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_client_secrets_sso_config_id_fkey"
+            columns: ["sso_config_id"]
+            isOneToOne: true
+            referencedRelation: "organization_sso_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sso_handoff_tokens: {
         Row: {
           consumed_at: string | null

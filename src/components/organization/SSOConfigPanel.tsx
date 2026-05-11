@@ -206,7 +206,7 @@ export function SSOConfigPanel() {
       if (!dRes.ok) throw new Error(`Discovery doc returned ${dRes.status}`);
       const disc = await dRes.json();
 
-      const { error } = await supabase.from('organization_sso_config').insert({
+      const { data: inserted, error } = await supabase.from('organization_sso_config').insert({
         organization_id: organization!.id,
         provider_type: 'oidc',
         provider_name: oidcName,
@@ -218,12 +218,23 @@ export function SSOConfigPanel() {
           token_endpoint: disc.token_endpoint,
           jwks_uri: disc.jwks_uri,
           client_id: oidcClientId,
-          client_secret: oidcClientSecret || undefined,
           scopes: 'openid email profile',
           default_role: 'viewer',
         },
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      // Store client secret separately (encrypted) via edge function
+      if (oidcClientSecret && inserted?.id) {
+        const { error: secErr } = await supabase.functions.invoke('sso-set-client-secret', {
+          body: { sso_config_id: inserted.id, client_secret: oidcClientSecret },
+        });
+        if (secErr) {
+          toast.warning('Provider saved, but failed to store client secret', {
+            description: 'Use "Set client secret" on the provider to retry.',
+          });
+        }
+      }
 
       await supabase.from('organizations').update({ sso_enabled: true }).eq('id', organization!.id);
       toast.success('OIDC provider added');

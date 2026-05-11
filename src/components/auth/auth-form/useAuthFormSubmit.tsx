@@ -129,6 +129,24 @@ export const useAuthFormSubmit = () => {
         setError('Password must be at least 8 characters long');
         return;
       }
+
+      // SSO enforcement: if the email's domain has SSO required, block password sign-in.
+      // If sso_auto_redirect is enabled, kick off the IdP flow instead.
+      try {
+        const ssoInfo = await lookupSSOForEmail(emailValidation.sanitized);
+        if (ssoInfo?.ssoEnabled) {
+          if (ssoInfo.ssoRequired || ssoInfo.ssoAutoRedirect) {
+            const started = await initiateSSO(ssoInfo, emailValidation.sanitized);
+            if (started) return;
+            if (ssoInfo.ssoRequired) {
+              setError(`Your organization (${ssoInfo.organizationName}) requires SSO sign-in. Contact your administrator if you cannot reach the identity provider.`);
+              return;
+            }
+          }
+        }
+      } catch (ssoErr) {
+        console.warn('SSO lookup failed; falling back to password sign-in', ssoErr);
+      }
     }
     
     // Show loading toast for better UX

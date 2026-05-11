@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Bug } from 'lucide-react';
 
-type SubscriptionPlan = 'trial' | 'starter' | 'pro';
+type SubscriptionPlan = 'starter' | 'growth' | 'business' | 'enterprise';
 
 export function TestingPanel() {
   const [testMode, setTestMode] = useState<boolean>(localStorage.getItem('test_mode') === 'true');

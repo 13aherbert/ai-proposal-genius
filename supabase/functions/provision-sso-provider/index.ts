@@ -1,5 +1,5 @@
 // Path A: Register a SAML provider with Supabase native SSO using the Management API.
-// Requires SUPABASE_MGMT_API_TOKEN secret and the project to be on a plan that
+// Requires SB_MGMT_API_TOKEN secret and the project to be on a plan that
 // supports native SSO (Pro+). The returned provider_id is stored in
 // organization_sso_config.configuration.supabase_provider_id.
 import { adminClient, corsHeaders, jsonResponse, requireOrgAdmin } from "../_shared/sso.ts";
@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'metadataUrl or metadataXml required' }, 400);
     }
 
-    const mgmtToken = Deno.env.get('SUPABASE_MGMT_API_TOKEN');
+    const mgmtToken = Deno.env.get('SB_MGMT_API_TOKEN');
     if (!mgmtToken) {
       return jsonResponse({
-        error: 'Server not configured: SUPABASE_MGMT_API_TOKEN missing. Add the secret in Lovable Cloud settings.',
+        error: 'Server not configured: SB_MGMT_API_TOKEN missing. Add the secret in Lovable Cloud settings.',
       }, 500);
     }
 

@@ -197,6 +197,31 @@ export function CompiledView({ sections, projectId, projectTitle }: CompiledView
                 <Printer className="h-4 w-4" />
                 Print
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={exporting !== null}
+                    className="gap-1.5 text-xs sm:text-sm"
+                  >
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => runExport("pdf")} className="gap-2">
+                    <FileText className="h-4 w-4" /> Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => runExport("docx")} className="gap-2">
+                    <FileType className="h-4 w-4" /> Export as Word (.docx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => runExport("doc")} className="gap-2">
+                    <FileType className="h-4 w-4" /> Export as Word (.doc)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="outline"
                 size="sm"

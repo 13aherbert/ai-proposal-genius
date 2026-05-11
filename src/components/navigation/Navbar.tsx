@@ -172,6 +172,14 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  {showAdminButton && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="w-full cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/help" className="w-full cursor-pointer">

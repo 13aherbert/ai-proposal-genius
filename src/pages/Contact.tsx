@@ -178,8 +178,6 @@ export default function Contact() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Honeypot field, hidden from users */}
                   <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>

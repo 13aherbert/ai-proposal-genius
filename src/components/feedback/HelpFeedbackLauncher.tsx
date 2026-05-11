@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Bug, Lightbulb, LifeBuoy, BookOpen, MessageSquarePlus, X } from "lucide-react";
+import { Bug, Lightbulb, LifeBuoy, BookOpen, MessageSquarePlus, X, HelpCircle } from "lucide-react";
 import { UserFeedbackDialog } from "./UserFeedbackDialog";
 import type { FeedbackType } from "./types";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 interface HelpFeedbackLauncherProps {
   /** When true, only show "Contact support" action (used on public pages). */
   publicMode?: boolean;
+  /** Render as inline header icon instead of floating action button. */
+  variant?: "floating" | "inline";
 }
 
 /**
@@ -18,7 +20,7 @@ interface HelpFeedbackLauncherProps {
  * contact support, browse help. Each action opens UserFeedbackDialog
  * preconfigured with the matching feedback type.
  */
-export function HelpFeedbackLauncher({ publicMode = false }: HelpFeedbackLauncherProps) {
+export function HelpFeedbackLauncher({ publicMode = false, variant = "floating" }: HelpFeedbackLauncherProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<FeedbackType>("general");
@@ -45,21 +47,28 @@ export function HelpFeedbackLauncher({ publicMode = false }: HelpFeedbackLaunche
     return () => window.removeEventListener("keydown", handler);
   }, [dialogOpen]);
 
+  const triggerClass =
+    variant === "inline"
+      ? "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      : cn(
+          "fixed z-40 bottom-5 right-5 h-12 w-12 rounded-full shadow-lg",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
+          "flex items-center justify-center transition-transform duration-150 hover:scale-105",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        );
+
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label="Help and feedback"
-            className={cn(
-              "fixed z-40 bottom-5 right-5 h-12 w-12 rounded-full shadow-lg",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              "flex items-center justify-center transition-transform duration-150 hover:scale-105",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          <button type="button" aria-label="Help and feedback" className={triggerClass}>
+            {variant === "inline" ? (
+              <HelpCircle className="h-5 w-5" />
+            ) : popoverOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <MessageSquarePlus className="h-5 w-5" />
             )}
-          >
-            {popoverOpen ? <X className="h-5 w-5" /> : <MessageSquarePlus className="h-5 w-5" />}
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" side="top" className="w-72 p-2">

@@ -1,163 +1,98 @@
 import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSEO } from "@/hooks/use-seo";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
-import { RecentActivityList } from "@/components/dashboard/RecentActivityList";
-import { DashboardEmptyState } from "@/components/dashboard/DashboardEmptyState";
-import { OnboardingProgress } from "@/components/dashboard/OnboardingProgress";
-import { QuickUploadZone } from "@/components/dashboard/QuickUploadZone";
 import { QuickUploadModal } from "@/components/rfp/QuickUploadModal";
-import { KnowledgeBaseReadiness } from "@/components/dashboard/KnowledgeBaseReadiness";
-import { KnowledgeSetupWizard } from "@/components/knowledge-base/KnowledgeSetupWizard";
-import { FirstRFPWizard } from "@/components/onboarding/FirstRFPWizard";
 import { useQuickUpload } from "@/hooks/use-quick-upload";
 import { useAuth } from "@/components/AuthProvider";
 import { useProfile } from "@/hooks/use-profile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
-import { useKnowledgeReadiness } from "@/hooks/use-knowledge-readiness";
-
-import { Database, FolderOpen, Search, Shield } from "lucide-react";
+import { format } from "date-fns";
+import { ArrowRight, Plus, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { OrganizationSize } from "@/components/auth/onboarding/OrganizationSizeSelector";
-import type { UseCase } from "@/components/auth/onboarding/UseCaseSelector";
-
-import { EnterpriseOnboarding } from "@/components/organization/EnterpriseOnboarding";
-import { EnterpriseGettingStarted } from "@/components/organization/EnterpriseGettingStarted";
-import { useCurrentOrganization } from "@/hooks/use-current-organization";
-import { CSMContactWidget } from "@/components/dashboard/CSMContactWidget";
 import { ProgressiveOnboarding } from "@/components/onboarding/ProgressiveOnboarding";
-import { OnboardingResumeBanner } from "@/components/onboarding/OnboardingResumeBanner";
 import { useOnboardingFlow } from "@/hooks/use-onboarding-flow";
-
 import { useSubscription } from "@/hooks/use-subscription";
 import { normalizePlanType } from "@/hooks/subscription/feature-access";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
-import { FeatureGate } from "@/components/subscription/FeatureGate";
-import { UsageProgressWidget } from "@/components/subscription/UsageProgressWidget";
-import { DashboardUpgradeBanner } from "@/components/subscription/DashboardUpgradeBanner";
-import { ProductTour } from "@/components/tour/ProductTour";
 
 export default function Dashboard() {
   const { session } = useAuth();
-  useSEO({ title: "Dashboard | OptiRFP", description: "Manage your RFP projects and proposals." });
+  useSEO({ title: "Home | OptiRFP", description: "Your proposals at a glance." });
   const { profileData } = useProfile();
   const navigate = useNavigate();
   const dashboardStats = useDashboardStats();
-  const statsLoading = dashboardStats.isLoading;
-
-  const isNewUser = useMemo(() => {
-    if (!session?.user?.created_at) return false;
-    return Date.now() - new Date(session.user.created_at).getTime() < 24 * 60 * 60 * 1000;
-  }, [session?.user?.created_at]);
-
-  const [hasCompletedTutorial, setHasCompletedTutorial] = useState(
-    () => localStorage.getItem('tutorial_completed') === 'true'
-  );
   const { recentActivity, isLoading: activitiesLoading } = useRecentActivity(session?.user || null);
-  const { organization } = useCurrentOrganization();
-  const knowledgeReadiness = useKnowledgeReadiness();
-  const [showKBWizard, setShowKBWizard] = useState(false);
-  const [showFirstRFPWizard, setShowFirstRFPWizard] = useState(false);
-  const [checklistDismissed, setChecklistDismissed] = useState(
-    () => localStorage.getItem('onboarding_checklist_dismissed') === 'true'
-  );
   const { data: subscriptionData, isLoading: subscriptionLoading } = useSubscription();
   const planType = normalizePlanType(subscriptionData?.plan_type);
-  const { getProjectLimit, hasFeature } = useSubscriptionFeatures();
-  const hasOpportunities = hasFeature('opportunity_search');
+  const { getProjectLimit } = useSubscriptionFeatures();
   const projectLimit = getProjectLimit();
   const quickUpload = useQuickUpload();
   const onboarding = useOnboardingFlow();
 
+  const [setupDismissed, setSetupDismissed] = useState(
+    () => localStorage.getItem("onboarding_checklist_dismissed") === "true"
+  );
+
   // Listen for reopen-onboarding event from Navbar
   useEffect(() => {
     const handler = () => {
-      localStorage.removeItem('optirfp_wizard_skipped');
-      localStorage.removeItem('optirfp_first_rfp_complete');
+      localStorage.removeItem("optirfp_wizard_skipped");
+      localStorage.removeItem("optirfp_first_rfp_complete");
       onboarding.reopen();
     };
-    window.addEventListener('reopen-onboarding', handler);
-    return () => window.removeEventListener('reopen-onboarding', handler);
-  }, [onboarding.reopen]);
+    window.addEventListener("reopen-onboarding", handler);
+    return () => window.removeEventListener("reopen-onboarding", handler);
+  }, [onboarding]);
 
-  // Show KB wizard for users with empty knowledge base who haven't dismissed it
-  useEffect(() => {
-    if (knowledgeReadiness.isLoading) return;
-    if (knowledgeReadiness.missingEssential.length === 0) return;
-    if (knowledgeReadiness.isEmpty && !localStorage.getItem('kb_wizard_seen') && !dashboardStats.hasProjects) {
-      setShowKBWizard(true);
-    }
-  }, [knowledgeReadiness.isLoading, knowledgeReadiness.isEmpty, knowledgeReadiness.missingEssential, dashboardStats.hasProjects]);
+  const firstName = useMemo(() => {
+    return (
+      profileData.first_name ||
+      (session?.user?.user_metadata as any)?.first_name ||
+      ""
+    );
+  }, [profileData.first_name, session]);
 
-  // FirstRFPWizard is no longer auto-opened. It is launched only from the
-  // empty-state CTA. The DB-backed `useOnboardingFlow` (ProgressiveOnboarding)
-  // is the single source of truth for first-run prompts, so users who skip
-  // never see another welcome modal on subsequent logins.
-
-  const handleKBWizardClose = (open: boolean) => {
-    setShowKBWizard(open);
-    if (!open) {
-      localStorage.setItem('kb_wizard_seen', 'true');
-    }
-  };
-
-  // Stats and tutorial state are now derived synchronously / via React Query.
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
 
   const profileComplete = !!(profileData.first_name && profileData.last_name && profileData.business_name);
-
-  const handleActivityClick = (activity: any) => {
-    if (activity.type === 'project') {
-      navigate(`/projects/${activity.id}`);
-    } else if (activity.type === 'knowledge') {
-      navigate('/knowledge-base');
-    }
-  };
-
-  const handleTutorialComplete = () => {
-    localStorage.setItem('tutorial_completed', 'true');
-    setHasCompletedTutorial(true);
-  };
-
-  const isEnterprise = organization?.subscription_tier === 'enterprise';
+  const isReady = !dashboardStats.isLoading && !subscriptionLoading;
   const isEstablished = dashboardStats.hasProjects || dashboardStats.hasKnowledgeEntries;
-  const showSidebar = !isEstablished || (knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading);
-  const isReady = !statsLoading && !knowledgeReadiness.isLoading && !subscriptionLoading;
+  const continueItems = recentActivity
+    .filter((a) => a.type === "project")
+    .slice(0, 3);
+
+  const setupItems = [
+    { label: "Complete your profile", done: profileComplete, action: () => navigate("/account") },
+    { label: "Add to your library", done: dashboardStats.hasKnowledgeEntries, action: () => navigate("/knowledge-base") },
+    { label: "Start your first proposal", done: dashboardStats.hasProjects, action: () => navigate("/upload-rfp") },
+  ];
+  const setupRemaining = setupItems.filter((s) => !s.done).length;
+  const showSetup = !setupDismissed && setupRemaining > 0 && !isEstablished;
+
+  const planLabel = !planType || planType === "starter" ? "Free plan" : `${planType.charAt(0).toUpperCase()}${planType.slice(1)} plan`;
+  const usageText = projectLimit === -1
+    ? `${dashboardStats.projectCount} proposals`
+    : `${dashboardStats.projectCount} of ${projectLimit} proposals used`;
 
   if (!isReady) {
     return (
-      <div className="space-y-6">
-        <div data-tour="dashboard-header">
-          <DashboardHeader />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-        <Skeleton className="h-24 w-full" />
-        <div className="space-y-3">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-        </div>
+      <div className="space-y-10">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-
-      <div data-tour="dashboard-header">
-        <DashboardHeader />
-      </div>
-
-      {/* Product Tour */}
-      <ProductTour />
-
-      {/* Progressive Onboarding Wizard */}
+    <div className="space-y-10 max-w-2xl mx-auto">
       <ProgressiveOnboarding
         isOpen={onboarding.isOpen}
         currentStep={onboarding.currentStep}
@@ -169,50 +104,6 @@ export default function Dashboard() {
         setIsOpen={onboarding.setIsOpen}
       />
 
-      {/* Resume Banner for skipped onboarding */}
-      {onboarding.showBanner && (
-        <OnboardingResumeBanner
-          currentStep={onboarding.currentStep}
-          onResume={onboarding.resume}
-          onDismiss={onboarding.dismiss}
-        />
-      )}
-
-      {/* Enterprise Onboarding - Show only for genuinely new enterprise users who haven't dismissed */}
-      {isEnterprise && isNewUser && !localStorage.getItem('enterprise-onboarding-skipped') && (
-        <EnterpriseOnboarding />
-      )}
-
-      {/* Enterprise Getting Started - Show for enterprise users */}
-      {isEnterprise && !isNewUser && (
-        <EnterpriseGettingStarted />
-      )}
-
-      {/* Empty state for new users */}
-      {!isEstablished && !isEnterprise && !checklistDismissed && (
-        <DashboardEmptyState
-          profileComplete={profileComplete}
-          hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
-          hasProjects={dashboardStats.hasProjects}
-          knowledgeReadiness={knowledgeReadiness}
-          onUploadClick={quickUpload.openModal}
-          onWizardOpen={() => setShowFirstRFPWizard(true)}
-          onDismiss={() => {
-            setChecklistDismissed(true);
-            localStorage.setItem('onboarding_checklist_dismissed', 'true');
-          }}
-        />
-      )}
-
-      {/* First RFP Wizard */}
-      <FirstRFPWizard open={showFirstRFPWizard} onOpenChange={setShowFirstRFPWizard} />
-
-      {/* Knowledge Base Setup Wizard */}
-      {showKBWizard && (
-        <KnowledgeSetupWizard open={showKBWizard} onOpenChange={handleKBWizardClose} />
-      )}
-
-      {/* Quick Upload Modal */}
       <QuickUploadModal
         isOpen={quickUpload.isModalOpen}
         onClose={quickUpload.closeModal}
@@ -226,73 +117,123 @@ export default function Dashboard() {
         onViewProject={quickUpload.viewProject}
       />
 
-      {/* Main content for established users */}
-      {isEstablished && (
-      <div className={showSidebar ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : ""}>
-        <div className={showSidebar ? "lg:col-span-3 space-y-6" : "space-y-6"}>
-          {/* Quick Actions */}
-          <div data-tour="quick-actions" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div data-tour="quick-upload">
-              <QuickUploadZone onFileSelect={(file) => {
-                quickUpload.openModal();
-                setTimeout(() => quickUpload.uploadAndCreate(file), 100);
-              }} />
-            </div>
-            <QuickActionCard title="View All Projects" description="Manage your existing projects" icon={FolderOpen} href="/projects" variant="secondary" />
-            <QuickActionCard title="Knowledge Base" description="Manage your content library" icon={Database} href="/knowledge-base" variant="secondary" />
-            {hasOpportunities ? (
-              <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
-            ) : (
-              <FeatureGate feature="opportunity_search" label="Pro">
-                <QuickActionCard title="Find Opportunities" description="Search government RFPs" icon={Search} href="/opportunities" variant="secondary" />
-              </FeatureGate>
-            )}
-          </div>
+      {/* Greeting */}
+      <header className="space-y-1 pt-2">
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+          {greeting}{firstName ? `, ${firstName}` : ""}.
+        </h1>
+        <p className="text-sm text-muted-foreground">{planLabel} · {usageText}</p>
+      </header>
 
-          {/* Usage Progress */}
-          <div data-tour="usage-widget">
-          {!isEnterprise && (
-            <UsageProgressWidget
-              projectCount={dashboardStats.projectCount}
-              projectLimit={projectLimit}
-              currentPlan={planType as "starter" | "growth" | "business" | "enterprise"}
-            />
-          )}
-          {isEnterprise && (
-            <UsageProgressWidget
-              projectCount={dashboardStats.projectCount}
-              projectLimit={-1}
-              currentPlan="enterprise"
-            />
-          )}
+      {/* Primary action */}
+      <section
+        onClick={() => quickUpload.openModal()}
+        className="group relative overflow-hidden rounded-2xl border border-border bg-card hover:border-primary/40 transition-colors cursor-pointer p-8 md:p-10"
+      >
+        <div className="flex items-start gap-5">
+          <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Upload className="h-5 w-5" />
           </div>
-          {/* Upgrade Banner for Free Tier */}
-          <DashboardUpgradeBanner />
-
-          {/* Recent Activity */}
-          <div data-tour="recent-activity" className="space-y-3">
-            <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
-            <RecentActivityList activities={recentActivity} isLoading={activitiesLoading} onActivityClick={handleActivityClick} />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-semibold text-foreground">Start a proposal</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Drop an RFP file and we'll draft your response. PDFs, Word, or text.
+            </p>
           </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all hidden sm:block" />
         </div>
+      </section>
 
-        {/* Sidebar - only renders when there's content to show */}
-        {showSidebar && (
-          <div className="space-y-4">
-            <CSMContactWidget />
-            {knowledgeReadiness.missingEssential.length > 0 && !knowledgeReadiness.isLoading && (
-              <KnowledgeBaseReadiness compact />
-            )}
-            <OnboardingProgress
-              organizationSize={profileData.organization_size as OrganizationSize}
-              useCase={profileData.use_case as UseCase}
-              hasProjects={dashboardStats.hasProjects}
-              hasKnowledgeEntries={dashboardStats.hasKnowledgeEntries}
-              profileComplete={profileComplete}
-            />
+      {/* Setup checklist (only while incomplete) */}
+      {showSetup && (
+        <section className="rounded-xl border border-border/60 bg-muted/30 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Get set up</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {setupRemaining} step{setupRemaining === 1 ? "" : "s"} left
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSetupDismissed(true);
+                localStorage.setItem("onboarding_checklist_dismissed", "true");
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Dismiss
+            </button>
           </div>
-        )}
-      </div>
+          <ul className="mt-4 space-y-1">
+            {setupItems.map((s, i) => (
+              <li key={i}>
+                <button
+                  onClick={s.action}
+                  className="w-full flex items-center gap-3 text-left py-2 px-2 -mx-2 rounded-md hover:bg-muted transition-colors"
+                  disabled={s.done}
+                >
+                  <span
+                    className={
+                      s.done
+                        ? "h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]"
+                        : "h-4 w-4 rounded-full border border-muted-foreground/40"
+                    }
+                  >
+                    {s.done ? "✓" : ""}
+                  </span>
+                  <span className={s.done ? "text-sm text-muted-foreground line-through" : "text-sm text-foreground"}>
+                    {s.label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Continue */}
+      {isEstablished && continueItems.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Continue
+            </h2>
+            <button
+              onClick={() => navigate("/projects")}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              View all
+            </button>
+          </div>
+          <ul className="divide-y divide-border/60 rounded-xl border border-border/60 overflow-hidden">
+            {continueItems.map((p) => (
+              <li key={p.id}>
+                <button
+                  onClick={() => navigate(`/projects/${p.id}`)}
+                  className="w-full flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-muted/50 transition-colors text-left"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {p.isUpdate ? "Updated" : "Created"} {format(new Date(p.date), "MMM d")}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Empty state nudge if no projects and setup dismissed */}
+      {!isEstablished && setupDismissed && (
+        <div className="text-center py-6">
+          <Button variant="outline" onClick={() => navigate("/upload-rfp")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create your first proposal
+          </Button>
+        </div>
       )}
     </div>
   );

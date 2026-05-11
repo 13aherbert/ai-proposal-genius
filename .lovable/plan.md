@@ -1,61 +1,84 @@
+
 ## Goal
-Make it effortless for any signed-in user to submit feedback/ideas and open a support ticket, and make public visitor support submissions reliable (no broken `mailto:` flow). Today the infrastructure mostly exists but is hidden.
+Strip the app down to a calm, confident, minimalist experience. Reduce surface area, hierarchy noise, and decision fatigue — Apple/Tesla style: one clear primary action per screen, generous whitespace, restrained color, no overlapping prompts.
 
-## Findings (current state)
+## Problems Today
+- **Dashboard overload**: header + tour + progressive onboarding + resume banner + enterprise onboarding + enterprise getting-started + empty-state checklist + KB wizard + first-RFP wizard + quick-upload zone + 3 quick-action cards + usage widget + upgrade banner + recent activity + sidebar (CSM, KB readiness, onboarding progress) — all can render together. Multiple competing CTAs.
+- **Navbar clutter**: 4 top-level groups with mega-menu dropdowns, floating help button, theme toggle, accessibility toggle, enterprise crown popover, avatar menu with 6+ items including "Restart Onboarding" and "Restart Tour".
+- **Too many pages**: 40+ routes, several near-duplicates (Dashboard, RecentProjects, ProjectDetails; Subscription/Billing/Pricing; HelpCenter/Contact/EnterpriseSupport/FAQ; Organization/Team/WhiteLabel/EnterpriseOnboarding).
+- **Workflow friction**: creating a proposal involves Upload RFP → Project Details → Outline → Generate → Edit → Review → Export, each its own dense screen with sidebars and tabs.
+- **Persistent banners**: usage banner, upgrade banner, onboarding resume banner stack on top of every page.
 
-- `UserFeedbackDialog` (bug / feature / improvement / general) exists and works — but it is only mounted inside `MonitoringDashboard` (admin-only). **Regular users cannot reach it.**
-- The authenticated `Navbar` has no Help / Support / Feedback entry point. The `HelpCenter` route exists but is not linked.
-- Public `Contact` form uses `window.open("mailto:…")` — fragile, no record kept, fails if the user has no native mail client.
-- Feedback / support submissions are emailed only (via `send-email` edge function). Nothing is persisted, so admins can't triage in-app.
-- The "We may contact you" toggle is opt-in for the user's own confirmation email — confusing; users expect a confirmation by default.
+## Design Principles (apply everywhere)
+1. **One primary action per screen.** Everything else is secondary/ghost.
+2. **Progressive disclosure.** Hide power-user controls behind "More" / settings, never on first paint.
+3. **Single onboarding voice.** Only one onboarding surface visible at any time, ever.
+4. **Calm chrome.** Thin navbar, no badges/popovers in the header. Notifications and upgrade prompts live in one inbox, not as banners.
+5. **Whitespace > density.** Larger type scale, fewer cards per row, no decorative gradients on dashboards.
+6. **Plain language.** "Start a proposal" not "Upload RFP". "Library" not "Knowledge Base". "Find work" not "Discover/Opportunities".
 
-## Plan
+## Phase 1 — Navigation Simplification
+- Collapse top nav to **4 items max**: `Home` · `Proposals` · `Library` · `Find Work`. Remove "Create" mega-menu; the primary "+ New proposal" becomes a single pill button on the right of the navbar.
+- Move into the avatar menu (and out of the navbar): Analytics, Organization, API docs, Account, Plan, Help. Drop "Restart Onboarding" and "Restart Tour" from the menu — surface them only inside Help.
+- Remove the Enterprise crown popover from the navbar; show CSM contact inside Help → "Your success manager".
+- Remove the floating `HelpFeedbackLauncher` button. Replace with a single "?" icon in the navbar that opens the same panel. Keep `Shift+?` shortcut.
+- Hide Theme + Accessibility toggles behind the avatar menu → "Display & accessibility".
 
-### 1. Always-available entry point in the app
-- Add a **floating Help & Feedback button** (bottom-right, semi-transparent, brand-aware) inside `DashboardLayout` for all authenticated users.
-- Clicking opens a small popover with three actions:
-  - **Send feedback / idea** → opens `UserFeedbackDialog` (type preselected = `general`, switchable).
-  - **Report a bug** → same dialog with type = `bug` and severity prefilled.
-  - **Contact support** → same dialog with type = `support` (new type), routed to support inbox.
-- Add a "Help & Feedback" item in the Navbar user dropdown as a secondary entry point for discoverability.
-- Add keyboard shortcut `?` (or `Shift+/`) to open the popover.
+## Phase 2 — Dashboard Reset (Home)
+Single column, max ~720px content width, three zones only:
 
-### 2. Promote the Help Center
-- Link `/help-center` from the authenticated Navbar (under a new "Help" menu) and from the floating popover ("Browse help articles").
-- On the Help Center page, add a prominent "Still need help? Contact support" CTA that opens the same dialog.
+```
+[ Greeting ]            "Good morning, Alex."
+[ Primary CTA ]         Big card: "Start a proposal" → upload or paste link
+[ Continue ]            Up to 3 most recent in-progress proposals as quiet rows
+[ Status strip ]        One small line: "3 of 6 proposals used this month · Manage"
+```
 
-### 3. Improve the feedback dialog UX
-- Add `support` as a fourth `FeedbackType`; route those to the support inbox with a `TICKET-` id and required email.
-- Pre-fill name/email from the signed-in user's profile (read-only when known) so users only have to write the message.
-- Make confirmation email **default ON** (still toggleable) so users always know their request was received when an email is on file.
-- Add lightweight zod validation (min 10 chars, max 4000) and inline error messages.
-- Show the assigned ticket id in the success toast.
+- Remove: QuickActionCard grid, UsageProgressWidget, DashboardUpgradeBanner, OnboardingProgress sidebar, CSMContactWidget, KnowledgeBaseReadiness sidebar, EnterpriseGettingStarted, ProductTour auto-launch.
+- Onboarding becomes a **single dismissible "Set up" row** above Continue, only while incomplete. Clicking expands an inline 3-step checklist (Profile → Library → First proposal). No modals, no wizards on load.
+- Empty state = the same layout, with Continue replaced by 2 example/template suggestions.
+- Enterprise users see the same Home; CSM access lives in Help, not on the dashboard.
 
-### 4. Persist submissions (so admins can triage)
-- New table `support_tickets` to store every submission (type, severity, message, user_id, email, ticket_id, status: `open`/`in_progress`/`resolved`, org_id, created_at).
-- RLS: users can `SELECT`/`INSERT` their own rows; `system_admin` / `admin` can read all and update status.
-- Update `useFeedbackForm` to insert a row first, then trigger the existing email (email becomes a notification, not the source of truth).
-- Add a minimal admin view at `/admin/support` listing tickets with filter by status/type and a "Mark resolved" action. Reuse existing `AdminLayout`.
+## Phase 3 — Proposal Workflow Simplification
+Today: Upload → Project Details → Outline → Generate → Edit → Review → Export, each a separate page.
 
-### 5. Fix the public Contact form
-- Replace the `mailto:` submission with a call to a new public edge function `submit-contact-message` (no auth required, basic rate limit + honeypot + zod validation).
-- Function inserts into `support_tickets` (type = `contact`, user_id null) and sends the existing support email.
-- Show a real success state in-page; keep the email address visible as a fallback.
+Replace with a **single proposal workspace** that is one URL with a slim left rail showing 4 stages:
+```
+1. Brief      2. Outline      3. Draft      4. Deliver
+```
+- Stages auto-advance; user can jump back. No modal wizards.
+- "Brief" replaces Upload + Project Details (one screen: drop file or paste link, name auto-fills).
+- "Deliver" replaces Review + Export + Design Studio entry (export buttons + share link in one panel).
+- AI assist is a single floating bubble (existing Ctrl+J) — remove the per-section AI menus from the toolbar to reduce visual noise.
 
-### 6. Small polish
-- Move the existing "Send Feedback" button out of `MonitoringDashboard` (or keep it there too) so admins still have it, but it's no longer the only path.
-- Add the floating button to `PublicLayout` as well, but only the "Contact support" action (uses the same edge function).
+## Phase 4 — Page Consolidation
+- Merge `Subscription` + `Billing` + `Pricing` (authenticated view) → one `/plan` page with two tabs: Plan · Invoices.
+- Merge `HelpCenter` + `FAQ` + `Contact` + `EnterpriseSupport` → one `/help` with sections: Search docs · Contact us · (if enterprise) Your CSM.
+- Merge `Organization` + `Team` + `WhiteLabel` → one `/organization` with tabs: Members · Branding · Domains · API.
+- Remove `RecentProjects` (it duplicates `/projects`).
+- Keep marketing/comparison pages as-is (out of authenticated scope).
 
-## Technical details
+## Phase 5 — Visual Tone
+- Reduce cards/borders. Prefer hairline dividers on a flat background.
+- Single accent color used sparingly (primary CTA, active nav, key metric). No gradients on dashboards.
+- Type scale: H1 32–40px, H2 22px, body 15px, generous line-height. One display font + one body font (already configured).
+- Animations: existing 150ms standard kept; remove any decorative motion on Home.
+- Banners (usage, upgrade, onboarding resume) become a single consolidated **Notifications inbox** behind a dot on the avatar — never injected above page content.
 
-- Files to add: `src/components/feedback/HelpFeedbackLauncher.tsx`, `supabase/functions/submit-contact-message/index.ts`, `src/pages/admin/AdminSupport.tsx`.
-- Files to edit: `src/layouts/DashboardLayout.tsx`, `src/layouts/PublicLayout.tsx`, `src/components/navigation/Navbar.tsx`, `src/components/feedback/UserFeedbackDialog.tsx`, `src/components/feedback/FeedbackForm.tsx`, `src/components/feedback/types.ts`, `src/hooks/use-feedback-form.tsx`, `src/pages/Contact.tsx`, `src/pages/HelpCenter.tsx`, `src/App.tsx` (register `/admin/support`).
-- New table `support_tickets` with RLS (user-owned select/insert; admin select/update); validation trigger ensures `message` length ≥ 10.
-- Reuse `emailService.sendFeedbackEmail` / `sendSupportEmail`; pass new `ticketId` from the inserted row.
-- Keyboard shortcut handled via existing `useKeyboardShortcuts` hook.
-- No changes to billing, AI, or proposal subsystems.
+## Out of Scope
+- Backend/data model changes. No edits to RLS, Supabase functions, AI prompts, billing logic.
+- Marketing site redesign.
+- Renaming database fields; only UI labels change.
 
-## Out of scope
-- Two-way ticket replies inside the app (admins still respond by email for now).
-- Knowledge-base search inside the launcher (future iteration).
-- Slack/Teams routing of new tickets (already covered by existing webhook system if enabled).
+## Success Criteria
+- Home renders ≤ 4 visible "things" at any moment.
+- Navbar has ≤ 4 left items + 1 primary CTA + avatar.
+- Creating a proposal from Home takes ≤ 2 clicks (CTA → drop file).
+- No more than one onboarding/upgrade/help surface visible simultaneously.
+
+## Suggested Rollout Order
+1. Navbar slim-down + Help/Notifications consolidation.
+2. Dashboard reset (Home).
+3. Page consolidation (Plan, Help, Organization).
+4. Proposal workspace unification.
+5. Visual tone pass + remove residual banners/popovers.

@@ -1,7 +1,7 @@
 // Path B (OIDC): Receive code+state, exchange for tokens, verify id_token via JWKS,
 // issue an sso_handoff_tokens row, and redirect the browser to /sso/finish?token=...
 // The frontend then POSTs the token to sso-auth-callback to receive the magic link.
-import { adminClient, corsHeaders, jsonResponse, randomToken, hashToken, checkRateLimit, getClientIp } from "../_shared/sso.ts";
+import { adminClient, corsHeaders, jsonResponse, randomToken, hashToken, checkRateLimit, getClientIp, decryptSecret, hexLiteralToBytes } from "../_shared/sso.ts";
 import { jwtVerify, createRemoteJWKSet } from "https://esm.sh/jose@5.9.6";
 
 Deno.serve(async (req) => {

@@ -45,6 +45,7 @@ const Organization = lazy(() => import("@/pages/Organization"));
 
 const Opportunities = lazy(() => import("@/pages/Opportunities"));
 const EnterpriseSupport = lazy(() => import("@/pages/EnterpriseSupport"));
+const SsoSetupGuide = lazy(() => import("@/pages/SsoSetupGuide"));
 const ApiDocs = lazy(() => import("@/pages/ApiDocs"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const BlogPost = lazy(() => import("@/pages/BlogPost"));

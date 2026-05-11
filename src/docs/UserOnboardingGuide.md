@@ -41,7 +41,7 @@ Navigate through the proposal creation process:
 1. Outline: Review and customize the AI-suggested structure
 2. Draft: Generate section content based on the outline
 3. Compile: View the full proposal draft in one document
-4. Evaluate: Get AI feedback on your proposal (Pro plan only)
+4. Evaluate: Get AI feedback on your proposal (Business and Enterprise plans)
 
 ### 6. Using the Knowledge Base
 

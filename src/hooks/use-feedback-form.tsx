@@ -1,10 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import { toast } from '@/components/ui/use-toast';
+import { z } from 'zod';
+import { toast } from 'sonner';
 import { useErrorTracking } from '@/hooks/use-error-tracking';
 import { emailService } from '@/services/email';
 import { ErrorSeverity } from '@/services/ErrorTrackingService';
 import { useAuth } from '@/components/AuthProvider';
+import { useProfile } from '@/hooks/use-profile';
+import { supabase } from '@/integrations/supabase/client';
 import { FeedbackType } from '@/components/feedback/types';
 
 interface UseFeedbackFormProps {
@@ -14,122 +17,131 @@ interface UseFeedbackFormProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const feedbackSchema = z.object({
+  comments: z.string().trim().min(10, 'Please add at least 10 characters').max(5000, 'Keep it under 5000 characters'),
+  email: z.string().trim().email('Invalid email').max(255).optional().or(z.literal('')),
+  name: z.string().trim().max(100).optional(),
+});
+
 export function useFeedbackForm({
   initialFeedbackType,
   errorMessage,
   errorId,
-  onOpenChange
+  onOpenChange,
 }: UseFeedbackFormProps) {
   const { trackError } = useErrorTracking();
   const { session } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const { profileData } = useProfile();
+
+  const defaultName = [profileData?.first_name, profileData?.last_name].filter(Boolean).join(' ').trim();
+  const defaultEmail = session?.user?.email ?? '';
+
+  const [name, setName] = useState(defaultName);
+  const [email, setEmail] = useState(defaultEmail);
   const [comments, setComments] = useState('');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>(initialFeedbackType);
-  const [allowContact, setAllowContact] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({
-    comments: false
-  });
+  const [allowContact, setAllowContact] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({ comments: false });
 
-  // Update feedback type when prop changes
   useEffect(() => {
     setFeedbackType(initialFeedbackType);
   }, [initialFeedbackType]);
 
+  // Re-sync defaults if profile loads after mount
+  useEffect(() => {
+    if (!name && defaultName) setName(defaultName);
+    if (!email && defaultEmail) setEmail(defaultEmail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultName, defaultEmail]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!comments.trim()) {
-      setValidationErrors(prev => ({ ...prev, comments: true }));
-      toast({
-        title: "Comments Required",
-        description: "Please provide feedback comments before submitting.",
-        variant: "destructive"
-      });
+
+    const parsed = feedbackSchema.safeParse({ comments, email, name });
+    if (!parsed.success) {
+      const flat = parsed.error.flatten().fieldErrors;
+      setValidationErrors({ comments: !!flat.comments });
+      toast.error(flat.comments?.[0] ?? flat.email?.[0] ?? 'Please review the form');
       return;
     }
-    
+
     setIsSubmitting(true);
+    const ticketId = `${feedbackType === 'support' ? 'TICKET' : 'FB'}-${Date.now()}`;
 
     try {
-      const ticketId = `TICKET-${Date.now()}`;
-      
-      // Track the feedback in error tracking system
+      // 1) Persist to database (source of truth)
+      if (session?.user?.id) {
+        const { error: insertError } = await supabase.from('support_tickets').insert({
+          ticket_id: ticketId,
+          user_id: session.user.id,
+          type: feedbackType,
+          severity,
+          name: name || null,
+          email: email || null,
+          message: comments,
+          allow_contact: allowContact,
+          related_error_id: errorId !== 'manual-report' ? errorId : null,
+          related_error_message: errorMessage ?? null,
+          metadata: {
+            url: typeof window !== 'undefined' ? window.location.href : null,
+            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+          },
+        });
+        if (insertError) {
+          console.error('Failed to persist support ticket:', insertError);
+        }
+      }
+
+      // 2) Track in error tracking
       trackError({
         message: `User Feedback: ${feedbackType} - ${comments.substring(0, 100)}${comments.length > 100 ? '...' : ''}`,
         severity: feedbackType === 'bug' ? ErrorSeverity.ERROR : ErrorSeverity.INFO,
         context: {
-          feedback: {
-            name,
-            email,
-            comments,
-            severity,
-            feedbackType,
-            allowContact,
-            relatedErrorId: errorId,
-            relatedErrorMessage: errorMessage,
-            ticketId
-          },
-          source: 'user-feedback-form'
-        }
+          feedback: { name, email, severity, feedbackType, allowContact, ticketId },
+          source: 'user-feedback-form',
+        },
       });
 
-      // Send feedback email to support
+      // 3) Notify support via email
+      const userEmail = email || session?.user?.email;
+      const userName = name || profileData?.first_name || 'User';
       await emailService.sendFeedbackEmail(
         feedbackType,
         comments,
         severity,
-        name || (session?.user?.user_metadata?.first_name || 'User'),
-        email || session?.user?.email,
+        userName,
+        userEmail,
         errorMessage,
-        errorId
+        ticketId,
       );
 
-      const userEmail = email || session?.user?.email;
-      const userName = name || (session?.user?.user_metadata?.first_name || 'User');
-      
-      // Send confirmation email if user allows contact
+      // 4) Confirmation email to user (default on)
       if (userEmail && allowContact) {
         try {
-          await emailService.sendSupportConfirmationEmail(
-            userEmail,
-            userName,
-            comments,
-            ticketId
-          );
+          await emailService.sendSupportConfirmationEmail(userEmail, userName, comments, ticketId);
         } catch (emailError) {
-          console.error("Failed to send confirmation email:", emailError);
+          console.error('Failed to send confirmation email:', emailError);
         }
       }
 
-      // Give a slight delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Show success message
-      toast({
-        title: "Feedback Submitted",
-        description: `Thank you for your feedback. ${userEmail && allowContact ? 'We\'ve sent a confirmation to your email.' : 'We\'ll review it as soon as possible.'}`,
+      toast.success(`Thanks — ticket ${ticketId} received`, {
+        description: userEmail && allowContact
+          ? "We've sent a confirmation to your email."
+          : "We'll review it shortly.",
       });
-      
-      // Close dialog
+
       onOpenChange(false);
-      
-      // Reset form
-      setName('');
-      setEmail('');
+
+      // Reset (preserve identity)
       setComments('');
       setSeverity('medium');
       setFeedbackType('general');
-      setAllowContact(false);
+      setAllowContact(true);
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      toast({
-        title: "Submission Error",
-        description: "There was a problem submitting your feedback. Please try again.",
-        variant: "destructive"
-      });
+      toast.error('There was a problem submitting your feedback. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -138,25 +150,19 @@ export function useFeedbackForm({
   const updateComments = (value: string) => {
     setComments(value);
     if (value.trim()) {
-      setValidationErrors(prev => ({ ...prev, comments: false }));
+      setValidationErrors((prev) => ({ ...prev, comments: false }));
     }
   };
 
   return {
-    name,
-    setName,
-    email, 
-    setEmail,
-    comments,
-    updateComments,
-    severity,
-    setSeverity,
-    feedbackType,
-    setFeedbackType,
-    allowContact,
-    setAllowContact,
+    name, setName,
+    email, setEmail,
+    comments, updateComments,
+    severity, setSeverity,
+    feedbackType, setFeedbackType,
+    allowContact, setAllowContact,
     validationErrors,
     isSubmitting,
-    handleSubmit
+    handleSubmit,
   };
 }

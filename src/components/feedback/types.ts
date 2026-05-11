@@ -1,5 +1,5 @@
 
-export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general';
+export type FeedbackType = 'bug' | 'feature' | 'improvement' | 'general' | 'support';
 
 export type FeedbackSeverity = 'low' | 'medium' | 'high';
 

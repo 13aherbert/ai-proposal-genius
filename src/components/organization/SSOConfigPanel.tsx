@@ -439,6 +439,12 @@ export function SSOConfigPanel() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {c.provider_type === 'oidc' && (
+                      <Button size="icon" variant="ghost" title="Set / rotate client secret"
+                        onClick={() => { setRotateForId(c.id); setRotateValue(''); }}>
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Switch checked={c.is_active} onCheckedChange={(v) => toggleProvider(c.id, v)} />
                     <Button size="icon" variant="ghost" onClick={() => deleteProvider(c.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />

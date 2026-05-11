@@ -106,6 +106,7 @@ export function UserManagement({
             handleDeleteUser={handleDeleteUser}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            reloadUsers={loadUsers}
           />
         )}
       </CardContent>

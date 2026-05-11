@@ -103,9 +103,12 @@ export function useProjectLimits(user: User | null) {
         if (data && normalizePlanType(data.plan_type) === 'starter') {
           conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
-        } else if (data && normalizePlanType(data.plan_type) === 'pro') {
-          conditionalLog('info', 'Using stored pro plan data from localStorage');
-          return SUBSCRIPTION_PLAN_LIMITS.pro;
+        } else if (data && normalizePlanType(data.plan_type) === 'business') {
+          conditionalLog('info', 'Using stored business plan data from localStorage');
+          return SUBSCRIPTION_PLAN_LIMITS.business;
+        } else if (data && normalizePlanType(data.plan_type) === 'growth') {
+          conditionalLog('info', 'Using stored growth plan data from localStorage');
+          return SUBSCRIPTION_PLAN_LIMITS.growth;
         }
       }
       

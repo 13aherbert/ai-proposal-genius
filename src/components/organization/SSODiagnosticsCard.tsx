@@ -32,16 +32,6 @@ export function SSODiagnosticsCard({ organizationId }: { organizationId: string 
     setLoading(true);
     setError(null);
     try {
-      const { data: res, error: invErr } = await supabase.functions.invoke('sso-health-check', {
-        method: 'GET',
-        headers: {},
-        body: undefined,
-        // pass org id via query string by overriding URL is not supported; embed as body for POST,
-        // but our function reads from query string — fall back to fetch.
-      } as never);
-      if (invErr) throw invErr;
-      // The supabase-js invoke uses POST with body. Function expects GET with query param,
-      // so we make a direct fetch instead:
       const sessionRes = await supabase.auth.getSession();
       const token = sessionRes.data.session?.access_token;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sso-health-check?organization_id=${encodeURIComponent(organizationId)}`;
@@ -54,8 +44,6 @@ export function SSODiagnosticsCard({ organizationId }: { organizationId: string 
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error || 'Health check failed');
       setData(json);
-      // res is unused intentionally
-      void res;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to run health check');
     } finally {

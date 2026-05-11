@@ -64,7 +64,7 @@ export const SUBSCRIPTION_PLAN_LIMITS = {
   growth: 36,       // Growth paid plan - 36 projects
   business: 120,    // Business paid plan - 120 projects
   enterprise: -1,   // Enterprise plan - unlimited projects
-  // Legacy aliases for backward compatibility
+  // Legacy aliases for backward compatibility (DB rows that still say "pro"/"basic"/"trial")
   basic: 36,
   pro: 120,
   trial: 6,

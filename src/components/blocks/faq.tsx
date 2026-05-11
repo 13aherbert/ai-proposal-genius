@@ -21,7 +21,7 @@ const faqData = [
         ),
       },
       {
-        question: "What are the differences between Starter and Pro plans?",
+        question: "What are the differences between the Growth and Business plans?",
         answer: (
           <div className="space-y-4">
             <div>

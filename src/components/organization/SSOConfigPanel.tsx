@@ -58,6 +58,11 @@ export function SSOConfigPanel() {
   const [oidcClientId, setOidcClientId] = useState('');
   const [oidcClientSecret, setOidcClientSecret] = useState('');
 
+  // Rotate-secret dialog
+  const [rotateForId, setRotateForId] = useState<string | null>(null);
+  const [rotateValue, setRotateValue] = useState('');
+  const [rotating, setRotating] = useState(false);
+
   const loadAll = useCallback(async () => {
     if (!organization?.id) return;
     setIsLoading(true);

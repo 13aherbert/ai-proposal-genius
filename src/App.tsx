@@ -123,16 +123,17 @@ function AppContent() {
           <Route path="/subscription/success" element={<SubscriptionSuccess />} />
           <Route path="/knowledge-base" element={<KnowledgeBase />} />
           <Route path="/account" element={<AccountSettings />} />
-          <Route path="/billing" element={<Billing />} />
+          <Route path="/billing" element={<Navigate to="/subscription" replace />} />
           <Route path="/settings" element={<Navigate to="/account" replace />} />
           <Route path="/organization" element={<Organization />} />
-          <Route path="/white-label" element={<WhiteLabel />} />
+          <Route path="/white-label" element={<Navigate to="/organization" replace />} />
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/referral" element={<Referral />} />
-          <Route path="/team" element={<Team />} />
+          <Route path="/team" element={<Navigate to="/organization" replace />} />
           <Route path="/team/invite" element={<TeamInvite />} />
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/enterprise-support" element={<EnterpriseSupport />} />
+          <Route path="/help" element={<HelpCenter />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/onboarding/enterprise" element={<EnterpriseOnboarding />} />
           

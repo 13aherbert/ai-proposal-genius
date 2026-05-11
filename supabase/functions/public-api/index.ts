@@ -365,7 +365,7 @@ serve(async (req) => {
     // 3. Check subscription
     const hasAccess = await checkSubscription(key.organization_id);
     if (!hasAccess) {
-      return errorResponse('FORBIDDEN', 'API access requires a Pro or Enterprise subscription', 403);
+      return errorResponse('FORBIDDEN', 'API access requires a Business or Enterprise subscription', 403);
     }
 
     // 4. Route

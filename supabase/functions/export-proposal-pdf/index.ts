@@ -699,7 +699,7 @@ Deno.serve(async (req: Request) => {
     if (!designId && projectId) {
       const { data: project, error: projErr } = await adminClient
         .from("projects")
-        .select("project_id, project_name, organization_id")
+        .select("project_id, title, organization_id")
         .eq("project_id", projectId)
         .single();
 
@@ -730,12 +730,12 @@ Deno.serve(async (req: Request) => {
         : null;
 
       const html = buildSimpleProposalHtml(
-        project.project_name || "Proposal",
+        (project as { title?: string }).title || "Proposal",
         sections || [],
         watermark,
       );
 
-      const safeName = (project.project_name || "proposal").replace(/[^\w\-]+/g, "_").slice(0, 60) || "proposal";
+      const safeName = ((project as { title?: string }).title || "proposal").replace(/[^\w\-]+/g, "_").slice(0, 60) || "proposal";
 
       if (format === "pdf") {
         return new Response(JSON.stringify({ html }), {

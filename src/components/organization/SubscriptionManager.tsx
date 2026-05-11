@@ -72,27 +72,27 @@ export function SubscriptionManager() {
 
   const availablePlans = [
     {
-      id: 'basic',
-      name: 'Basic',
-      price: 49,
-      seats: 5,
-      projects: 10,
-      features: ['Email Support', 'Basic Analytics', 'Project Management']
+      id: 'growth',
+      name: 'Growth',
+      price: 199,
+      seats: -1,
+      projects: 36,
+      features: ['Email Support', 'Enhanced AI', 'Unlimited users']
     },
     {
-      id: 'pro',
-      name: 'Pro', 
-      price: 99,
-      seats: 20,
-      projects: 50,
+      id: 'business',
+      name: 'Business',
+      price: 499,
+      seats: -1,
+      projects: 120,
       features: ['Priority Support', 'Advanced Analytics', 'API Access', 'Custom Branding']
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: 199,
-      seats: 100,
-      projects: 200,
+      price: 1499,
+      seats: -1,
+      projects: -1,
       features: ['24/7 Support', 'White Label', 'SSO', 'Advanced Security', 'Custom Integrations']
     }
   ];

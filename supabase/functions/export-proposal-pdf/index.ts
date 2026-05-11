@@ -684,9 +684,88 @@ Deno.serve(async (req: Request) => {
     }
     const userId = claimsData.user.id;
 
-    const { designId, plan } = await req.json();
+    const body = await req.json();
+    const { designId, projectId, plan, format = "pdf", logoUrl } = body as {
+      designId?: string;
+      projectId?: string;
+      plan?: string;
+      format?: "pdf" | "doc" | "docx";
+      logoUrl?: string;
+    };
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ---- Lightweight project export path (Starter+, no Design Studio required) ----
+    if (!designId && projectId) {
+      const { data: project, error: projErr } = await adminClient
+        .from("projects")
+        .select("project_id, project_name, organization_id")
+        .eq("project_id", projectId)
+        .single();
+
+      if (projErr || !project) {
+        return new Response(JSON.stringify({ error: "Project not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: projMembership } = await adminClient
+        .from("organization_members")
+        .select("id")
+        .eq("organization_id", project.organization_id)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!projMembership) {
+        return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: sections } = await adminClient
+        .from("proposal_sections")
+        .select("section_title, content, sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: true });
+
+      const watermark = plan === "starter"
+        ? { phrase: WATERMARK_PHRASE, logoUrl }
+        : null;
+
+      const html = buildSimpleProposalHtml(
+        project.project_name || "Proposal",
+        sections || [],
+        watermark,
+      );
+
+      const safeName = (project.project_name || "proposal").replace(/[^\w\-]+/g, "_").slice(0, 60) || "proposal";
+
+      if (format === "pdf") {
+        return new Response(JSON.stringify({ html }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (format === "doc") {
+        const doc = buildWordHtmlDoc(html);
+        return new Response(JSON.stringify({
+          filename: `${safeName}.doc`,
+          mimeType: "application/msword",
+          base64: btoa(unescape(encodeURIComponent(doc))),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      if (format === "docx") {
+        const bytes = buildDocxAltChunk(html);
+        return new Response(JSON.stringify({
+          filename: `${safeName}.docx`,
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          base64: u8ToBase64(bytes),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      return new Response(JSON.stringify({ error: "Unsupported format" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!designId) {
-      return new Response(JSON.stringify({ error: "Missing designId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Missing designId or projectId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);

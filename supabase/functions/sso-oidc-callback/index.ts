@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const { data: cfg } = await client
       .from('organization_sso_config')
-      .select('configuration')
+      .select('id, configuration')
       .eq('organization_id', orgId)
       .eq('provider_type', 'oidc')
       .eq('is_active', true)
@@ -48,11 +48,29 @@ Deno.serve(async (req) => {
     const jwksUri = c.jwks_uri;
     const issuer = c.issuer;
     const clientId = c.client_id;
-    const clientSecret = c.client_secret;
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/sso-oidc-callback`;
 
     if (!tokenEndpoint || !jwksUri || !issuer || !clientId) {
       return jsonResponse({ error: 'OIDC config incomplete' }, 400);
+    }
+
+    // Load and decrypt the client secret from sso_client_secrets (if any)
+    let clientSecret: string | undefined;
+    const { data: secretRow } = await client
+      .from('sso_client_secrets')
+      .select('ciphertext, iv')
+      .eq('sso_config_id', cfg.id)
+      .maybeSingle();
+    if (secretRow) {
+      try {
+        clientSecret = await decryptSecret(
+          hexLiteralToBytes(secretRow.ciphertext as unknown as string),
+          hexLiteralToBytes(secretRow.iv as unknown as string),
+        );
+      } catch (e) {
+        console.error('client secret decrypt failed', e);
+        return jsonResponse({ error: 'Failed to load client secret' }, 500);
+      }
     }
 
     // Exchange code for tokens

@@ -582,12 +582,12 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         </Button>
         
         <div className="flex flex-col sm:flex-row gap-4">
-          {currentPlanType !== 'pro' && (
+          {currentPlanType !== 'business' && currentPlanType !== 'pro' && currentPlanType !== 'enterprise' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="default" className="w-full sm:w-auto">
                   <ArrowUpCircle className="h-4 w-4 mr-2" />
-                  {currentPlanType === 'starter' ? 'Upgrade to Pro' : 'Upgrade Plan'}
+                  {currentPlanType === 'starter' || currentPlanType === 'trial' ? 'Upgrade Plan' : 'Upgrade Plan'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>

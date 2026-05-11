@@ -132,4 +132,4 @@ If you're experiencing persistent issues not resolved by this guide:
    - Screenshots if applicable
    - Browser and operating system information
 
-Support hours: Monday-Friday, 9am-5pm EST. Typical response time is within 24 hours (faster for Pro plan subscribers).
+Support hours: Monday-Friday, 9am-5pm EST. Typical response time is within 24 hours (faster for Business and Enterprise customers).

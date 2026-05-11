@@ -16,16 +16,17 @@ While we continually work to improve OptiRFP, there are some current limitations
 - **Specialized Industry Knowledge**: While our AI has broad knowledge, very niche industry terms or concepts may require manual input
 - **Technical Specifications**: Highly technical specifications may need expert review
 - **Response Length**: Single section generation is optimized for up to 1000 words
-- **Iteration Limits**: Each section can be regenerated up to 5 times per day on Starter plan (unlimited on Pro)
+- **Iteration Limits**: Each section can be regenerated up to 5 times per day on Starter (unlimited on Growth, Business, and Enterprise)
 
 ## Project Management
 
-- **Project Limits**: 
-  - Trial: 3 projects
-  - Starter: 10 projects
-  - Pro: 30 projects
-- **Collaboration**: Currently limited to single-user access per account (team collaboration coming soon)
-- **File Storage**: 500MB total storage on Trial, 5GB on Starter, 20GB on Pro
+- **Project Limits**:
+  - Starter: 6 projects
+  - Growth: 36 projects
+  - Business: 120 projects
+  - Enterprise: unlimited
+- **Collaboration**: Unlimited users on all paid plans
+- **File Storage**: 500MB on Starter, 5GB on Growth, 20GB on Business, custom on Enterprise
 
 ## Export Capabilities
 

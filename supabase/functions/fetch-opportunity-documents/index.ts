@@ -166,9 +166,9 @@ Deno.serve(async (req) => {
       .single();
 
     const planType = subscription?.plan_type?.toLowerCase() || "trial";
-    if (!["pro", "enterprise", "white_label"].includes(planType)) {
+    if (!["business", "enterprise", "white_label", "pro"].includes(planType)) {
       return new Response(
-        JSON.stringify({ error: "Pro or Enterprise subscription required" }),
+        JSON.stringify({ error: "Business or Enterprise subscription required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

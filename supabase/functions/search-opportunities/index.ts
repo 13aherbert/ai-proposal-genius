@@ -905,7 +905,7 @@ Deno.serve(async (req) => {
     const orgCheckMs = Date.now() - orgCheckStart;
     console.log(`[search-opportunities] Org checks: plan=${planType}, orgId=${orgId.slice(0,8)}... (${orgCheckMs}ms)`);
     
-    if (!["growth", "business", "enterprise", "white_label", "pro", "starter", "trial"].includes(planType)) {
+    if (!["growth", "business", "enterprise", "white_label", "starter", "pro", "basic", "trial"].includes(planType)) {
       return new Response(
         JSON.stringify({ error: "Subscription required for opportunity search" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

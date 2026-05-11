@@ -21,7 +21,7 @@ const faqData = [
         ),
       },
       {
-        question: "What are the differences between Starter and Pro plans?",
+        question: "What are the differences between the Growth and Business plans?",
         answer: (
           <div className="space-y-4">
             <div>
@@ -140,7 +140,7 @@ const faqData = [
         answer: (
           <ul className="list-disc pl-6 space-y-1">
             <li>Email support for all plans</li>
-            <li>Priority support for Pro plan users</li>
+            <li>Priority support for Business and Enterprise customers</li>
           </ul>
         ),
       },

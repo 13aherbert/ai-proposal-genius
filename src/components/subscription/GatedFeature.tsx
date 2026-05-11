@@ -5,26 +5,23 @@ import { TierBadge } from "./TierBadge";
 import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 import { useNavigate } from "react-router-dom";
 
-type RequiredTier = 'growth' | 'pro' | 'business' | 'enterprise';
+type RequiredTier = 'growth' | 'business' | 'enterprise';
 
 const TIER_ORDER: Record<string, number> = {
   starter: 0,
   growth: 1,
-  pro: 2,
   business: 2,
   enterprise: 3,
 };
 
 const TIER_PRICING: Record<RequiredTier, string> = {
   growth: "$199/month",
-  pro: "$499/month",
   business: "$499/month",
   enterprise: "Custom pricing",
 };
 
 const TIER_DISPLAY: Record<RequiredTier, string> = {
   growth: "Growth",
-  pro: "Pro",
   business: "Business",
   enterprise: "Enterprise",
 };

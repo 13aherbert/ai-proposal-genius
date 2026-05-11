@@ -78,7 +78,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
       { 
         status: 200, 
         description: 'Organization details retrieved successfully',
-        example: { id: 'org_123', name: 'My Organization', subscription_tier: 'pro' }
+        example: { id: 'org_123', name: 'My Organization', subscription_tier: 'business' }
       },
       { status: 404, description: 'Organization not found' },
       { status: 401, description: 'Unauthorized' }
@@ -465,7 +465,11 @@ export function ApiDocumentation() {
                         <span>100 requests/hour</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Pro Plan:</span>
+                        <span>Growth Plan:</span>
+                        <span>500 requests/hour</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Business Plan:</span>
                         <span>1,000 requests/hour</span>
                       </div>
                       <div className="flex justify-between text-sm">

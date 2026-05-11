@@ -42,10 +42,12 @@ export function useProjects(user: User | null) {
       const planType = subscriptionData.plan_type.toLowerCase();
       let limit;
       
-      if (planType === 'pro') {
-        limit = SUBSCRIPTION_PLAN_LIMITS.pro;
-      } else if (planType === 'basic') {
-        limit = SUBSCRIPTION_PLAN_LIMITS.basic;
+      if (planType === 'enterprise') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+      } else if (planType === 'business' || planType === 'pro') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.business;
+      } else if (planType === 'growth' || planType === 'basic') {
+        limit = SUBSCRIPTION_PLAN_LIMITS.growth;
       } else if (planType === 'starter') {
         limit = SUBSCRIPTION_PLAN_LIMITS.starter;
       } else {
@@ -72,17 +74,20 @@ export function useProjects(user: User | null) {
         const planType = subscriptionData.plan_type.toLowerCase();
         let limit;
         
-        if (planType === 'pro') {
-          limit = SUBSCRIPTION_PLAN_LIMITS.pro;
-          console.log("PRO USER authenticated - using pro limits:", limit);
+        if (planType === 'enterprise') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+          setCachedProjectLimit(limit);
+        } else if (planType === 'business' || planType === 'pro') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.business;
+          setCachedProjectLimit(limit);
+        } else if (planType === 'growth' || planType === 'basic') {
+          limit = SUBSCRIPTION_PLAN_LIMITS.growth;
           setCachedProjectLimit(limit);
         } else if (planType === 'starter') {
           limit = SUBSCRIPTION_PLAN_LIMITS.starter;
-          console.log("STARTER USER authenticated (from subscription) - using starter limits:", limit);
           setCachedProjectLimit(limit);
         } else {
           limit = SUBSCRIPTION_PLAN_LIMITS.starter;
-          console.log("DEFAULT STARTER USER authenticated - using starter limits:", limit);
           setCachedProjectLimit(limit);
         }
       }
@@ -273,11 +278,13 @@ export function useProjects(user: User | null) {
     if (subscriptionData && subscriptionData.plan_type) {
       const planType = subscriptionData.plan_type.toLowerCase();
       
-      if (planType === 'pro') {
-        console.log("Setting pro project limit (30) for pro user");
-        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.pro);
+      if (planType === 'enterprise') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.enterprise);
+      } else if (planType === 'business' || planType === 'pro') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.business);
+      } else if (planType === 'growth' || planType === 'basic') {
+        setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.growth);
       } else if (planType === 'starter') {
-        console.log("Setting starter project limit (10) for starter user");
         setCachedProjectLimit(SUBSCRIPTION_PLAN_LIMITS.starter);
       } else {
         setCachedProjectLimit(newLimit);
@@ -294,10 +301,12 @@ export function useProjects(user: User | null) {
   if (subscriptionData && subscriptionData.plan_type) {
     const planType = subscriptionData.plan_type.toLowerCase();
     
-    if (planType === 'pro') {
-      projectLimit = SUBSCRIPTION_PLAN_LIMITS.pro;
-    } else if (planType === 'basic') {
-      projectLimit = SUBSCRIPTION_PLAN_LIMITS.basic;
+    if (planType === 'enterprise') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.enterprise;
+    } else if (planType === 'business' || planType === 'pro') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.business;
+    } else if (planType === 'growth' || planType === 'basic') {
+      projectLimit = SUBSCRIPTION_PLAN_LIMITS.growth;
     } else if (planType === 'starter') {
       projectLimit = SUBSCRIPTION_PLAN_LIMITS.starter;
     } else {

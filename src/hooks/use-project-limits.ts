@@ -74,10 +74,12 @@ export function useProjectLimits(user: User | null) {
       if (normalizedPlan === 'starter') {
         conditionalLog('info', `CRITICAL: Starter plan detected, ENFORCING ${SUBSCRIPTION_PLAN_LIMITS.starter} projects limit (stored: ${subscriptionData.project_limit})`);
         return SUBSCRIPTION_PLAN_LIMITS.starter;
-      } else if (normalizedPlan === 'pro') {
-        return SUBSCRIPTION_PLAN_LIMITS.pro;
-      } else if (normalizedPlan === 'basic') {
-        return SUBSCRIPTION_PLAN_LIMITS.basic;
+      } else if (normalizedPlan === 'business') {
+        return SUBSCRIPTION_PLAN_LIMITS.business;
+      } else if (normalizedPlan === 'growth') {
+        return SUBSCRIPTION_PLAN_LIMITS.growth;
+      } else if (normalizedPlan === 'enterprise') {
+        return SUBSCRIPTION_PLAN_LIMITS.enterprise;
       }
       
       const safeLimit = getSafeProjectLimit(
@@ -101,9 +103,12 @@ export function useProjectLimits(user: User | null) {
         if (data && normalizePlanType(data.plan_type) === 'starter') {
           conditionalLog('info', 'Using stored starter plan data from localStorage');
           return SUBSCRIPTION_PLAN_LIMITS.starter;
-        } else if (data && normalizePlanType(data.plan_type) === 'pro') {
-          conditionalLog('info', 'Using stored pro plan data from localStorage');
-          return SUBSCRIPTION_PLAN_LIMITS.pro;
+        } else if (data && normalizePlanType(data.plan_type) === 'business') {
+          conditionalLog('info', 'Using stored business plan data from localStorage');
+          return SUBSCRIPTION_PLAN_LIMITS.business;
+        } else if (data && normalizePlanType(data.plan_type) === 'growth') {
+          conditionalLog('info', 'Using stored growth plan data from localStorage');
+          return SUBSCRIPTION_PLAN_LIMITS.growth;
         }
       }
       
@@ -132,10 +137,10 @@ export function useProjectLimits(user: User | null) {
       conditionalLog('debug', "Using STARTER plan limit: 10 projects");
       return SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
     }
-    // Check for pro user based on subscription
-    else if (isUserOfPlanType('pro')) {
-      conditionalLog('debug', "Using PRO plan limit: 30 projects");
-      return SUBSCRIPTION_PLAN_LIMITS.pro; // 30 projects  
+    // Check for business user based on subscription
+    else if (isUserOfPlanType('business')) {
+      conditionalLog('debug', "Using BUSINESS plan limit");
+      return SUBSCRIPTION_PLAN_LIMITS.business;
     }
     // Otherwise use subscription data if available
     else if (subscriptionData) {

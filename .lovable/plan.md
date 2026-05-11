@@ -1,84 +1,57 @@
+# Standardize plan tiers — remove "Pro"
 
-## Goal
-Strip the app down to a calm, confident, minimalist experience. Reduce surface area, hierarchy noise, and decision fatigue — Apple/Tesla style: one clear primary action per screen, generous whitespace, restrained color, no overlapping prompts.
+Canonical plans going forward: **Starter** (free), **Growth**, **Business**, **Enterprise**. Everywhere `pro` appears in UI copy, types, or comparisons it must be replaced or normalized to `business` (its closest equivalent — both `GatedFeature` and `use-pricing-tier` already map `pro → business`).
 
-## Problems Today
-- **Dashboard overload**: header + tour + progressive onboarding + resume banner + enterprise onboarding + enterprise getting-started + empty-state checklist + KB wizard + first-RFP wizard + quick-upload zone + 3 quick-action cards + usage widget + upgrade banner + recent activity + sidebar (CSM, KB readiness, onboarding progress) — all can render together. Multiple competing CTAs.
-- **Navbar clutter**: 4 top-level groups with mega-menu dropdowns, floating help button, theme toggle, accessibility toggle, enterprise crown popover, avatar menu with 6+ items including "Restart Onboarding" and "Restart Tour".
-- **Too many pages**: 40+ routes, several near-duplicates (Dashboard, RecentProjects, ProjectDetails; Subscription/Billing/Pricing; HelpCenter/Contact/EnterpriseSupport/FAQ; Organization/Team/WhiteLabel/EnterpriseOnboarding).
-- **Workflow friction**: creating a proposal involves Upload RFP → Project Details → Outline → Generate → Edit → Review → Export, each its own dense screen with sidebars and tabs.
-- **Persistent banners**: usage banner, upgrade banner, onboarding resume banner stack on top of every page.
+## 1. Type definitions & shared constants
 
-## Design Principles (apply everywhere)
-1. **One primary action per screen.** Everything else is secondary/ghost.
-2. **Progressive disclosure.** Hide power-user controls behind "More" / settings, never on first paint.
-3. **Single onboarding voice.** Only one onboarding surface visible at any time, ever.
-4. **Calm chrome.** Thin navbar, no badges/popovers in the header. Notifications and upgrade prompts live in one inbox, not as banners.
-5. **Whitespace > density.** Larger type scale, fewer cards per row, no decorative gradients on dashboards.
-6. **Plain language.** "Start a proposal" not "Upload RFP". "Library" not "Knowledge Base". "Find work" not "Discover/Opportunities".
+- `src/types/subscription.ts` — drop the `pro: 120` entry from `SUBSCRIPTION_PLAN_LIMITS`. Confirm `business: 120` exists; if not, add it.
+- `src/components/subscription/TierBadge.tsx` — remove `'pro'` from `TierType`, `TIER_STYLES`, and `TIER_LABELS`. Keep the silent `pro → business` normalization for any legacy data still flowing in.
+- `src/components/subscription/GatedFeature.tsx` and `GatedFeatureModal.tsx` — remove `'pro'` from `RequiredTier` union, `TIER_LEVELS`, `TIER_PRICES`, and `TIER_LABELS`. Business covers what Pro used to.
+- `src/components/subscription/UsageProgressBanner.tsx` — drop the `pro: "Pro Plan"` label and the `plan === "pro"` early-return (let `business` flow through the existing branch).
+- `src/hooks/subscription/feature-access.ts` — keep `normalizePlanType` mapping legacy `pro` → `business` (defensive for old DB rows) but remove any UI surface that still calls it `Pro`.
 
-## Phase 1 — Navigation Simplification
-- Collapse top nav to **4 items max**: `Home` · `Proposals` · `Library` · `Find Work`. Remove "Create" mega-menu; the primary "+ New proposal" becomes a single pill button on the right of the navbar.
-- Move into the avatar menu (and out of the navbar): Analytics, Organization, API docs, Account, Plan, Help. Drop "Restart Onboarding" and "Restart Tour" from the menu — surface them only inside Help.
-- Remove the Enterprise crown popover from the navbar; show CSM contact inside Help → "Your success manager".
-- Remove the floating `HelpFeedbackLauncher` button. Replace with a single "?" icon in the navbar that opens the same panel. Keep `Shift+?` shortcut.
-- Hide Theme + Accessibility toggles behind the avatar menu → "Display & accessibility".
+## 2. UI copy
 
-## Phase 2 — Dashboard Reset (Home)
-Single column, max ~720px content width, three zones only:
+- `src/components/account/SubscriptionCard.tsx` — replace the `'pro' → 'Pro Plan'` switch case, the `Upgrade to Pro` button copy, and the Pro-only downgrade branch with Business equivalents.
+- `src/pages/SubscriptionSuccess.tsx` — replace `'pro' → 'Pro Plan'` label and the `|| 'pro'` fallback (default to `'starter'`).
+- `src/components/organization/SubscriptionManager.tsx` — rename the `pro` tier card to `business` ($499) and remove the duplicate `business` card if both exist (verify when editing).
+- `src/components/organization/ApiDocumentation.tsx` — change "Pro Plan" rate-limit row label and the `subscription_tier: 'pro'` example payload to `business`.
+- `src/components/blocks/faq.tsx` — rewrite the two FAQ entries that mention "Pro" to reference Growth/Business.
+- `src/docs/KnownLimitations.md`, `src/docs/TroubleshootingGuide.md`, `src/docs/UserOnboardingGuide.md`, `src/docs/EnvironmentVariables.md` — replace "Pro plan / Pro" mentions with the correct tier (Growth for evaluation, Business for higher limits). Update the `VITE_MOCK_SUBSCRIPTION=pro` example to `business`.
 
-```
-[ Greeting ]            "Good morning, Alex."
-[ Primary CTA ]         Big card: "Start a proposal" → upload or paste link
-[ Continue ]            Up to 3 most recent in-progress proposals as quiet rows
-[ Status strip ]        One small line: "3 of 6 proposals used this month · Manage"
-```
+## 3. Project-limit hooks
 
-- Remove: QuickActionCard grid, UsageProgressWidget, DashboardUpgradeBanner, OnboardingProgress sidebar, CSMContactWidget, KnowledgeBaseReadiness sidebar, EnterpriseGettingStarted, ProductTour auto-launch.
-- Onboarding becomes a **single dismissible "Set up" row** above Continue, only while incomplete. Clicking expands an inline 3-step checklist (Profile → Library → First proposal). No modals, no wizards on load.
-- Empty state = the same layout, with Continue replaced by 2 example/template suggestions.
-- Enterprise users see the same Home; CSM access lives in Help, not on the dashboard.
+- `src/hooks/use-projects.ts` and `src/hooks/use-project-limits.ts` — remove the `planType === 'pro'` branches that read `SUBSCRIPTION_PLAN_LIMITS.pro`. Falling through to the existing `business` branch covers users that get migrated. (Defensive normalization in `feature-access.ts` already maps `pro → business`.)
 
-## Phase 3 — Proposal Workflow Simplification
-Today: Upload → Project Details → Outline → Generate → Edit → Review → Export, each a separate page.
+## 4. Routing / gating
 
-Replace with a **single proposal workspace** that is one URL with a slim left rail showing 4 stages:
-```
-1. Brief      2. Outline      3. Draft      4. Deliver
-```
-- Stages auto-advance; user can jump back. No modal wizards.
-- "Brief" replaces Upload + Project Details (one screen: drop file or paste link, name auto-fills).
-- "Deliver" replaces Review + Export + Design Studio entry (export buttons + share link in one panel).
-- AI assist is a single floating bubble (existing Ctrl+J) — remove the per-section AI menus from the toolbar to reduce visual noise.
+- `src/components/ProtectedRoute.tsx` — update the two checks that allow access only when `plan_type === 'pro'` to use `business` (and `enterprise`).
 
-## Phase 4 — Page Consolidation
-- Merge `Subscription` + `Billing` + `Pricing` (authenticated view) → one `/plan` page with two tabs: Plan · Invoices.
-- Merge `HelpCenter` + `FAQ` + `Contact` + `EnterpriseSupport` → one `/help` with sections: Search docs · Contact us · (if enterprise) Your CSM.
-- Merge `Organization` + `Team` + `WhiteLabel` → one `/organization` with tabs: Members · Branding · Domains · API.
-- Remove `RecentProjects` (it duplicates `/projects`).
-- Keep marketing/comparison pages as-is (out of authenticated scope).
+## 5. Admin & dev tools
 
-## Phase 5 — Visual Tone
-- Reduce cards/borders. Prefer hairline dividers on a flat background.
-- Single accent color used sparingly (primary CTA, active nav, key metric). No gradients on dashboards.
-- Type scale: H1 32–40px, H2 22px, body 15px, generous line-height. One display font + one body font (already configured).
-- Animations: existing 150ms standard kept; remove any decorative motion on Home.
-- Banners (usage, upgrade, onboarding resume) become a single consolidated **Notifications inbox** behind a dot on the avatar — never injected above page content.
+- `src/pages/admin/components/UserSubscriptionManager.tsx` — change the `plans` array from `['trial','starter','pro']` to `['starter','growth','business','enterprise']` and update the badge label logic accordingly.
+- `src/components/development/TestingPanel.tsx` — extend `SubscriptionPlan` to the four canonical tiers and update the limit map (`growth: 30`, `business: 120`, `enterprise: -1`).
+- `src/scripts/fix-user-subscription.ts` — retarget the script copy/log strings to "Business" (or parameterize the tier).
 
-## Out of Scope
-- Backend/data model changes. No edits to RLS, Supabase functions, AI prompts, billing logic.
-- Marketing site redesign.
-- Renaming database fields; only UI labels change.
+## 6. Edge functions
 
-## Success Criteria
-- Home renders ≤ 4 visible "things" at any moment.
-- Navbar has ≤ 4 left items + 1 primary CTA + avatar.
-- Creating a proposal from Home takes ≤ 2 clicks (CTA → drop file).
-- No more than one onboarding/upgrade/help surface visible simultaneously.
+- `supabase/functions/fetch-opportunity-documents/index.ts` — replace the `["pro","enterprise","white_label"]` allowlist with `["business","enterprise"]` (and keep `growth` if currently allowed elsewhere — verify against `_shared/subscription-limits.ts`). Update the error message to "Business or Enterprise subscription required".
+- `supabase/functions/public-api/index.ts` — same allowlist swap for API access; update the 403 message to "Business or Enterprise subscription required".
+- `supabase/functions/search-opportunities/index.ts` — drop `"pro"` from the allowlist (keep the others).
+- `supabase/functions/admin-update-subscription/index.ts` — keep the `'pro' → 'business'` migration mapping for incoming legacy values, but ensure the function does not re-emit `'pro'`.
+- `supabase/functions/_shared/subscription-limits.ts` — remove the `pro: { projects: 120 }` row; keep `business`.
 
-## Suggested Rollout Order
-1. Navbar slim-down + Help/Notifications consolidation.
-2. Dashboard reset (Home).
-3. Page consolidation (Plan, Help, Organization).
-4. Proposal workspace unification.
-5. Visual tone pass + remove residual banners/popovers.
+## 7. Database migrations
+
+Old migrations contain `'pro'` literals — those are historical and stay as-is. **No new migration is part of this UI/copy pass.** If the user wants the database normalized too, that becomes a separate follow-up that updates `subscription` rows where `plan_type = 'pro'` to `'business'` and adds a CHECK constraint limiting `plan_type` to the four canonical values.
+
+## Out of scope
+
+- DB data migration of any existing `plan_type = 'pro'` rows (call out separately if desired).
+- Stripe price IDs in `src/config/stripe-prices.ts` (verify it has no `pro` entry; if it does, flag it).
+- Marketing/legal pages outside the files listed above — none currently reference Pro per the search.
+
+## Verification
+
+- `rg -ni "\bpro plan\b|'pro'|\"pro\"" src/ supabase/functions/` should return only (a) the legacy normalization in `feature-access.ts` / `admin-update-subscription` and (b) historical SQL migration files.
+- Spot-check Pricing page, Subscription page, GatedFeature modal, and Account → Subscription card render with Starter/Growth/Business/Enterprise only.

@@ -51,7 +51,7 @@ For testing purposes, these additional variables are recommended:
 NODE_ENV=test
 VITE_TEST_USER_EMAIL=test@example.com
 VITE_TEST_USER_PASSWORD=test-password
-VITE_MOCK_SUBSCRIPTION=pro
+VITE_MOCK_SUBSCRIPTION=business
 VITE_SKIP_PAYMENT=true
 ```
 

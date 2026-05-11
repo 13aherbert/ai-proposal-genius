@@ -13,12 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Bug } from 'lucide-react';
 
-type SubscriptionPlan = 'trial' | 'starter' | 'pro';
+type SubscriptionPlan = 'starter' | 'growth' | 'business' | 'enterprise';
 
 export function TestingPanel() {
   const [testMode, setTestMode] = useState<boolean>(localStorage.getItem('test_mode') === 'true');
-  const [plan, setPlan] = useState<SubscriptionPlan>((localStorage.getItem('test_plan') as SubscriptionPlan) || 'trial');
-  const [projectLimit, setProjectLimit] = useState<number>(parseInt(localStorage.getItem('test_project_limit') || '3'));
+  const [plan, setPlan] = useState<SubscriptionPlan>((localStorage.getItem('test_plan') as SubscriptionPlan) || 'starter');
+  const [projectLimit, setProjectLimit] = useState<number>(parseInt(localStorage.getItem('test_project_limit') || '6'));
   const [showPanel, setShowPanel] = useState<boolean>(false);
 
   // Only show in development or when test features are enabled
@@ -42,10 +42,12 @@ export function TestingPanel() {
     localStorage.setItem('test_plan', newPlan);
     
     // Update project limit based on plan
-    let newLimit = 3;
-    if (newPlan === 'starter') newLimit = 10;
-    if (newPlan === 'pro') newLimit = 30;
-    
+    let newLimit = 6;
+    if (newPlan === 'starter') newLimit = 6;
+    if (newPlan === 'growth') newLimit = 36;
+    if (newPlan === 'business') newLimit = 120;
+    if (newPlan === 'enterprise') newLimit = -1;
+
     setProjectLimit(newLimit);
     localStorage.setItem('test_project_limit', newLimit.toString());
   };
@@ -105,9 +107,10 @@ export function TestingPanel() {
                   <SelectValue placeholder="Select plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="trial">Trial</SelectItem>
                   <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="growth">Growth</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
             </div>

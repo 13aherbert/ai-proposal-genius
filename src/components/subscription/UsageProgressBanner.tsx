@@ -9,10 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight } from "lucide-react";
 
 const PLAN_DISPLAY_NAMES: Record<string, string> = {
-  starter: "Free Plan",
-  trial: "Free Plan",
-  basic: "Basic Plan",
-  pro: "Pro Plan",
+  starter: "Starter Plan",
+  trial: "Starter Plan",
+  growth: "Growth Plan",
+  business: "Business Plan",
+  enterprise: "Enterprise Plan",
+  // Legacy
+  basic: "Growth Plan",
+  pro: "Business Plan",
 };
 
 export function UsageProgressBanner() {
@@ -67,9 +71,9 @@ export function UsageProgressBanner() {
     );
   }
 
-  if (plan === "pro" && !isNearLimit) return null;
+  if (plan === "business" && !isNearLimit) return null;
 
-  const planName = PLAN_DISPLAY_NAMES[plan] || "Free Plan";
+  const planName = PLAN_DISPLAY_NAMES[plan] || "Starter Plan";
 
   const progressColor =
     percentage > 90

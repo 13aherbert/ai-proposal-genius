@@ -357,10 +357,15 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
    */
   const getPlanDisplayName = (planType: string) => {
     switch(planType) {
-      case 'pro': return 'Pro Plan';
+      case 'enterprise': return 'Enterprise Plan';
+      case 'business': return 'Business Plan';
+      case 'growth': return 'Growth Plan';
       case 'starter': return 'Starter Plan';
       case 'trial': return 'Starter Plan';
-      default: return 'Free Plan';
+      // Legacy slugs
+      case 'pro': return 'Business Plan';
+      case 'basic': return 'Growth Plan';
+      default: return 'Starter Plan';
     }
   };
   
@@ -577,12 +582,12 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
         </Button>
         
         <div className="flex flex-col sm:flex-row gap-4">
-          {currentPlanType !== 'pro' && (
+          {currentPlanType !== 'business' && currentPlanType !== 'pro' && currentPlanType !== 'enterprise' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="default" className="w-full sm:w-auto">
                   <ArrowUpCircle className="h-4 w-4 mr-2" />
-                  {currentPlanType === 'starter' ? 'Upgrade to Pro' : 'Upgrade Plan'}
+                  {currentPlanType === 'starter' || currentPlanType === 'trial' ? 'Upgrade Plan' : 'Upgrade Plan'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -661,8 +666,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                 {/* Step 1: Initial confirmation with downgrade option */}
                 {!showCancelReasonInput && !showDowngradeOption && (
                   <>
-                    {/* Show downgrade option for Pro users */}
-                    {currentPlanType === 'pro' && (
+                    {/* Show downgrade option for paid users */}
+                    {(currentPlanType === 'business' || currentPlanType === 'pro' || currentPlanType === 'growth') && (
                       <DowngradeOption 
                         currentPlan={currentPlanType}
                         onDowngradeSuccess={() => {

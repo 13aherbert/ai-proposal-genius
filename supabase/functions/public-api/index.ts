@@ -135,7 +135,7 @@ async function checkSubscription(orgId: string): Promise<boolean> {
     .single();
 
   if (!data) return false;
-  return ['pro', 'enterprise', 'white_label'].includes(data.plan_type);
+  return ['business', 'enterprise', 'white_label', 'pro'].includes(data.plan_type);
 }
 
 // ─── Route Handlers ─────────────────────────────────────────
@@ -365,7 +365,7 @@ serve(async (req) => {
     // 3. Check subscription
     const hasAccess = await checkSubscription(key.organization_id);
     if (!hasAccess) {
-      return errorResponse('FORBIDDEN', 'API access requires a Pro or Enterprise subscription', 403);
+      return errorResponse('FORBIDDEN', 'API access requires a Business or Enterprise subscription', 403);
     }
 
     // 4. Route

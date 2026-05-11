@@ -137,10 +137,10 @@ export function useProjectLimits(user: User | null) {
       conditionalLog('debug', "Using STARTER plan limit: 10 projects");
       return SUBSCRIPTION_PLAN_LIMITS.starter; // 10 projects
     }
-    // Check for pro user based on subscription
-    else if (isUserOfPlanType('pro')) {
-      conditionalLog('debug', "Using PRO plan limit: 30 projects");
-      return SUBSCRIPTION_PLAN_LIMITS.pro; // 30 projects  
+    // Check for business user based on subscription
+    else if (isUserOfPlanType('business')) {
+      conditionalLog('debug', "Using BUSINESS plan limit");
+      return SUBSCRIPTION_PLAN_LIMITS.business;
     }
     // Otherwise use subscription data if available
     else if (subscriptionData) {

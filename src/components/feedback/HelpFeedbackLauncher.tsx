@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Bug, Lightbulb, LifeBuoy, BookOpen, MessageSquarePlus, X } from "lucide-react";
+import { Bug, Lightbulb, LifeBuoy, BookOpen, MessageSquarePlus, X, HelpCircle } from "lucide-react";
 import { UserFeedbackDialog } from "./UserFeedbackDialog";
 import type { FeedbackType } from "./types";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 interface HelpFeedbackLauncherProps {
   /** When true, only show "Contact support" action (used on public pages). */
   publicMode?: boolean;
+  /** Render as inline header icon instead of floating action button. */
+  variant?: "floating" | "inline";
 }
 
 /**

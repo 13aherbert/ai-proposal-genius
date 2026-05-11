@@ -666,8 +666,8 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
                 {/* Step 1: Initial confirmation with downgrade option */}
                 {!showCancelReasonInput && !showDowngradeOption && (
                   <>
-                    {/* Show downgrade option for Pro users */}
-                    {currentPlanType === 'pro' && (
+                    {/* Show downgrade option for paid users */}
+                    {(currentPlanType === 'business' || currentPlanType === 'pro' || currentPlanType === 'growth') && (
                       <DowngradeOption 
                         currentPlan={currentPlanType}
                         onDowngradeSuccess={() => {

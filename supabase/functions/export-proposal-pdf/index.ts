@@ -768,7 +768,8 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Missing designId or projectId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    // adminClient already declared above
+
     const { data: design, error: designErr } = await adminClient
       .from("proposal_designs")
       .select("*")

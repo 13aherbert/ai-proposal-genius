@@ -3,7 +3,14 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Copy, Printer, List } from "lucide-react";
+import { Copy, Printer, List, Download, FileText, FileType, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ProposalSection } from "../useProposalSections";
 import { SubmitToKnowledgeBaseButton } from "./SubmitToKnowledgeBaseButton";
@@ -14,6 +21,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { countWords } from "@/utils/wordCount";
 import { cn } from "@/lib/utils";
 import DOMPurify from "dompurify";
+import { supabase } from "@/integrations/supabase/client";
+
+const OPTIRFP_LOGO_PATH = "/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png";
+const WATERMARK_PHRASE = "Generated with OptiRFP Free — Upgrade to remove watermark";
 
 interface CompiledViewProps {
   sections: ProposalSection[];

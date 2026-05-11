@@ -17,8 +17,8 @@ type SubscriptionPlan = 'starter' | 'growth' | 'business' | 'enterprise';
 
 export function TestingPanel() {
   const [testMode, setTestMode] = useState<boolean>(localStorage.getItem('test_mode') === 'true');
-  const [plan, setPlan] = useState<SubscriptionPlan>((localStorage.getItem('test_plan') as SubscriptionPlan) || 'trial');
-  const [projectLimit, setProjectLimit] = useState<number>(parseInt(localStorage.getItem('test_project_limit') || '3'));
+  const [plan, setPlan] = useState<SubscriptionPlan>((localStorage.getItem('test_plan') as SubscriptionPlan) || 'starter');
+  const [projectLimit, setProjectLimit] = useState<number>(parseInt(localStorage.getItem('test_project_limit') || '6'));
   const [showPanel, setShowPanel] = useState<boolean>(false);
 
   // Only show in development or when test features are enabled

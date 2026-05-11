@@ -90,3 +90,59 @@ export function randomToken(bytes = 32): string {
   crypto.getRandomValues(buf);
   return Array.from(buf).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// ---------- AES-GCM encryption for OIDC client secrets ----------
+// Key is provided via SSO_SECRET_ENCRYPTION_KEY env var. Accepts either a
+// 64-char hex string (32 bytes) or a base64-encoded 32-byte value.
+
+function decodeKeyBytes(raw: string): Uint8Array {
+  const trimmed = raw.trim();
+  if (/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+    const out = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) out[i] = parseInt(trimmed.slice(i * 2, i * 2 + 2), 16);
+    return out;
+  }
+  // base64 / base64url
+  const b64 = trimmed.replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  if (out.length !== 32) {
+    throw new Error(`SSO_SECRET_ENCRYPTION_KEY must decode to 32 bytes (got ${out.length})`);
+  }
+  return out;
+}
+
+async function getEncryptionKey(): Promise<CryptoKey> {
+  const raw = Deno.env.get('SSO_SECRET_ENCRYPTION_KEY');
+  if (!raw) throw new Error('SSO_SECRET_ENCRYPTION_KEY not configured');
+  const bytes = decodeKeyBytes(raw);
+  return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+export async function encryptSecret(plaintext: string): Promise<{ ciphertext: Uint8Array; iv: Uint8Array }> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+  return { ciphertext: new Uint8Array(ct), iv };
+}
+
+export async function decryptSecret(ciphertext: Uint8Array, iv: Uint8Array): Promise<string> {
+  const key = await getEncryptionKey();
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  return new TextDecoder().decode(pt);
+}
+
+// Postgres returns bytea over PostgREST as a hex-encoded string like "\x48656c6c6f".
+export function bytesToHexLiteral(bytes: Uint8Array): string {
+  let s = '\\x';
+  for (const b of bytes) s += b.toString(16).padStart(2, '0');
+  return s;
+}
+
+export function hexLiteralToBytes(hex: string): Uint8Array {
+  const stripped = hex.startsWith('\\x') ? hex.slice(2) : hex;
+  const out = new Uint8Array(stripped.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(stripped.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}

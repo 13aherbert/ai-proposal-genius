@@ -3,49 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Updates a user's subscription plan to Pro
- * @param email The email of the user to update
+ * Updates a user's subscription plan to a target tier (default: business)
  */
-export async function updateUserToPro(email: string) {
+export async function updateUserPlan(email: string, plan: string = 'business') {
   try {
-    console.log(`Updating subscription for ${email} to Pro plan...`);
-    
+    console.log(`Updating subscription for ${email} to ${plan} plan...`);
+
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session) {
-      throw new Error("Not authenticated");
-    }
-    
+    if (!sessionData?.session) throw new Error("Not authenticated");
+
     const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
-      body: { 
-        email,
-        plan: 'pro'
-      },
-      headers: {
-        Authorization: `Bearer ${sessionData.session.access_token}`
-      }
+      body: { email, plan },
+      headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
     });
-    
-    if (error) {
-      console.error("Error updating subscription:", error);
-      throw error;
-    }
-    
-    console.log("Subscription update result:", data);
-    
-    if (data.success) {
-      toast.success(`Successfully updated subscription for ${email} to Pro plan`);
+
+    if (error) throw error;
+
+    if (data?.success) {
+      toast.success(`Successfully updated subscription for ${email} to ${plan} plan`);
       return true;
-    } else {
-      throw new Error(data.error || "Unknown error");
     }
-  } catch (error) {
+    throw new Error(data?.error || "Unknown error");
+  } catch (error: any) {
     console.error("Failed to update subscription:", error);
     toast.error(`Failed to update subscription: ${error.message}`);
     return false;
   }
 }
-
-// Example usage:
-// updateUserToPro("apxherbert@gmail.com").then(success => {
-//   console.log("Update completed with success:", success);
-// });

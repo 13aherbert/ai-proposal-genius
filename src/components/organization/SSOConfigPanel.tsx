@@ -263,6 +263,24 @@ export function SSOConfigPanel() {
     await loadAll();
   };
 
+  const submitRotateSecret = async () => {
+    if (!rotateForId || !rotateValue.trim()) return;
+    setRotating(true);
+    try {
+      const { error } = await supabase.functions.invoke('sso-set-client-secret', {
+        body: { sso_config_id: rotateForId, client_secret: rotateValue.trim() },
+      });
+      if (error) throw error;
+      toast.success('Client secret updated');
+      setRotateForId(null);
+      setRotateValue('');
+    } catch (err: unknown) {
+      toast.error('Failed to update secret', { description: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setRotating(false);
+    }
+  };
+
   const resetForm = () => {
     setProviderKind('native');
     setMetadataUrl(''); setMetadataXml('');

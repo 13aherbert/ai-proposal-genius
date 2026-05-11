@@ -199,7 +199,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Show grace period banner but still allow access
   if (isInGracePeriod() && session && !isSubscriptionPage && 
-      subscription?.plan_type !== 'pro') {
+      subscription?.plan_type !== 'business' && subscription?.plan_type !== 'enterprise') {
     return (
       <div className="relative">
         <div className="sticky top-0 w-full bg-amber-500 text-white py-2 px-4 flex items-center justify-center z-50">

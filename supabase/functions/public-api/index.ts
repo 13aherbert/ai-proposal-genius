@@ -135,7 +135,7 @@ async function checkSubscription(orgId: string): Promise<boolean> {
     .single();
 
   if (!data) return false;
-  return ['pro', 'enterprise', 'white_label'].includes(data.plan_type);
+  return ['business', 'enterprise', 'white_label', 'pro'].includes(data.plan_type);
 }
 
 // ─── Route Handlers ─────────────────────────────────────────

@@ -115,7 +115,7 @@ export default function SubscriptionSuccess() {
     );
   }
 
-  const planType = subscription?.plan_type || 'pro';
+  const planType = subscription?.plan_type || 'starter';
   const nextBillingDate = subscription?.current_period_end 
     ? format(new Date(subscription.current_period_end), 'MMMM d, yyyy')
     : format(addMonths(new Date(), 1), 'MMMM d, yyyy');

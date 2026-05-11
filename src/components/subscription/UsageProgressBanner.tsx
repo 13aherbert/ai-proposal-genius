@@ -71,9 +71,9 @@ export function UsageProgressBanner() {
     );
   }
 
-  if (plan === "pro" && !isNearLimit) return null;
+  if (plan === "business" && !isNearLimit) return null;
 
-  const planName = PLAN_DISPLAY_NAMES[plan] || "Free Plan";
+  const planName = PLAN_DISPLAY_NAMES[plan] || "Starter Plan";
 
   const progressColor =
     percentage > 90

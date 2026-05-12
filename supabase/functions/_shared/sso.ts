@@ -67,7 +67,13 @@ export async function requireOrgAdmin(
   }
   const userId = userData.user.id;
   // Allow system admins to bypass org membership checks (platform-level diagnostics).
-  const { data: isSysAdmin } = await client.rpc('is_system_admin', { _user_id: userId });
+  const { data: sysRole } = await client
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('role', 'system_admin')
+    .maybeSingle();
+  if (sysRole) return { userId };
   if (isSysAdmin === true) return { userId };
 
   const { data: isAdmin, error: roleErr } = await client.rpc('user_is_org_owner_or_admin', {

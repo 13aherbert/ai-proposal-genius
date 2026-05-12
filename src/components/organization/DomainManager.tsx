@@ -16,7 +16,6 @@ interface Domain {
   is_verified: boolean;
   is_primary: boolean;
   ssl_certificate_status: string;
-  verification_token: string;
   created_at: string;
 }
 
@@ -25,7 +24,24 @@ export function DomainManager() {
   const [newDomain, setNewDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [addingDomain, setAddingDomain] = useState(false);
+  const [tokenById, setTokenById] = useState<Record<string, string>>({});
+  const [loadingTokenId, setLoadingTokenId] = useState<string | null>(null);
   const { organization } = useCurrentOrganization();
+
+  const loadVerificationToken = async (domainId: string) => {
+    setLoadingTokenId(domainId);
+    try {
+      const { data, error } = await supabase.rpc('get_organization_domain_verification_token', { _domain_id: domainId });
+      if (error) throw error;
+      setTokenById(prev => ({ ...prev, [domainId]: data as string }));
+      return data as string;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load verification token');
+      return null;
+    } finally {
+      setLoadingTokenId(null);
+    }
+  };
 
   useEffect(() => {
     if (organization?.id) {
@@ -40,7 +56,7 @@ export function DomainManager() {
     try {
       const { data, error } = await supabase
         .from('organization_domains')
-        .select('*')
+        .select('id, domain, is_verified, is_primary, ssl_certificate_status, created_at')
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false });
 
@@ -95,6 +111,9 @@ export function DomainManager() {
 
   const verifyDomain = async (domain: Domain) => {
     try {
+      const token = tokenById[domain.id] || await loadVerificationToken(domain.id);
+      if (!token) return;
+
       // Perform real DNS TXT record verification via DNS-over-HTTPS
       const dnsResponse = await fetch(
         `https://dns.google/resolve?name=_lovable-verification.${domain.domain}&type=TXT`
@@ -103,7 +122,7 @@ export function DomainManager() {
       
       const txtRecords = dnsData.Answer?.filter((r: any) => r.type === 16) || [];
       const isVerified = txtRecords.some((record: any) => 
-        record.data?.replace(/"/g, '').includes(domain.verification_token)
+        record.data?.replace(/"/g, '').includes(token)
       );
 
       if (!isVerified) {
@@ -239,9 +258,20 @@ export function DomainManager() {
                       {getSSLBadge(domain.ssl_certificate_status)}
                     </div>
                     {!domain.is_verified && (
-                      <p className="text-xs text-muted-foreground">
-                        Verification token: <code className="bg-muted px-1 rounded">{domain.verification_token}</code>
-                      </p>
+                      tokenById[domain.id] ? (
+                        <p className="text-xs text-muted-foreground">
+                          Verification token: <code className="bg-muted px-1 rounded">{tokenById[domain.id]}</code>
+                        </p>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => loadVerificationToken(domain.id)}
+                          disabled={loadingTokenId === domain.id}
+                        >
+                          {loadingTokenId === domain.id ? 'Loading...' : 'Reveal verification token'}
+                        </Button>
+                      )
                     )}
                   </div>
                   <div className="flex gap-2">

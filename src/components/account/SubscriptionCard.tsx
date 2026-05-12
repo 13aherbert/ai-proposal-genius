@@ -65,7 +65,7 @@ export function SubscriptionCard({ subscription: initialSubscription }: Subscrip
       
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('subscription_id, user_id, plan_type, status, project_limit, current_period_end, features, cancel_at_period_end, created_at, updated_at, billing_interval, is_lifetime, lifetime_redemption_id')
         .eq('user_id', sessionData.session.user.id)
         .maybeSingle();
         

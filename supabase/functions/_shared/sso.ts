@@ -66,6 +66,10 @@ export async function requireOrgAdmin(
     return jsonResponse({ error: 'Invalid token' }, 401);
   }
   const userId = userData.user.id;
+  // Allow system admins to bypass org membership checks (platform-level diagnostics).
+  const { data: isSysAdmin } = await client.rpc('is_system_admin', { _user_id: userId });
+  if (isSysAdmin === true) return { userId };
+
   const { data: isAdmin, error: roleErr } = await client.rpc('user_is_org_owner_or_admin', {
     _user_id: userId,
     _org_id: orgId,

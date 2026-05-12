@@ -28,7 +28,6 @@ interface OrgDomain {
   domain: string;
   is_verified: boolean;
   verified_at: string | null;
-  verification_token: string;
 }
 
 export function SSOConfigPanel() {
@@ -40,6 +39,21 @@ export function SSOConfigPanel() {
   const [ssoRequired, setSsoRequired] = useState(false);
   const [ssoAutoRedirect, setSsoAutoRedirect] = useState(false);
   const [passwordFallback, setPasswordFallback] = useState(true);
+  const [tokenById, setTokenById] = useState<Record<string, string>>({});
+  const [loadingTokenId, setLoadingTokenId] = useState<string | null>(null);
+
+  const loadVerificationToken = async (domainId: string) => {
+    setLoadingTokenId(domainId);
+    try {
+      const { data, error } = await supabase.rpc('get_organization_domain_verification_token', { _domain_id: domainId });
+      if (error) throw error;
+      setTokenById(prev => ({ ...prev, [domainId]: data as string }));
+    } catch (err: unknown) {
+      toast.error('Failed to load verification token', { description: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setLoadingTokenId(null);
+    }
+  };
 
   // Add domain
   const [newDomain, setNewDomain] = useState('');
@@ -351,10 +365,18 @@ export function SSOConfigPanel() {
                         <code className="break-all">_optirfp-verification.{d.domain}</code>
                         <span className="text-muted-foreground">Value</span>
                         <div className="flex items-center gap-2">
-                          <code className="break-all flex-1">optirfp-verify={d.verification_token}</code>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyTxt(d.verification_token, d.domain)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
+                          {tokenById[d.id] ? (
+                            <>
+                              <code className="break-all flex-1">optirfp-verify={tokenById[d.id]}</code>
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyTxt(tokenById[d.id], d.domain)}>
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => loadVerificationToken(d.id)} disabled={loadingTokenId === d.id}>
+                              {loadingTokenId === d.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Reveal verification token'}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

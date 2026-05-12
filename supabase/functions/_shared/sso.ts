@@ -74,7 +74,6 @@ export async function requireOrgAdmin(
     .eq('role', 'system_admin')
     .maybeSingle();
   if (sysRole) return { userId };
-  if (isSysAdmin === true) return { userId };
 
   const { data: isAdmin, error: roleErr } = await client.rpc('user_is_org_owner_or_admin', {
     _user_id: userId,

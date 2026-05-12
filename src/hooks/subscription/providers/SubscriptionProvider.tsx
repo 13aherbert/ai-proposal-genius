@@ -173,7 +173,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.log('No organization found, checking user subscription table');
         const { data: userSub } = await supabase
           .from('subscriptions')
-          .select('*')
+          .select('subscription_id, user_id, plan_type, status, project_limit, current_period_end, features, cancel_at_period_end, created_at, updated_at, billing_interval, is_lifetime, lifetime_redemption_id')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -186,8 +186,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
             current_period_end: userSub.current_period_end,
             project_limit: userSub.project_limit,
             features: (userSub.features as Record<string, any>) || {},
-            stripe_customer_id: userSub.stripe_customer_id,
-            stripe_subscription_id: userSub.stripe_subscription_id,
+            stripe_customer_id: null,
+            stripe_subscription_id: null,
             created_at: userSub.created_at,
             updated_at: userSub.updated_at,
             cancel_at_period_end: userSub.cancel_at_period_end || false,

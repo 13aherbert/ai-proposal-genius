@@ -71,7 +71,7 @@ export function SSOConfigPanel() {
       const [{ data: ssoConfigs }, { data: org }, { data: doms }] = await Promise.all([
         supabase.from('organization_sso_config').select('*').eq('organization_id', organization.id),
         supabase.from('organizations').select('sso_enabled, sso_required, sso_allow_password_fallback, sso_auto_redirect').eq('id', organization.id).single(),
-        supabase.from('organization_domains').select('id, domain, is_verified, verified_at, verification_token').eq('organization_id', organization.id).order('created_at'),
+        supabase.from('organization_domains').select('id, domain, is_verified, verified_at').eq('organization_id', organization.id).order('created_at'),
       ]);
       setConfigs((ssoConfigs || []).map(c => ({ ...c, configuration: c.configuration as Record<string, unknown> })));
       setSsoEnabled(org?.sso_enabled ?? false);

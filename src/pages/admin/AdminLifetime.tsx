@@ -56,7 +56,7 @@ export default function AdminLifetime() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lifetime_deal_redemptions")
-        .select("*")
+        .select("id, user_id, code_id, email, currency, amount_paid_cents, redeemed_at, refunded_at")
         .order("redeemed_at", { ascending: false })
         .limit(200);
       if (error) throw error;

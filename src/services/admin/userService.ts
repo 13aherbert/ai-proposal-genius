@@ -334,7 +334,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     // Get subscription data
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select('subscription_id, user_id, plan_type, status, project_limit, current_period_end, features, cancel_at_period_end, created_at, updated_at, billing_interval, is_lifetime, lifetime_redemption_id')
       .order('updated_at', { ascending: false });
 
     if (subError) {

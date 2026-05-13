@@ -9,7 +9,10 @@ import { formatDistanceToNow } from "date-fns";
 import { useSEO } from "@/hooks/use-seo";
 
 export default function AdminDashboard() {
-  useSEO({ title: "Admin Dashboard — OptiRFP", description: "System administration overview for OptiRFP." });
+  useSEO({
+    title: "Admin Dashboard — OptiRFP",
+    description: "Administrator overview for OptiRFP organizations: monitor users, active projects, storage usage, and recent team activity in one place.",
+  });
   const { organization } = useCurrentOrganization();
   const { session } = useAuth();
   const { recentActivity, isLoading: activityLoading } = useRecentActivity(session?.user ?? null);

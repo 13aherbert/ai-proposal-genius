@@ -64,6 +64,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, last_set_at: new Date().toISOString() });
   } catch (err) {
     console.error('sso-set-client-secret error', err);
-    return jsonResponse({ error: 'Internal error', details: String(err) }, 500);
+    return jsonResponse({ error: 'Internal error' }, 500);
   }
 });

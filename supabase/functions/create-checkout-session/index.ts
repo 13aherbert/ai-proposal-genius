@@ -170,13 +170,10 @@ serve(async (req) => {
       throw new Error('Failed to create checkout session: ' + stripeError.message);
     }
   } catch (error) {
-    console.error('Final error:', error);
+    console.error('create-checkout-session error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error instanceof Error ? error.stack : 'Unknown error'
-      }),
-      { 
+      JSON.stringify({ error: 'Checkout session creation failed' }),
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }

@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     const tokJson = await tokRes.json().catch(() => ({}));
     if (!tokRes.ok || !tokJson.id_token) {
       console.error('Token exchange failed', tokRes.status, tokJson);
-      return jsonResponse({ error: 'Token exchange failed', details: tokJson }, 400);
+      return jsonResponse({ error: 'Token exchange failed' }, 400);
     }
 
     // Verify id_token signature and standard claims
@@ -138,6 +138,6 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 302, headers: { ...corsHeaders, Location: finishUrl } });
   } catch (err) {
     console.error('sso-oidc-callback error', err);
-    return jsonResponse({ error: 'Internal error', details: String(err) }, 500);
+    return jsonResponse({ error: 'Internal error' }, 500);
   }
 });

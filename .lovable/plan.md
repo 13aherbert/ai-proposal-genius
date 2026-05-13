@@ -1,28 +1,59 @@
-# Google Analytics Verification & Hardening
+# Stop Lovable preview traffic from polluting GA4
 
-## Current state
+## Problem
 
-- `src/services/analytics.ts` dynamically loads `gtag.js` for ID `G-88BD9C95TL`, but **only in production** (`import.meta.env.DEV` short-circuits init). In the Lovable preview (dev mode) no beacons fire — that's why you may not see data yet.
-- The snippet is **not** present in `index.html`, so the tag only loads after React mounts and the analytics singleton constructs.
-- Route page views are already tracked via `useAnalytics()` mounted in `AppContent`.
+Right now GA fires on every pageload in:
+- `id-preview--*.lovable.app` (static preview)
+- `*.lovableproject.com` (live sandbox preview you're viewing now)
+- The Lovable editor iframe wrapper
+- `localhost` during dev
 
-## Plan
+Only the published domains should report:
+- `ai-proposal-genius.lovable.app`
+- `optirfp.ai` (and any future custom domain)
 
-1. **Add the official gtag snippet to `index.html`** right after the existing `<head>` opening block (before the theme-flash script is fine, or right after it). This guarantees GA loads on every page — including pre-React, 404, and static loads — exactly as Google recommends.
+## Fix — two coordinated guards
 
-2. **Update `src/services/analytics.ts`** to:
-   - Detect an existing `window.gtag` / `dataLayer` (from the inline snippet) and **skip injecting a second `gtag.js` script**.
-   - Still call `gtag('config', id, { send_page_view: false })` so the SPA `useAnalytics()` hook owns route page views (prevents double-counting the initial load).
-   - Remove the `isDevelopment` gate around initialization so events fire in preview too (keep the dev `console.log` for visibility). This lets you verify in the Lovable preview via GA4 DebugView.
+### 1. `index.html` — gate the inline gtag snippet
 
-3. **Verify** after deploy:
-   - Open the published site, check Network tab for `https://www.googletagmanager.com/gtag/js?id=G-88BD9C95TL` (200) and a `collect?v=2&tid=G-88BD9C95TL...` beacon.
-   - In GA4 → Admin → DebugView, confirm `page_view` events appear on navigation.
-   - Confirm CSP in `SecurityProvider.tsx` already allows `googletagmanager.com` and `google-analytics.com` (it does, from prior change).
+Wrap the gtag bootstrap in a hostname allowlist so the script tag is never injected on preview/dev hosts. Pseudocode:
+
+```js
+(function(){
+  var h = location.hostname;
+  var allowed = h === 'optirfp.ai'
+             || h === 'www.optirfp.ai'
+             || h === 'ai-proposal-genius.lovable.app';
+  if (!allowed) return;
+  // inject <script async src="...gtag/js?id=G-88BD9C95TL">
+  // init dataLayer + gtag('config', ..., { send_page_view: false })
+})();
+```
+
+This blocks GA at the earliest possible point — no network request to `googletagmanager.com` from preview at all.
+
+### 2. `src/services/analytics.ts` — mirror the same guard
+
+Add a `isTrackingHost()` check (same allowlist). If false:
+- Skip `initialize()` entirely
+- `isEnabled()` returns false → all `trackPageView` / `trackEvent` calls become no-ops
+- Keep dev `console.log` so you can still see what *would* have fired
+
+This is a defense-in-depth layer in case the inline snippet is ever changed or someone proxies the preview through a different host.
+
+## Verification steps after deploy
+
+1. **In Lovable preview** (this view): open DevTools → Network → filter `google` — should see **zero** requests to `googletagmanager.com` or `google-analytics.com`.
+2. **On `ai-proposal-genius.lovable.app`**: same filter should show `gtag/js?id=G-88BD9C95TL` (200) and a `collect?v=2&tid=G-88BD9C95TL...` beacon on navigation.
+3. **GA4 DebugView**: confirm events only appear from production hostnames.
+
+## Optional belt-and-suspenders (not in this plan unless you want it)
+
+- Add a GA4 **internal traffic filter** in the GA admin UI that excludes `referrer = lovable.app` / `lovableproject.com`. Useful as a safety net but requires GA console access — say the word and I'll document the exact steps.
 
 ## Files touched
 
-- `index.html` — add gtag snippet after `<head>` opener.
-- `src/services/analytics.ts` — dedupe script injection, enable in dev.
+- `index.html` — wrap gtag bootstrap in hostname allowlist
+- `src/services/analytics.ts` — add `isTrackingHost()` guard, short-circuit init + isEnabled
 
-No business-logic or backend changes.
+No business logic, backend, or DB changes.

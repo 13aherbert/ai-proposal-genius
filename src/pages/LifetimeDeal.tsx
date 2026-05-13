@@ -186,7 +186,7 @@ export default function LifetimeDeal() {
               <Input
                 value={codeInput}
                 onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                placeholder="LTD2026"
+                placeholder="PROMOCODE"
                 className="font-mono"
                 onKeyDown={(e) => { if (e.key === "Enter") applyCode(); }}
               />

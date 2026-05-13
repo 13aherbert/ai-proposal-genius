@@ -46,11 +46,11 @@ export const SecurityProvider = ({ children }: SecurityProviderProps) => {
       meta.httpEquiv = 'Content-Security-Policy';
       meta.content = `
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net 'nonce-${generateNonce()}';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.supabase.io https://cdn.jsdelivr.net https://www.googletagmanager.com 'nonce-${generateNonce()}';
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
         font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
-        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io https://via.placeholder.com https://images.pexels.com;
-        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com https://api.stripe.com;
+        img-src 'self' data: blob: https://*.supabase.co https://*.supabase.io https://via.placeholder.com https://images.pexels.com https://www.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com;
+        connect-src 'self' https://*.supabase.co https://*.supabase.io wss://*.supabase.co https://api.openai.com https://*.anthropic.com https://api.stripe.com https://www.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net;
         frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
         frame-ancestors 'none';
         base-uri 'self';

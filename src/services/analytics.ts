@@ -13,7 +13,7 @@ class AnalyticsService {
   private isDevelopment = import.meta.env.DEV;
 
   constructor() {
-    this.measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID || null;
+    this.measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-88BD9C95TL';
     
     if (this.measurementId && !this.isDevelopment) {
       this.initialize();

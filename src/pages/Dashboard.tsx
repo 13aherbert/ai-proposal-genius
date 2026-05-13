@@ -19,7 +19,10 @@ import { useSubscriptionFeatures } from "@/hooks/use-subscription-features";
 
 export default function Dashboard() {
   const { session } = useAuth();
-  useSEO({ title: "Home | OptiRFP", description: "Your proposals at a glance." });
+  useSEO({
+    title: "Home | OptiRFP",
+    description: "Your OptiRFP dashboard — track active proposals, recent RFP activity, knowledge base updates, and project usage at a glance.",
+  });
   const { profileData } = useProfile();
   const navigate = useNavigate();
   const dashboardStats = useDashboardStats();

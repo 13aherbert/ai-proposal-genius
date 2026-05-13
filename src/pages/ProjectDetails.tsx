@@ -10,9 +10,15 @@ import { useSEO } from "@/hooks/use-seo";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
-  useSEO({ title: "Project — OptiRFP", description: "Work on your RFP project: analysis, outline, drafting, and export." });
   const { session } = useAuth();
   const { data: project, isLoading, error } = useProjectDetails(projectId, session?.user);
+  const seoTitle = project
+    ? `${project.title}${project.client_name ? ` — ${project.client_name}` : ""} | OptiRFP`
+    : "Project — OptiRFP";
+  const seoDescription = project
+    ? `Work on the ${project.title} RFP${project.client_name ? ` for ${project.client_name}` : ""} in OptiRFP — analysis, outline, AI drafting, compliance tracking, and export.`
+    : "Work on your RFP project in OptiRFP: analysis, outline, AI drafting, compliance tracking, and export.";
+  useSEO({ title: seoTitle, description: seoDescription });
 
   if (isLoading) {
     return <ProjectLoading />;

@@ -1,0 +1,45 @@
+# OptiRFP
+
+> AI-powered RFP response platform that helps proposal teams analyse RFPs, draft compliant responses, and win more contracts. Free for the first 6 projects per year.
+
+OptiRFP combines automated RFP analysis (Gemini), proposal drafting (Claude Sonnet 4), a reusable knowledge base, compliance matrix tracking, and team collaboration into a single web app. It also publishes free, no-signup tools at /tools to help any proposal team work faster.
+
+## Pages
+
+- [Home](/): Product overview, pricing, and signup.
+- [Pricing](/pricing): Starter, Growth, Business, and Enterprise plans.
+- [About](/about): Company background and mission.
+- [Contact](/contact): Sales and support contact.
+- [Security](/security): SOC 2, encryption, and data-handling practices.
+- [Blog](/blog): Articles on RFP strategy, AI proposals, and government contracting.
+- [FAQ](/faq): Frequently asked questions about OptiRFP.
+- [Help Center](/help): Self-serve product help.
+- [Documentation](/docs): How to use OptiRFP features.
+- [API Docs](/api-docs): Public API reference for integrations.
+- [Integrations](/integrations): HubSpot, Slack, Teams, and webhook integrations.
+- [White Label](/white-label): White-label and embedded offerings for agencies.
+- [Lifetime Deal](/lifetime): One-time-purchase lifetime plan.
+
+## Free Tools
+
+- [Free Tools Hub](/tools): Free, no-signup tools for proposal teams.
+- [Proposal Word Counter](/tools/proposal-word-counter): Live word, character, and page count for proposal text.
+- [RFP Deadline Calculator](/tools/rfp-deadline-calculator): Back-plan milestones from a submission date.
+- [Win Rate Calculator](/tools/win-rate-calculator): Calculate win rate and revenue projections vs. industry benchmarks.
+- [Compliance Matrix Generator](/tools/compliance-matrix-generator): Extract shall/must/will requirements from RFP text into an editable matrix with CSV export.
+
+## Compare
+
+- [vs Loopio](/compare/loopio)
+- [vs AutoRFP](/compare/autorfp)
+- [vs Responsive](/compare/responsive)
+- [vs Proposify](/compare/proposify)
+- [vs Qvidian](/compare/qvidian)
+- [vs PandaDoc](/compare/pandadoc)
+
+## Optional
+
+- [Sign in / Sign up](/auth)
+- [Demo](/demo)
+- [Referral program](/referral)
+- [SSO setup guide](/sso-setup)

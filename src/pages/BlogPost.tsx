@@ -36,10 +36,18 @@ const BlogPost = () => {
     "url": `https://optirfp.ai/blog/${slug}`,
   }) : undefined, [post, slug]);
 
+  const blogDescription = post
+    ? (post.excerpt && post.excerpt.length >= 60
+        ? post.excerpt
+        : `${post.excerpt || post.title} — insights from the OptiRFP blog on ${post.category || "RFPs, AI proposals, and winning more contracts"}.`)
+    : "OptiRFP Blog — expert advice on writing winning RFPs, AI tools, and proposal best practices.";
+
   useSEO({
     title: post ? `${post.title} | OptiRFP Blog` : "OptiRFP Blog",
-    description: post?.excerpt || "OptiRFP Blog",
+    description: blogDescription,
     ogType: "article",
+    ogImage: post?.image_url,
+    canonical: post ? `https://optirfp.ai/blog/${slug}` : undefined,
     structuredData,
   });
 

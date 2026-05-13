@@ -14,9 +14,25 @@ class AnalyticsService {
 
   constructor() {
     this.measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-88BD9C95TL';
-    if (this.measurementId && typeof window !== 'undefined') {
+    if (this.measurementId && typeof window !== 'undefined' && this.isTrackingHost()) {
       this.initialize();
+    } else if (this.isDevelopment) {
+      console.log('[Analytics] Skipped init (non-production host):', typeof window !== 'undefined' ? window.location.hostname : 'ssr');
     }
+  }
+
+  /**
+   * Only allow GA on real production hostnames. Keeps Lovable preview,
+   * editor iframe, and localhost out of GA4 reports.
+   */
+  private isTrackingHost(): boolean {
+    if (typeof window === 'undefined') return false;
+    const h = window.location.hostname;
+    return (
+      h === 'optirfp.ai' ||
+      h === 'www.optirfp.ai' ||
+      h === 'ai-proposal-genius.lovable.app'
+    );
   }
 
   private initialize() {
@@ -185,7 +201,7 @@ class AnalyticsService {
   }
 
   private isEnabled(): boolean {
-    return this.isInitialized && this.measurementId !== null && typeof window !== 'undefined' && typeof window.gtag === 'function';
+    return this.isInitialized && this.measurementId !== null && typeof window !== 'undefined' && typeof window.gtag === 'function' && this.isTrackingHost();
   }
 }
 

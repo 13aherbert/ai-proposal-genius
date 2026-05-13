@@ -21,15 +21,26 @@ const Index = () => {
 
   const structuredData = useMemo(() => ({
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "OptiRFP",
-    "url": "https://optirfp.ai",
-    "description": "AI-powered RFP response platform. Reduce proposal time by 93%.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://optirfp.ai/blog?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "OptiRFP",
+        "url": "https://optirfp.ai",
+        "logo": "https://optirfp.ai/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png",
+        "sameAs": ["https://ai-proposal-genius.lovable.app"],
+      },
+      {
+        "@type": "WebSite",
+        "name": "OptiRFP",
+        "url": "https://optirfp.ai",
+        "description": "AI-powered RFP response platform. Reduce proposal time by 93%.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://optirfp.ai/blog?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
   }), []);
 
   useSEO({

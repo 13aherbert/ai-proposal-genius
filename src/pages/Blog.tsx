@@ -19,9 +19,28 @@ const Blog = () => {
   const [email, setEmail] = useState("");
   const { data: posts, isLoading } = usePublishedBlogPosts();
 
+  const structuredData = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "OptiRFP Blog",
+    url: "https://optirfp.ai/blog",
+    description: "Expert advice on writing winning RFPs, AI tools, and proposal best practices.",
+    blogPost: (posts ?? []).slice(0, 20).map((p) => ({
+      "@type": "BlogPosting",
+      headline: p.title,
+      description: p.excerpt,
+      url: `https://optirfp.ai/blog/${p.slug}`,
+      image: p.image_url,
+      datePublished: p.published_at,
+      author: { "@type": "Person", name: p.author_name },
+    })),
+  }), [posts]);
+
   useSEO({
     title: "RFP Tips & Best Practices | OptiRFP Blog",
-    description: "Expert advice on writing winning RFPs, AI tools, and proposal best practices.",
+    description: "Expert advice on writing winning RFPs, AI tools, and proposal best practices from the OptiRFP team.",
+    canonical: "https://optirfp.ai/blog",
+    structuredData,
   });
 
   const filtered = useMemo(() => {

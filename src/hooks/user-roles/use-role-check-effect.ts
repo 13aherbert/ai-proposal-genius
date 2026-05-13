@@ -61,17 +61,24 @@ export const useRoleCheckEffect = (
       // Check admin role using direct RPC function
       try {
         console.log("Checking admin role directly via RPC at", new Date().toISOString());
-        const adminStatus = await checkAdminRole(session.user.id, refs, false);
+        const adminStatus = await withTimeout(
+          checkAdminRole(session.user.id, refs, false),
+          "is_admin RPC",
+        );
         updateAdminState(adminStatus, refs.adminStatus, refs, setIsAdmin, false);
       } catch (adminError) {
         console.error("Error during admin role check:", adminError);
         refs.lastNetworkErrorTime = now;
+        setRoleCheckError("Could not verify admin role");
       }
       
       // Check system admin role using direct RPC function
       try {
         console.log("Checking system admin role directly via RPC at", new Date().toISOString());
-        const systemAdminStatus = await checkSystemAdminRole(session.user.id, refs, false);
+        const systemAdminStatus = await withTimeout(
+          checkSystemAdminRole(session.user.id, refs, false),
+          "is_system_admin RPC",
+        );
         updateSystemAdminState(systemAdminStatus, refs.systemAdminStatus, refs, setIsSystemAdmin, false);
       } catch (systemAdminError) {
         console.error("Error during system admin role check:", systemAdminError);
@@ -80,7 +87,10 @@ export const useRoleCheckEffect = (
       
       // Check user role
       try {
-        const userCheck = await adminService.ensureUserRole();
+        const userCheck = await withTimeout(
+          adminService.ensureUserRole(),
+          "ensureUserRole",
+        );
         if (userCheck !== refs.userStatus) {
           refs.userStatus = userCheck;
           setIsUser(userCheck);
@@ -91,7 +101,6 @@ export const useRoleCheckEffect = (
       }
       
       refs.rolesInitialized = true;
-      setIsCheckingRoles(false);
       
     } catch (err) {
       console.error("Error checking user roles:", err);
@@ -104,10 +113,11 @@ export const useRoleCheckEffect = (
         });
       }
       
-      setIsCheckingRoles(false);
       refs.lastNetworkErrorTime = now;
     } finally {
-      // Don't reset checkingInProgress here - child functions manage their own flag
+      // Always clear the spinner — a hung RPC must never leave the UI loading.
+      setIsCheckingRoles(false);
+      refs.rolesInitialized = true;
     }
   }, [session?.user?.id, setIsAdmin, setIsSystemAdmin, setIsUser, setIsCheckingRoles, setRoleCheckError, refs]);
 

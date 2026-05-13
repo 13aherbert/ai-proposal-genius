@@ -8,6 +8,18 @@ import { toast } from "sonner";
 
 // Minimum time between role checks (15 seconds - increased from 10)
 const MIN_CHECK_INTERVAL = 15000;
+// Hard timeout for any single role-check RPC, so a hung request can never
+// freeze the UI in the "checking…" state.
+const RPC_TIMEOUT_MS = 5000;
+
+function withTimeout<T>(promise: Promise<T>, label: string, ms = RPC_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
 
 export const useRoleCheckEffect = (
   session: Session | null | undefined,

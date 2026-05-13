@@ -6,6 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getClientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,28 +23,18 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Require authenticated user
+    // Rate limit by IP (or by user if authenticated): 10 attempts/min
+    let bucket = `ip:${getClientIp(req)}`;
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ valid: false, reason: "unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) bucket = `user:${user.id}`;
     }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !user) {
-      return new Response(JSON.stringify({ valid: false, reason: "unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Per-user rate limit: 5 attempts per minute
     const { data: rlOk } = await supabase.rpc("sso_check_rate_limit", {
-      _bucket_key: `lifetime-code:${user.id}`,
+      _bucket_key: bucket,
       _endpoint: "validate-lifetime-code",
-      _max_attempts: 5,
+      _max_attempts: 10,
       _window_seconds: 60,
     });
     if (rlOk === false) {

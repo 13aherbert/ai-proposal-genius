@@ -961,6 +961,50 @@ export type Database = {
         }
         Relationships: []
       }
+      lifetime_deal_leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          issued_code_id: string | null
+          name: string | null
+          notes: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          issued_code_id?: string | null
+          name?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          issued_code_id?: string | null
+          name?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifetime_deal_leads_issued_code_id_fkey"
+            columns: ["issued_code_id"]
+            isOneToOne: false
+            referencedRelation: "lifetime_deal_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lifetime_deal_redemptions: {
         Row: {
           amount_paid_cents: number | null

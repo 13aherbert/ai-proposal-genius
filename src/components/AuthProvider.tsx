@@ -247,9 +247,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         switch (event) {
           case 'SIGNED_IN':
-            // Lifetime deal handoff: if user landed via /lifetime?code=…, kick off
-            // the one-time payment checkout right after signup.
-            if (currentSession?.user) {
+            // Lifetime deal handoff: only fire on the /lifetime route so we
+            // don't kick off a checkout when the user signs in on /admin,
+            // /dashboard, etc. The code stays in localStorage for retries.
+            if (currentSession?.user && location.pathname === '/lifetime') {
               const ltdCode = localStorage.getItem('lifetime_deal_code');
               if (ltdCode) {
                 try {

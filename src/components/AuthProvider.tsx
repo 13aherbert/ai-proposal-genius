@@ -237,7 +237,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (currentSession?.user) {
               const ltdCode = localStorage.getItem('lifetime_deal_code');
               if (ltdCode) {
-                localStorage.removeItem('lifetime_deal_code');
                 try {
                   toast.loading('Starting your lifetime checkout…');
                   const { data, error } = await supabase.functions.invoke(
@@ -246,12 +245,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   );
                   toast.dismiss();
                   if (data?.url) {
+                    // Only clear the stashed code on a confirmed successful handoff
+                    localStorage.removeItem('lifetime_deal_code');
                     window.location.href = data.url;
                     return;
                   }
                   if (error || data?.error) {
                     console.error('Lifetime checkout failed:', error ?? data?.error);
                     toast.error(data?.error ?? 'Could not start lifetime checkout');
+                    // Leave the code in localStorage so user can retry from /lifetime
                   }
                 } catch (e) {
                   console.warn('Lifetime checkout error:', e);

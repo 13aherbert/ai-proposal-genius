@@ -192,9 +192,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (e) {
         console.error('Network error getting session:', e);
-        toast.error("Network error", {
-          description: "Could not connect to authentication service. Please check your internet connection."
-        });
+        // Try a one-shot refresh before giving up — recovers from a transient
+        // bad-JWT / refresh-loop state without forcing the user to re-login.
+        try {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (refreshed?.session && isSubscribed) {
+            console.log('Session recovered via refreshSession()');
+            setSession(refreshed.session);
+          } else {
+            toast.error("Network error", {
+              description: "Could not connect to authentication service. Please check your internet connection."
+            });
+          }
+        } catch (refreshErr) {
+          console.error('refreshSession fallback failed:', refreshErr);
+          toast.error("Network error", {
+            description: "Could not connect to authentication service. Please check your internet connection."
+          });
+        }
       } finally {
         if (isSubscribed) {
           setLoading(false);

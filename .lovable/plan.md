@@ -1,88 +1,60 @@
-# Free Tools Hub — Plan
+## Lifetime Deal — verification report
 
-Goal: drive organic search traffic with a suite of free, no-login tools tightly themed to RFPs, proposals, and government contracting. Each tool is its own indexable page with strong on-page SEO and clear conversion paths into OptiRFP signup.
+### What works ✅
 
-## Information architecture
+The full plumbing is in place and consistent end-to-end:
 
-New public routes (added to `PublicLayout` in `src/App.tsx`, included in `public/sitemap.xml` at priority 0.9 for the hub and 0.8 for each tool):
+- **Schema**: `lifetime_deal_codes` + `lifetime_deal_redemptions` tables with RLS, `is_lifetime` / `lifetime_redemption_id` columns on `subscriptions`.
+- **Validation RPC**: `public.validate_lifetime_code(text)` is `SECURITY DEFINER`, granted to `anon`+`authenticated`, returns `{valid, code_id, plan_slug, price_id}` and correctly handles not_found / inactive / expired / sold_out.
+- **Atomic claim RPC**: `claim_lifetime_code_slot(uuid)` increments redemption_count in a single guarded UPDATE — no oversell race.
+- **Edge functions**: `validate-lifetime-code` (public, sanitizes) and `create-lifetime-checkout` (auth-gated, re-validates server-side, blocks paying users + existing lifetime, creates Stripe one-time `mode: payment` session with metadata).
+- **Webhook**: `stripe-webhook` `checkout.session.completed` branch detects lifetime mode, atomically claims a slot (refunds Stripe charge if claim fails), upserts redemption, upserts subscription with `is_lifetime=true`, syncs org tier, sends welcome email. Skips overwriting lifetime entitlements on later subscription events. Refund branch reverses entitlement.
+- **Frontend**: `/lifetime?code=…` validates → CTA either claims (if signed in) or stashes code in `localStorage` and routes to `/auth?mode=signup`. `AuthProvider`'s `SIGNED_IN` handler picks up the code and triggers checkout.
+- **Success page**: `/subscription/success?lifetime=1` switches copy to "for life", suppresses next-billing date, shows "One-time — no renewals".
+- **Admin UI**: `/admin/lifetime` lists codes + redemptions, lets system admins create codes and toggle `is_active`.
 
-```
-/tools                          Hub / index page
-/tools/rfp-readiness-score      Paste an RFP → AI-style scored checklist
-/tools/proposal-word-counter    Word/char/page/reading-time counter
-/tools/rfp-deadline-calculator  Business-day deadline + reminder schedule
-/tools/win-rate-calculator      Submitted vs won → win rate + benchmarks
-/tools/proposal-pricing-estimator  Hours × rate + margin → bid price
-/tools/compliance-matrix-generator Paste shall/must list → downloadable CSV matrix
-/tools/executive-summary-generator Short form → templated exec summary (no AI calls in v1, template-based)
-/tools/naics-psc-lookup         Search NAICS / PSC codes (static dataset)
-/tools/rfp-jargon-glossary      Searchable glossary (FAR, IDIQ, BAA, etc.)
-```
+### What blocks an actual test ❌
 
-v1 ships the hub + 4 tools (Word Counter, Deadline Calculator, Win Rate Calculator, Compliance Matrix Generator). Remaining tools land in follow-up batches.
+1. **No codes exist in the database.** `lifetime_deal_codes` is empty. Visiting `/lifetime?code=ANYTHING` returns `not_found`. You need to first create one via `/admin/lifetime` — and that requires a Stripe **one-time** Price ID.
 
-## Page structure (per tool)
+2. **No matching Stripe Price.** The admin form expects `price_id` for a one-time payment Price object in your Stripe dashboard (e.g. `price_…`). Lifetime works in `mode: 'payment'`, so it must be a one-time price, not a recurring one. Confirm one exists for the lifetime amount.
 
-Every tool page follows the same SEO-first template so they rank individually:
+3. **`STRIPE_WEBHOOK_SECRET` and `STRIPE_SECRET_KEY` must be set** for the webhook to verify and the checkout function to talk to Stripe. (Both are referenced; can't confirm secrets are populated without a fetch.)
 
-1. H1 with primary keyword (e.g. "Free RFP Deadline Calculator")
-2. 1–2 sentence value prop + "no signup required" trust line
-3. The interactive tool, above the fold on desktop and mobile
-4. "How it works" (3 steps)
-5. "Why it matters" / use cases (300–500 words, keyword-rich)
-6. FAQ (4–6 Q&As, rendered with FAQPage JSON-LD)
-7. Related tools (internal linking)
-8. Soft CTA to OptiRFP ("Want this automated across every RFP? Try OptiRFP free")
+4. **No public discoverability.** `/lifetime` is not linked from the navbar, pricing page, or footer. By design (invitation-only via `?code=`), but if you want to drive traffic you need an entry point.
 
-## SEO implementation
+### Fixable rough edges
 
-- `useSEO` on every tool page: unique title (<60 chars), description (<160 chars), canonical to `https://optirfp.ai/tools/<slug>`, OG tags
-- JSON-LD per page: `SoftwareApplication` + `FAQPage` (and `BreadcrumbList` Home → Tools → Tool)
-- Add all tool URLs to `public/sitemap.xml` (priority 0.9 hub, 0.8 tools)
-- Keep `public/robots.txt` permissive for `/tools/*`
-- Internal linking: hub links to all tools; each tool links to 3 related tools and to `/blog`, `/pricing`
-- Lazy-load tool routes via existing `React.lazy` pattern in `App.tsx`
-- All tools fully client-side (no Supabase calls) so they're fast, cacheable, and render instantly for crawlers
+| # | Issue | Fix |
+|---|---|---|
+| A | `/lifetime` with no code shows "missing_code" with only "View regular pricing" — no input to paste a code | Add a code input + "Apply code" button on the missing/invalid state |
+| B | Lifetime email-confirm flow: if user signs up and email confirmation is required, `SIGNED_IN` doesn't fire until confirmation → `localStorage` code is preserved, but if they confirm in a different browser the code is lost | Persist code on the `auth.users.user_metadata` during signup as backup, or surface explicit "Continue to checkout" button on `/subscription/success?pending_lifetime=1` |
+| C | `AuthProvider` SIGNED_IN handler also fires on token refresh / tab restore for an already-signed-in user. Today the `localStorage.removeItem('lifetime_deal_code')` runs before the checkout call, so a transient failure (network blip) loses the code | Only remove the code after `data?.url` is received, otherwise leave it for retry |
+| D | Admin `CreateCodeForm` accepts free-text `plan_slug` — typos silently break entitlement mapping | Replace with `<Select>` of valid slugs (`growth`, `business`) sourced from `pricing_tiers` |
+| E | Admin form lets you create duplicate Stripe price → multiple codes pointing at the same Price (intentional?) and doesn't validate that the price is one-time | Optional: validate via a `stripe.prices.retrieve` call in a new edge function, reject `recurring` |
+| F | Lifetime FEATURES list on `/lifetime` is hardcoded ("36 RFP projects per year", "10 monthly opportunity searches") and may drift from the actual Growth tier in `pricing_tiers` | Pull feature bullets from `pricing_tiers` for the validated `plan_slug` |
+| G | `claim_lifetime_code_slot` updates `redemption_count`, but the table column is named `redemption_count` while a few code paths reference `redeemed_count` in earlier discussion. Confirmed schema uses `redemption_count` ✓ — no action needed, just calling it out |
+| H | `/lifetime` is rendered outside `PublicLayout`, so it has no public navbar/footer — fine for a focused conversion page, but inconsistent with `/pricing`, `/blog`, etc. | Optional: wrap in `PublicLayout` if you want shared chrome |
+| I | If a logged-in user with an active paid subscription opens `/lifetime?code=…` and clicks Claim, they get a generic toast "Lifetime deal is for new accounts only" with no path forward | Show that ineligibility state on the page itself (before checkout) by checking subscription state in the validate step |
 
-## Conversion / analytics
+### Recommended testing checklist
 
-- Each tool fires `tool_used` analytics event (via existing `src/services/analytics.ts`) with `tool_name` and outcome
-- Persistent but dismissible "Save results to your OptiRFP account" banner after the user completes a calculation
-- Exit intent already exists site-wide via `useExitIntent`
+1. In Stripe Dashboard, create a one-time Price (e.g. `$497`) on your existing OptiRFP product.
+2. Open `/admin/lifetime`, click **New code**, paste the `price_…`, set `plan_slug=growth`, `max_redemptions=5`, leave `expires_at` blank.
+3. Sign out, open `/lifetime?code=YOURCODE` in an incognito window — confirm the validated state renders.
+4. Click **Sign up & Claim**, complete signup, verify you are redirected to Stripe Checkout (`payment` mode, not subscription).
+5. Pay with Stripe test card `4242 4242 4242 4242`.
+6. Confirm:
+   - `/subscription/success?lifetime=1` shows the "for life" copy.
+   - `lifetime_deal_redemptions` has a row with your `stripe_checkout_session_id`.
+   - `subscriptions.is_lifetime=true`, `billing_interval='lifetime'`, `plan_type='growth'`.
+   - `lifetime_deal_codes.redemption_count` incremented by 1.
+7. In Stripe, refund the payment. Confirm the webhook flips `refunded_at` and demotes the user back to starter.
+8. Try claiming the same code again with a different account — should work until cap hit, then return `sold_out`.
 
-## Design
+### Suggested next move
 
-- Reuse `PublicLayout` (PublicNavbar + Footer)
-- Add "Free Tools" link to PublicNavbar
-- Tool cards on `/tools` use existing dark theme + brand-green accent; semantic tokens only
-- Each tool sits in a single focused card; results panel reveals inline (no modal)
-
-## v1 tool specs (build first)
-
-1. **Proposal Word Counter** — textarea → live word/char/sentence/paragraph/reading-time/page-count (250 wpm, 500 wpp). Strips HTML. Keywords: "proposal word counter", "rfp word count tool".
-2. **RFP Deadline Calculator** — date picker + "submit X business days before" → milestone schedule (kickoff, draft, internal review, final, submit). Downloadable .ics. Keywords: "rfp deadline calculator", "proposal timeline calculator".
-3. **Win Rate Calculator** — inputs: submitted, won, avg contract value → win rate %, est. revenue, vs industry benchmark (static table). Keywords: "proposal win rate calculator", "rfp win rate".
-4. **Compliance Matrix Generator** — paste RFP text → regex-extract "shall/must/will" sentences → editable table with section #, requirement, response owner, status → export CSV. Keywords: "compliance matrix generator", "rfp compliance matrix template".
-
-## Files to add (v1)
-
-- `src/pages/tools/ToolsHub.tsx`
-- `src/pages/tools/WordCounter.tsx`
-- `src/pages/tools/DeadlineCalculator.tsx`
-- `src/pages/tools/WinRateCalculator.tsx`
-- `src/pages/tools/ComplianceMatrixGenerator.tsx`
-- `src/components/tools/ToolPageLayout.tsx` (shared H1/FAQ/CTA wrapper)
-- `src/components/tools/ToolCard.tsx`
-- `src/data/tools-registry.ts` (single source of truth: slug, title, desc, keywords, icon, FAQs)
-
-## Files to edit (v1)
-
-- `src/App.tsx` — add 5 lazy routes inside `<PublicLayout />` block
-- `public/sitemap.xml` — add 5 entries
-- `src/components/navigation/PublicNavbar.tsx` — add "Free Tools" link
-
-## Open questions before building
-
-1. Confirm v1 set: Word Counter, Deadline Calculator, Win Rate Calculator, Compliance Matrix Generator — or swap any?
-2. OK to add "Free Tools" to the main public navbar (vs. footer-only)?
-3. Should results be shareable via URL (encoded query params) for extra organic/social reach?
+Tell me which to do:
+- **Just fix the rough edges** (A–F above) so the system is production-ready.
+- **Walk me through end-to-end testing** — I can help draft the Stripe Price + a seed code via `/admin/lifetime`.
+- **Add a public marketing page** at `/lifetime-deal` (no code required) that captures email and emails out codes, so you can run an actual LTD campaign.

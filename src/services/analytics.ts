@@ -201,7 +201,7 @@ class AnalyticsService {
   }
 
   private isEnabled(): boolean {
-    return this.isInitialized && this.measurementId !== null && typeof window !== 'undefined' && typeof window.gtag === 'function';
+    return this.isInitialized && this.measurementId !== null && typeof window !== 'undefined' && typeof window.gtag === 'function' && this.isTrackingHost();
   }
 }
 

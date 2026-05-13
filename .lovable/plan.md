@@ -1,31 +1,28 @@
-## Wire up Google Analytics (GA4)
+# Google Analytics Verification & Hardening
 
-The analytics service already exists (`src/services/analytics.ts`) and reads `VITE_GA4_MEASUREMENT_ID`. It loads gtag.js dynamically, tracks page views via `useAnalytics`, and supports custom events. Two gaps prevent it from running:
+## Current state
 
-1. The measurement ID `G-88BD9C95TL` is not set anywhere the client can read it.
-2. `useAnalytics()` is not invoked at the app root, so route page views aren't tracked.
+- `src/services/analytics.ts` dynamically loads `gtag.js` for ID `G-88BD9C95TL`, but **only in production** (`import.meta.env.DEV` short-circuits init). In the Lovable preview (dev mode) no beacons fire — that's why you may not see data yet.
+- The snippet is **not** present in `index.html`, so the tag only loads after React mounts and the analytics singleton constructs.
+- Route page views are already tracked via `useAnalytics()` mounted in `AppContent`.
 
-### Changes
+## Plan
 
-1. **Hardcode the GA4 measurement ID as a fallback** in `src/services/analytics.ts`
-   - Use `import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-88BD9C95TL'` so it works without an env var (publishable IDs are safe in client code).
+1. **Add the official gtag snippet to `index.html`** right after the existing `<head>` opening block (before the theme-flash script is fine, or right after it). This guarantees GA loads on every page — including pre-React, 404, and static loads — exactly as Google recommends.
 
-2. **Add a gtag.js snippet to `index.html`** for early loading
-   - Inject the standard GA4 `<script async src="...gtag/js?id=G-88BD9C95TL">` plus init snippet in `<head>` with `send_page_view: false` (SPA route changes are tracked manually).
-   - This ensures tracking fires even before React mounts and improves first-page attribution.
-   - Update the `AnalyticsService` to detect an existing `window.gtag` and skip duplicate script injection.
+2. **Update `src/services/analytics.ts`** to:
+   - Detect an existing `window.gtag` / `dataLayer` (from the inline snippet) and **skip injecting a second `gtag.js` script**.
+   - Still call `gtag('config', id, { send_page_view: false })` so the SPA `useAnalytics()` hook owns route page views (prevents double-counting the initial load).
+   - Remove the `isDevelopment` gate around initialization so events fire in preview too (keep the dev `console.log` for visibility). This lets you verify in the Lovable preview via GA4 DebugView.
 
-3. **Mount `useAnalytics()` at the app root**
-   - Add a tiny `AnalyticsTracker` component that calls `useAnalytics()` and renders nothing.
-   - Render it inside the `<BrowserRouter>` in `src/App.tsx` so route changes trigger `trackPageView`.
+3. **Verify** after deploy:
+   - Open the published site, check Network tab for `https://www.googletagmanager.com/gtag/js?id=G-88BD9C95TL` (200) and a `collect?v=2&tid=G-88BD9C95TL...` beacon.
+   - In GA4 → Admin → DebugView, confirm `page_view` events appear on navigation.
+   - Confirm CSP in `SecurityProvider.tsx` already allows `googletagmanager.com` and `google-analytics.com` (it does, from prior change).
 
-4. **Allow GA endpoints in CSP** (`src/components/security/SecurityProvider.tsx`)
-   - Add `https://www.googletagmanager.com` to `script-src`.
-   - Add `https://www.google-analytics.com` and `https://*.analytics.google.com` to `connect-src` and `img-src`.
+## Files touched
 
-5. **Verify**
-   - Reload preview, confirm `gtag/js?id=G-88BD9C95TL` request fires and `collect?...` beacons send on route changes via the network panel.
+- `index.html` — add gtag snippet after `<head>` opener.
+- `src/services/analytics.ts` — dedupe script injection, enable in dev.
 
-### Notes
-- Dev mode currently early-returns in the analytics service (`isDevelopment` short-circuit). Keep that behavior so localhost doesn't pollute GA, but the production preview/published site will track correctly.
-- No backend or schema changes needed.
+No business-logic or backend changes.

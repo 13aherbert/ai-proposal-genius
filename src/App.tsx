@@ -69,6 +69,11 @@ const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const LifetimeDeal = lazy(() => import("@/pages/LifetimeDeal"));
 const SSOFinish = lazy(() => import("@/pages/SSOFinish"));
+const ToolsHub = lazy(() => import("@/pages/tools/ToolsHub"));
+const WordCounter = lazy(() => import("@/pages/tools/WordCounter"));
+const DeadlineCalculator = lazy(() => import("@/pages/tools/DeadlineCalculator"));
+const WinRateCalculator = lazy(() => import("@/pages/tools/WinRateCalculator"));
+const ComplianceMatrixGenerator = lazy(() => import("@/pages/tools/ComplianceMatrixGenerator"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -189,6 +194,11 @@ function AppContent() {
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/about" element={<About />} />
           <Route path="/help" element={<HelpCenter />} />
+          <Route path="/tools" element={<ToolsHub />} />
+          <Route path="/tools/proposal-word-counter" element={<WordCounter />} />
+          <Route path="/tools/rfp-deadline-calculator" element={<DeadlineCalculator />} />
+          <Route path="/tools/win-rate-calculator" element={<WinRateCalculator />} />
+          <Route path="/tools/compliance-matrix-generator" element={<ComplianceMatrixGenerator />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

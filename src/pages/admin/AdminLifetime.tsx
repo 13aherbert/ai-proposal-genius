@@ -178,7 +178,88 @@ export default function AdminLifetime() {
           )}
         </CardContent>
       </Card>
+
+      <LeadsSection />
     </div>
+  );
+}
+
+function LeadsSection() {
+  const qc = useQueryClient();
+  const leadsQuery = useQuery({
+    queryKey: ["admin-lifetime-leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lifetime_deal_leads")
+        .select("id, email, name, status, source, created_at, notes")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from("lifetime_deal_leads")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-lifetime-leads"] });
+      toast.success("Lead updated");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update lead"),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Waitlist leads</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {leadsQuery.isLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : leadsQuery.data && leadsQuery.data.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Captured</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leadsQuery.data.map((l: any) => (
+                <TableRow key={l.id}>
+                  <TableCell className="font-mono text-xs">{l.email}</TableCell>
+                  <TableCell className="text-sm">{l.name ?? "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{l.source ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{new Date(l.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Select value={l.status} onValueChange={(v) => updateStatus.mutate({ id: l.id, status: v })}>
+                      <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="code_sent">Code sent</SelectItem>
+                        <SelectItem value="redeemed">Redeemed</SelectItem>
+                        <SelectItem value="unsubscribed">Unsubscribed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-center text-muted-foreground py-8">No leads yet. Share <code>/lifetime-deal</code> to start collecting.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

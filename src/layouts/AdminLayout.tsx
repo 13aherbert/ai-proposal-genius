@@ -34,16 +34,51 @@ const adminNavItems = [
 ];
 
 export default function AdminLayout() {
-  const { isAdmin, isCheckingRoles } = useUserRoles();
+  const { isAdmin, isCheckingRoles, roleCheckError } = useUserRoles();
   const location = useLocation();
   const navigate = useNavigate();
+  const [checkTimedOut, setCheckTimedOut] = React.useState(false);
 
-  if (isCheckingRoles) {
+  React.useEffect(() => {
+    if (!isCheckingRoles) {
+      setCheckTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setCheckTimedOut(true), 6000);
+    return () => clearTimeout(t);
+  }, [isCheckingRoles]);
+
+  if (isCheckingRoles && !checkTimedOut) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isCheckingRoles && checkTimedOut) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="mx-auto w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+              <ShieldAlert className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">Couldn't verify admin access</h1>
+              <p className="text-muted-foreground leading-relaxed">
+                {roleCheckError ?? "We couldn't reach the authentication service. Please retry, or head back to your dashboard."}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Button variant="outline" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+            </div>
+          </div>
         </div>
       </div>
     );

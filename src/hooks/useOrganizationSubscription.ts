@@ -122,7 +122,9 @@ export function useSubscriptionPlans() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("subscription_plan_templates")
-        .select("*")
+        .select(
+          "id,name,display_name,description,billing_model,base_price,price_per_seat,seat_limit,project_limit,features,is_enterprise,is_white_label,created_at,updated_at"
+        )
         .order("base_price", { ascending: true });
 
       if (error) {

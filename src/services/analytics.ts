@@ -14,39 +14,40 @@ class AnalyticsService {
 
   constructor() {
     this.measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-88BD9C95TL';
-    
-    if (this.measurementId && !this.isDevelopment) {
+    if (this.measurementId && typeof window !== 'undefined') {
       this.initialize();
-    } else if (this.isDevelopment) {
-      console.log('[Analytics] Development mode - tracking disabled');
     }
   }
 
   private initialize() {
     if (!this.measurementId || this.isInitialized) return;
 
-    // Dynamically load the gtag.js script
+    // Reuse inline gtag snippet from index.html if present
+    if (typeof window.gtag === 'function') {
+      this.isInitialized = true;
+      if (this.isDevelopment) console.log('[Analytics] Reusing inline gtag:', this.measurementId);
+      return;
+    }
+
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${this.measurementId}`;
     document.head.appendChild(script);
 
-    // Initialize dataLayer
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag(...args: any[]) {
       window.dataLayer!.push(args);
     };
 
-    // Configure GA4
     window.gtag('js', new Date());
     window.gtag('config', this.measurementId, {
       page_title: document.title,
       page_location: window.location.href,
-      send_page_view: false, // We'll handle page views manually
+      send_page_view: false,
     });
 
     this.isInitialized = true;
-    console.log('[Analytics] GA4 initialized with ID:', this.measurementId);
+    if (this.isDevelopment) console.log('[Analytics] GA4 initialized:', this.measurementId);
   }
 
   /**

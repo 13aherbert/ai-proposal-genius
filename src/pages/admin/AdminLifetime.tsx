@@ -309,7 +309,13 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="plan">Plan slug</Label>
-          <Input id="plan" value={planSlug} onChange={(e) => setPlanSlug(e.target.value)} />
+          <Select value={planSlug} onValueChange={setPlanSlug}>
+            <SelectTrigger id="plan"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="growth">growth</SelectItem>
+              <SelectItem value="business">business</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="cap">Max redemptions (blank = unlimited)</Label>

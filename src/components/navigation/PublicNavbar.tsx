@@ -30,6 +30,7 @@ import {
   Mail,
   CalendarCheck,
   ChevronDown,
+  Wrench,
 } from "lucide-react";
 
 const ListItem = React.forwardRef<
@@ -121,6 +122,9 @@ export function PublicNavbar() {
                       <ListItem to="/docs" title="Documentation" icon={<FileText className="h-4 w-4" />}>
                         Guides and API reference
                       </ListItem>
+                      <ListItem to="/tools" title="Free Tools" icon={<Wrench className="h-4 w-4" />}>
+                        Word counter, deadline planner, compliance matrix and more
+                      </ListItem>
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -195,6 +199,7 @@ export function PublicNavbar() {
                     <MobileLink to="/blog" icon={<BookOpen className="h-4 w-4" />}>Blog</MobileLink>
                     <MobileLink to="/faq" icon={<HelpCircle className="h-4 w-4" />}>FAQ</MobileLink>
                     <MobileLink to="/docs" icon={<FileText className="h-4 w-4" />}>Documentation</MobileLink>
+                    <MobileLink to="/tools" icon={<Wrench className="h-4 w-4" />}>Free Tools</MobileLink>
                   </MobileSection>
 
                   <Separator />

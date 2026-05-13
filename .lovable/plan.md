@@ -1,20 +1,31 @@
-## Root cause
+## Wire up Google Analytics (GA4)
 
-In the previous fix to `supabase/functions/_shared/sso.ts` → `requireOrgAdmin`, a stray line was left behind:
+The analytics service already exists (`src/services/analytics.ts`) and reads `VITE_GA4_MEASUREMENT_ID`. It loads gtag.js dynamically, tracks page views via `useAnalytics`, and supports custom events. Two gaps prevent it from running:
 
-```ts
-if (sysRole) return { userId };
-if (isSysAdmin === true) return { userId };   // ← undefined identifier
-```
+1. The measurement ID `G-88BD9C95TL` is not set anywhere the client can read it.
+2. `useAnalytics()` is not invoked at the app root, so route page views aren't tracked.
 
-`isSysAdmin` no longer exists, so the edge function fails to compile and the previously-deployed (pre-fix) version keeps serving requests — which still rejects `system_admin` users with `Forbidden — owner or admin required`.
+### Changes
 
-The signed-in user (`db89b55d-…`) does have the `system_admin` role in `user_roles`, confirming the bypass logic is correct — it just isn't running.
+1. **Hardcode the GA4 measurement ID as a fallback** in `src/services/analytics.ts`
+   - Use `import.meta.env.VITE_GA4_MEASUREMENT_ID || 'G-88BD9C95TL'` so it works without an env var (publishable IDs are safe in client code).
 
-## Fix
+2. **Add a gtag.js snippet to `index.html`** for early loading
+   - Inject the standard GA4 `<script async src="...gtag/js?id=G-88BD9C95TL">` plus init snippet in `<head>` with `send_page_view: false` (SPA route changes are tracked manually).
+   - This ensures tracking fires even before React mounts and improves first-page attribution.
+   - Update the `AnalyticsService` to detect an existing `window.gtag` and skip duplicate script injection.
 
-1. Remove the stray `if (isSysAdmin === true) return { userId };` line in `supabase/functions/_shared/sso.ts`.
-2. Redeploy the affected edge functions (`sso-health-check`, `sso-set-client-secret`, `sso-oidc-callback`, `sso-oidc-init`, `sso-auth-callback`, `manage-sso-config`, `provision-sso-provider`, `check-sso-domain`) so they pick up the updated `_shared/sso.ts`.
-3. Verify by refreshing `/admin/security` — the SSO Diagnostics card should load the readiness checklist instead of the 403.
+3. **Mount `useAnalytics()` at the app root**
+   - Add a tiny `AnalyticsTracker` component that calls `useAnalytics()` and renders nothing.
+   - Render it inside the `<BrowserRouter>` in `src/App.tsx` so route changes trigger `trackPageView`.
 
-No DB changes, no UI changes.
+4. **Allow GA endpoints in CSP** (`src/components/security/SecurityProvider.tsx`)
+   - Add `https://www.googletagmanager.com` to `script-src`.
+   - Add `https://www.google-analytics.com` and `https://*.analytics.google.com` to `connect-src` and `img-src`.
+
+5. **Verify**
+   - Reload preview, confirm `gtag/js?id=G-88BD9C95TL` request fires and `collect?...` beacons send on route changes via the network panel.
+
+### Notes
+- Dev mode currently early-returns in the analytics service (`isDevelopment` short-circuit). Keep that behavior so localhost doesn't pollute GA, but the production preview/published site will track correctly.
+- No backend or schema changes needed.

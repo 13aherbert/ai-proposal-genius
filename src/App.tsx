@@ -40,6 +40,7 @@ const AdminLeads = lazy(() => import("@/pages/admin/AdminLeads"));
 const AdminLifetime = lazy(() => import("@/pages/admin/AdminLifetime"));
 const AdminErrorLogs = lazy(() => import("@/pages/admin/AdminErrorLogs"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
+const AdminSeo = lazy(() => import("@/pages/admin/AdminSeo"));
 const EnterpriseOnboarding = lazy(() => import("@/pages/EnterpriseOnboarding"));
 const Organization = lazy(() => import("@/pages/Organization"));
 

@@ -1,74 +1,43 @@
-## Goals
+## v2 Free Tools — Plan
 
-1. **Make templates a first-class, visible choice** in the Design Studio (currently buried behind a collapsed "Template" toggle).
-2. **Replace the eight existing templates** with a curated, Editorial-Corporate–leaning set that actually looks modern and corporate — navy + gold, generous whitespace, serif/sans pairings, real visual hierarchy.
-3. **Fix missing sections** in the imported design, plus the broader readability problems (flat headings, weak contrast, dense walls of text).
+Picked by Semrush keyword opportunity vs. effort. All three slot into the existing `/tools` framework (`ToolPageLayout`, `tools-registry.ts`, lazy routes, sitemap).
 
----
+### 1. NAICS Code Lookup — `/tools/naics-code-lookup`
+**Why:** 33,100 searches/mo. KDI 65 is tough, but our domain (federal contracting) is highly relevant — Google rewards topical authority. Ranking even page 2 here is a big win.
 
-## 1. Template Picker — make it visible & obvious
+- Static dataset: 2022 NAICS codes (~1,000 entries) bundled as `src/data/naics-2022.json` (sourced from census.gov, public domain).
+- UI: search box (code or keyword), filtered list, click → detail card with code, title, description, parent sector, related codes.
+- Bonus: small "NIGP equivalent" callout (480/mo, KDI 19) linking out — captures that secondary keyword without a second page.
+- Conversion CTA: "Find federal opportunities for NAICS XXXXX in OptiRFP".
 
-Currently in `ProposalDesignStudio.tsx` the picker sits inside a `<Collapsible>` that defaults to closed, so users never see they have options.
+### 2. PSC Code Lookup — `/tools/psc-code-lookup`
+**Why:** 480/mo, KDI 29. Easy ranking win. Same audience as NAICS — cross-link both pages so one ranks the other.
 
-Changes:
-- Replace the collapsed "Template" trigger with an **always-visible Template Gallery strip** at the top of the Design Studio (above Branding & Style).
-- Show templates as larger preview cards (currently 4-col mini swatches) with: name, 1-line description, and a richer mini-preview that actually conveys typography + color, not just shape blocks.
-- Add a "Currently selected" badge and a "Change template" CTA that opens a full-screen modal gallery with bigger previews and a "Use this template" button.
-- On template change, prompt: "Apply new template? This will restyle your proposal but keep your content." → confirm → call existing `updateTemplateId`.
+- Static dataset: GSA Product Service Codes (~5,000 entries) as `src/data/psc-codes.json`.
+- Same UX as NAICS: search → filter → detail. Cross-links to NAICS in the related-tools rail.
 
-## 2. New template set (Editorial Corporate direction)
+### 3. Executive Summary Generator — `/tools/executive-summary-generator`
+**Why:** 170/mo, KDI 24, $2.70 CPC. Low volume but highest commercial intent — these searchers are mid-proposal and convert. Showcases our AI directly.
 
-Replace `templates.ts` with **5 curated templates**, all sharing the Editorial Corporate DNA (navy `#0f1b3d`, gold `#c9a84c`, ivory `#f5f0e0`) but visually distinct:
+- New edge function `tools-generate-executive-summary` (no JWT, but IP-rate-limited 5/hour, 8k char input cap). Uses Lovable AI Gateway (Gemini Flash — cheap, fast).
+- UI: textarea (paste RFP or proposal context), tone select (Formal/Confident/Concise), word target slider (150–400). Output renders inline + Copy button.
+- "Save & refine in OptiRFP" CTA after generation.
 
-| Template | Personality | Header font / Body | Cover layout | Header style |
-|---|---|---|---|---|
-| **Sterling** (default) | Editorial corporate, navy + gold, serif headlines | Playfair Display / Inter | full-bleed with gold rule | underline-gold |
-| **Meridian** | Modern tech-corporate, deep indigo + cool ivory | Space Grotesk / Inter | split with accent bar | accent-bar |
-| **Atelier** | Luxury minimal, cream + ink, thin gold rules | Cormorant Garamond / Karla | minimal centered | minimal |
-| **Capitol** | Government/legal formal, navy + slate, numbered sections | Libre Baskerville / IBM Plex Sans | left-aligned | numbered |
-| **Vanguard** | Bold consulting, charcoal + ember accent | Syne / DM Sans | diagonal | pill |
+### Shared work
+- Add 3 entries to `src/data/tools-registry.ts` (titles, meta, FAQs).
+- Add 3 lazy routes in `src/App.tsx`.
+- Add 3 URLs to `public/sitemap.xml`.
+- Update `public/llms.txt` with new tools.
+- ToolsHub already auto-renders from registry — no edit needed.
 
-For each:
-- Update `defaults` (primary/secondary, fonts, margins, header/cover style).
-- Update `TemplateMiniPreview` to render a much richer thumbnail: simulated cover with display-font H1, sub-rule, accent bar/gold line, and 2 lines of body — so users see the actual typographic personality at a glance.
-- Load Google Fonts for the 5 new font families via `index.html` `<link>` (or a `useEffect` in BrandingContext).
+### Technical notes
+- NAICS/PSC datasets shipped as JSON in `src/data/` (no DB, no edge function — pure client-side, instant search).
+- Exec Summary edge function deployed with `verify_jwt = false`, validates input with Zod, IP rate-limit via in-memory sliding window (acceptable for v2; upgrade to a `tool_usage` table if abuse appears).
+- All three pages: full SEO recipe (canonical, JSON-LD `SoftwareApplication` + `FAQPage` + `BreadcrumbList`, FAQs, related-tools rail, soft CTA).
 
-## 3. Fix readability of rendered blocks
+### Files
+**Create:** `src/data/naics-2022.json`, `src/data/psc-codes.json`, `src/pages/tools/NaicsLookup.tsx`, `src/pages/tools/PscLookup.tsx`, `src/pages/tools/ExecutiveSummaryGenerator.tsx`, `supabase/functions/tools-generate-executive-summary/index.ts`.
+**Edit:** `src/data/tools-registry.ts`, `src/App.tsx`, `public/sitemap.xml`, `public/llms.txt`.
 
-Independent of template choice, the current preview renders body text via `prose prose-sm` with `text-3xl` H1s — too cramped and visually flat. Updates:
-
-- **TextBlock preview**: bump to `prose-base`, increase line-height to 1.7, max-width ~70ch for readability, more vertical rhythm between paragraphs, lighter body color (`#2d2d2d` not pure black), and proper H1/H2/H3 sizes (`text-4xl/text-3xl/text-xl`) with template-driven font weights.
-- **HeadingBlock preview**: respect `headerStyle` properly — the existing `accent-bar`, `underline`, `gradient`, `boxed`, `numbered`, `pill` variants need real visual definition (currently most look identical). Add proper spacing above each heading.
-- **CalloutBlock / QuoteBlock**: tighten styling so they read as editorial pull-quotes (gold left rule, larger italic body, attribution line) instead of muted boxes.
-- **CoverBlock**: actually implement the 8 `coverLayout` variants distinctly (today they mostly fall back to centered). Add a thin accent rule between title/subtitle, larger title (clamped), proper spacing, and a footer block with date + client.
-
-## 4. Fix "entire sections missing" on import
-
-Root cause: `useProposalDesign.createNewDesign` and `regenerateDesign` order sections by `created_at` and run **once** when the design row is first created. If the user opens the Design Studio while sections are still being generated by automation, only the sections that existed at that moment get baked in; later sections never appear unless the user clicks "Regenerate Design" (which is also somewhat hidden).
-
-Fixes:
-1. **Order by `sort_order`** (with `created_at` fallback) in both `createNewDesign` and `regenerateDesign` — matches the proposal editor and outline ordering.
-2. **Auto-detect drift**: on Design Studio mount, count `proposal_sections` for the project and compare against the number of `heading` blocks (excluding cover/toc) in the saved design. If they differ, show a non-blocking banner: *"3 new sections were added to your proposal since this design was generated. [Regenerate design]"*.
-3. **Skip empty sections gracefully** — sections with empty content currently still create a heading + empty text block, which looks broken; render a small "Section pending content" muted note instead, so the user can tell which sections need writing.
-4. **Make "Regenerate from proposal" button prominent** (currently it's an icon-button in the header) — turn it into a labeled secondary button next to the template gallery: "↻ Sync with latest content".
-
----
-
-## Technical notes
-
-- Files touched:
-  - `src/components/project/design-studio/templates.ts` — replace template array, update `AVAILABLE_FONTS`.
-  - `src/components/project/design-studio/TemplateSelector.tsx` — richer thumbnails, bigger cards.
-  - `src/components/project/design-studio/ProposalDesignStudio.tsx` — promote template picker out of collapsible, add drift banner, relabel regenerate button.
-  - `src/components/project/design-studio/blocks/TextBlock.tsx`, `HeadingBlock.tsx`, `CoverBlock.tsx`, `CalloutBlock.tsx`, `QuoteBlock.tsx` — typographic + layout polish, true variant differentiation.
-  - `src/components/project/design-studio/useProposalDesign.ts` — order by `sort_order`, drift detection helper.
-  - `index.html` — preconnect + Google Font links for new families.
-- No DB schema changes. No backend changes.
-- Existing saved designs continue to work; they just keep their saved `template_id`. If the id no longer exists in the new set, fall back to `sterling` (default) without overwriting saved colors/fonts.
-- Pexels auto-image flow is unchanged.
-
-## Out of scope
-
-- Canvas (schema 2 / free-form) editor — untouched.
-- Export/PDF pipeline — unchanged; new templates use the same render path so PDF inherits improvements automatically.
-- Brand guideline overrides still take precedence (org default still wins over template defaults).
+### Out of scope (deferred)
+- RFP Readiness Score (no real keyword volume) and RFP Jargon Glossary (zero recorded volume) — skip until/unless competitors validate the demand.

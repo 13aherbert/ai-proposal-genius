@@ -14,5 +14,8 @@
   <url><loc>https://optirfp.ai/tools/rfp-deadline-calculator</loc><priority>0.8</priority></url>
   <url><loc>https://optirfp.ai/tools/win-rate-calculator</loc><priority>0.8</priority></url>
   <url><loc>https://optirfp.ai/tools/compliance-matrix-generator</loc><priority>0.8</priority></url>
+  <url><loc>https://optirfp.ai/tools/naics-code-lookup</loc><priority>0.9</priority></url>
+  <url><loc>https://optirfp.ai/tools/psc-code-lookup</loc><priority>0.8</priority></url>
+  <url><loc>https://optirfp.ai/tools/executive-summary-generator</loc><priority>0.8</priority></url>
   <url><loc>https://optirfp.ai/lifetime-deal</loc><priority>0.9</priority></url>
 </urlset>

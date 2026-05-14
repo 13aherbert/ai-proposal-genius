@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader2, Eye, Edit, Undo2, Redo2, Wand2 } from 'lucide-react';
+import { Loader2, Eye, Edit, Undo2, Redo2, Wand2, RefreshCw, Sparkles } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -23,8 +23,7 @@ interface ProposalDesignStudioProps {
 }
 
 export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
-  const { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
-  const [templateOpen, setTemplateOpen] = useState(false);
+  const { design, isLoading, isSaving, isRegenerating, missingSectionCount, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
   const [brandingOpen, setBrandingOpen] = useState(false);
   const [showClassic, setShowClassic] = useState(false);
   const autoImportedRef = useRef(false);

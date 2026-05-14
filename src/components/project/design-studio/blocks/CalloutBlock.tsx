@@ -51,7 +51,7 @@ export function CalloutBlock({ block, settings, onUpdate, preview }: CalloutBloc
   }
 
   return (
-    <div className="space-y-2 p-3 border rounded-lg" style={{ borderLeftWidth: 4, borderLeftColor: v.border }}>
+    <div className="space-y-2 p-3 border rounded-lg" style={{ borderLeftWidth: 4, borderLeftColor: ruleColor }}>
       <div className="flex gap-2 items-center">
         <Select value={variant} onValueChange={(val) => onUpdate({ ...block, content: { ...block.content, variant: val } })}>
           <SelectTrigger className="w-28 h-7 text-xs"><SelectValue /></SelectTrigger>

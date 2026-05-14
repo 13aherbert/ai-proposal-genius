@@ -97,8 +97,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
-                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    Re-import from Proposal
+                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    Sync with Proposal
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

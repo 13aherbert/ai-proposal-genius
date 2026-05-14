@@ -65,17 +65,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
   }, [design, updateSettings]);
 
   const handleTemplateSelect = useCallback((templateId: string) => {
-    if (!design) return;
-    if (templateId === design.template_id) return;
+    if (!design || templateId === design.template_id) return;
     updateTemplateId(templateId);
-    // If we're on the canvas, refresh it so the new template's typography + colors apply
-    if (design.design_settings.canvasDocument) {
-      // The settings update from updateTemplateId is async via state; defer slightly
-      setTimeout(() => {
-        // Trigger a re-import using the latest design (consumer will read updated settings on next render)
-        autoImportedRef.current = false;
-      }, 50);
-    }
     toast.success('Template applied');
   }, [design, updateTemplateId]);
 

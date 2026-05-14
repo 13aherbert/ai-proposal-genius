@@ -169,6 +169,7 @@ function AppContent() {
           <Route path="/admin/lifetime" element={<AdminLifetime />} />
           <Route path="/admin/errors" element={<AdminErrorLogs />} />
           <Route path="/admin/support" element={<AdminSupport />} />
+          <Route path="/admin/seo" element={<AdminSeo />} />
         </Route>
         
         <Route path="/auth" element={<Auth />} />

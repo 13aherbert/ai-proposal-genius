@@ -195,3 +195,7 @@ name = "submit-contact-message"
 verify_jwt = false
 import_map = "import_map.json"
 
+
+[[functions]]
+name = "tools-generate-executive-summary"
+verify_jwt = false

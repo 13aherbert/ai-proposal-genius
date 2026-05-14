@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;
@@ -72,6 +72,51 @@ export const TOOLS: ToolMeta[] = [
       { q: "What is a compliance matrix?", a: "A compliance matrix maps every RFP requirement (shall/must/will statements) to your proposal response, owner and status — required by most government bids." },
       { q: "Which keywords does it extract?", a: "We extract sentences containing shall, must, will, should and is required to — the standard imperatives in federal and state RFPs." },
       { q: "Can I edit the matrix?", a: "Yes. Every row is editable. Add owners, statuses and section numbers, then export to CSV for your proposal binder." },
+    ],
+  },
+  {
+    slug: "naics-code-lookup",
+    title: "NAICS Code Lookup",
+    seoTitle: "NAICS Code Lookup 2022 | Free Search Tool",
+    description: "Search the full 2022 NAICS code list by code or keyword. Find your industry classification in seconds.",
+    metaDescription: "Free NAICS code lookup. Search the official 2022 NAICS list (2,125 codes) by code or keyword to find the right industry classification for federal contracts, SAM.gov, and tax filings.",
+    keywords: ["naics code lookup", "naics code search", "2022 naics codes", "naics classification"],
+    icon: Hash,
+    faqs: [
+      { q: "What is a NAICS code?", a: "A NAICS code (North American Industry Classification System) is a 2-to-6 digit number used by US federal agencies to classify businesses by industry. It is required for SAM.gov registration, federal bids, and many state procurements." },
+      { q: "Which NAICS edition does this tool use?", a: "We use the official 2022 NAICS edition published by the US Census Bureau — the version currently in force for SAM.gov, federal contracting, and most agency systems." },
+      { q: "How do I pick the right NAICS code?", a: "Search by the keyword that best describes your primary revenue activity, then pick the most specific (6-digit) code that matches. You can list multiple NAICS codes on SAM.gov, but one must be designated as primary." },
+      { q: "Is this related to NIGP or PSC codes?", a: "No — NAICS is the federal industry standard. NIGP codes are used by many state and local governments, and PSC codes are used inside federal contracts to classify the product or service being purchased. Use our PSC Code Lookup for that." },
+    ],
+  },
+  {
+    slug: "psc-code-lookup",
+    title: "PSC Code Lookup",
+    seoTitle: "PSC Code Lookup | Free Product Service Code Search",
+    description: "Search the full GSA Product Service Code list by code or keyword to classify federal contract opportunities.",
+    metaDescription: "Free PSC code lookup tool. Search the official GSA Product and Service Codes by code or keyword to identify the right classification for federal contract opportunities and SAM.gov bids.",
+    keywords: ["psc code lookup", "product service code search", "gsa psc codes", "federal psc code"],
+    icon: Tag,
+    faqs: [
+      { q: "What is a PSC code?", a: "A Product Service Code (PSC) is a 4-character code used by US federal agencies on contract actions to identify what is being bought — a product, a service, or research and development." },
+      { q: "How is PSC different from NAICS?", a: "NAICS classifies the contractor's industry. PSC classifies what the government is purchasing on a specific contract. Federal opportunities on SAM.gov list both." },
+      { q: "Where does this PSC list come from?", a: "We use the GSA's official Product and Service Codes Manual, filtered to only show codes that are currently active." },
+      { q: "Can I search by category?", a: "Yes — type a category keyword (for example 'IT services', 'construction', 'medical') and the lookup returns every active PSC code that matches." },
+    ],
+  },
+  {
+    slug: "executive-summary-generator",
+    title: "Executive Summary Generator",
+    seoTitle: "Free AI Executive Summary Generator for Proposals",
+    description: "Paste your proposal context and get a polished executive summary in seconds — powered by AI, no signup required.",
+    metaDescription: "Free AI executive summary generator. Paste a proposal, RFP excerpt, or project brief and instantly produce a polished, concise executive summary in your chosen tone and length.",
+    keywords: ["executive summary generator", "ai executive summary", "proposal executive summary", "free executive summary tool"],
+    icon: Sparkles,
+    faqs: [
+      { q: "Is this executive summary generator free?", a: "Yes. No signup, no payment, no email required. Paste your text and get a summary." },
+      { q: "What should I paste in?", a: "Anything that gives the AI context about your proposal — the RFP excerpt, your draft response, a project brief, or a list of bullets covering your approach, differentiators, and outcomes." },
+      { q: "How long are the generated summaries?", a: "You can target 150–400 words. The AI keeps a single-page executive summary structure: opening hook, problem understanding, solution, proof, and call to action." },
+      { q: "Will the AI hallucinate facts?", a: "It only synthesises from the context you paste in. Always review and edit before sending — for production-grade proposals with full source grounding, OptiRFP's full editor uses the same AI plus your knowledge base." },
     ],
   },
 ];

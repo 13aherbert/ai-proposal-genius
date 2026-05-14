@@ -75,6 +75,9 @@ const WordCounter = lazy(() => import("@/pages/tools/WordCounter"));
 const DeadlineCalculator = lazy(() => import("@/pages/tools/DeadlineCalculator"));
 const WinRateCalculator = lazy(() => import("@/pages/tools/WinRateCalculator"));
 const ComplianceMatrixGenerator = lazy(() => import("@/pages/tools/ComplianceMatrixGenerator"));
+const NaicsLookup = lazy(() => import("@/pages/tools/NaicsLookup"));
+const PscLookup = lazy(() => import("@/pages/tools/PscLookup"));
+const ExecutiveSummaryGenerator = lazy(() => import("@/pages/tools/ExecutiveSummaryGenerator"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -201,6 +204,9 @@ function AppContent() {
           <Route path="/tools/rfp-deadline-calculator" element={<DeadlineCalculator />} />
           <Route path="/tools/win-rate-calculator" element={<WinRateCalculator />} />
           <Route path="/tools/compliance-matrix-generator" element={<ComplianceMatrixGenerator />} />
+          <Route path="/tools/naics-code-lookup" element={<NaicsLookup />} />
+          <Route path="/tools/psc-code-lookup" element={<PscLookup />} />
+          <Route path="/tools/executive-summary-generator" element={<ExecutiveSummaryGenerator />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

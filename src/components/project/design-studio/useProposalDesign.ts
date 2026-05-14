@@ -448,7 +448,24 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     }
   }, [design, projectId, session, pushHistory]);
 
-  // Autosave every 10s
+  // Detect drift between proposal_sections and the design's heading blocks
+  useEffect(() => {
+    if (!design || !projectId) return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from('proposal_sections')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+      if (cancelled || count == null) return;
+      const headingCount = (design.content_blocks || []).filter(
+        b => b.type === 'heading' && ((b.content as any)?.level ?? 2) === 2
+      ).length;
+      setMissingSectionCount(Math.max(0, count - headingCount));
+    })();
+    return () => { cancelled = true; };
+  }, [design, projectId]);
+
   useEffect(() => {
     timerRef.current = setInterval(() => {
       if (dirtyRef.current && design) {

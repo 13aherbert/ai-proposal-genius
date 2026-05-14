@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader2, Eye, Edit, Undo2, Redo2, Wand2 } from 'lucide-react';
+import { Loader2, Eye, Edit, Undo2, Redo2, Wand2, RefreshCw, Sparkles } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useProposalDesign } from './useProposalDesign';
 import { TemplateSelector } from './TemplateSelector';
@@ -23,8 +23,7 @@ interface ProposalDesignStudioProps {
 }
 
 export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
-  const { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
-  const [templateOpen, setTemplateOpen] = useState(false);
+  const { design, isLoading, isSaving, isRegenerating, missingSectionCount, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign } = useProposalDesign(projectId);
   const [brandingOpen, setBrandingOpen] = useState(false);
   const [showClassic, setShowClassic] = useState(false);
   const autoImportedRef = useRef(false);
@@ -65,6 +64,12 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
     toast.success('Re-imported the latest proposal content');
   }, [design, updateSettings]);
 
+  const handleTemplateSelect = useCallback((templateId: string) => {
+    if (!design || templateId === design.template_id) return;
+    updateTemplateId(templateId);
+    toast.success('Template applied');
+  }, [design, updateTemplateId]);
+
   if (isLoading || !design) {
     return (
       <div className="flex justify-center items-center h-[400px]">
@@ -92,8 +97,8 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5 mr-2" disabled={isRegenerating}>
-                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    Re-import from Proposal
+                    {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    Sync with Proposal
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -150,6 +155,54 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
         </div>
       </div>
 
+      {/* Drift banner — appears when proposal sections changed since the design was last generated */}
+      {missingSectionCount > 0 && (
+        <AlertDialog>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <Sparkles className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  {missingSectionCount} {missingSectionCount === 1 ? 'section is' : 'sections are'} missing from your design
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your proposal has new content that hasn't been imported yet. Sync to bring everything in.
+                </p>
+              </div>
+            </div>
+            <AlertDialogTrigger asChild>
+              <Button variant="default" size="sm" className="gap-1.5 shrink-0" disabled={isRegenerating}>
+                {isRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Sync now
+              </Button>
+            </AlertDialogTrigger>
+          </div>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sync with latest proposal content?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This rebuilds the design from your current proposal sections. Any block-level edits in this design will be replaced; your template, brand colors, and uploaded images are kept.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => { await regenerateDesign(); autoImportedRef.current = false; }}>Sync</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Always-visible Template gallery */}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Template</h3>
+            <p className="text-xs text-muted-foreground">Pick a starting design — colors, typography, and cover style apply instantly.</p>
+          </div>
+        </div>
+        <TemplateSelector selectedId={design.template_id} onSelect={handleTemplateSelect} />
+      </div>
+
       {isCanvasMode ? (
         <CanvasEditor
           document={design.design_settings.canvasDocument ?? makeBlankDocument()}
@@ -158,18 +211,6 @@ export function ProposalDesignStudio({ projectId }: ProposalDesignStudioProps) {
         />
       ) : (
         <>
-          <Collapsible open={templateOpen} onOpenChange={setTemplateOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-1 text-sm font-medium">
-                <ChevronDown className={`h-4 w-4 transition-transform ${templateOpen ? 'rotate-180' : ''}`} />
-                Template
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2">
-              <TemplateSelector selectedId={design.template_id} onSelect={updateTemplateId} />
-            </CollapsibleContent>
-          </Collapsible>
-
           <Collapsible open={brandingOpen} onOpenChange={setBrandingOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1 text-sm font-medium">

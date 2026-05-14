@@ -1,38 +1,74 @@
-# Fix: Admin dashboard stuck loading
+## Goals
 
-## Root cause
+1. **Make templates a first-class, visible choice** in the Design Studio (currently buried behind a collapsed "Template" toggle).
+2. **Replace the eight existing templates** with a curated, Editorial-Corporate–leaning set that actually looks modern and corporate — navy + gold, generous whitespace, serif/sans pairings, real visual hierarchy.
+3. **Fix missing sections** in the imported design, plus the broader readability problems (flat headings, weak contrast, dense walls of text).
 
-`AdminLayout` renders a spinner while `useUserRoles().isCheckingRoles === true`. That flag only clears after `is_admin` and `is_system_admin` RPCs return. On `/admin`, `supabase.auth.getSession()` is timing out (3s) and the supabase client is in a bad-JWT / refresh state (`403: invalid claim: missing sub claim` in auth logs), so those RPC calls never resolve and the spinner is permanent. There is no timeout / fallback around the RPC awaits in `use-role-check-effect.ts`.
+---
 
-A secondary irritant: `AuthProvider`'s `SIGNED_IN` handler re-runs the lifetime-checkout flow on every sign-in because `lifetime_deal_code` stays in `localStorage` after a failed handoff, firing an extra network call right as `/admin` mounts.
+## 1. Template Picker — make it visible & obvious
 
-## Fix
+Currently in `ProposalDesignStudio.tsx` the picker sits inside a `<Collapsible>` that defaults to closed, so users never see they have options.
 
-### 1. Make the role check self-terminating (`src/hooks/user-roles/use-role-check-effect.ts`)
+Changes:
+- Replace the collapsed "Template" trigger with an **always-visible Template Gallery strip** at the top of the Design Studio (above Branding & Style).
+- Show templates as larger preview cards (currently 4-col mini swatches) with: name, 1-line description, and a richer mini-preview that actually conveys typography + color, not just shape blocks.
+- Add a "Currently selected" badge and a "Change template" CTA that opens a full-screen modal gallery with bigger previews and a "Use this template" button.
+- On template change, prompt: "Apply new template? This will restyle your proposal but keep your content." → confirm → call existing `updateTemplateId`.
 
-- Wrap each `checkAdminRole` / `checkSystemAdminRole` / `ensureUserRole` await in a `Promise.race` against a ~5s timeout so a hung RPC can never block UI state.
-- Move `setIsCheckingRoles(false)` into a `finally` block (currently it only runs on the success path; the outer `catch` also clears it but the per-RPC try/catch swallows errors so the loop can stall).
-- On timeout, keep the previously-known `refs.adminStatus` and set `roleCheckError` so `AdminLayout` can render an inline error rather than a spinner.
+## 2. New template set (Editorial Corporate direction)
 
-### 2. Add a hard fallback in `AdminLayout` (`src/layouts/AdminLayout.tsx`)
+Replace `templates.ts` with **5 curated templates**, all sharing the Editorial Corporate DNA (navy `#0f1b3d`, gold `#c9a84c`, ivory `#f5f0e0`) but visually distinct:
 
-- After ~6s of `isCheckingRoles`, stop rendering the spinner and show a small "We couldn't verify your admin access — retry / back to dashboard" panel. This guarantees the page is never visually frozen even if a future regression re-introduces a hang.
+| Template | Personality | Header font / Body | Cover layout | Header style |
+|---|---|---|---|---|
+| **Sterling** (default) | Editorial corporate, navy + gold, serif headlines | Playfair Display / Inter | full-bleed with gold rule | underline-gold |
+| **Meridian** | Modern tech-corporate, deep indigo + cool ivory | Space Grotesk / Inter | split with accent bar | accent-bar |
+| **Atelier** | Luxury minimal, cream + ink, thin gold rules | Cormorant Garamond / Karla | minimal centered | minimal |
+| **Capitol** | Government/legal formal, navy + slate, numbered sections | Libre Baskerville / IBM Plex Sans | left-aligned | numbered |
+| **Vanguard** | Bold consulting, charcoal + ember accent | Syne / DM Sans | diagonal | pill |
 
-### 3. Stop the lifetime-checkout side-effect from re-firing on `/admin` (`src/components/AuthProvider.tsx`)
+For each:
+- Update `defaults` (primary/secondary, fonts, margins, header/cover style).
+- Update `TemplateMiniPreview` to render a much richer thumbnail: simulated cover with display-font H1, sub-rule, accent bar/gold line, and 2 lines of body — so users see the actual typographic personality at a glance.
+- Load Google Fonts for the 5 new font families via `index.html` `<link>` (or a `useEffect` in BrandingContext).
 
-- In the `SIGNED_IN` branch, only attempt `create-lifetime-checkout` when `location.pathname === '/lifetime'` (or `/auth` coming from `/lifetime`). Keep the code in `localStorage` for later retries, but don't kick it off on unrelated routes like `/admin`. This removes the competing in-flight request that's contributing to the auth-init timeout.
+## 3. Fix readability of rendered blocks
 
-### 4. Light hardening of `fetchSession` (`src/components/AuthProvider.tsx`) — optional but recommended
+Independent of template choice, the current preview renders body text via `prose prose-sm` with `text-3xl` H1s — too cramped and visually flat. Updates:
 
-- On `Session fetch timed out`, also call `supabase.auth.refreshSession()` once before giving up, so a transient bad-JWT state self-heals instead of forcing the user to re-login.
+- **TextBlock preview**: bump to `prose-base`, increase line-height to 1.7, max-width ~70ch for readability, more vertical rhythm between paragraphs, lighter body color (`#2d2d2d` not pure black), and proper H1/H2/H3 sizes (`text-4xl/text-3xl/text-xl`) with template-driven font weights.
+- **HeadingBlock preview**: respect `headerStyle` properly — the existing `accent-bar`, `underline`, `gradient`, `boxed`, `numbered`, `pill` variants need real visual definition (currently most look identical). Add proper spacing above each heading.
+- **CalloutBlock / QuoteBlock**: tighten styling so they read as editorial pull-quotes (gold left rule, larger italic body, attribution line) instead of muted boxes.
+- **CoverBlock**: actually implement the 8 `coverLayout` variants distinctly (today they mostly fall back to centered). Add a thin accent rule between title/subtitle, larger title (clamped), proper spacing, and a footer block with date + client.
+
+## 4. Fix "entire sections missing" on import
+
+Root cause: `useProposalDesign.createNewDesign` and `regenerateDesign` order sections by `created_at` and run **once** when the design row is first created. If the user opens the Design Studio while sections are still being generated by automation, only the sections that existed at that moment get baked in; later sections never appear unless the user clicks "Regenerate Design" (which is also somewhat hidden).
+
+Fixes:
+1. **Order by `sort_order`** (with `created_at` fallback) in both `createNewDesign` and `regenerateDesign` — matches the proposal editor and outline ordering.
+2. **Auto-detect drift**: on Design Studio mount, count `proposal_sections` for the project and compare against the number of `heading` blocks (excluding cover/toc) in the saved design. If they differ, show a non-blocking banner: *"3 new sections were added to your proposal since this design was generated. [Regenerate design]"*.
+3. **Skip empty sections gracefully** — sections with empty content currently still create a heading + empty text block, which looks broken; render a small "Section pending content" muted note instead, so the user can tell which sections need writing.
+4. **Make "Regenerate from proposal" button prominent** (currently it's an icon-button in the header) — turn it into a labeled secondary button next to the template gallery: "↻ Sync with latest content".
+
+---
+
+## Technical notes
+
+- Files touched:
+  - `src/components/project/design-studio/templates.ts` — replace template array, update `AVAILABLE_FONTS`.
+  - `src/components/project/design-studio/TemplateSelector.tsx` — richer thumbnails, bigger cards.
+  - `src/components/project/design-studio/ProposalDesignStudio.tsx` — promote template picker out of collapsible, add drift banner, relabel regenerate button.
+  - `src/components/project/design-studio/blocks/TextBlock.tsx`, `HeadingBlock.tsx`, `CoverBlock.tsx`, `CalloutBlock.tsx`, `QuoteBlock.tsx` — typographic + layout polish, true variant differentiation.
+  - `src/components/project/design-studio/useProposalDesign.ts` — order by `sort_order`, drift detection helper.
+  - `index.html` — preconnect + Google Font links for new families.
+- No DB schema changes. No backend changes.
+- Existing saved designs continue to work; they just keep their saved `template_id`. If the id no longer exists in the new set, fall back to `sterling` (default) without overwriting saved colors/fonts.
+- Pexels auto-image flow is unchanged.
 
 ## Out of scope
 
-- No DB / migration changes. The `is_admin` / `is_system_admin` RPCs themselves are fine; the bug is purely client-side resilience.
-- No changes to RLS or auth secrets.
-
-## Verification
-
-1. Hard-reload `/admin` while logged in as an admin → dashboard renders within ~2s, no infinite spinner.
-2. Simulate RPC hang (DevTools → block `/rest/v1/rpc/is_admin`) → after ~5s, AdminLayout shows the retry panel instead of spinning forever.
-3. Navigate to `/admin` with `lifetime_deal_code` set in localStorage → no `"Starting your lifetime checkout…"` toast appears; admin loads normally.
+- Canvas (schema 2 / free-form) editor — untouched.
+- Export/PDF pipeline — unchanged; new templates use the same render path so PDF inherits improvements automatically.
+- Brand guideline overrides still take precedence (org default still wins over template defaults).

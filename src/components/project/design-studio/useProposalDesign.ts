@@ -20,6 +20,8 @@ interface UseProposalDesignReturn {
   isRegenerating: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  /** Number of proposal sections in the DB not represented as headings in the design. */
+  missingSectionCount: number;
   updateBlocks: (blocks: ContentBlock[]) => void;
   updateSettings: (settings: DesignSettings) => void;
   updateTemplateId: (templateId: string) => void;
@@ -207,6 +209,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [missingSectionCount, setMissingSectionCount] = useState(0);
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -281,11 +284,12 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
     const { data: sections } = await supabase
       .from('proposal_sections')
-      .select('section_title, content')
+      .select('section_title, content, sort_order, created_at')
       .eq('project_id', projectId)
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true });
 
-    const template = getTemplate('modern-corporate');
+    const template = getTemplate('sterling');
 
     // Check for default brand guideline
     let brandOverrides: Partial<DesignSettings> = {};
@@ -373,8 +377,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     try {
       const { data: sections } = await supabase
         .from('proposal_sections')
-        .select('section_title, content')
+        .select('section_title, content, sort_order, created_at')
         .eq('project_id', projectId)
+        .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
 
       const { data: project } = await supabase
@@ -433,8 +438,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
       pushHistory(populatedBlocks, newSettings);
       setDesign(prev => prev ? { ...prev, content_blocks: populatedBlocks, design_settings: newSettings } : null);
+      setMissingSectionCount(0);
       dirtyRef.current = true;
-      toast.success('Design regenerated from proposal content');
+      toast.success('Design synced with latest proposal content');
     } catch (err) {
       console.error('Regenerate failed:', err);
       toast.error('Failed to regenerate design');
@@ -443,7 +449,26 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     }
   }, [design, projectId, session, pushHistory]);
 
-  // Autosave every 10s
+  // Detect drift between proposal_sections and the design's heading blocks
+  useEffect(() => {
+    if (!design || !projectId) return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from('proposal_sections')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+      if (cancelled || count == null) return;
+      const headingCount = (design.content_blocks || []).filter(
+        b => b.type === 'heading' && ((b.content as any)?.level ?? 2) === 2
+      ).length;
+      setMissingSectionCount(Math.max(0, count - headingCount));
+    })();
+    return () => { cancelled = true; };
+    // Only recheck when the design's identity or section count shape changes — not on every edit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [design?.id, projectId]);
+
   useEffect(() => {
     timerRef.current = setInterval(() => {
       if (dirtyRef.current && design) {
@@ -550,5 +575,5 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const canUndo = historyIndexRef.current > 0;
   const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
-  return { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign };
+  return { design, isLoading, isSaving, isRegenerating, missingSectionCount, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign };
 }

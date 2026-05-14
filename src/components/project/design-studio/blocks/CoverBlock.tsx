@@ -51,11 +51,13 @@ export function CoverBlock({ block, settings, onUpdate, preview, organizationId 
     switch (layout) {
       case 'left-aligned':
         return (
-          <div className="min-h-[400px] flex flex-col justify-center p-12 rounded-lg" style={{ backgroundColor: settings.primaryColor, color: '#fff' }}>
-            {logo && <div className="mb-6">{logo}</div>}
-            <h1 className="text-4xl font-bold mb-3" style={{ fontFamily: settings.headerFont }}>{title || 'Proposal Title'}</h1>
-            <p className="text-xl opacity-90 mb-4" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
-            <p className="text-sm opacity-70">{date}</p>
+          <div className="min-h-[480px] flex flex-col justify-center p-14 rounded-lg" style={{ backgroundColor: settings.primaryColor, color: '#fff' }}>
+            {logo && <div className="mb-8">{logo}</div>}
+            <p className="text-[11px] uppercase tracking-[0.35em] mb-3 opacity-75" style={{ fontFamily: settings.bodyFont, color: settings.secondaryColor }}>Proposal</p>
+            <h1 className="text-5xl font-bold mb-4 max-w-2xl leading-[1.1]" style={{ fontFamily: settings.headerFont, letterSpacing: '-0.015em' }}>{title || 'Proposal Title'}</h1>
+            <div className="h-px w-16 my-4" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-lg opacity-90 mb-2" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
+            <p className="text-xs opacity-60 uppercase tracking-widest mt-4">{date}</p>
           </div>
         );
 
@@ -75,25 +77,34 @@ export function CoverBlock({ block, settings, onUpdate, preview, organizationId 
 
       case 'minimal':
         return (
-          <div className="min-h-[400px] flex flex-col justify-center items-center text-center p-12 rounded-lg border-2" style={{ borderColor: settings.primaryColor }}>
-            {logo && <div className="mb-8">{logo}</div>}
-            <h1 className="text-3xl font-semibold mb-3" style={{ fontFamily: settings.headerFont, color: settings.primaryColor }}>{title || 'Proposal Title'}</h1>
-            <div className="w-16 h-0.5 my-4" style={{ backgroundColor: settings.primaryColor }} />
-            <p className="text-lg opacity-80" style={{ fontFamily: settings.bodyFont, color: settings.secondaryColor }}>{subtitle || 'Subtitle'}</p>
-            <p className="text-sm opacity-60 mt-4" style={{ color: settings.secondaryColor }}>{date}</p>
+          <div className="min-h-[480px] flex flex-col justify-center items-center text-center p-16 rounded-lg" style={{ backgroundColor: '#faf8f3' }}>
+            {logo && <div className="mb-10">{logo}</div>}
+            <p className="text-[11px] uppercase tracking-[0.35em] mb-6" style={{ color: settings.secondaryColor, fontFamily: settings.bodyFont }}>Proposal</p>
+            <h1 className="text-5xl mb-5 max-w-2xl leading-[1.1]" style={{ fontFamily: settings.headerFont, color: settings.primaryColor, fontWeight: 500, letterSpacing: '-0.01em' }}>{title || 'Proposal Title'}</h1>
+            <div className="w-12 h-px my-5" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-base" style={{ fontFamily: settings.bodyFont, color: '#555' }}>{subtitle || 'Subtitle'}</p>
+            <p className="text-xs mt-8 uppercase tracking-widest" style={{ color: '#888' }}>{date}</p>
           </div>
         );
 
       case 'full-bleed':
         return (
           <div
-            className="min-h-[400px] flex flex-col items-center justify-end text-center p-12 rounded-lg relative overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, color: '#fff' }}
+            className="min-h-[480px] flex flex-col items-center justify-center text-center p-16 rounded-lg relative overflow-hidden"
+            style={{
+              background: bgImage
+                ? `linear-gradient(180deg, ${settings.primaryColor}cc 0%, ${settings.primaryColor}ee 100%), url(${bgImage}) center/cover no-repeat`
+                : `linear-gradient(160deg, ${settings.primaryColor} 0%, ${settings.primaryColor} 65%, ${settings.secondaryColor}33 100%)`,
+              color: '#fff',
+            }}
           >
             {logo && <div className="absolute top-8 left-8">{logo}</div>}
-            <h1 className="text-5xl font-bold mb-4" style={{ fontFamily: settings.headerFont }}>{title || 'Proposal Title'}</h1>
-            <p className="text-xl opacity-90 mb-2" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
-            <p className="text-sm opacity-70">{date}</p>
+            <div className="h-px w-12 mb-6" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-[11px] uppercase tracking-[0.35em] mb-4 opacity-80" style={{ fontFamily: settings.bodyFont, color: settings.secondaryColor }}>Proposal</p>
+            <h1 className="text-5xl md:text-6xl font-bold mb-5 max-w-3xl leading-[1.05]" style={{ fontFamily: settings.headerFont, letterSpacing: '-0.02em' }}>{title || 'Proposal Title'}</h1>
+            <div className="h-px w-12 mt-2 mb-5" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-lg opacity-90" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
+            <p className="text-xs opacity-60 mt-6 uppercase tracking-widest">{date}</p>
           </div>
         );
 
@@ -158,11 +169,14 @@ export function CoverBlock({ block, settings, onUpdate, preview, organizationId 
 
       default: // centered
         return (
-          <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-12 rounded-lg" style={{ backgroundColor: settings.primaryColor, color: '#fff' }}>
-            {logo && <div className="mb-6">{logo}</div>}
-            <h1 className="text-4xl font-bold mb-4" style={{ fontFamily: settings.headerFont }}>{title || 'Proposal Title'}</h1>
-            <p className="text-xl opacity-90 mb-6" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
-            <p className="text-sm opacity-70">{date}</p>
+          <div className="flex flex-col items-center justify-center min-h-[480px] text-center p-16 rounded-lg" style={{ backgroundColor: settings.primaryColor, color: '#fff' }}>
+            {logo && <div className="mb-8">{logo}</div>}
+            <div className="h-px w-12 mb-6" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-[11px] uppercase tracking-[0.35em] mb-4 opacity-80" style={{ fontFamily: settings.bodyFont, color: settings.secondaryColor }}>Proposal</p>
+            <h1 className="text-5xl font-bold mb-5 max-w-2xl leading-[1.1]" style={{ fontFamily: settings.headerFont, letterSpacing: '-0.015em' }}>{title || 'Proposal Title'}</h1>
+            <p className="text-lg opacity-90 mb-2" style={{ fontFamily: settings.bodyFont }}>{subtitle || 'Subtitle'}</p>
+            <div className="h-px w-12 mt-4 mb-2" style={{ backgroundColor: settings.secondaryColor }} />
+            <p className="text-xs opacity-60 mt-4 uppercase tracking-widest">{date}</p>
           </div>
         );
     }

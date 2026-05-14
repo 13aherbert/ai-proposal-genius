@@ -1,41 +1,73 @@
 import { TemplateConfig } from './types';
 
 export const AVAILABLE_FONTS = [
+  // Display / heading
+  'Playfair Display',
+  'Cormorant Garamond',
+  'Libre Baskerville',
+  'Space Grotesk',
+  'Syne',
+  // Body
   'Inter',
+  'Karla',
+  'IBM Plex Sans',
+  'DM Sans',
+  // Legacy (kept so older designs still resolve)
   'Georgia',
   'Merriweather',
   'Roboto',
-  'Playfair Display',
 ] as const;
 
+/**
+ * Curated Editorial-Corporate template set.
+ * All five share a refined, modern-corporate DNA but each has a clearly
+ * distinct typographic + chromatic personality.
+ */
 export const templates: TemplateConfig[] = [
   {
-    id: 'modern-corporate',
-    name: 'Modern Corporate',
-    description: 'Blue & dark palette with bold headers and geometric accents',
-    preview: '🏢',
+    id: 'sterling',
+    name: 'Sterling',
+    description: 'Editorial corporate · navy & gold · serif headlines',
+    preview: '🏛️',
     defaults: {
-      primaryColor: '#1e40af',
-      secondaryColor: '#1e293b',
-      headerFont: 'Inter',
+      primaryColor: '#0f1b3d',
+      secondaryColor: '#c9a84c',
+      headerFont: 'Playfair Display',
+      bodyFont: 'Inter',
+      margins: 'wide',
+      headerStyle: 'underline',
+      coverLayout: 'full-bleed',
+    },
+    headerStyle: 'underline',
+    coverLayout: 'full-bleed',
+  },
+  {
+    id: 'meridian',
+    name: 'Meridian',
+    description: 'Modern tech-corporate · deep indigo · clean sans',
+    preview: '◆',
+    defaults: {
+      primaryColor: '#1e1e5a',
+      secondaryColor: '#4f46e5',
+      headerFont: 'Space Grotesk',
       bodyFont: 'Inter',
       margins: 'normal',
       headerStyle: 'accent-bar',
-      coverLayout: 'centered',
+      coverLayout: 'split',
     },
     headerStyle: 'accent-bar',
-    coverLayout: 'centered',
+    coverLayout: 'split',
   },
   {
-    id: 'clean-minimal',
-    name: 'Clean Minimal',
-    description: 'White-space focused with thin rules and muted colors',
-    preview: '✨',
+    id: 'atelier',
+    name: 'Atelier',
+    description: 'Luxury minimal · cream & ink · thin gold rules',
+    preview: '✦',
     defaults: {
-      primaryColor: '#475569',
-      secondaryColor: '#94a3b8',
-      headerFont: 'Inter',
-      bodyFont: 'Inter',
+      primaryColor: '#1a1a1a',
+      secondaryColor: '#c9a84c',
+      headerFont: 'Cormorant Garamond',
+      bodyFont: 'Karla',
       margins: 'wide',
       headerStyle: 'minimal',
       coverLayout: 'minimal',
@@ -44,102 +76,34 @@ export const templates: TemplateConfig[] = [
     coverLayout: 'minimal',
   },
   {
-    id: 'government-contract',
-    name: 'Government Contract',
-    description: 'Conservative serif fonts with formal, compliance-focused layout',
-    preview: '🏛️',
+    id: 'capitol',
+    name: 'Capitol',
+    description: 'Government & legal · navy serif · numbered sections',
+    preview: '⚖',
     defaults: {
-      primaryColor: '#1a365d',
-      secondaryColor: '#2d3748',
-      headerFont: 'Georgia',
-      bodyFont: 'Georgia',
-      margins: 'normal',
-      headerStyle: 'underline',
-      coverLayout: 'left-aligned',
-    },
-    headerStyle: 'underline',
-    coverLayout: 'left-aligned',
-  },
-  {
-    id: 'consulting-proposal',
-    name: 'Consulting Proposal',
-    description: 'Professional sans-serif with executive summary emphasis',
-    preview: '💼',
-    defaults: {
-      primaryColor: '#0f766e',
-      secondaryColor: '#134e4a',
-      headerFont: 'Roboto',
-      bodyFont: 'Inter',
-      margins: 'normal',
-      headerStyle: 'bold',
-      coverLayout: 'split',
-    },
-    headerStyle: 'bold',
-    coverLayout: 'split',
-  },
-  {
-    id: 'creative-agency',
-    name: 'Creative Agency',
-    description: 'Vibrant accent colors with modern typography',
-    preview: '🎨',
-    defaults: {
-      primaryColor: '#7c3aed',
-      secondaryColor: '#ec4899',
-      headerFont: 'Playfair Display',
-      bodyFont: 'Inter',
-      margins: 'wide',
-      headerStyle: 'gradient',
-      coverLayout: 'full-bleed',
-    },
-    headerStyle: 'gradient',
-    coverLayout: 'full-bleed',
-  },
-  {
-    id: 'executive-brief',
-    name: 'Executive Brief',
-    description: 'Full-width hero banner with boxed headings for impact',
-    preview: '📊',
-    defaults: {
-      primaryColor: '#0c4a6e',
-      secondaryColor: '#0369a1',
-      headerFont: 'Merriweather',
-      bodyFont: 'Inter',
-      margins: 'normal',
-      headerStyle: 'boxed',
-      coverLayout: 'banner',
-    },
-    headerStyle: 'boxed',
-    coverLayout: 'banner',
-  },
-  {
-    id: 'technical-report',
-    name: 'Technical Report',
-    description: 'Sidebar metadata strip with numbered section headings',
-    preview: '🔬',
-    defaults: {
-      primaryColor: '#365314',
-      secondaryColor: '#4d7c0f',
-      headerFont: 'Roboto',
-      bodyFont: 'Roboto',
+      primaryColor: '#0f1b3d',
+      secondaryColor: '#475569',
+      headerFont: 'Libre Baskerville',
+      bodyFont: 'IBM Plex Sans',
       margins: 'normal',
       headerStyle: 'numbered',
-      coverLayout: 'sidebar',
+      coverLayout: 'left-aligned',
       sectionNumbering: true,
     },
     headerStyle: 'numbered',
-    coverLayout: 'sidebar',
+    coverLayout: 'left-aligned',
   },
   {
-    id: 'bold-pitch',
-    name: 'Bold Pitch',
-    description: 'Diagonal color split with pill-shaped headings',
-    preview: '🚀',
+    id: 'vanguard',
+    name: 'Vanguard',
+    description: 'Bold consulting · charcoal & ember · confident',
+    preview: '▲',
     defaults: {
-      primaryColor: '#be123c',
-      secondaryColor: '#f43f5e',
-      headerFont: 'Playfair Display',
-      bodyFont: 'Inter',
-      margins: 'wide',
+      primaryColor: '#1a1a1a',
+      secondaryColor: '#e85d3a',
+      headerFont: 'Syne',
+      bodyFont: 'DM Sans',
+      margins: 'normal',
       headerStyle: 'pill',
       coverLayout: 'diagonal',
     },
@@ -148,6 +112,24 @@ export const templates: TemplateConfig[] = [
   },
 ];
 
+const LEGACY_ALIASES: Record<string, string> = {
+  'modern-corporate': 'meridian',
+  'clean-minimal': 'atelier',
+  'government-contract': 'capitol',
+  'consulting-proposal': 'meridian',
+  'creative-agency': 'vanguard',
+  'executive-brief': 'sterling',
+  'technical-report': 'capitol',
+  'bold-pitch': 'vanguard',
+};
+
 export function getTemplate(id: string): TemplateConfig {
-  return templates.find(t => t.id === id) ?? templates[0];
+  const direct = templates.find(t => t.id === id);
+  if (direct) return direct;
+  const aliased = LEGACY_ALIASES[id];
+  if (aliased) {
+    const t = templates.find(x => x.id === aliased);
+    if (t) return t;
+  }
+  return templates[0];
 }

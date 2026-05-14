@@ -438,8 +438,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
       pushHistory(populatedBlocks, newSettings);
       setDesign(prev => prev ? { ...prev, content_blocks: populatedBlocks, design_settings: newSettings } : null);
+      setMissingSectionCount(0);
       dirtyRef.current = true;
-      toast.success('Design regenerated from proposal content');
+      toast.success('Design synced with latest proposal content');
     } catch (err) {
       console.error('Regenerate failed:', err);
       toast.error('Failed to regenerate design');

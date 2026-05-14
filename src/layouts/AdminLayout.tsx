@@ -3,7 +3,7 @@ import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/navigation/Navbar";
 import { Footer } from "@/components/navigation/Footer";
 import useUserRoles from "@/hooks/user-roles";
-import { Loader2, ShieldAlert, LayoutDashboard, Users, FolderKanban, Shield, CreditCard, Settings, ArrowLeft, Activity, Briefcase, Gift, AlertTriangle, LifeBuoy } from "lucide-react";
+import { Loader2, ShieldAlert, LayoutDashboard, Users, FolderKanban, Shield, CreditCard, Settings, ArrowLeft, Activity, Briefcase, Gift, AlertTriangle, LifeBuoy, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SidebarProvider,

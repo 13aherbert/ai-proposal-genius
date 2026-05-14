@@ -74,8 +74,6 @@ export const TOOLS: ToolMeta[] = [
       { q: "Can I edit the matrix?", a: "Yes. Every row is editable. Add owners, statuses and section numbers, then export to CSV for your proposal binder." },
     ],
   },
-];
-
   {
     slug: "naics-code-lookup",
     title: "NAICS Code Lookup",
@@ -121,14 +119,7 @@ export const TOOLS: ToolMeta[] = [
       { q: "Will the AI hallucinate facts?", a: "It only synthesises from the context you paste in. Always review and edit before sending — for production-grade proposals with full source grounding, OptiRFP's full editor uses the same AI plus your knowledge base." },
     ],
   },
-  {
-    slug: "proposal-word-counter", // anchor — split list
-    title: "_anchor", seoTitle: "_", description: "_", metaDescription: "_", keywords: [], icon: FileText, faqs: [],
-  },
 ];
-
-// Filter out the anchor placeholder (it only existed to satisfy the array close above).
-export const TOOLS_FILTERED = TOOLS.filter((t) => t.title !== "_anchor");
 
 export const getTool = (slug: string) => TOOLS.find((t) => t.slug === slug);
 export const getRelatedTools = (slug: string, count = 3) =>

@@ -3,7 +3,7 @@ import { Outlet, useLocation, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/navigation/Navbar";
 import { Footer } from "@/components/navigation/Footer";
 import useUserRoles from "@/hooks/user-roles";
-import { Loader2, ShieldAlert, LayoutDashboard, Users, FolderKanban, Shield, CreditCard, Settings, ArrowLeft, Activity, Briefcase, Gift, AlertTriangle, LifeBuoy } from "lucide-react";
+import { Loader2, ShieldAlert, LayoutDashboard, Users, FolderKanban, Shield, CreditCard, Settings, ArrowLeft, Activity, Briefcase, Gift, AlertTriangle, LifeBuoy, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SidebarProvider,
@@ -28,6 +28,7 @@ const adminNavItems = [
   { title: "Billing", url: "/admin/billing", icon: CreditCard },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "Source Health", url: "/admin/source-health", icon: Activity },
+  { title: "SEO Analytics", url: "/admin/seo", icon: Search },
   { title: "Enterprise Leads", url: "/admin/leads", icon: Briefcase },
   { title: "Lifetime Codes", url: "/admin/lifetime", icon: Gift },
   { title: "Error Logs", url: "/admin/errors", icon: AlertTriangle },

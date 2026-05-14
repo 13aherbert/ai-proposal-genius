@@ -21,44 +21,120 @@ export function HeadingBlock({ block, settings, onUpdate, preview, sectionNumber
 
   if (preview) {
     const Tag = `h${lvl}` as keyof JSX.IntrinsicElements;
-    const sizes: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl' };
-    const baseClass = `${sizes[lvl] || 'text-xl'}`;
+    const sizes: Record<number, string> = { 1: 'text-4xl', 2: 'text-3xl', 3: 'text-xl' };
+    const baseClass = `${sizes[lvl] || 'text-xl'} tracking-tight`;
+    const primary = settings.primaryColor;
+    const secondary = settings.secondaryColor;
 
-    const getStyle = (): React.CSSProperties => {
-      const base: React.CSSProperties = { fontFamily: settings.headerFont, color: settings.primaryColor };
-      switch (style) {
-        case 'bold': return { ...base, fontWeight: 800 };
-        case 'underline': return { ...base, fontWeight: 700, borderBottom: `3px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
-        case 'accent-bar': return { ...base, fontWeight: 700, borderLeft: `4px solid ${settings.primaryColor}`, paddingLeft: '0.75rem' };
-        case 'gradient': return { ...base, fontWeight: 700, backgroundImage: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' };
-        case 'boxed': return { fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: settings.primaryColor, color: '#fff', padding: '0.5rem 1rem', borderRadius: '0.25rem' };
-        case 'pill': return { fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: settings.primaryColor, color: '#fff', padding: '0.4rem 1.5rem', borderRadius: '9999px', display: 'inline-block' };
-        case 'numbered': return { ...base, fontWeight: 700, borderBottom: `2px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' };
-        case 'minimal': default: return { ...base, fontWeight: 600 };
-      }
+    const baseStyle: React.CSSProperties = {
+      fontFamily: settings.headerFont,
+      color: primary,
+      lineHeight: 1.15,
+      letterSpacing: '-0.015em',
     };
 
+    // Numbered with section number prefix gets its own pill+rule layout
     if (style === 'numbered' && prefix) {
       return (
-        <div className="flex items-center gap-3" style={{ borderBottom: `2px solid ${settings.primaryColor}`, paddingBottom: '0.5rem' }}>
+        <div className="flex items-baseline gap-3 mt-8 mb-4 pb-3" style={{ borderBottom: `1px solid ${secondary}40` }}>
           <span
-            className="flex-shrink-0 flex items-center justify-center rounded text-white font-bold"
-            style={{ backgroundColor: settings.primaryColor, width: '2rem', height: '2rem', fontSize: '0.875rem' }}
+            className="flex-shrink-0 inline-flex items-center justify-center text-xs font-semibold tracking-widest"
+            style={{ color: secondary, fontFamily: settings.bodyFont, minWidth: '2.5rem' }}
           >
             {prefix.trim()}
           </span>
-          <Tag className={baseClass} style={{ fontFamily: settings.headerFont, color: settings.primaryColor, fontWeight: 700 }}>
+          <Tag className={baseClass} style={{ ...baseStyle, fontWeight: 700 }}>
             {text || 'Section Heading'}
           </Tag>
         </div>
       );
     }
 
-    return (
-      <Tag className={baseClass} style={getStyle()}>
-        {prefix}{text || 'Section Heading'}
-      </Tag>
-    );
+    const wrapperClass = 'mt-8 mb-4';
+
+    switch (style) {
+      case 'underline':
+        return (
+          <div className={wrapperClass}>
+            <Tag className={baseClass} style={{ ...baseStyle, fontWeight: 700 }}>
+              {text || 'Section Heading'}
+            </Tag>
+            <div className="mt-2 h-[2px] w-16" style={{ backgroundColor: secondary }} />
+          </div>
+        );
+      case 'accent-bar':
+        return (
+          <div className={`${wrapperClass} flex items-stretch gap-3`}>
+            <div className="w-1 rounded-full self-stretch" style={{ backgroundColor: secondary }} />
+            <Tag className={baseClass} style={{ ...baseStyle, fontWeight: 700 }}>
+              {text || 'Section Heading'}
+            </Tag>
+          </div>
+        );
+      case 'gradient':
+        return (
+          <Tag
+            className={`${wrapperClass} ${baseClass}`}
+            style={{
+              ...baseStyle,
+              fontWeight: 800,
+              backgroundImage: `linear-gradient(135deg, ${primary}, ${secondary})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            {text || 'Section Heading'}
+          </Tag>
+        );
+      case 'boxed':
+        return (
+          <Tag
+            className={`${wrapperClass} ${baseClass} inline-block px-4 py-2 rounded`}
+            style={{ fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: primary, color: '#fff' }}
+          >
+            {text || 'Section Heading'}
+          </Tag>
+        );
+      case 'pill':
+        return (
+          <div className={wrapperClass}>
+            <Tag
+              className="inline-block text-base px-4 py-1.5 rounded-full"
+              style={{ fontFamily: settings.headerFont, fontWeight: 700, backgroundColor: primary, color: '#fff', letterSpacing: '0.02em' }}
+            >
+              {text || 'Section Heading'}
+            </Tag>
+          </div>
+        );
+      case 'numbered':
+        // numbered without section number prefix
+        return (
+          <div className={`${wrapperClass} pb-2`} style={{ borderBottom: `2px solid ${primary}` }}>
+            <Tag className={baseClass} style={{ ...baseStyle, fontWeight: 700 }}>
+              {text || 'Section Heading'}
+            </Tag>
+          </div>
+        );
+      case 'minimal':
+        return (
+          <div className={wrapperClass}>
+            <div className="text-[10px] uppercase tracking-[0.3em] mb-1" style={{ color: secondary, fontFamily: settings.bodyFont }}>
+              Section
+            </div>
+            <Tag className={baseClass} style={{ ...baseStyle, fontWeight: 500 }}>
+              {text || 'Section Heading'}
+            </Tag>
+          </div>
+        );
+      case 'bold':
+      default:
+        return (
+          <Tag className={`${wrapperClass} ${baseClass}`} style={{ ...baseStyle, fontWeight: 800 }}>
+            {text || 'Section Heading'}
+          </Tag>
+        );
+    }
   }
 
   return (

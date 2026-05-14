@@ -16,8 +16,15 @@ export function QuoteBlock({ block, settings, onUpdate, preview }: QuoteBlockPro
   if (preview) {
     return (
       <blockquote
-        className="border-l-4 pl-4 py-2 my-4 italic"
-        style={{ borderColor: settings.primaryColor, fontFamily: settings.bodyFont, color: settings.secondaryColor }}
+        className="my-6 pl-6 py-2"
+        style={{
+          borderLeft: `3px solid ${settings.secondaryColor}`,
+          fontFamily: settings.headerFont,
+          color: '#2a2a2a',
+          fontSize: '1.15rem',
+          lineHeight: 1.55,
+          fontStyle: 'italic',
+        }}
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
           p: ({ children }) => <p className="my-1">{children}</p>,

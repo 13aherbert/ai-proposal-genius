@@ -13,9 +13,9 @@ interface CalloutBlockProps {
 }
 
 const VARIANTS = {
-  info: { icon: Info, bg: '#dbeafe', border: '#3b82f6', text: '#1e40af' },
-  warning: { icon: AlertTriangle, bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
-  success: { icon: CheckCircle, bg: '#dcfce7', border: '#22c55e', text: '#166534' },
+  info: { icon: Info, accent: 'hsl(214, 84%, 46%)' },
+  warning: { icon: AlertTriangle, accent: 'hsl(36, 90%, 48%)' },
+  success: { icon: CheckCircle, accent: 'hsl(142, 60%, 38%)' },
 };
 
 export function CalloutBlock({ block, settings, onUpdate, preview }: CalloutBlockProps) {
@@ -23,17 +23,28 @@ export function CalloutBlock({ block, settings, onUpdate, preview }: CalloutBloc
   const variant = ((block.content as { variant?: string }).variant || 'info') as keyof typeof VARIANTS;
   const v = VARIANTS[variant] || VARIANTS.info;
   const Icon = v.icon;
+  // Use template's secondary color (gold/accent) for the rule whenever the variant is "info"
+  // so the callout reads as part of the design system, not a generic alert.
+  const ruleColor = variant === 'info' ? settings.secondaryColor : v.accent;
 
   if (preview) {
     return (
-      <div className="flex gap-3 p-4 rounded-lg my-4" style={{ backgroundColor: v.bg, borderLeft: `4px solid ${v.border}` }}>
-        <Icon className="h-5 w-5 shrink-0 mt-0.5" style={{ color: v.text }} />
-        <div className="text-sm prose prose-sm max-w-none" style={{ color: v.text, fontFamily: settings.bodyFont }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-            p: ({ children }) => <p className="my-1">{children}</p>,
-          }}>
-            {text || 'Callout text'}
-          </ReactMarkdown>
+      <div
+        className="my-6 pl-5 py-3 pr-4"
+        style={{ borderLeft: `3px solid ${ruleColor}`, backgroundColor: 'rgba(0,0,0,0.02)' }}
+      >
+        <div className="flex items-start gap-3">
+          <Icon className="h-4 w-4 shrink-0 mt-1" style={{ color: ruleColor }} />
+          <div
+            className="prose prose-sm max-w-none"
+            style={{ fontFamily: settings.bodyFont, color: '#2a2a2a', fontSize: '15px', lineHeight: 1.65 }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+              p: ({ children }) => <p className="my-1">{children}</p>,
+            }}>
+              {text || 'Callout text'}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
     );

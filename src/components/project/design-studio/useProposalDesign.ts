@@ -555,5 +555,5 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const canUndo = historyIndexRef.current > 0;
   const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
-  return { design, isLoading, isSaving, isRegenerating, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign };
+  return { design, isLoading, isSaving, isRegenerating, missingSectionCount, canUndo, canRedo, updateBlocks, updateSettings, updateTemplateId, saveNow, undo, redo, regenerateDesign };
 }

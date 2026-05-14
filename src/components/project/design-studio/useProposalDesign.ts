@@ -464,7 +464,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
       setMissingSectionCount(Math.max(0, count - headingCount));
     })();
     return () => { cancelled = true; };
-  }, [design, projectId]);
+    // Only recheck when the design's identity or section count shape changes — not on every edit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [design?.id, projectId]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => {

@@ -20,6 +20,8 @@ interface UseProposalDesignReturn {
   isRegenerating: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  /** Number of proposal sections in the DB not represented as headings in the design. */
+  missingSectionCount: number;
   updateBlocks: (blocks: ContentBlock[]) => void;
   updateSettings: (settings: DesignSettings) => void;
   updateTemplateId: (templateId: string) => void;
@@ -207,6 +209,7 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [missingSectionCount, setMissingSectionCount] = useState(0);
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -281,11 +284,12 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
 
     const { data: sections } = await supabase
       .from('proposal_sections')
-      .select('section_title, content')
+      .select('section_title, content, sort_order, created_at')
       .eq('project_id', projectId)
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true });
 
-    const template = getTemplate('modern-corporate');
+    const template = getTemplate('sterling');
 
     // Check for default brand guideline
     let brandOverrides: Partial<DesignSettings> = {};
@@ -373,8 +377,9 @@ export function useProposalDesign(projectId: string): UseProposalDesignReturn {
     try {
       const { data: sections } = await supabase
         .from('proposal_sections')
-        .select('section_title, content')
+        .select('section_title, content, sort_order, created_at')
         .eq('project_id', projectId)
+        .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true });
 
       const { data: project } = await supabase

@@ -121,7 +121,7 @@ export default function AdminLayout() {
       <Navbar />
       <SidebarProvider>
         <div className="flex flex-1 w-full">
-          <Sidebar collapsible="icon" className="border-r">
+          <Sidebar collapsible="icon" className="border-r top-14 h-[calc(100svh-3.5rem)]">
             <SidebarContent>
               <SidebarGroup>
                 <SidebarGroupLabel>Admin</SidebarGroupLabel>

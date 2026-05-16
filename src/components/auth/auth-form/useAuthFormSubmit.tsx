@@ -193,6 +193,22 @@ export const useAuthFormSubmit = () => {
           await storeUserSession(data.session.access_token);
         }
         
+        // Fire-and-forget admin notification
+        if (data?.user) {
+          supabase.functions
+            .invoke('admin-notify', {
+              body: {
+                event_type: 'new_user',
+                user_id: data.user.id,
+                email,
+                first_name: firstName,
+                last_name: lastName,
+                company_name: companyName || null,
+              },
+            })
+            .catch((err) => console.warn('admin-notify failed:', err));
+        }
+
         // Send welcome email after successful signup
         if (data?.user) {
           try {

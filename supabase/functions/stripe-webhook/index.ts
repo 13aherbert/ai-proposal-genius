@@ -92,6 +92,42 @@ async function sendInternalEmail(to: string, subject: string, html: string) {
   }
 }
 
+/** Fire-and-forget admin notification (new subscriber) */
+async function notifyAdminNewSubscriber(opts: {
+  userId: string;
+  email: string;
+  plan: string;
+  amount?: number;
+  currency?: string;
+  interval?: string;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+}) {
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/admin-notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        event_type: 'new_subscriber',
+        user_id: opts.userId,
+        email: opts.email,
+        plan: opts.plan,
+        amount: opts.amount,
+        currency: opts.currency,
+        interval: opts.interval,
+        stripe_subscription_id: opts.stripeSubscriptionId,
+        stripe_customer_id: opts.stripeCustomerId,
+      }),
+    });
+    if (!res.ok) console.error('admin-notify (subscriber) failed:', await res.text());
+  } catch (e) {
+    console.error('admin-notify (subscriber) error:', e);
+  }
+}
+
 /** Send "team unlocked" notification */
 async function notifyTeamUnlocked(userId: string, tierName: string) {
   const email = await getUserEmail(userId);
@@ -380,6 +416,23 @@ serve(async (req) => {
           console.log('Subscription stored successfully');
           // Sync org tier
           await syncOrganizationTier(userId, planSlug);
+          // Notify admins of new paid subscriber
+          {
+            const email = await getUserEmail(userId);
+            const item = subscription.items?.data?.[0];
+            if (email) {
+              await notifyAdminNewSubscriber({
+                userId,
+                email,
+                plan: tier?.name ?? planSlug,
+                amount: item?.price?.unit_amount ?? undefined,
+                currency: item?.price?.currency ?? undefined,
+                interval: item?.price?.recurring?.interval ?? billingInterval,
+                stripeSubscriptionId: String(session.subscription),
+                stripeCustomerId: session.customer ? String(session.customer) : undefined,
+              });
+            }
+          }
           // Notify about unlimited team if applicable
           if (usersLimit === -1) {
             await notifyTeamUnlocked(userId, tier?.name ?? planSlug);

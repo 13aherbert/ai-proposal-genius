@@ -73,6 +73,42 @@ export type Database = {
           },
         ]
       }
+      admin_notifications_log: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          error: string | null
+          event_type: string
+          id: string
+          payload: Json
+          recipient_emails: string[]
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          error?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          recipient_emails: string[]
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          recipient_emails?: string[]
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       admin_rate_limits: {
         Row: {
           action_count: number | null

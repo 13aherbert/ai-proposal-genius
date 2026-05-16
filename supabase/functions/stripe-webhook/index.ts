@@ -416,6 +416,23 @@ serve(async (req) => {
           console.log('Subscription stored successfully');
           // Sync org tier
           await syncOrganizationTier(userId, planSlug);
+          // Notify admins of new paid subscriber
+          {
+            const email = await getUserEmail(userId);
+            const item = subscription.items?.data?.[0];
+            if (email) {
+              await notifyAdminNewSubscriber({
+                userId,
+                email,
+                plan: tier?.name ?? planSlug,
+                amount: item?.price?.unit_amount ?? undefined,
+                currency: item?.price?.currency ?? undefined,
+                interval: item?.price?.recurring?.interval ?? billingInterval,
+                stripeSubscriptionId: String(session.subscription),
+                stripeCustomerId: session.customer ? String(session.customer) : undefined,
+              });
+            }
+          }
           // Notify about unlimited team if applicable
           if (usersLimit === -1) {
             await notifyTeamUnlocked(userId, tier?.name ?? planSlug);

@@ -203,3 +203,7 @@ verify_jwt = false
 [[functions]]
 name = "admin-notify"
 verify_jwt = false
+
+[[functions]]
+name = "tools-generate-proposal-outline"
+verify_jwt = false

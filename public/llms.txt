@@ -30,6 +30,11 @@ OptiRFP combines automated RFP analysis (Gemini), proposal drafting (Claude Sonn
 - [NAICS Code Lookup](/tools/naics-code-lookup): Search the full 2022 NAICS code list by code or keyword.
 - [PSC Code Lookup](/tools/psc-code-lookup): Search the GSA Product Service Codes for federal contract classification.
 - [Executive Summary Generator](/tools/executive-summary-generator): AI-powered executive summary generator for proposals.
+- [Capability Statement Generator](/tools/capability-statement-generator): Build a printable federal capability statement 1-pager.
+- [Bid / No-Bid Scorecard](/tools/bid-no-bid-scorecard): Weighted 12-criteria scorecard for go/no-go decisions on RFPs.
+- [Proposal Outline Generator](/tools/proposal-outline-generator): AI-generated proposal outline from pasted RFP text.
+- [GovCon Acronym Decoder](/tools/govcon-acronym-decoder): Search 500+ federal contracting acronyms or decode any pasted RFP inline.
+- [Plain Language Readability Scorer](/tools/plain-language-scorer): Flesch-Kincaid, Gunning Fog, passive voice and jargon score for proposal text.
 
 ## Compare
 

@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;
@@ -117,6 +117,78 @@ export const TOOLS: ToolMeta[] = [
       { q: "What should I paste in?", a: "Anything that gives the AI context about your proposal — the RFP excerpt, your draft response, a project brief, or a list of bullets covering your approach, differentiators, and outcomes." },
       { q: "How long are the generated summaries?", a: "You can target 150–400 words. The AI keeps a single-page executive summary structure: opening hook, problem understanding, solution, proof, and call to action." },
       { q: "Will the AI hallucinate facts?", a: "It only synthesises from the context you paste in. Always review and edit before sending — for production-grade proposals with full source grounding, OptiRFP's full editor uses the same AI plus your knowledge base." },
+    ],
+  },
+  {
+    slug: "capability-statement-generator",
+    title: "Capability Statement Generator",
+    seoTitle: "Free Capability Statement Generator | Federal 1-Pager",
+    description: "Build a federal-ready capability statement in minutes — live preview, instant PDF print, no signup.",
+    metaDescription: "Free capability statement generator for federal contractors. Enter your company info, core competencies, NAICS, UEI/CAGE and past performance to generate a printable 1-page capability statement.",
+    keywords: ["capability statement generator", "capability statement template", "federal capability statement", "govcon capability statement"],
+    icon: IdCard,
+    faqs: [
+      { q: "What is a capability statement?", a: "A capability statement is a 1-page marketing document federal contracting officers use to evaluate small businesses. It lists your core competencies, past performance, differentiators, NAICS/PSC codes, and SAM.gov identifiers (UEI/CAGE)." },
+      { q: "Why do federal buyers ask for one?", a: "Capability statements are required at industry days, before sources-sought responses, and to be added to many agency vendor lists. They are also the most common attachment to a cold-outreach email to a federal contracting officer." },
+      { q: "Can I export it as a PDF?", a: "Yes. Use your browser's Print → Save as PDF — the layout is optimised for US Letter, single page, no header/footer. The page also supports printing directly to paper." },
+      { q: "Do I have to fill in every field?", a: "No. Only the company name and core competencies are required. NAICS, PSC, UEI, CAGE, certifications and past performance are optional but strongly recommended for federal opportunities." },
+    ],
+  },
+  {
+    slug: "bid-no-bid-scorecard",
+    title: "Bid / No-Bid Scorecard",
+    seoTitle: "Free Bid / No-Bid Scorecard Template",
+    description: "Score any opportunity across 12 weighted criteria and get an instant bid / no-bid recommendation.",
+    metaDescription: "Free bid / no-bid scorecard. Score any RFP across 12 weighted criteria (fit, win probability, capacity, strategic value) and get an instant go / no-go recommendation with exportable summary.",
+    keywords: ["bid no bid scorecard", "bid no bid template", "go no go decision proposal", "bid no bid checklist"],
+    icon: Scale,
+    faqs: [
+      { q: "What is a bid / no-bid decision?", a: "Bid / no-bid (also called go / no-go) is the formal decision to pursue or pass on a given RFP. Disciplined bid / no-bid is the single biggest lever on proposal win rate — most teams chase too many opportunities they can't win." },
+      { q: "How is the score calculated?", a: "Each criterion is rated 1–5 and multiplied by its category weight (Strategic Fit 30%, Win Probability 30%, Capacity 20%, Value 20%). The weighted total is mapped to Bid (≥70), Caution (50–69), or No-Bid (<50)." },
+      { q: "Can I customise the criteria?", a: "Not in the free tool — the 12 criteria are the most-used industry standards. Inside OptiRFP, you can edit weights and add custom criteria per opportunity type, and the score is saved against the project." },
+    ],
+  },
+  {
+    slug: "proposal-outline-generator",
+    title: "AI Proposal Outline Generator",
+    seoTitle: "Free AI Proposal Outline Generator",
+    description: "Paste an RFP excerpt and instantly get a structured proposal outline with page counts and key questions to answer.",
+    metaDescription: "Free AI proposal outline generator. Paste an RFP excerpt and instantly produce a structured outline with section titles, page allocations and the key questions each section must answer.",
+    keywords: ["proposal outline generator", "rfp outline template", "ai proposal outline", "proposal outline template"],
+    icon: GitBranch,
+    faqs: [
+      { q: "What does the outline include?", a: "Each section has a number, title, target page count, and 2–4 bullet questions the writer must answer. The structure mirrors what a federal or commercial evaluator expects to see in the same order as the RFP's instructions to offerors." },
+      { q: "How long can my pasted RFP be?", a: "Up to 12,000 characters of RFP text. For longer RFPs, paste the Sections L (instructions) and M (evaluation) only — that's all the AI needs to build the outline." },
+      { q: "Will it match my page limit?", a: "Yes. Enter your total page limit and the AI allocates pages across sections proportionally to evaluation weight. Inside OptiRFP, the full editor enforces the limit at write time." },
+    ],
+  },
+  {
+    slug: "govcon-acronym-decoder",
+    title: "GovCon Acronym Decoder",
+    seoTitle: "Government Contracting Acronym Decoder | 500+ Terms",
+    description: "Browse 500+ federal contracting acronyms or paste an RFP and decode every acronym inline.",
+    metaDescription: "Free government contracting acronym decoder. Search 500+ federal acquisition acronyms (FAR, DFARS, SAM, NAICS, IDIQ, CDRL, CLIN, BPA, RFI) or paste an RFP to highlight and define every acronym automatically.",
+    keywords: ["government contracting acronyms", "federal acquisition acronyms", "rfp acronyms", "far acronyms", "govcon glossary"],
+    icon: BookA,
+    faqs: [
+      { q: "How many acronyms are in the dictionary?", a: "Over 500 of the most-used federal acquisition, defence and civilian agency acronyms — drawn from the FAR, DFARS, DoD 5000 series and SAM.gov entity registration glossary." },
+      { q: "How does the RFP decoder work?", a: "Paste any RFP text and the tool scans every capitalised 2–5-letter token. If the token matches the built-in dictionary, it is highlighted and listed below with its full definition." },
+      { q: "Are state/local procurement acronyms included?", a: "Federal is the core focus. The most common SLED-side acronyms (RFP, RFQ, IFB, NIGP, etc.) are also included. For agency-specific glossaries, OptiRFP's knowledge base lets your team add private acronyms scoped to each customer." },
+    ],
+  },
+  {
+    slug: "plain-language-scorer",
+    title: "Plain Language Readability Scorer",
+    seoTitle: "Free Plain Language & Readability Scorer for Proposals",
+    description: "Score proposal text for Flesch-Kincaid grade, passive voice and jargon — built for federal Plain Writing Act compliance.",
+    metaDescription: "Free plain language and readability scorer for proposals. Paste any text to see Flesch Reading Ease, Flesch-Kincaid grade, Gunning Fog, passive-voice count and proposal jargon flags — aligned with the federal Plain Writing Act.",
+    keywords: ["plain language checker", "flesch kincaid score", "readability score proposals", "plain writing act"],
+    icon: Gauge,
+    faqs: [
+      { q: "What is the Plain Writing Act?", a: "The Plain Writing Act of 2010 requires federal agencies to write public-facing documents in clear, simple language. Many federal evaluators apply the same expectation to proposals — texts above a 10th-grade reading level usually need rewriting." },
+      { q: "Which formulas does the tool use?", a: "Flesch Reading Ease, Flesch-Kincaid Grade Level, and Gunning Fog Index — the three formulas most cited in federal style guides and agency proposal evaluations." },
+      { q: "What counts as proposal jargon?", a: "The tool flags overused proposal filler — 'leverage', 'synergize', 'world-class', 'best-of-breed', 'cutting-edge', 'robust solution' and similar terms that consistently lower evaluator scores. Customisable jargon lists are available inside OptiRFP." },
+      { q: "Does it count passive voice?", a: "Yes. The tool counts auxiliary-verb passive constructions ('was approved', 'will be delivered') and gives a passive-voice percentage. Federal style guides recommend keeping passive voice below 10%." },
     ],
   },
 ];

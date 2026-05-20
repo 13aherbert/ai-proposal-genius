@@ -79,6 +79,11 @@ const ComplianceMatrixGenerator = lazy(() => import("@/pages/tools/ComplianceMat
 const NaicsLookup = lazy(() => import("@/pages/tools/NaicsLookup"));
 const PscLookup = lazy(() => import("@/pages/tools/PscLookup"));
 const ExecutiveSummaryGenerator = lazy(() => import("@/pages/tools/ExecutiveSummaryGenerator"));
+const CapabilityStatementGenerator = lazy(() => import("@/pages/tools/CapabilityStatementGenerator"));
+const BidNoBidScorecard = lazy(() => import("@/pages/tools/BidNoBidScorecard"));
+const ProposalOutlineGenerator = lazy(() => import("@/pages/tools/ProposalOutlineGenerator"));
+const GovConAcronymDecoder = lazy(() => import("@/pages/tools/GovConAcronymDecoder"));
+const PlainLanguageScorer = lazy(() => import("@/pages/tools/PlainLanguageScorer"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -209,6 +214,11 @@ function AppContent() {
           <Route path="/tools/naics-code-lookup" element={<NaicsLookup />} />
           <Route path="/tools/psc-code-lookup" element={<PscLookup />} />
           <Route path="/tools/executive-summary-generator" element={<ExecutiveSummaryGenerator />} />
+          <Route path="/tools/capability-statement-generator" element={<CapabilityStatementGenerator />} />
+          <Route path="/tools/bid-no-bid-scorecard" element={<BidNoBidScorecard />} />
+          <Route path="/tools/proposal-outline-generator" element={<ProposalOutlineGenerator />} />
+          <Route path="/tools/govcon-acronym-decoder" element={<GovConAcronymDecoder />} />
+          <Route path="/tools/plain-language-scorer" element={<PlainLanguageScorer />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

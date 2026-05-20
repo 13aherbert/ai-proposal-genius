@@ -79,6 +79,11 @@ const ComplianceMatrixGenerator = lazy(() => import("@/pages/tools/ComplianceMat
 const NaicsLookup = lazy(() => import("@/pages/tools/NaicsLookup"));
 const PscLookup = lazy(() => import("@/pages/tools/PscLookup"));
 const ExecutiveSummaryGenerator = lazy(() => import("@/pages/tools/ExecutiveSummaryGenerator"));
+const CapabilityStatementGenerator = lazy(() => import("@/pages/tools/CapabilityStatementGenerator"));
+const BidNoBidScorecard = lazy(() => import("@/pages/tools/BidNoBidScorecard"));
+const ProposalOutlineGenerator = lazy(() => import("@/pages/tools/ProposalOutlineGenerator"));
+const GovConAcronymDecoder = lazy(() => import("@/pages/tools/GovConAcronymDecoder"));
+const PlainLanguageScorer = lazy(() => import("@/pages/tools/PlainLanguageScorer"));
 
 import PublicLayout from "@/layouts/PublicLayout";
 

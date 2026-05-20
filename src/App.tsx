@@ -214,6 +214,11 @@ function AppContent() {
           <Route path="/tools/naics-code-lookup" element={<NaicsLookup />} />
           <Route path="/tools/psc-code-lookup" element={<PscLookup />} />
           <Route path="/tools/executive-summary-generator" element={<ExecutiveSummaryGenerator />} />
+          <Route path="/tools/capability-statement-generator" element={<CapabilityStatementGenerator />} />
+          <Route path="/tools/bid-no-bid-scorecard" element={<BidNoBidScorecard />} />
+          <Route path="/tools/proposal-outline-generator" element={<ProposalOutlineGenerator />} />
+          <Route path="/tools/govcon-acronym-decoder" element={<GovConAcronymDecoder />} />
+          <Route path="/tools/plain-language-scorer" element={<PlainLanguageScorer />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

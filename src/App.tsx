@@ -185,7 +185,7 @@ function AppContent() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/sso/finish" element={<SSOFinish />} />
         <Route path="/lifetime" element={<LifetimeDeal />} />
-        <Route path="/lifetime-deal" element={<LifetimeDealLanding />} />
+        <Route path="/lifetime-deal" element={<LifetimeDealRedirect />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />

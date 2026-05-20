@@ -1,43 +1,50 @@
-## Admin Notification System — New Users & New Subscribers
+## 5 New Free Tools for /tools
 
-Goal: send you an email whenever (a) a new user signs up, and (b) a user converts to a paid subscription. Reuse existing `send-email` edge function and `EmailService` patterns.
+Picked for keyword opportunity in the federal/SLED contracting niche where OptiRFP already ranks, plus reuse of the existing `/tools` framework (registry + page + edge function pattern from `ExecutiveSummaryGenerator`).
 
-### Configuration
-- New secret `ADMIN_NOTIFICATION_EMAILS` (comma-separated; defaults to `support@optirfp.ai`) so you can change recipients without code changes.
-- New table `admin_notifications_log` to dedupe and provide an audit trail (event_type, subject, payload jsonb, sent_at, status). Useful so a Stripe retry doesn't double-send.
+### 1. Capability Statement Generator — `/tools/capability-statement-generator`
+**Keyword angle:** "capability statement template", "capability statement generator", "federal capability statement" — high commercial intent from new GovCon entrants registering on SAM.gov.
 
-### 1. New User Signup Alert
-- Add a DB trigger `on_auth_user_created_notify` (AFTER INSERT on `auth.users`) that calls a SECURITY DEFINER function `notify_admin_new_user()` which uses `pg_net.http_post` to invoke a new edge function `admin-notify` with `{ type: 'new_user', user_id, email, metadata }`.
-- Alternative (simpler, no pg_net): extend the existing `handle_new_user` trigger to insert a row into a `pending_admin_notifications` queue; a lightweight cron (every 5 min) drains the queue via `admin-notify`. We'll go with the **pg_net direct-call** approach for immediacy since pg_net is already used elsewhere.
+Form-based: company info, core competencies, differentiators, past performance, NAICS/PSC, UEI/CAGE, contact. Live preview of a 1-page printable layout. **Export to PDF** (browser print) and PNG (html2canvas). Pure client-side, no AI cost.
 
-### 2. New Subscriber Alert
-- In `supabase/functions/stripe-webhook/index.ts`, on `checkout.session.completed` (subscription mode, paid) and on `customer.subscription.created`, call a shared `notifyAdminNewSubscriber()` helper that posts to `admin-notify` with `{ type: 'new_subscriber', user_id, email, plan, amount, interval, stripe_customer_id }`.
-- Dedupe per `stripe_subscription_id` via `admin_notifications_log` unique index so retries don't re-email.
+### 2. Bid / No-Bid Scorecard — `/tools/bid-no-bid-scorecard`
+**Keyword angle:** "bid no bid template", "bid no bid checklist", "go no go decision proposal" — pulls in proposal managers evaluating individual opportunities.
 
-### 3. `admin-notify` Edge Function
-- New `supabase/functions/admin-notify/index.ts`:
-  - Validates JWT or shared internal secret header (called from DB trigger and from stripe-webhook only).
-  - Reads `ADMIN_NOTIFICATION_EMAILS`.
-  - Renders a small branded HTML email per event type (welcome-style for new user, "💰 New paid subscriber" for subscriber including plan, MRR delta, dashboard link to `/admin/users`).
-  - Sends via existing `send-email` function (`templateType: 'admin_notification'` — new template added to `send-email`) using `team@updates.optirfp.ai` sender.
-  - Inserts into `admin_notifications_log`.
-- Registered in `supabase/config.toml` with `verify_jwt = false` (called by DB + Stripe webhook).
+12-question weighted scorecard across 4 categories (fit, win probability, capacity, strategic value). Slider inputs, auto-computed weighted score, red/yellow/green verdict, exportable PDF summary. Pure client-side.
 
-### 4. Admin UI (light)
-- Add a "Notifications" section in `/admin/settings` to:
-  - View recipient list and edit it (writes the secret via existing admin secret-management flow, or stored in a new `admin_settings` row if simpler).
-  - Toggle each event type on/off.
-  - Show last 50 entries from `admin_notifications_log`.
+### 3. AI Proposal Outline Generator — `/tools/proposal-outline-generator`
+**Keyword angle:** "proposal outline template", "rfp outline generator", "ai proposal outline" — funnel candidate: anyone searching this is mid-buying-cycle for OptiRFP.
 
-### Technical notes
-- Tables/migrations: `admin_notifications_log`, trigger + function on `auth.users`, enable `pg_net` if not already.
-- Secrets: `ADMIN_NOTIFICATION_EMAILS`, plus reuse existing `RESEND`/email infra via `send-email`.
-- Files to create: `supabase/functions/admin-notify/index.ts`, admin UI page section.
-- Files to edit: `supabase/functions/stripe-webhook/index.ts` (add helper + 2 call sites), `supabase/functions/send-email/` (add `admin_notification` template), `supabase/config.toml`.
+Paste RFP excerpt + proposal type → AI returns structured outline (sections, page allocations, key questions to answer per section). Same pattern as `tools-generate-executive-summary`: new edge function `tools-generate-proposal-outline` calling Gemini via Lovable Gateway, with abuse-rate-limiting (existing pattern).
 
-### Out of scope (can add later)
-- Slack/Teams/Discord routing (infra already exists via `WebhookService` — easy follow-up).
-- Daily digest mode instead of per-event.
-- Cancellation / refund / failed-payment alerts.
+### 4. Government Contracting Acronym Decoder — `/tools/govcon-acronym-decoder`
+**Keyword angle:** "government contracting acronyms", "federal acquisition acronyms", "rfp acronym list", "FAR acronyms" — long-tail with low competition and strong evergreen traffic.
 
-Confirm and I'll implement, or tell me to also include cancellations/failed payments and Slack routing in v1.
+Two modes: (a) browse/search a built-in dictionary of ~500 GovCon acronyms (FAR, DFARS, SAM, NAICS, IDIQ, BPA, RFI, CDRL, etc.) bundled as JSON; (b) paste RFP text → tool highlights every acronym and shows definitions inline. Pure client-side.
+
+### 5. Plain Language Readability Scorer — `/tools/plain-language-scorer`
+**Keyword angle:** "plain language checker", "flesch kincaid score", "readability score for proposals", "plain writing act" — federal proposals must comply with the Plain Writing Act; nothing in our current tools covers this.
+
+Paste text → returns Flesch Reading Ease, Flesch-Kincaid Grade, Gunning Fog, sentence/word length stats, passive voice count, jargon count (banned-word list shared with `proposal-quality-standards`), and a target-audience verdict ("reads at 14th grade — federal evaluators expect ≤10th"). Pure client-side, complements existing word counter.
+
+---
+
+### Implementation pattern (each tool)
+Files added per tool, following the existing `ExecutiveSummaryGenerator` / `NaicsLookup` pattern:
+- `src/pages/tools/<Name>.tsx` with `useSEO`, structured data, FAQ section, internal links back to `/tools` and `/auth`.
+- Entry appended to `src/data/tools-registry.ts` (slug, SEO title, meta, keywords, FAQs, lucide icon).
+- Lazy route added in `src/App.tsx`.
+- URL added to `public/sitemap.xml` and `public/llms.txt`.
+
+AI tools (#3) also get:
+- `supabase/functions/tools-generate-proposal-outline/index.ts` (Gemini, public, rate-limited by IP hash, same shape as `tools-generate-executive-summary`).
+- Registered in `supabase/config.toml` with `verify_jwt = false`.
+
+Static-data tools (#4) ship a JSON file under `src/data/` (e.g. `govcon-acronyms.json`).
+
+### Out of scope (deferred)
+- Tracking each tool's GSC performance in `/admin/seo` — already covered by the GSC integration.
+- A `/tools` filter/category UI — only 12 tools total after this, hub list is still scannable.
+- Tools requiring API quotas/keys (e.g. live SAM.gov entity lookup) — would gate on user signup and break the "no-signup" promise.
+
+Confirm and I'll build all 5 in one pass, or tell me to swap any (e.g. drop Readability Scorer for a Cost-Plus Pricing Calculator).

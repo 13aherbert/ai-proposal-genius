@@ -49,14 +49,14 @@ function compute(raw: string): Stats | null {
   const wordsArr = text.match(/\b[\p{L}'-]+\b/gu) || [];
   const words = wordsArr.length;
   if (words === 0 || sentences.length === 0) return null;
-  const syl = wordsArr.reduce((s, w) => s + syllables(w), 0);
-  const complex = wordsArr.filter((w) => syllables(w) >= 3 && !/^[A-Z]/.test(w)).length;
+  const syl: number = wordsArr.reduce<number>((s, w) => s + syllables(w), 0);
+  const complex: number = wordsArr.filter((w) => syllables(w) >= 3 && !/^[A-Z]/.test(w)).length;
   const flesch = 206.835 - 1.015 * (words / sentences.length) - 84.6 * (syl / words);
   const fk = 0.39 * (words / sentences.length) + 11.8 * (syl / words) - 15.59;
   const fog = 0.4 * (words / sentences.length + 100 * (complex / words));
   const passiveCount = (text.match(PASSIVE_PARTICIPLE) || []).length;
   const lower = text.toLowerCase();
-  const jargonHits = JARGON
+  const jargonHits: { term: string; count: number }[] = JARGON
     .map((t) => {
       const re = new RegExp(`\\b${t.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "gi");
       const count = (lower.match(re) || []).length;
@@ -64,6 +64,20 @@ function compute(raw: string): Stats | null {
     })
     .filter((h) => h.count > 0)
     .sort((a, b) => b.count - a.count);
+  return {
+    words,
+    sentences: sentences.length,
+    syllables: syl,
+    complexWords: complex,
+    passiveCount,
+    jargonHits,
+    flesch: Math.round(flesch * 10) / 10,
+    fk: Math.round(fk * 10) / 10,
+    fog: Math.round(fog * 10) / 10,
+    avgWordsPerSentence: Math.round((words / sentences.length) * 10) / 10,
+    passivePct: Math.round((passiveCount / sentences.length) * 1000) / 10,
+  };
+}
   return {
     words,
     sentences: sentences.length,

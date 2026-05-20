@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;

@@ -46,11 +46,13 @@ function compute(raw: string): Stats | null {
   const text = stripHtml(raw).trim();
   if (!text) return null;
   const sentences = text.split(/[.!?]+(?=\s|$)/).map((s) => s.trim()).filter(Boolean);
-  const wordsArr = text.match(/\b[\p{L}'-]+\b/gu) || [];
+  const wordsArr: string[] = Array.from(text.match(/\b[\p{L}'-]+\b/gu) || []);
   const words = wordsArr.length;
   if (words === 0 || sentences.length === 0) return null;
-  const syl: number = wordsArr.reduce<number>((s, w) => s + syllables(w), 0);
-  const complex: number = wordsArr.filter((w) => syllables(w) >= 3 && !/^[A-Z]/.test(w)).length;
+  let syl = 0;
+  for (const w of wordsArr) syl += syllables(w);
+  let complex = 0;
+  for (const w of wordsArr) if (syllables(w) >= 3 && !/^[A-Z]/.test(w)) complex++;
   const flesch = 206.835 - 1.015 * (words / sentences.length) - 84.6 * (syl / words);
   const fk = 0.39 * (words / sentences.length) + 11.8 * (syl / words) - 15.59;
   const fog = 0.4 * (words / sentences.length + 100 * (complex / words));

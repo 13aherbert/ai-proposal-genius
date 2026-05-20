@@ -1,5 +1,5 @@
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
@@ -69,7 +69,12 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const LifetimeDeal = lazy(() => import("@/pages/LifetimeDeal"));
-const LifetimeDealLanding = lazy(() => import("@/pages/LifetimeDealLanding"));
+
+function LifetimeDealRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={`/lifetime${qs ? `?${qs}` : ""}`} replace />;
+}
 const SSOFinish = lazy(() => import("@/pages/SSOFinish"));
 const ToolsHub = lazy(() => import("@/pages/tools/ToolsHub"));
 const WordCounter = lazy(() => import("@/pages/tools/WordCounter"));
@@ -180,7 +185,7 @@ function AppContent() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/sso/finish" element={<SSOFinish />} />
         <Route path="/lifetime" element={<LifetimeDeal />} />
-        <Route path="/lifetime-deal" element={<LifetimeDealLanding />} />
+        <Route path="/lifetime-deal" element={<LifetimeDealRedirect />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />

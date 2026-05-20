@@ -1,50 +1,55 @@
-## 5 New Free Tools for /tools
+## Goal
 
-Picked for keyword opportunity in the federal/SLED contracting niche where OptiRFP already ranks, plus reuse of the existing `/tools` framework (registry + page + edge function pattern from `ExecutiveSummaryGenerator`).
+Today `/lifetime` is a bare redeem form and `/lifetime-deal` is the marketing page. Since `/lifetime` is the URL being shared in outreach, it should be the full landing page — with code redemption as the hero CTA, waitlist as the fallback. Consolidate to one canonical URL.
 
-### 1. Capability Statement Generator — `/tools/capability-statement-generator`
-**Keyword angle:** "capability statement template", "capability statement generator", "federal capability statement" — high commercial intent from new GovCon entrants registering on SAM.gov.
+## What changes
 
-Form-based: company info, core competencies, differentiators, past performance, NAICS/PSC, UEI/CAGE, contact. Live preview of a 1-page printable layout. **Export to PDF** (browser print) and PNG (html2canvas). Pure client-side, no AI cost.
+### 1. Rewrite `src/pages/LifetimeDeal.tsx` (route `/lifetime`)
 
-### 2. Bid / No-Bid Scorecard — `/tools/bid-no-bid-scorecard`
-**Keyword angle:** "bid no bid template", "bid no bid checklist", "go no go decision proposal" — pulls in proposal managers evaluating individual opportunities.
+Same marketing structure as `LifetimeDealLanding.tsx` (hero, "What you get forever" grid, 14-day guarantee, FAQ + JSON-LD, footer CTA), with the redemption flow embedded as the hero card instead of a separate page.
 
-12-question weighted scorecard across 4 categories (fit, win probability, capacity, strategic value). Slider inputs, auto-computed weighted score, red/yellow/green verdict, exportable PDF summary. Pure client-side.
+Hero card is state-driven. Code-entry is always the primary action; waitlist appears as a small fallback link below.
 
-### 3. AI Proposal Outline Generator — `/tools/proposal-outline-generator`
-**Keyword angle:** "proposal outline template", "rfp outline generator", "ai proposal outline" — funnel candidate: anyone searching this is mid-buying-cycle for OptiRFP.
+| State | Trigger | Hero card shows |
+|---|---|---|
+| `loading` | `?code=` present, validating | Spinner |
+| `needs-code` | no `?code=` | Code input + "Apply" button. Below: small "Don't have a code? Get notified →" link that expands the waitlist email form inline |
+| `invalid` | validation returned invalid | Inline error with reason copy, code input pre-filled to retry, same waitlist fallback |
+| `valid-ready` | code valid, user not signed in | "Sign up & Claim Lifetime Deal" CTA + plan name + projects line + features list |
+| `valid-ready-auth` | code valid, signed in, eligible | "Claim Lifetime Deal" CTA → Stripe checkout |
+| `ineligible` | signed in with paid/lifetime sub | "You already have a paid plan" panel + manage subscription button |
+| `claimed-waitlist` | waitlist email submitted | "You're on the list" confirmation |
 
-Paste RFP excerpt + proposal type → AI returns structured outline (sections, page allocations, key questions to answer per section). Same pattern as `tools-generate-executive-summary`: new edge function `tools-generate-proposal-outline` calling Gemini via Lovable Gateway, with abuse-rate-limiting (existing pattern).
+All existing logic is preserved verbatim from current `LifetimeDeal.tsx`: `validate-lifetime-code` invocation, `pricing_tiers` lookup for features, `create-lifetime-checkout` flow, `localStorage` code persistence for signup round-trip, ineligibility detection. Waitlist insert into `lifetime_deal_leads` is copied from `LifetimeDealLanding.tsx` (same `source: "lifetime-deal-landing"` value so analytics stay continuous).
 
-### 4. Government Contracting Acronym Decoder — `/tools/govcon-acronym-decoder`
-**Keyword angle:** "government contracting acronyms", "federal acquisition acronyms", "rfp acronym list", "FAR acronyms" — long-tail with low competition and strong evergreen traffic.
+SEO: keep the richer `useSEO` from the landing page (title, description, canonical pointing at `/lifetime`). Keep the FAQPage JSON-LD block.
 
-Two modes: (a) browse/search a built-in dictionary of ~500 GovCon acronyms (FAR, DFARS, SAM, NAICS, IDIQ, BPA, RFI, CDRL, etc.) bundled as JSON; (b) paste RFP text → tool highlights every acronym and shows definitions inline. Pure client-side.
+### 2. Redirect `/lifetime-deal` → `/lifetime`
 
-### 5. Plain Language Readability Scorer — `/tools/plain-language-scorer`
-**Keyword angle:** "plain language checker", "flesch kincaid score", "readability score for proposals", "plain writing act" — federal proposals must comply with the Plain Writing Act; nothing in our current tools covers this.
+In `src/App.tsx`, replace the `/lifetime-deal` route element with a small `<Navigate>` component that forwards any `?code=` search param. Delete `src/pages/LifetimeDealLanding.tsx` (no longer referenced).
 
-Paste text → returns Flesch Reading Ease, Flesch-Kincaid Grade, Gunning Fog, sentence/word length stats, passive voice count, jargon count (banned-word list shared with `proposal-quality-standards`), and a target-audience verdict ("reads at 14th grade — federal evaluators expect ≤10th"). Pure client-side, complements existing word counter.
+### 3. Update outbound references
 
----
+- `public/sitemap.xml` — change `/lifetime-deal` entry to `/lifetime`.
+- `public/llms.txt` — update the lifetime URL.
+- `src/pages/LifetimeDealLanding.tsx` internal links (`/lifetime` "I already have a code") — moot once deleted.
+- Search the codebase for any other `/lifetime-deal` references and point them at `/lifetime`.
 
-### Implementation pattern (each tool)
-Files added per tool, following the existing `ExecutiveSummaryGenerator` / `NaicsLookup` pattern:
-- `src/pages/tools/<Name>.tsx` with `useSEO`, structured data, FAQ section, internal links back to `/tools` and `/auth`.
-- Entry appended to `src/data/tools-registry.ts` (slug, SEO title, meta, keywords, FAQs, lucide icon).
-- Lazy route added in `src/App.tsx`.
-- URL added to `public/sitemap.xml` and `public/llms.txt`.
+## Files touched
 
-AI tools (#3) also get:
-- `supabase/functions/tools-generate-proposal-outline/index.ts` (Gemini, public, rate-limited by IP hash, same shape as `tools-generate-executive-summary`).
-- Registered in `supabase/config.toml` with `verify_jwt = false`.
+- Rewrite: `src/pages/LifetimeDeal.tsx`
+- Edit: `src/App.tsx` (swap `/lifetime-deal` route to redirect)
+- Edit: `public/sitemap.xml`, `public/llms.txt`
+- Delete: `src/pages/LifetimeDealLanding.tsx`
 
-Static-data tools (#4) ship a JSON file under `src/data/` (e.g. `govcon-acronyms.json`).
+## Out of scope
 
-### Out of scope (deferred)
-- Tracking each tool's GSC performance in `/admin/seo` — already covered by the GSC integration.
-- A `/tools` filter/category UI — only 12 tools total after this, hub list is still scannable.
-- Tools requiring API quotas/keys (e.g. live SAM.gov entity lookup) — would gate on user signup and break the "no-signup" promise.
+- No DB schema changes. No edge function changes. No new copy beyond what already exists across the two pages.
+- No A/B testing harness — single canonical experience.
+- No change to the actual Stripe checkout or `validate-lifetime-code` function.
 
-Confirm and I'll build all 5 in one pass, or tell me to swap any (e.g. drop Readability Scorer for a Cost-Plus Pricing Calculator).
+## Risk notes
+
+- Anyone with `/lifetime-deal` bookmarked still lands correctly via the redirect (with code preserved).
+- The Stripe webhook + `create-lifetime-checkout` continue to work unchanged because the redemption logic is copied wholesale, not rewritten.
+- One canonical URL avoids duplicate-content SEO penalty between the two near-identical pages.

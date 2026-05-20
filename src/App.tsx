@@ -69,7 +69,12 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const LifetimeDeal = lazy(() => import("@/pages/LifetimeDeal"));
-const LifetimeDealLanding = lazy(() => import("@/pages/LifetimeDealLanding"));
+
+function LifetimeDealRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={`/lifetime${qs ? `?${qs}` : ""}`} replace />;
+}
 const SSOFinish = lazy(() => import("@/pages/SSOFinish"));
 const ToolsHub = lazy(() => import("@/pages/tools/ToolsHub"));
 const WordCounter = lazy(() => import("@/pages/tools/WordCounter"));

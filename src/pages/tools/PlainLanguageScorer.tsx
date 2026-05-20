@@ -78,20 +78,6 @@ function compute(raw: string): Stats | null {
     passivePct: Math.round((passiveCount / sentences.length) * 1000) / 10,
   };
 }
-  return {
-    words,
-    sentences: sentences.length,
-    syllables: syl,
-    complexWords: complex,
-    passiveCount,
-    jargonHits,
-    flesch: Math.round(flesch * 10) / 10,
-    fk: Math.round(fk * 10) / 10,
-    fog: Math.round(fog * 10) / 10,
-    avgWordsPerSentence: Math.round((words / sentences.length) * 10) / 10,
-    passivePct: Math.round((passiveCount / sentences.length) * 1000) / 10,
-  };
-}
 
 function fleschBand(score: number): { label: string; color: string } {
   if (score >= 70) return { label: "Plain — 7th grade or easier", color: "text-emerald-600" };

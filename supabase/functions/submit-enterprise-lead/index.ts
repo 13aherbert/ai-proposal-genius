@@ -16,6 +16,17 @@ const BodySchema = z.object({
   requested_tier: z.enum(["enterprise", "white_label"]).optional(),
 });
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -64,13 +75,13 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: "OptiRFP <onboarding@resend.dev>",
             to: ["sales@optirfp.ai"],
-            subject: `New ${lead.requested_tier ?? "enterprise"} lead: ${lead.company_name}`,
-            html: `<p><b>Company:</b> ${lead.company_name}</p>
-<p><b>Email:</b> ${lead.email}</p>
-<p><b>Team:</b> ${lead.team_size ?? "—"}</p>
-<p><b>Source:</b> ${lead.source ?? "pricing"}</p>
-<p><b>Tier:</b> ${lead.requested_tier ?? "enterprise"}</p>
-<p><b>Message:</b><br/>${(lead.message ?? "").replace(/\n/g, "<br/>")}</p>`,
+            subject: `New ${lead.requested_tier ?? "enterprise"} lead: ${escapeHtml(lead.company_name)}`,
+            html: `<p><b>Company:</b> ${escapeHtml(lead.company_name)}</p>
+<p><b>Email:</b> ${escapeHtml(lead.email)}</p>
+<p><b>Team:</b> ${escapeHtml(lead.team_size ?? "—")}</p>
+<p><b>Source:</b> ${escapeHtml(lead.source ?? "pricing")}</p>
+<p><b>Tier:</b> ${escapeHtml(lead.requested_tier ?? "enterprise")}</p>
+<p><b>Message:</b><br/>${escapeHtml(lead.message ?? "").replace(/\n/g, "<br/>")}</p>`,
           }),
         });
       } catch (e) {

@@ -54,6 +54,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!["owner", "admin"].includes(membership.role)) {
+      return new Response(
+        JSON.stringify({ error: "Only organization owners or admins can invite members" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
     // Count current team size (active members + pending invitations)
     const [membersResult, invitationsResult] = await Promise.all([
       supabaseAdmin

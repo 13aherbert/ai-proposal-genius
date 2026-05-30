@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, FileStack, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;
@@ -189,6 +189,21 @@ export const TOOLS: ToolMeta[] = [
       { q: "Which formulas does the tool use?", a: "Flesch Reading Ease, Flesch-Kincaid Grade Level, and Gunning Fog Index — the three formulas most cited in federal style guides and agency proposal evaluations." },
       { q: "What counts as proposal jargon?", a: "The tool flags overused proposal filler — 'leverage', 'synergize', 'world-class', 'best-of-breed', 'cutting-edge', 'robust solution' and similar terms that consistently lower evaluator scores. Customisable jargon lists are available inside OptiRFP." },
       { q: "Does it count passive voice?", a: "Yes. The tool counts auxiliary-verb passive constructions ('was approved', 'will be delivered') and gives a passive-voice percentage. Federal style guides recommend keeping passive voice below 10%." },
+    ],
+  },
+  {
+    slug: "rfp-response-template-generator",
+    title: "RFP Response Template Generator",
+    seoTitle: "Free RFP Response Template Generator | OptiRFP.ai",
+    description: "Create professional RFP response templates in minutes. Select your industry and sections, download instantly as Word or PDF.",
+    metaDescription: "Create professional RFP response templates instantly. Select your industry and sections, download free Word or PDF templates. No signup required.",
+    keywords: ["rfp response template", "rfp template generator", "proposal template", "free rfp template"],
+    icon: FileStack,
+    faqs: [
+      { q: "What is an RFP response template?", a: "An RFP response template is a pre-structured document containing the standard sections evaluators expect — executive summary, company overview, technical approach, pricing, team, past performance and compliance — with placeholder text and guidance you tailor for each bid." },
+      { q: "Is the template really free?", a: "Yes. Pick your industry, choose your sections and download a Word (.docx) or PDF template instantly. No signup, no email gate, no watermark." },
+      { q: "Does the template change by industry?", a: "Yes. The placeholder language, terminology and guidance notes adapt to your selected industry — IT Services, Construction, Consulting, Healthcare, Government and more — so the starting draft already speaks your evaluators' language." },
+      { q: "Can I edit the template after download?", a: "Absolutely. The .docx is a fully editable Word document. The PDF is for reference. For AI-assisted drafting of the full response from a real RFP, use OptiRFP's main app." },
     ],
   },
 ];

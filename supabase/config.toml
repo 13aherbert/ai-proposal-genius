@@ -207,3 +207,7 @@ verify_jwt = false
 [[functions]]
 name = "tools-generate-proposal-outline"
 verify_jwt = false
+
+[[functions]]
+name = "tools-generate-rfp-response"
+verify_jwt = false

@@ -235,6 +235,20 @@ export const TOOLS: ToolMeta[] = [
       { q: "How do I decide whether to bid?", a: "Score five questions: past performance, capacity, buyer relationship, profitability, similar wins. 4+ Yes = bid, 2–3 = conditional, 0–1 = pass. The interactive Go/No-Go tool in the guide calculates this automatically." },
     ],
   },
+  {
+    slug: "ai-rfp-response-generator",
+    title: "AI RFP Response Generator",
+    seoTitle: "Free AI RFP Response Generator | Try the Demo | OptiRFP.ai",
+    description: "Generate a professional RFP response with AI in seconds. Paste an RFP question, add your company info, see the AI draft — free demo.",
+    metaDescription: "Generate professional RFP responses with AI. Try our free demo — paste an RFP question, add your company info, and see AI write a response in seconds.",
+    keywords: ["ai rfp response generator", "ai proposal writer", "rfp response ai", "ai rfp writer"],
+    icon: Wand2,
+    faqs: [
+      { q: "Is this AI RFP response generator really free?", a: "The demo is 100% free with no signup, limited to 3 generations per day per visitor. The full OptiRFP.ai product — unlimited generations, full-length responses, knowledge-base grounding — requires a free account with a 14-day trial." },
+      { q: "How accurate are the AI-generated responses?", a: "The demo uses Google Gemini with a proposal-writing system prompt and produces a polished ~150-word teaser. The full product grounds every response in your uploaded knowledge base (past wins, capability statements, technical docs) so output cites real facts about your company." },
+      { q: "Is my input data stored?", a: "No. The demo does not persist inputs or outputs. The full product runs on SOC 2-aligned infrastructure with AES-256 at rest, TLS 1.3 in transit and strict per-organization data isolation. Customer data is never used to train shared models." },
+    ],
+  },
 ];
 
 export const getTool = (slug: string) => TOOLS.find((t) => t.slug === slug);

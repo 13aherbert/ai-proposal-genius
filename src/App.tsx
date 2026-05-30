@@ -94,6 +94,7 @@ const RfpTemplateLibrary = lazy(() => import("@/pages/tools/RfpTemplateLibrary")
 const RfpTemplateDetail = lazy(() => import("@/pages/tools/RfpTemplateDetail"));
 const HowToRespondToRfpGuide = lazy(() => import("@/pages/tools/HowToRespondToRfpGuide"));
 const RfpResponseGenerator = lazy(() => import("@/pages/tools/RfpResponseGenerator"));
+const GoNoGoDecisionTool = lazy(() => import("@/pages/tools/GoNoGoDecisionTool"));
 
 
 import PublicLayout from "@/layouts/PublicLayout";
@@ -235,6 +236,7 @@ function AppContent() {
           <Route path="/tools/rfp-template-library/:slug" element={<RfpTemplateDetail />} />
           <Route path="/tools/how-to-respond-to-an-rfp" element={<HowToRespondToRfpGuide />} />
           <Route path="/tools/ai-rfp-response-generator" element={<RfpResponseGenerator />} />
+          <Route path="/tools/rfp-go-no-go-decision-tool" element={<GoNoGoDecisionTool />} />
 
         </Route>
         

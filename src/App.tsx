@@ -236,6 +236,7 @@ function AppContent() {
           <Route path="/tools/rfp-template-library/:slug" element={<RfpTemplateDetail />} />
           <Route path="/tools/how-to-respond-to-an-rfp" element={<HowToRespondToRfpGuide />} />
           <Route path="/tools/ai-rfp-response-generator" element={<RfpResponseGenerator />} />
+          <Route path="/tools/rfp-go-no-go-decision-tool" element={<GoNoGoDecisionTool />} />
 
         </Route>
         

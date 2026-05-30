@@ -20,10 +20,32 @@ export interface ToolMeta {
   description: string;    // short hub blurb
   metaDescription: string;// meta description
   keywords: string[];
-  category: ToolCategory;
   icon: LucideIcon;
   faqs: ToolFAQ[];
 }
+
+const CATEGORY_BY_SLUG: Record<string, ToolCategory> = {
+  "proposal-word-counter": "Calculators",
+  "rfp-deadline-calculator": "Calculators",
+  "win-rate-calculator": "Calculators",
+  "plain-language-scorer": "Calculators",
+  "bid-no-bid-scorecard": "Calculators",
+  "rfp-go-no-go-decision-tool": "Calculators",
+  "compliance-matrix-generator": "Generators",
+  "executive-summary-generator": "Generators",
+  "capability-statement-generator": "Generators",
+  "proposal-outline-generator": "AI Tools",
+  "ai-rfp-response-generator": "AI Tools",
+  "naics-code-lookup": "Lookups",
+  "psc-code-lookup": "Lookups",
+  "govcon-acronym-decoder": "Lookups",
+  "rfp-response-template-generator": "Templates",
+  "rfp-template-library": "Templates",
+  "how-to-respond-to-an-rfp": "Guides",
+};
+
+export const getToolCategory = (slug: string): ToolCategory =>
+  CATEGORY_BY_SLUG[slug] ?? "Generators";
 
 export const TOOLS: ToolMeta[] = [
   {

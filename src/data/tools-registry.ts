@@ -5,6 +5,14 @@ export interface ToolFAQ {
   a: string;
 }
 
+export type ToolCategory =
+  | "Calculators"
+  | "Generators"
+  | "Lookups"
+  | "Templates"
+  | "Guides"
+  | "AI Tools";
+
 export interface ToolMeta {
   slug: string;
   title: string;          // H1 / display
@@ -12,6 +20,7 @@ export interface ToolMeta {
   description: string;    // short hub blurb
   metaDescription: string;// meta description
   keywords: string[];
+  category: ToolCategory;
   icon: LucideIcon;
   faqs: ToolFAQ[];
 }

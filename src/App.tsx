@@ -94,6 +94,7 @@ const RfpTemplateLibrary = lazy(() => import("@/pages/tools/RfpTemplateLibrary")
 const RfpTemplateDetail = lazy(() => import("@/pages/tools/RfpTemplateDetail"));
 const HowToRespondToRfpGuide = lazy(() => import("@/pages/tools/HowToRespondToRfpGuide"));
 const RfpResponseGenerator = lazy(() => import("@/pages/tools/RfpResponseGenerator"));
+const GoNoGoDecisionTool = lazy(() => import("@/pages/tools/GoNoGoDecisionTool"));
 
 
 import PublicLayout from "@/layouts/PublicLayout";

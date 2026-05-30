@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, FileStack, Library, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, FileStack, Library, BookOpen, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;
@@ -221,7 +221,20 @@ export const TOOLS: ToolMeta[] = [
       { q: "Can I customize a template after downloading?", a: "Fully. The .docx is a standard Microsoft Word file — replace the cover page, drop in your branding and tailor every section." },
     ],
   },
-
+  {
+    slug: "how-to-respond-to-an-rfp",
+    title: "How to Respond to an RFP",
+    seoTitle: "How to Respond to an RFP: Complete Guide (2026) | OptiRFP.ai",
+    description: "Step-by-step interactive guide to writing winning RFP responses — checklists, Go/No-Go tool, timeline planner and time calculator included.",
+    metaDescription: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices. Free resources included.",
+    keywords: ["how to respond to an rfp", "rfp response guide", "winning rfp response", "rfp response process"],
+    icon: BookOpen,
+    faqs: [
+      { q: "How long does it take to respond to an RFP?", a: "A typical mid-size RFP response takes 40–80 hours over 2–4 weeks. Complex federal proposals can run 200+ hours. The guide includes a calculator that estimates effort from page count, sections, team size and experience." },
+      { q: "What are the steps to respond to an RFP?", a: "Six steps: understand the RFP, run a go/no-go decision, assemble your team, draft each section, run pink/red/gold reviews, and submit + follow up. Each step has an interactive checklist." },
+      { q: "How do I decide whether to bid?", a: "Score five questions: past performance, capacity, buyer relationship, profitability, similar wins. 4+ Yes = bid, 2–3 = conditional, 0–1 = pass. The interactive Go/No-Go tool in the guide calculates this automatically." },
+    ],
+  },
 ];
 
 export const getTool = (slug: string) => TOOLS.find((t) => t.slug === slug);

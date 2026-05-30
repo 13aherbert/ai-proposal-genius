@@ -52,20 +52,20 @@ export default function RfpResponseTemplateGenerator() {
 
   const canDownload = orderedSelected.length > 0;
 
+  const baseFilename = (companyName || "RFP-Response").replace(/[^a-z0-9]+/gi, "-");
+
   const handleDocx = async () => {
     if (!canDownload) return;
-    const doc = buildDocx(companyName, industry, orderedSelected);
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `${(companyName || "RFP-Response").replace(/[^a-z0-9]+/gi, "-")}-Template.docx`);
+    await downloadDocx(companyName, industry, orderedSelected, `${baseFilename}-Template.docx`);
     toast.success("Word template downloaded");
   };
 
   const handlePdf = () => {
     if (!canDownload) return;
-    const doc = buildPdf(companyName, industry, orderedSelected);
-    doc.save(`${(companyName || "RFP-Response").replace(/[^a-z0-9]+/gi, "-")}-Template.pdf`);
+    downloadPdf(companyName, industry, orderedSelected, `${baseFilename}-Template.pdf`);
     toast.success("PDF template downloaded");
   };
+
 
   return (
     <ToolPageLayout

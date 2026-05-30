@@ -92,6 +92,7 @@ const PlainLanguageScorer = lazy(() => import("@/pages/tools/PlainLanguageScorer
 const RfpResponseTemplateGenerator = lazy(() => import("@/pages/tools/RfpResponseTemplateGenerator"));
 const RfpTemplateLibrary = lazy(() => import("@/pages/tools/RfpTemplateLibrary"));
 const RfpTemplateDetail = lazy(() => import("@/pages/tools/RfpTemplateDetail"));
+const HowToRespondToRfpGuide = lazy(() => import("@/pages/tools/HowToRespondToRfpGuide"));
 
 
 import PublicLayout from "@/layouts/PublicLayout";
@@ -231,6 +232,7 @@ function AppContent() {
           <Route path="/tools/rfp-response-template-generator" element={<RfpResponseTemplateGenerator />} />
           <Route path="/tools/rfp-template-library" element={<RfpTemplateLibrary />} />
           <Route path="/tools/rfp-template-library/:slug" element={<RfpTemplateDetail />} />
+          <Route path="/tools/how-to-respond-to-an-rfp" element={<HowToRespondToRfpGuide />} />
 
         </Route>
         

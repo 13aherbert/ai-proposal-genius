@@ -90,6 +90,9 @@ const ProposalOutlineGenerator = lazy(() => import("@/pages/tools/ProposalOutlin
 const GovConAcronymDecoder = lazy(() => import("@/pages/tools/GovConAcronymDecoder"));
 const PlainLanguageScorer = lazy(() => import("@/pages/tools/PlainLanguageScorer"));
 const RfpResponseTemplateGenerator = lazy(() => import("@/pages/tools/RfpResponseTemplateGenerator"));
+const RfpTemplateLibrary = lazy(() => import("@/pages/tools/RfpTemplateLibrary"));
+const RfpTemplateDetail = lazy(() => import("@/pages/tools/RfpTemplateDetail"));
+
 
 import PublicLayout from "@/layouts/PublicLayout";
 
@@ -226,6 +229,9 @@ function AppContent() {
           <Route path="/tools/govcon-acronym-decoder" element={<GovConAcronymDecoder />} />
           <Route path="/tools/plain-language-scorer" element={<PlainLanguageScorer />} />
           <Route path="/tools/rfp-response-template-generator" element={<RfpResponseTemplateGenerator />} />
+          <Route path="/tools/rfp-template-library" element={<RfpTemplateLibrary />} />
+          <Route path="/tools/rfp-template-library/:slug" element={<RfpTemplateDetail />} />
+
         </Route>
         
         <Route path="*" element={<NotFound />} />

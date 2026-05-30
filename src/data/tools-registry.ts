@@ -1,4 +1,4 @@
-import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, FileStack, type LucideIcon } from "lucide-react";
+import { FileText, CalendarClock, TrendingUp, ListChecks, Hash, Tag, Sparkles, IdCard, Scale, GitBranch, BookA, Gauge, FileStack, Library, type LucideIcon } from "lucide-react";
 
 export interface ToolFAQ {
   q: string;
@@ -206,6 +206,22 @@ export const TOOLS: ToolMeta[] = [
       { q: "Can I edit the template after download?", a: "Absolutely. The .docx is a fully editable Word document. The PDF is for reference. For AI-assisted drafting of the full response from a real RFP, use OptiRFP's main app." },
     ],
   },
+  {
+    slug: "rfp-template-library",
+    title: "RFP Template Library",
+    seoTitle: "Free RFP Template Library | 25+ Industry Templates | OptiRFP.ai",
+    description: "Browse and download 25+ free RFP response templates by industry — Word and PDF, no signup required.",
+    metaDescription: "Free RFP template library. Download professional RFP response templates for IT, construction, software, consulting, healthcare, government and more — in Word and PDF, 100% free.",
+    keywords: ["rfp template library", "free rfp templates", "rfp response templates", "industry rfp templates"],
+    icon: Library,
+    faqs: [
+      { q: "Are these RFP templates really free?", a: "Yes — every template is 100% free to download. No signup, no email gate, no watermark." },
+      { q: "What formats are available?", a: "Every template ships as both Word (.docx) and PDF. Word is best for editing; PDF for sharing a clean reference copy." },
+      { q: "Which industries are covered?", a: "IT services, software, construction, consulting, healthcare, government (federal & SLED), marketing, manufacturing, financial services and a sector-neutral generic template." },
+      { q: "Can I customize a template after downloading?", a: "Fully. The .docx is a standard Microsoft Word file — replace the cover page, drop in your branding and tailor every section." },
+    ],
+  },
+
 ];
 
 export const getTool = (slug: string) => TOOLS.find((t) => t.slug === slug);

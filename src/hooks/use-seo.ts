@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
 const CANONICAL_BASE = "https://optirfp.ai";
-const DEFAULT_OG_IMAGE = "/og-image.png";
+const DEFAULT_OG_IMAGE =
+  "https://storage.googleapis.com/gpt-engineer-file-uploads/EEi50R8moiUG0uifrWsjL6kXShF2/social-images/social-1778758209222-OptiRFP_Social_Banner.webp";
 
 interface SEOProps {
   title: string;

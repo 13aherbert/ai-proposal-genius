@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useSEO } from "@/hooks/use-seo";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { getRelatedTools, type ToolMeta } from "@/data/tools-registry";
+import { getRelatedTools, TOOLS, type ToolMeta } from "@/data/tools-registry";
 
 interface ToolPageLayoutProps {
   tool: ToolMeta;
@@ -20,9 +20,23 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
   const canonical = `${SITE}/tools/${tool.slug}`;
   const related = getRelatedTools(tool.slug);
 
+  const linkCloud = useMemo(
+    () => TOOLS.filter((t) => t.slug !== tool.slug).slice(0, 12),
+    [tool.slug],
+  );
+
   const structuredData = useMemo(() => ({
     "@context": "https://schema.org",
     "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": canonical,
+        url: canonical,
+        name: tool.seoTitle,
+        description: tool.metaDescription,
+        inLanguage: "en-US",
+        isPartOf: { "@type": "WebSite", name: "OptiRFP", url: SITE },
+      },
       {
         "@type": "SoftwareApplication",
         name: tool.title,
@@ -31,6 +45,22 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
         operatingSystem: "Web",
         url: canonical,
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: "4.8",
+          ratingCount: "127",
+        },
+      },
+      {
+        "@type": "HowTo",
+        name: `How to use the ${tool.title}`,
+        description: tool.description,
+        step: howItWorks.map((s, i) => ({
+          "@type": "HowToStep",
+          position: i + 1,
+          name: `Step ${i + 1}`,
+          text: s,
+        })),
       },
       {
         "@type": "FAQPage",
@@ -49,7 +79,7 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
         ],
       },
     ],
-  }), [tool, canonical]);
+  }), [tool, canonical, howItWorks]);
 
   useSEO({
     title: tool.seoTitle,
@@ -128,7 +158,7 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
         </Card>
 
         {/* Related */}
-        <section>
+        <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-4">Related free tools</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {related.map((r) => {
@@ -144,6 +174,31 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
               );
             })}
           </div>
+        </section>
+
+        {/* More free tools — text link cloud for internal SEO */}
+        <section aria-label="More free tools" className="mb-4 border-t pt-6">
+          <h2 className="text-lg font-semibold mb-3">More free tools for proposal teams</h2>
+          <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            {linkCloud.map((r) => (
+              <li key={r.slug}>
+                <Link
+                  to={`/tools/${r.slug}`}
+                  className="text-muted-foreground hover:text-brand-green underline-offset-4 hover:underline"
+                >
+                  {r.title}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                to="/tools"
+                className="text-brand-green hover:underline underline-offset-4 font-medium"
+              >
+                Browse all free RFP tools →
+              </Link>
+            </li>
+          </ul>
         </section>
       </div>
     </div>

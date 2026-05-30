@@ -174,7 +174,7 @@ export default function RfpResponseTemplateGenerator() {
               <h2 className="text-2xl font-bold">{companyName || "[Your Company Name]"}</h2>
               <p className="text-sm" style={{ color: "#1E40AF" }}>RFP Response</p>
               <p className="text-xs text-gray-500 mt-1">
-                Industry: {industry ? INDUSTRIES.find((i) => i.id === industry)!.name : "All industries"}
+                Industry: {industryName(industry)}
               </p>
             </div>
             <h3 className="font-semibold text-sm mb-2">Table of Contents</h3>

@@ -1,55 +1,80 @@
-## Goal
+## SEO hardening — Free Tools
 
-Today `/lifetime` is a bare redeem form and `/lifetime-deal` is the marketing page. Since `/lifetime` is the URL being shared in outreach, it should be the full landing page — with code redemption as the hero CTA, waitlist as the fallback. Consolidate to one canonical URL.
+Tools already have the basics: per-route `useSEO` hook (title / description / canonical / OG / JSON-LD), `ToolPageLayout` injecting `SoftwareApplication + FAQPage + BreadcrumbList`, every tool listed in `public/sitemap.xml`. This plan fixes the remaining gaps that hold back organic ranking.
 
-## What changes
+### 1. Audit every tool page for SEO basics
 
-### 1. Rewrite `src/pages/LifetimeDeal.tsx` (route `/lifetime`)
+Spot-check the 5 non-standard tool pages (built outside `ToolPageLayout`) to confirm they each render: one H1, semantic `<main>`, canonical URL, OG tags, and `SoftwareApplication + FAQPage + BreadcrumbList` JSON-LD via `useSEO`.
 
-Same marketing structure as `LifetimeDealLanding.tsx` (hero, "What you get forever" grid, 14-day guarantee, FAQ + JSON-LD, footer CTA), with the redemption flow embedded as the hero card instead of a separate page.
+- `RfpResponseTemplateGenerator.tsx`
+- `RfpTemplateLibrary.tsx` + `RfpTemplateDetail.tsx`
+- `HowToRespondToRfpGuide.tsx` (already has HowTo + Article — verify)
+- `RfpResponseGenerator.tsx`
 
-Hero card is state-driven. Code-entry is always the primary action; waitlist appears as a small fallback link below.
+Patch any that are missing pieces.
 
-| State | Trigger | Hero card shows |
-|---|---|---|
-| `loading` | `?code=` present, validating | Spinner |
-| `needs-code` | no `?code=` | Code input + "Apply" button. Below: small "Don't have a code? Get notified →" link that expands the waitlist email form inline |
-| `invalid` | validation returned invalid | Inline error with reason copy, code input pre-filled to retry, same waitlist fallback |
-| `valid-ready` | code valid, user not signed in | "Sign up & Claim Lifetime Deal" CTA + plan name + projects line + features list |
-| `valid-ready-auth` | code valid, signed in, eligible | "Claim Lifetime Deal" CTA → Stripe checkout |
-| `ineligible` | signed in with paid/lifetime sub | "You already have a paid plan" panel + manage subscription button |
-| `claimed-waitlist` | waitlist email submitted | "You're on the list" confirmation |
+### 2. Enrich tool metadata in `src/data/tools-registry.ts`
 
-All existing logic is preserved verbatim from current `LifetimeDeal.tsx`: `validate-lifetime-code` invocation, `pricing_tiers` lookup for features, `create-lifetime-checkout` flow, `localStorage` code persistence for signup round-trip, ineligibility detection. Waitlist insert into `lifetime_deal_leads` is copied from `LifetimeDealLanding.tsx` (same `source: "lifetime-deal-landing"` value so analytics stay continuous).
+For all 20 tools:
 
-SEO: keep the richer `useSEO` from the landing page (title, description, canonical pointing at `/lifetime`). Keep the FAQPage JSON-LD block.
+- Expand `keywords` from 3 → 6–10 per tool with realistic long-tail variants ("free", "online", "2026", "template", "for proposals", "for government contracts").
+- Tighten any `seoTitle` over 60 chars; tighten any `metaDescription` over 160 chars.
+- Add a 4th FAQ where currently 3 (more FAQ surface = more rich-result chances).
+- Add an optional `lastUpdated: "2026-05-30"` field, surfaced in body copy as "Updated May 2026" (freshness signal) and used for sitemap `<lastmod>`.
 
-### 2. Redirect `/lifetime-deal` → `/lifetime`
+### 3. Add richer structured data
 
-In `src/App.tsx`, replace the `/lifetime-deal` route element with a small `<Navigate>` component that forwards any `?code=` search param. Delete `src/pages/LifetimeDealLanding.tsx` (no longer referenced).
+Extend `ToolPageLayout` to optionally emit:
 
-### 3. Update outbound references
+- `HowTo` schema, built from the existing `howItWorks` steps (cheap win — every tool already passes this prop).
+- `WebPage` wrapper with `inLanguage: "en-US"` and `isPartOf` linking back to the site `WebSite` schema.
 
-- `public/sitemap.xml` — change `/lifetime-deal` entry to `/lifetime`.
-- `public/llms.txt` — update the lifetime URL.
-- `src/pages/LifetimeDealLanding.tsx` internal links (`/lifetime` "I already have a code") — moot once deleted.
-- Search the codebase for any other `/lifetime-deal` references and point them at `/lifetime`.
+`ToolsHub.tsx`: add `ItemList` schema alongside the existing `CollectionPage` so Google can surface the full tool list as a sitelinks-style result.
 
-## Files touched
+### 4. Fix the OG image fallback
 
-- Rewrite: `src/pages/LifetimeDeal.tsx`
-- Edit: `src/App.tsx` (swap `/lifetime-deal` route to redirect)
-- Edit: `public/sitemap.xml`, `public/llms.txt`
-- Delete: `src/pages/LifetimeDealLanding.tsx`
+`useSEO` defaults to `/og-image.png` but the file isn't in `public/`. Point the default at the existing hosted banner from `index.html` (the GCS `OptiRFP_Social_Banner.webp` URL). This unblocks social-preview cards across every tool page without per-tool image work.
 
-## Out of scope
+### 5. Strengthen ToolsHub for topical authority
 
-- No DB schema changes. No edge function changes. No new copy beyond what already exists across the two pages.
-- No A/B testing harness — single canonical experience.
-- No change to the actual Stripe checkout or `validate-lifetime-code` function.
+- Group tools into clusters (Calculators, Generators, Lookups, Templates, Guides, AI Tools) with a short keyword-rich intro per cluster. Cluster pages aren't being added — just visual grouping inside `/tools` to deepen body copy and increase internal anchor variety.
+- Add a paragraph of intro copy under the H1 with secondary keywords ("RFP tools", "proposal software alternatives", "free for proposal managers").
+- Add a footer block of text links to every tool (anchor text = tool title) to spread internal PageRank.
 
-## Risk notes
+### 6. Internal linking across the site
 
-- Anyone with `/lifetime-deal` bookmarked still lands correctly via the redirect (with code preserved).
-- The Stripe webhook + `create-lifetime-checkout` continue to work unchanged because the redemption logic is copied wholesale, not rewritten.
-- One canonical URL avoids duplicate-content SEO penalty between the two near-identical pages.
+- `ToolPageLayout`: append a "More free tools" text-link section (anchor cloud of 6–8 sibling tools) below the existing 3-card Related block — text anchors carry more SEO weight than card titles.
+- Add cross-links inside `whyItMatters` copy where it makes sense (e.g. Go/No-Go scorecard ↔ Win Rate Calculator ↔ How to Respond Guide).
+- Add a `/tools` link to the public footer if not present.
+
+### 7. Sitemap freshness
+
+`public/sitemap.xml` is hand-maintained (per project memory: don't migrate without asking). Edit in place to:
+
+- Add `<lastmod>2026-05-30</lastmod>` to every tool URL.
+- Add `<changefreq>monthly</changefreq>` to tool URLs and `weekly` to the hub.
+- Confirm every tool route from `App.tsx` is present (Go/No-Go is — double-check after registry changes).
+
+### 8. Out of scope (call out, don't do)
+
+- **Google Search Console connector** — there's a failing GSC finding ("isn't fully set up"). That requires the user to authorize the connector; I'll mention it but not start the flow unless asked.
+- **Lighthouse perf/a11y findings** — separate concern from SEO discoverability.
+- **Switching to `react-helmet-async`** — current `useSEO` hook handles per-route head correctly for JS-executing crawlers (Googlebot). No migration needed.
+- **Per-tool OG images** — using the shared banner is sufficient; bespoke OG images would be a follow-up if the user wants stronger social CTR.
+
+### Files touched
+
+- `src/data/tools-registry.ts` — keywords, FAQs, `lastUpdated`, title/description tightening
+- `src/components/tools/ToolPageLayout.tsx` — HowTo + WebPage schema, text-link block
+- `src/pages/tools/ToolsHub.tsx` — clusters, ItemList schema, intro + footer link cloud
+- `src/hooks/use-seo.ts` — OG image default fallback URL
+- `src/pages/tools/RfpResponseTemplateGenerator.tsx`, `RfpTemplateLibrary.tsx`, `RfpTemplateDetail.tsx`, `HowToRespondToRfpGuide.tsx`, `RfpResponseGenerator.tsx` — patch any missing SEO bits
+- `public/sitemap.xml` — lastmod / changefreq on tool URLs
+
+### Expected impact
+
+- More long-tail keyword matches per tool page (richer keyword + FAQ surface).
+- More rich-result eligibility (HowTo + ItemList on top of existing SoftwareApplication + FAQPage).
+- Better internal PageRank distribution across the tool cluster.
+- Working OG previews when tool URLs are shared on LinkedIn / Slack.
+- Cleaner crawl signals via `lastmod`.

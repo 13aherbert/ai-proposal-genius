@@ -249,6 +249,21 @@ export const TOOLS: ToolMeta[] = [
       { q: "Is my input data stored?", a: "No. The demo does not persist inputs or outputs. The full product runs on SOC 2-aligned infrastructure with AES-256 at rest, TLS 1.3 in transit and strict per-organization data isolation. Customer data is never used to train shared models." },
     ],
   },
+  {
+    slug: "rfp-go-no-go-decision-tool",
+    title: "RFP Go/No-Go Decision Tool",
+    seoTitle: "RFP Go/No-Go Decision Tool | Should You Bid? | OptiRFP.ai",
+    description: "Answer 5 quick questions and get an objective bid / no-bid recommendation with factor-specific action items.",
+    metaDescription: "Should you bid on that RFP? Answer 5 quick questions and get an objective bid/no-bid recommendation with specific action items. Free tool.",
+    keywords: ["rfp go no go", "bid no bid decision tool", "should i bid on this rfp", "rfp decision tool"],
+    icon: ClipboardCheck,
+    faqs: [
+      { q: "How does the Go/No-Go scoring work?", a: "Each of the five questions is worth 20 points: Yes = 20, Not Sure = 10, No = 0. A total of 80–100 is a Strong Bid, 40–70 is Conditional, and 0–30 is a Weak Bid you should probably pass on." },
+      { q: "What 5 factors does the tool evaluate?", a: "Past performance match, timeline realism, buyer relationship, budget profitability, and similar wins in the last 24 months — the five factors that correlate most strongly with proposal win rate." },
+      { q: "Can I share results with my team?", a: "Yes. Click Share to copy a URL that encodes your answers — anyone who opens it sees the same verdict and breakdown. You can also download a PDF report or print the page." },
+      { q: "Is my data stored anywhere?", a: "No. Your answers live only in your browser (localStorage) and the optional share link. We do not send anything to a server." },
+    ],
+  },
 ];
 
 export const getTool = (slug: string) => TOOLS.find((t) => t.slug === slug);

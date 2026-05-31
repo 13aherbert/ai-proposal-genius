@@ -22,10 +22,6 @@ const comparisonRows = [
 
 const ComparePandaDoc = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs PandaDoc 2026 | RFP Specialist vs Generalist",
-    description: "Compare OptiRFP and PandaDoc side by side. Purpose-built RFP AI at $199/mo flat vs $35/user/mo for a general document platform. 6 free projects — no trial limits.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

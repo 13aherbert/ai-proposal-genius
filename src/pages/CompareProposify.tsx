@@ -22,10 +22,6 @@ const comparisonRows = [
 
 const CompareProposify = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs Proposify 2026 | RFP-Focused AI Alternative",
-    description: "Compare OptiRFP and Proposify side by side. AI-powered RFP drafting at $199/mo flat vs $49/user/mo for a general proposal tool. Start free with 6 projects.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

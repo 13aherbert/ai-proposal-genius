@@ -22,10 +22,6 @@ const comparisonRows = [
 
 const CompareQvidian = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs Qvidian (Upland) 2026 | Modern Cloud Alternative",
-    description: "Compare OptiRFP and Upland Qvidian side by side. Modern cloud AI from $0/mo vs $30K+/year legacy software with 8-12 week implementation. Start free today.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

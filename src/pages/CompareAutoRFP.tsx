@@ -21,10 +21,6 @@ const comparisonRows = [
 
 const CompareAutoRFP = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs AutoRFP 2026 | Comparison",
-    description: "Compare OptiRFP and AutoRFP side by side. Transparent pricing from $0/mo vs custom quotes. See why teams choose OptiRFP's free tier and AI-native approach.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

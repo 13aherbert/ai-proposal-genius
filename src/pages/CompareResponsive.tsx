@@ -22,10 +22,6 @@ const comparisonRows = [
 
 const CompareResponsive = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs Responsive (RFPIO) 2026 | Modern AI Alternative",
-    description: "Compare OptiRFP and Responsive (formerly RFPIO) side by side. Flat-rate pricing from $0/mo vs $15K+/year per-seat enterprise contracts. Start free today.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

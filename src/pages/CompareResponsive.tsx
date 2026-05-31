@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 

@@ -79,7 +79,7 @@ export function PublicNavbar() {
             <Link to="/" className="flex items-center">
               <img
                 src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
-                alt="OptiRFP Logo"
+                alt="OptiRFP - AI-powered RFP Response Platform"
                 className="h-8 sm:h-9 w-auto"
               />
             </Link>
@@ -175,7 +175,7 @@ export function PublicNavbar() {
                   <Link to="/" className="flex items-center">
                     <img
                       src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
-                      alt="OptiRFP Logo"
+                      alt="OptiRFP - AI-powered RFP Response Platform"
                       className="h-8 w-auto"
                     />
                   </Link>

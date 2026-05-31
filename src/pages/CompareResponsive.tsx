@@ -26,6 +26,7 @@ const CompareResponsive = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO {...SEO_CONFIG.compareResponsive} />
       <CompareNav />
 
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">

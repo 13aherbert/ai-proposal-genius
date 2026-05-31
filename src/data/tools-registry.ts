@@ -51,9 +51,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "proposal-word-counter",
     title: "Proposal Word Counter",
-    seoTitle: "Free Proposal Word Counter | RFP Word Count Tool",
+    seoTitle: "Free Proposal Word Counter | RFP Page Calculator | OptiRFP",
     description: "Live word, character, sentence and page count for proposal text — strips HTML and tracks reading time.",
-    metaDescription: "Free proposal word counter. Paste text or HTML to instantly see word count, characters, sentences, pages and reading time. No signup required.",
+    metaDescription: "Count words and estimate pages for your RFP response. Paste your text to see word count, character count, and estimated page length. Free tool.",
     keywords: ["proposal word counter", "rfp word count tool", "word count for proposals"],
     icon: FileText,
     faqs: [
@@ -66,9 +66,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-deadline-calculator",
     title: "RFP Deadline Calculator",
-    seoTitle: "RFP Deadline Calculator | Free Proposal Timeline Tool",
+    seoTitle: "Free RFP Deadline Calculator | Working Days & Timeline | OptiRFP",
     description: "Enter the submission deadline and get a back-planned schedule of kickoff, draft, review and submit milestones.",
-    metaDescription: "Free RFP deadline calculator. Back-plan your proposal timeline with kickoff, draft, review and submission milestones in business days.",
+    metaDescription: "Calculate working days until your RFP deadline. Account for weekends, holidays, and buffer time. Plan your response timeline accurately.",
     keywords: ["rfp deadline calculator", "proposal timeline calculator", "rfp schedule planner"],
     icon: CalendarClock,
     faqs: [
@@ -80,9 +80,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "win-rate-calculator",
     title: "Proposal Win Rate Calculator",
-    seoTitle: "Proposal Win Rate Calculator | Free RFP Win Rate Tool",
+    seoTitle: "Free RFP Win Rate Calculator | Proposal Success Metrics | OptiRFP",
     description: "Calculate your proposal win rate, projected revenue and how you stack up against industry benchmarks.",
-    metaDescription: "Free proposal win rate calculator. Enter submitted vs won proposals to see your win rate, projected revenue and industry benchmarks.",
+    metaDescription: "Calculate your RFP win rate and benchmark against industry averages. Track proposal success metrics and identify improvement areas.",
     keywords: ["proposal win rate calculator", "rfp win rate", "bid win rate"],
     icon: TrendingUp,
     faqs: [
@@ -94,9 +94,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "compliance-matrix-generator",
     title: "Compliance Matrix Generator",
-    seoTitle: "Free Compliance Matrix Generator for RFPs",
+    seoTitle: "Free RFP Compliance Matrix Generator | OptiRFP",
     description: "Paste RFP text, auto-extract every shall/must/will requirement, then export a CSV compliance matrix.",
-    metaDescription: "Free compliance matrix generator. Paste an RFP and instantly extract every shall/must/will requirement into an editable, exportable CSV matrix.",
+    metaDescription: "Generate a compliance matrix for any RFP instantly. Map requirements to your response sections. Ensure nothing is missed. Free tool.",
     keywords: ["compliance matrix generator", "rfp compliance matrix template", "shall statement extractor"],
     icon: ListChecks,
     faqs: [
@@ -108,9 +108,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "naics-code-lookup",
     title: "NAICS Code Lookup",
-    seoTitle: "NAICS Code Lookup 2022 | Free Search Tool",
+    seoTitle: "Free NAICS Code Lookup | Search by Keyword or Number | OptiRFP",
     description: "Search the full 2022 NAICS code list by code or keyword. Find your industry classification in seconds.",
-    metaDescription: "Free NAICS code lookup. Search the official 2022 NAICS list (2,125 codes) by code or keyword to find the right industry classification for federal contracts, SAM.gov, and tax filings.",
+    metaDescription: "Search NAICS codes by keyword or code number. Find the right industry classification for government contracting and RFP responses. Free tool.",
     keywords: ["naics code lookup", "naics code search", "2022 naics codes", "naics classification"],
     icon: Hash,
     faqs: [
@@ -123,9 +123,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "psc-code-lookup",
     title: "PSC Code Lookup",
-    seoTitle: "PSC Code Lookup | Free Product Service Code Search",
+    seoTitle: "Free PSC Code Lookup | Product Service Codes | OptiRFP",
     description: "Search the full GSA Product Service Code list by code or keyword to classify federal contract opportunities.",
-    metaDescription: "Free PSC code lookup tool. Search the official GSA Product and Service Codes by code or keyword to identify the right classification for federal contract opportunities and SAM.gov bids.",
+    metaDescription: "Search Product and Service Codes (PSC) for federal contracting. Find the right PSC code for your RFP responses. Free lookup tool.",
     keywords: ["psc code lookup", "product service code search", "gsa psc codes", "federal psc code"],
     icon: Tag,
     faqs: [
@@ -138,9 +138,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "executive-summary-generator",
     title: "Executive Summary Generator",
-    seoTitle: "Free AI Executive Summary Generator for Proposals",
+    seoTitle: "Free Executive Summary Generator for RFPs | OptiRFP",
     description: "Paste your proposal context and get a polished executive summary in seconds — powered by AI, no signup required.",
-    metaDescription: "Free AI executive summary generator. Paste a proposal, RFP excerpt, or project brief and instantly produce a polished, concise executive summary in your chosen tone and length.",
+    metaDescription: "Generate compelling executive summaries for your RFP responses. Input key details, get a polished summary in seconds. Free tool.",
     keywords: ["executive summary generator", "ai executive summary", "proposal executive summary", "free executive summary tool"],
     icon: Sparkles,
     faqs: [
@@ -153,9 +153,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "capability-statement-generator",
     title: "Capability Statement Generator",
-    seoTitle: "Free Capability Statement Generator | Federal 1-Pager",
+    seoTitle: "Free Capability Statement Generator | GovCon | OptiRFP",
     description: "Build a federal-ready capability statement in minutes — live preview, instant PDF print, no signup.",
-    metaDescription: "Free capability statement generator for federal contractors. Enter your company info, core competencies, NAICS, UEI/CAGE and past performance to generate a printable 1-page capability statement.",
+    metaDescription: "Create professional capability statements for government contracting. One-page format that highlights your qualifications. Free generator.",
     keywords: ["capability statement generator", "capability statement template", "federal capability statement", "govcon capability statement"],
     icon: IdCard,
     faqs: [
@@ -168,9 +168,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "bid-no-bid-scorecard",
     title: "Bid / No-Bid Scorecard",
-    seoTitle: "Free Bid / No-Bid Scorecard Template",
+    seoTitle: "Free Bid/No-Bid Scorecard | RFP Decision Tool | OptiRFP",
     description: "Score any opportunity across 12 weighted criteria and get an instant bid / no-bid recommendation.",
-    metaDescription: "Free bid / no-bid scorecard. Score any RFP across 12 weighted criteria (fit, win probability, capacity, strategic value) and get an instant go / no-go recommendation with exportable summary.",
+    metaDescription: "Score your RFP opportunities objectively. Weighted criteria help you decide which bids to pursue. Free decision tool.",
     keywords: ["bid no bid scorecard", "bid no bid template", "go no go decision proposal", "bid no bid checklist"],
     icon: Scale,
     faqs: [
@@ -196,9 +196,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "govcon-acronym-decoder",
     title: "GovCon Acronym Decoder",
-    seoTitle: "Government Contracting Acronym Decoder | 500+ Terms",
+    seoTitle: "Free GovCon Acronym Decoder | Government Contracting | OptiRFP",
     description: "Browse 500+ federal contracting acronyms or paste an RFP and decode every acronym inline.",
-    metaDescription: "Free government contracting acronym decoder. Search 500+ federal acquisition acronyms (FAR, DFARS, SAM, NAICS, IDIQ, CDRL, CLIN, BPA, RFI) or paste an RFP to highlight and define every acronym automatically.",
+    metaDescription: "Decode government contracting acronyms instantly. RFI, RFP, RFQ, IDIQ, BPA — know what they all mean. Free reference tool.",
     keywords: ["government contracting acronyms", "federal acquisition acronyms", "rfp acronyms", "far acronyms", "govcon glossary"],
     icon: BookA,
     faqs: [
@@ -210,9 +210,9 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "plain-language-scorer",
     title: "Plain Language Readability Scorer",
-    seoTitle: "Free Plain Language & Readability Scorer for Proposals",
+    seoTitle: "Free Plain Language Scorer | RFP Readability Tool | OptiRFP",
     description: "Score proposal text for Flesch-Kincaid grade, passive voice and jargon — built for federal Plain Writing Act compliance.",
-    metaDescription: "Free plain language and readability scorer for proposals. Paste any text to see Flesch Reading Ease, Flesch-Kincaid grade, Gunning Fog, passive-voice count and proposal jargon flags — aligned with the federal Plain Writing Act.",
+    metaDescription: "Score your RFP response for readability and plain language compliance. Government requires clear writing — make sure you pass. Free tool.",
     keywords: ["plain language checker", "flesch kincaid score", "readability score proposals", "plain writing act"],
     icon: Gauge,
     faqs: [
@@ -225,7 +225,7 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-response-template-generator",
     title: "RFP Response Template Generator",
-    seoTitle: "Free RFP Response Template Generator | OptiRFP.ai",
+    seoTitle: "Free RFP Response Template Generator | OptiRFP",
     description: "Create professional RFP response templates in minutes. Select your industry and sections, download instantly as Word or PDF.",
     metaDescription: "Create professional RFP response templates instantly. Select your industry and sections, download free Word or PDF templates. No signup required.",
     keywords: ["rfp response template", "rfp template generator", "proposal template", "free rfp template"],

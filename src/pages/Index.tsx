@@ -59,7 +59,7 @@ const Index = () => {
             <img src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" alt="OptiRFP - AI-powered RFP Response Platform" className="h-16 md:h-20 mx-auto mb-4" />
             <h1 className="text-3xl md:text-5xl font-bold text-white max-w-3xl mx-auto leading-tight mb-4">
               Optimize Proposals. Win Opportunities.
-            </p>
+            </h1>
             <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-8">
               Streamline your RFP process, increase your win rate, and save hours with AI-powered tools designed for businesses like yours.
             </p>

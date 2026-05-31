@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -21,13 +22,10 @@ const comparisonRows = [
 
 const CompareAutoRFP = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs AutoRFP 2026 | Comparison",
-    description: "Compare OptiRFP and AutoRFP side by side. Transparent pricing from $0/mo vs custom quotes. See why teams choose OptiRFP's free tier and AI-native approach.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO {...SEO_CONFIG.compareAutoRfp} />
       <CompareNav />
 
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">

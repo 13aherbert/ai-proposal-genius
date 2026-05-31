@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -12,42 +12,14 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useExitIntent } from "@/hooks/use-exit-intent";
 import { ExitIntentModal } from "@/components/blocks/ExitIntentModal";
 import { useAuth } from "@/components/AuthProvider";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 
 const Index = () => {
   const { session } = useAuth();
   const { showModal: exitOpen, dismiss, close, signUp: exitSignUp } = useExitIntent({ isLoggedIn: !!session });
   const [exitSignupOpen, setExitSignupOpen] = useState(false);
 
-  const structuredData = useMemo(() => ({
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "name": "OptiRFP",
-        "url": "https://optirfp.ai",
-        "logo": "https://optirfp.ai/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png",
-        "sameAs": ["https://ai-proposal-genius.lovable.app"],
-      },
-      {
-        "@type": "WebSite",
-        "name": "OptiRFP",
-        "url": "https://optirfp.ai",
-        "description": "AI-powered RFP response platform. Reduce proposal time by 93%.",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://optirfp.ai/blog?q={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
-      }
-    ]
-  }), []);
-
-  useSEO({
-    title: "OptiRFP — AI RFP Response Software | Win More Contracts",
-    description: "AI-powered RFP response platform. Reduce proposal time by 93%. Free plan with 6 projects per year.",
-    structuredData,
-  });
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -77,6 +49,7 @@ const Index = () => {
   
   return (
     <div className="min-h-screen w-full bg-[#1a1a1a] text-white">
+      <SEO {...SEO_CONFIG.home} />
       <div className="absolute inset-0 gradient-bg" />
       <div className="relative z-10">
         {/* Main Content */}

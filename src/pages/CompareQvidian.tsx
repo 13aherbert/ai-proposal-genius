@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -22,13 +23,10 @@ const comparisonRows = [
 
 const CompareQvidian = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs Qvidian (Upland) 2026 | Modern Cloud Alternative",
-    description: "Compare OptiRFP and Upland Qvidian side by side. Modern cloud AI from $0/mo vs $30K+/year legacy software with 8-12 week implementation. Start free today.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO {...SEO_CONFIG.compareQvidian} />
       <CompareNav />
 
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">

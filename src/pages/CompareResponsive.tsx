@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -22,13 +23,10 @@ const comparisonRows = [
 
 const CompareResponsive = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs Responsive (RFPIO) 2026 | Modern AI Alternative",
-    description: "Compare OptiRFP and Responsive (formerly RFPIO) side by side. Flat-rate pricing from $0/mo vs $15K+/year per-seat enterprise contracts. Start free today.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO {...SEO_CONFIG.compareResponsive} />
       <CompareNav />
 
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">

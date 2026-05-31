@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CompareNav } from "@/components/navigation/CompareNav";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import { useSEO } from "@/hooks/use-seo";
+import { SEO } from "@/components/SEO";
+import { SEO_CONFIG } from "@/config/seo-config";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -22,13 +23,10 @@ const comparisonRows = [
 
 const ComparePandaDoc = () => {
   const [signupOpen, setSignupOpen] = useState(false);
-  useSEO({
-    title: "OptiRFP vs PandaDoc 2026 | RFP Specialist vs Generalist",
-    description: "Compare OptiRFP and PandaDoc side by side. Purpose-built RFP AI at $199/mo flat vs $35/user/mo for a general document platform. 6 free projects — no trial limits.",
-  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO {...SEO_CONFIG.comparePandaDoc} />
       <CompareNav />
 
       <section className="bg-gradient-to-br from-primary/10 via-background to-accent/10 border-b">

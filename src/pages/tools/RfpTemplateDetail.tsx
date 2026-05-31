@@ -31,7 +31,7 @@ function TemplateDetailContent({ template }: { template: NonNullable<ReturnType<
   const related = getRelatedTemplates(template.slug);
 
   useSEO({
-    title: `Free ${template.name} | OptiRFP.ai`,
+    title: `Free ${template.name} | Download Word/PDF | OptiRFP`,
     description: `${template.description} Free download in Word and PDF — no signup required.`,
     canonical,
     structuredData: {

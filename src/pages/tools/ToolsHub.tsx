@@ -80,9 +80,9 @@ export default function ToolsHub() {
   }), []);
 
   useSEO({
-    title: "Free RFP & Proposal Tools | OptiRFP",
+    title: "Free RFP Tools & Templates | OptiRFP",
     description:
-      "20+ free, no-signup tools for proposal teams — word counter, deadline calculator, win rate calculator, compliance matrix generator, NAICS lookup, AI response generator and more.",
+      "20+ free tools to help you write better RFP responses faster. Templates, calculators, generators, and guides — no signup required.",
     canonical: `${SITE}/tools`,
     structuredData,
   });

@@ -37,8 +37,9 @@ const Blog = () => {
   }), [posts]);
 
   useSEO({
-    title: "RFP Tips & Best Practices | OptiRFP Blog",
-    description: "Expert advice on writing winning RFPs, AI tools, and proposal best practices from the OptiRFP team.",
+    title: "RFP Tips & Proposal Writing Blog | OptiRFP",
+    description:
+      "Expert advice on RFP responses, proposal writing, government contracting, and AI-powered bidding strategies. Updated weekly.",
     canonical: "https://optirfp.ai/blog",
     structuredData,
   });

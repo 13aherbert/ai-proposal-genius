@@ -64,6 +64,18 @@ export function PublicNavbar() {
   const isHomePage = location.pathname === "/";
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const openAuth = (which: "login" | "signup") => {
+    setSheetOpen(false);
+    // Wait for Radix to fully unmount the Sheet & restore body styles
+    // before opening another modal — prevents pointer-events: none lock.
+    window.setTimeout(() => {
+      if (which === "login") setLoginOpen(true);
+      else setSignupOpen(true);
+    }, 350);
+  };
+
 
   return (
     <>

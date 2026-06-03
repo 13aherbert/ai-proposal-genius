@@ -64,6 +64,18 @@ export function PublicNavbar() {
   const isHomePage = location.pathname === "/";
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const openAuth = (which: "login" | "signup") => {
+    setSheetOpen(false);
+    // Wait for Radix to fully unmount the Sheet & restore body styles
+    // before opening another modal — prevents pointer-events: none lock.
+    window.setTimeout(() => {
+      if (which === "login") setLoginOpen(true);
+      else setSignupOpen(true);
+    }, 350);
+  };
+
 
   return (
     <>
@@ -164,7 +176,7 @@ export function PublicNavbar() {
             </div>
 
             {/* Mobile hamburger */}
-            <Sheet>
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" className="md:hidden h-10 w-10 p-0" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
@@ -172,7 +184,7 @@ export function PublicNavbar() {
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto max-h-screen">
                 <div className="mt-6 mb-4">
-                  <Link to="/" className="flex items-center">
+                  <Link to="/" className="flex items-center" onClick={() => setSheetOpen(false)}>
                     <img
                       src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
                       alt="OptiRFP - AI-powered RFP Response Platform"
@@ -214,22 +226,16 @@ export function PublicNavbar() {
                   <Separator />
 
                   <div className="flex flex-col gap-2 px-2 py-4">
-                    <SheetClose asChild>
-                      <Button variant="outline" className="w-full" onClick={() => setTimeout(() => setLoginOpen(true), 150)}>
-                        <LogIn className="h-4 w-4 mr-2" />
-                        Login
-                      </Button>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Button className="w-full" onClick={() => setTimeout(() => setSignupOpen(true), 150)}>
-                        Get Started
-                      </Button>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link to="/demo">Book Demo</Link>
-                      </Button>
-                    </SheetClose>
+                    <Button variant="outline" className="w-full" onClick={() => openAuth("login")}>
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Login
+                    </Button>
+                    <Button className="w-full" onClick={() => openAuth("signup")}>
+                      Get Started
+                    </Button>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link to="/demo" onClick={() => setSheetOpen(false)}>Book Demo</Link>
+                    </Button>
                   </div>
                 </nav>
               </SheetContent>
@@ -246,6 +252,7 @@ export function PublicNavbar() {
           </ErrorBoundary>
         </DialogContent>
       </Dialog>
+
 
       {/* Signup Dialog */}
       <Dialog open={signupOpen} onOpenChange={setSignupOpen}>

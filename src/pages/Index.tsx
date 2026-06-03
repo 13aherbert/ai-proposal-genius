@@ -81,6 +81,7 @@ const Index = () => {
           <SocialProofBar />
 
           {/* Key Benefits Section */}
+          <h2 className="sr-only">Core Features and Benefits</h2>
           <div id="features" className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 animate-fade-up delay-200">
             <div className="bg-[#181818]/90 rounded-lg p-6 backdrop-blur-sm shadow-lg">
               <div className="h-12 w-12 bg-brand-green/10 rounded-lg flex items-center justify-center mb-4">

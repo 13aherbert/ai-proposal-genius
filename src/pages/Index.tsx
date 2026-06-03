@@ -56,7 +56,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-16 min-h-screen">
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-up bg-[#181818]/90 rounded-lg p-8 backdrop-blur-sm shadow-2xl w-full max-w-2xl mx-auto mt-12">
-            <img src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" alt="OptiRFP - AI-powered RFP Response Platform" className="h-16 md:h-20 mx-auto mb-4" />
+            <img src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png" alt="OptiRFP - AI-powered RFP Response Platform" width="320" height="80" fetchPriority="high" decoding="async" className="h-16 md:h-20 w-auto mx-auto mb-4" />
             <h1 className="text-3xl md:text-5xl font-bold text-white max-w-3xl mx-auto leading-tight mb-4">
               Optimize Proposals. Win Opportunities.
             </h1>

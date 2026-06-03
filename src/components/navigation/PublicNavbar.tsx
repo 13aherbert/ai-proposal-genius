@@ -180,71 +180,93 @@ export function PublicNavbar() {
               </Button>
             </div>
 
-            {/* Mobile hamburger */}
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" className="md:hidden h-10 w-10 p-0" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto max-h-screen">
-                <div className="mt-6 mb-4">
-                  <Link to="/" className="flex items-center" onClick={() => setSheetOpen(false)}>
-                    <img
-                      src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
-                      alt="OptiRFP - AI-powered RFP Response Platform"
-                      className="h-8 w-auto"
-                    />
-                  </Link>
-                </div>
+            {/* Mobile right-side: Login + hamburger */}
+            <div className="md:hidden flex items-center gap-1">
+              <Button
+                variant={isHomePage ? "outline" : "ghost"}
+                size="sm"
+                onClick={() => openAuth("login")}
+                className={cn(
+                  "h-9 px-3",
+                  isHomePage && "border-white/30 text-white hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <LogIn className="h-4 w-4 mr-1.5" />
+                Login
+              </Button>
 
-                <Separator />
-
-                <nav className="flex flex-col gap-1 mt-3">
-                  {/* Product */}
-                  <MobileSection title="Product">
-                    <MobileLink to="/#features" icon={<Zap className="h-4 w-4" />}>Features</MobileLink>
-                    <MobileLink to="/pricing" icon={<DollarSign className="h-4 w-4" />}>Pricing</MobileLink>
-                    <MobileLink to="/integrations" icon={<Puzzle className="h-4 w-4" />}>Integrations</MobileLink>
-                    <MobileLink to="/security" icon={<ShieldCheck className="h-4 w-4" />}>Security</MobileLink>
-                  </MobileSection>
-
-                  <Separator />
-
-                  {/* Resources */}
-                  <MobileSection title="Resources">
-                    <MobileLink to="/blog" icon={<BookOpen className="h-4 w-4" />}>Blog</MobileLink>
-                    <MobileLink to="/faq" icon={<HelpCircle className="h-4 w-4" />}>FAQ</MobileLink>
-                    <MobileLink to="/docs" icon={<FileText className="h-4 w-4" />}>Documentation</MobileLink>
-                    <MobileLink to="/tools" icon={<Wrench className="h-4 w-4" />}>Free Tools</MobileLink>
-                  </MobileSection>
-
-                  <Separator />
-
-                  {/* Company */}
-                  <MobileSection title="Company">
-                    <MobileLink to="/about" icon={<Building2 className="h-4 w-4" />}>About</MobileLink>
-                    <MobileLink to="/contact" icon={<Mail className="h-4 w-4" />}>Contact</MobileLink>
-                    <MobileLink to="/demo" icon={<CalendarCheck className="h-4 w-4" />}>Book a Demo</MobileLink>
-                  </MobileSection>
-
-                  <Separator />
-
-                  <div className="flex flex-col gap-2 px-2 py-4">
-                    <Button variant="outline" className="w-full" onClick={() => openAuth("login")}>
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Login
-                    </Button>
-                    <Button className="w-full" onClick={() => openAuth("signup")}>
-                      Get Started
-                    </Button>
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link to="/demo" onClick={() => setSheetOpen(false)}>Book Demo</Link>
-                    </Button>
+              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" className="h-10 w-10 p-0" aria-label="Open menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-[88%] sm:w-[360px] p-0 flex flex-col h-[100dvh]"
+                >
+                  <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b">
+                    <Link to="/" className="flex items-center" onClick={() => setSheetOpen(false)}>
+                      <img
+                        src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
+                        alt="OptiRFP"
+                        className="h-8 w-auto"
+                      />
+                    </Link>
                   </div>
-                </nav>
-              </SheetContent>
-            </Sheet>
+
+                  <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[env(safe-area-inset-bottom)]">
+                    {/* Primary CTAs at the top */}
+                    <div className="flex flex-col gap-2 py-4">
+                      <Button className="w-full h-11" onClick={() => openAuth("signup")}>
+                        Get Started — Free
+                      </Button>
+                      <Button variant="outline" className="w-full h-11" onClick={() => openAuth("login")}>
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Login
+                      </Button>
+                      <Button variant="ghost" className="w-full h-11" asChild>
+                        <Link to="/demo" onClick={() => setSheetOpen(false)}>
+                          <CalendarCheck className="h-4 w-4 mr-2" />
+                          Book a Demo
+                        </Link>
+                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    <nav className="flex flex-col gap-1 py-2">
+                      <MobileSection title="Product">
+                        <MobileLink to="/#features" icon={<Zap className="h-4 w-4" />}>Features</MobileLink>
+                        <MobileLink to="/pricing" icon={<DollarSign className="h-4 w-4" />}>Pricing</MobileLink>
+                        <MobileLink to="/integrations" icon={<Puzzle className="h-4 w-4" />}>Integrations</MobileLink>
+                        <MobileLink to="/security" icon={<ShieldCheck className="h-4 w-4" />}>Security</MobileLink>
+                      </MobileSection>
+
+                      <Separator />
+
+                      <MobileSection title="Resources">
+                        <MobileLink to="/blog" icon={<BookOpen className="h-4 w-4" />}>Blog</MobileLink>
+                        <MobileLink to="/faq" icon={<HelpCircle className="h-4 w-4" />}>FAQ</MobileLink>
+                        <MobileLink to="/docs" icon={<FileText className="h-4 w-4" />}>Documentation</MobileLink>
+                        <MobileLink to="/tools" icon={<Wrench className="h-4 w-4" />}>Free Tools</MobileLink>
+                      </MobileSection>
+
+                      <Separator />
+
+                      <MobileSection title="Company">
+                        <MobileLink to="/about" icon={<Building2 className="h-4 w-4" />}>About</MobileLink>
+                        <MobileLink to="/contact" icon={<Mail className="h-4 w-4" />}>Contact</MobileLink>
+                      </MobileSection>
+
+                      {/* Bottom spacer so last items aren't hidden behind browser chrome */}
+                      <div className="h-8" />
+                    </nav>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
           </div>
         </div>
       </header>

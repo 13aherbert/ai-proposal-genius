@@ -232,7 +232,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[340px]">
+              <SheetContent side="right" className="w-[300px] sm:w-[340px] overflow-y-auto max-h-screen">
                 <div className="flex items-center gap-3 px-2 py-4 mt-4">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="text-sm">{initials}</AvatarFallback>

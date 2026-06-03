@@ -170,7 +170,7 @@ export function PublicNavbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto">
+              <SheetContent side="left" className="w-[300px] sm:w-[340px] overflow-y-auto max-h-screen">
                 <div className="mt-6 mb-4">
                   <Link to="/" className="flex items-center">
                     <img

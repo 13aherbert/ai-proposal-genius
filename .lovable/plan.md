@@ -1,61 +1,57 @@
-## Goal
+## SEO content build — capture demand competitors are winning
 
-Make every route show a unique, human-readable page title so analytics, browser tabs, and history list each page clearly (e.g. "Proposal Word Counter — OptiRFP" instead of the default site title).
+Semrush data (US, organic) on the head terms behind Loopio, Responsive, and Proposify's top pages shows three clear, low-difficulty wins for optirfp.ai:
 
-## What's already in place
+| Target keyword | Volume / mo | Difficulty | Why it's winnable |
+|---|---|---|---|
+| **what is an RFP** / *rfp meaning* | 27,100 + 6,600 | very low | Pure definition intent; Responsive's *rfp meaning* post ranks #1 with one page |
+| **rfp examples** | 1,600 | 19 (easy) | Responsive's #2 traffic page; clear template/example intent |
+| **rfp response template** | 590 (+ *rfp template* 2,900) | 8 (very easy) | Loopio's #5 traffic page; commercially valuable ($5.64 CPC) |
 
-The project has a `SEO` component (`src/components/SEO.tsx`) backed by `useSEO` that writes `<title>`, description, canonical, and Open Graph tags into `document.head`. Most pages already use it. Only a handful do not.
+### What to build
 
-## Pages missing per-route titles
+**1. `/resources/what-is-an-rfp`** — cornerstone glossary post
+- H1: "What Is an RFP? Request for Proposal Meaning, Process & Examples"
+- Covers definition, RFP vs RFI vs RFQ, who issues them, sample timeline
+- Internal links to the two pages below + Tools Hub + Sign-up CTA
 
-Tools (11):
-- `BidNoBidScorecard.tsx`
-- `CapabilityStatementGenerator.tsx`
-- `ComplianceMatrixGenerator.tsx`
-- `DeadlineCalculator.tsx`
-- `ExecutiveSummaryGenerator.tsx`
-- `GoNoGoDecisionTool.tsx`
-- `GovConAcronymDecoder.tsx`
-- `NaicsLookup.tsx`
-- `PlainLanguageScorer.tsx`
-- `ProposalOutlineGenerator.tsx`
-- `PscLookup.tsx`
-- `RfpResponseTemplateGenerator.tsx`
-- `WinRateCalculator.tsx`
-- `WordCounter.tsx`
+**2. `/resources/rfp-examples`** — examples gallery
+- 6–10 real-world RFP examples by industry (IT, construction, marketing, gov)
+- Each with a short breakdown ("what this RFP does well")
+- CTA: "Upload your RFP to OptiRFP to auto-extract requirements"
 
-Other pages (3):
-- `Pricing.tsx`
-- `SSOFinish.tsx`
-- `SsoSetupGuide.tsx`
+**3. `/resources/rfp-response-template`** — free downloadable template
+- Embedded template preview + downloadable .docx
+- Section-by-section guidance (exec summary, approach, pricing, team)
+- CTA: "Generate a tailored response with OptiRFP in minutes"
 
-## Changes
+### Page structure (all three)
 
-For each file above, add the existing `SEO` component near the top of the rendered output:
-
-```tsx
-<SEO
-  title="Proposal Word Counter — OptiRFP"
-  description="Count words, characters, and reading time for RFP responses."
-  canonical="https://optirfp.ai/tools/proposal-word-counter"
-/>
+```text
+PublicLayout
+  ├── SEO component (title, meta, canonical, og:*, Article JSON-LD)
+  ├── <h1> with target keyword
+  ├── Table of contents (anchor links)
+  ├── Long-form body (~1,500–2,500 words, semantic HTML, alt text)
+  ├── Related-resources cross-links
+  └── Sign-up CTA card
 ```
 
-Each page gets a unique, descriptive title (the tool's real name) and a one-sentence description. Canonicals self-reference the route on `optirfp.ai`.
+### Technical details
 
-## Why this fixes the analytics readability issue
+- New route group: `src/pages/resources/` with `WhatIsAnRFP.tsx`, `RfpExamples.tsx`, `RfpResponseTemplate.tsx`
+- Register routes in `src/App.tsx` under `PublicLayout`
+- Reuse the existing `SEO` component (`src/components/SEO.tsx`) — per-route title/description/canonical, matching the pattern set in the recent SSO pages work
+- Add the three URLs to `public/sitemap.xml`
+- Add a "Resources" link to `PublicNavbar` and `Footer`
+- Downloadable template: ship a static `.docx` in `public/downloads/` (file you provide, or I scaffold a basic one)
 
-Lovable's analytics panel lists URL paths today, but:
-- Browser tabs, history, and bookmarks will now show the friendly title.
-- Google Analytics / GSC / any third-party analytics records `document.title` alongside the path, making reports readable.
-- Future in-app analytics views can fall back to titles when paths are ambiguous.
+### Out of scope (separate follow-ups if you want them)
 
-## Out of scope
+- Loopio-style "best AI RFP software" listicle (would compete with our own product page)
+- Per-industry RFP template gallery (multi-page build, tackle after the cornerstone ranks)
+- Blog CMS — these are static MDX-style React pages; if you want them editable from the admin panel that's a bigger change
 
-- No changes to the Lovable analytics panel UI itself (not customizable from project code).
-- No new in-app analytics views or path→name mapping (you picked the lighter option).
-- No changes to pages that already use `SEO`/`useSEO`.
+### After deploy
 
-## Verification
-
-After build, spot-check 2–3 routes in the preview: tab title should match the page, and `document.title` in DevTools should reflect the new value.
+Trigger an SEO scan from the SEO & AI search tab to confirm titles, metas, and sitemap entries register cleanly.

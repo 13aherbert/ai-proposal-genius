@@ -2,10 +2,10 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
-
-Sitemap: https://optirfp.ai/sitemap.xml
 # Disallow auth-only app routes
 Disallow: /dashboard
 Disallow: /projects
 Disallow: /upload-rfp
 Disallow: /subscription
+
+Sitemap: https://ai-proposal-genius.lovable.app/sitemap.xml

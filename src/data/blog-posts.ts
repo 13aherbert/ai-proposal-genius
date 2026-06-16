@@ -206,6 +206,97 @@ Nothing undermines a proposal like visible rush marks — formatting inconsisten
 These five mistakes are entirely preventable. The organizations that win consistently aren't necessarily more qualified — they're more disciplined in their proposal process. Build these fixes into your standard workflow, and you'll see your win rate improve significantly.
 `,
   },
+  {
+    slug: "rfp-security-question-examples",
+    title: "RFP Security Question Examples (With Sample Answers)",
+    excerpt: "A practical guide to the technical and security questions enterprise buyers ask in RFPs — encryption, SOC 2, data residency, access control — with example answers you can adapt.",
+    category: "RFP Tips",
+    author: { name: "Priya Natarajan", role: "Security & Compliance Lead" },
+    date: "2026-06-16",
+    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80",
+    content: `
+## Why Security Questions Make or Break Enterprise RFPs
+
+Security and compliance sections often carry 20–30% of the evaluation weight in enterprise and public-sector RFPs. They're also where vague answers get flagged fastest. CISOs and procurement teams want specific controls, evidence, and dates — not marketing language.
+
+This guide walks through the security question examples that appear most often in enterprise RFPs, with sample answers you can adapt for your own responses.
+
+## 1. Encryption Standards
+
+**Question:** *Describe how data is encrypted in transit and at rest.*
+
+**Example answer:**
+> All customer data is encrypted at rest using AES-256 via managed keys in AWS KMS, with automatic key rotation every 90 days. Data in transit is protected with TLS 1.3, and we enforce HSTS across all customer-facing endpoints. Internal service-to-service traffic uses mTLS within a private VPC.
+
+**What evaluators look for:** specific algorithms (AES-256, TLS 1.3), key management approach, and rotation cadence.
+
+## 2. SOC 2 and Compliance Certifications
+
+**Question:** *List your current security certifications and provide the date of your most recent audit.*
+
+**Example answer:**
+> We maintain SOC 2 Type II certification, last audited in March 2026 by [Auditor Name], covering the Security, Availability, and Confidentiality trust service criteria. We are ISO 27001 certified (renewed January 2026) and HIPAA compliant for healthcare customers. Reports are available under NDA via our Trust Center.
+
+**Tip:** Include the audit date, scope, and how to request the report. Saying "SOC 2 compliant" without evidence is a common red flag.
+
+## 3. Data Residency
+
+**Question:** *Where is customer data stored, and can data be restricted to a specific region?*
+
+**Example answer:**
+> Customer data is hosted on AWS in your choice of US (us-east-1, us-west-2), EU (eu-west-1, Ireland), or APAC (ap-southeast-2, Sydney) regions. Region selection is enforced at provisioning and data does not leave the chosen region except for product telemetry, which can be disabled for enterprise customers.
+
+## 4. Access Control and Authentication
+
+**Question:** *Describe your authentication options and how access is managed.*
+
+**Example answer:**
+> We support SAML 2.0 SSO with Okta, Azure AD, Google Workspace, and OneLogin, plus SCIM 2.0 for automated user provisioning and deprovisioning. MFA is enforced for all admin roles. Role-based access control (RBAC) supports custom roles, and all administrative actions are logged to an immutable audit trail retained for 7 years.
+
+## 5. Vulnerability Management and Penetration Testing
+
+**Question:** *How often do you conduct penetration testing and vulnerability scans?*
+
+**Example answer:**
+> We engage an independent third party for annual penetration tests (most recent: February 2026). Automated SAST and dependency scans run on every pull request, DAST scans run weekly against staging, and infrastructure scans run daily. Critical vulnerabilities are patched within 24 hours, high within 7 days, per our published vulnerability disclosure policy.
+
+## 6. Incident Response and Breach Notification
+
+**Question:** *Describe your incident response process and breach notification SLA.*
+
+**Example answer:**
+> We maintain a documented incident response plan tested quarterly via tabletop exercises. Customers are notified of any confirmed security incident affecting their data within 24 hours, with a full post-mortem provided within 30 days. Our 24/7 security team is on-call with a 15-minute response SLA for Sev-1 incidents.
+
+## 7. Data Retention and Deletion
+
+**Question:** *How is customer data handled at the end of the contract?*
+
+**Example answer:**
+> Customers can export all data via API or UI at any time. On contract termination, data is retained for 30 days to support reactivation, then permanently deleted within 60 days, including backups. A certificate of deletion is provided upon request.
+
+## 8. Subprocessors and Vendor Management
+
+**Question:** *List all subprocessors with access to customer data.*
+
+**Example answer:**
+> Our current subprocessor list is published at [trust-center-url]/subprocessors and includes AWS (infrastructure), Stripe (billing), and Twilio SendGrid (transactional email). Customers receive 30 days' notice of any new subprocessor and can object per our DPA.
+
+## Tips for Answering Security Questions Well
+
+- **Be specific.** "Industry-standard encryption" loses points; "AES-256 with KMS-managed keys rotated every 90 days" wins them.
+- **Cite evidence.** Reference your SOC 2 report, pen test letter, or Trust Center rather than asserting controls exist.
+- **Match the question's scope.** If they ask about data in transit, don't pad the answer with at-rest details — answer the question first, then add context.
+- **Maintain a security answer library.** The same 30–40 questions appear in nearly every enterprise RFP. A maintained library cuts response time from days to hours.
+
+## How OptiRFP Helps
+
+OptiRFP's knowledge base is purpose-built for security and compliance content. Approved answers from past proposals are automatically surfaced when the same question appears in a new RFP, and the AI flags any answer that may be stale (older than 90 days) so your team can review before submission.
+
+## Key Takeaways
+
+Security sections reward specificity and evidence. Build a maintained answer library, keep certification dates current, and answer the question that was actually asked. Teams that do this consistently turn the security section from a bottleneck into a differentiator.
+`,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {

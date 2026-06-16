@@ -130,7 +130,12 @@ Deno.serve(async (req) => {
       details_param: { email, organization_id: organizationId, provider: consumed.provider, isNewUser },
     });
 
-    const origin = req.headers.get('origin') || Deno.env.get('SUPABASE_URL');
+    const SITE_URL = Deno.env.get('SITE_URL') || 'https://optirfp.ai';
+    const ALLOWED_ORIGINS = new Set(
+      ['https://optirfp.ai', 'https://www.optirfp.ai', SITE_URL].filter(Boolean),
+    );
+    const requestOrigin = req.headers.get('origin') || '';
+    const origin = ALLOWED_ORIGINS.has(requestOrigin) ? requestOrigin : SITE_URL;
     const { data: link, error: linkErr } = await client.auth.admin.generateLink({
       type: 'magiclink',
       email,

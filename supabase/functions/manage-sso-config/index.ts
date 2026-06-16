@@ -185,10 +185,19 @@ Deno.serve(async (req) => {
           try {
             const ssoUrl = configData.configuration.sso_url;
             if (ssoUrl.startsWith('https://') && !ssoUrl.includes('{')) {
-              const resp = await fetch(ssoUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
-              if (!resp.ok && resp.status !== 405 && resp.status !== 302 && resp.status !== 301) {
-                validation.errors.push(`SSO URL returned status ${resp.status}`);
+              // SSRF guard: block private/link-local/loopback ranges and metadata endpoints
+              const parsed = new URL(ssoUrl);
+              const hostname = parsed.hostname.toLowerCase();
+              const BLOCKED = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|0\.0\.0\.0|::1|fc00:|fd00:|fe80:)/i;
+              if (BLOCKED.test(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+                validation.errors.push('Private, loopback, or link-local URLs are not allowed for SSO endpoints');
                 validation.valid = false;
+              } else {
+                const resp = await fetch(ssoUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000), redirect: 'manual' });
+                if (!resp.ok && resp.status !== 405 && resp.status !== 302 && resp.status !== 301) {
+                  validation.errors.push(`SSO URL returned status ${resp.status}`);
+                  validation.valid = false;
+                }
               }
             }
           } catch (fetchErr: any) {

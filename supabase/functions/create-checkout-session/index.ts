@@ -147,8 +147,8 @@ serve(async (req) => {
           },
         ],
         mode: 'subscription',
-        success_url: `${req.headers.get('origin')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.get('origin')}/subscription`,
+        success_url: `${Deno.env.get('SITE_URL') || 'https://optirfp.ai'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${Deno.env.get('SITE_URL') || 'https://optirfp.ai'}/subscription`,
         subscription_data: {
           trial_period_days: 14,
           metadata: {

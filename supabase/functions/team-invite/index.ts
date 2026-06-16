@@ -61,6 +61,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Prevent privilege escalation: admins cannot create owner-level invitations
+    const allowedRoles = membership.role === "owner"
+      ? ["owner", "admin", "manager", "editor", "reviewer", "viewer", "member", "billing_admin"]
+      : ["admin", "manager", "editor", "reviewer", "viewer", "member", "billing_admin"];
+    if (!allowedRoles.includes(role)) {
+      return new Response(
+        JSON.stringify({ error: "You cannot assign a role equal to or higher than your own" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     // Count current team size (active members + pending invitations)
     const [membersResult, invitationsResult] = await Promise.all([

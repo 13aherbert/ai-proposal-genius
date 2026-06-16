@@ -83,11 +83,12 @@ serve(async (req) => {
     let sessionParams = {};
 
     // Create parameters for the billing portal session
+    const APP_URL = Deno.env.get('SITE_URL') || 'https://optirfp.ai';
     if (customerId) {
       console.log('Creating billing portal session with customer ID:', customerId);
       sessionParams = {
         customer: customerId,
-        return_url: `${req.headers.get('origin')}/subscription`,
+        return_url: `${APP_URL}/subscription`,
       };
     } else if (subscriptionId) {
       console.log('Creating billing portal session with subscription ID:', subscriptionId);
@@ -104,7 +105,7 @@ serve(async (req) => {
       }
       sessionParams = {
         customer: subscription.customer as string,
-        return_url: `${req.headers.get('origin')}/subscription`,
+        return_url: `${APP_URL}/subscription`,
       };
     }
 

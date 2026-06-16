@@ -4,12 +4,18 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Globe, KeyRound, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SEO } from '@/components/SEO';
 
 const REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sso-oidc-callback`;
 
 export default function SsoSetupGuide() {
   return (
     <div className="container max-w-4xl py-6 space-y-6">
+      <SEO
+        title="SSO Setup Guide — OptiRFP"
+        description="Configure SAML or OIDC single sign-on for your organization in OptiRFP."
+        canonical="https://optirfp.ai/docs/sso-setup"
+      />
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Shield className="h-7 w-7 text-primary" /> SSO setup guide

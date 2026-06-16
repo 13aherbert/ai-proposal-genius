@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SEO } from "@/components/SEO";
 
 /**
  * Public route that finishes an external SSO flow.
@@ -42,6 +43,11 @@ export default function SSOFinish() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
+      <SEO
+        title="Completing SSO sign-in — OptiRFP"
+        description="Finishing single sign-on with your identity provider."
+        canonical="https://optirfp.ai/sso/finish"
+      />
       <div className="max-w-md w-full text-center space-y-4">
         {error ? (
           <>

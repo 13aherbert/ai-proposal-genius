@@ -37,7 +37,7 @@ function LogoUpload({ logoUrl, onLogoChange }: { logoUrl: string | null; onLogoC
         <input {...getInputProps()} />
         {logoUrl ? (
           <div className="flex items-center justify-center gap-3">
-            <img src={logoUrl} alt="Logo" className="h-10 w-10 object-contain rounded" />
+            <img src={logoUrl} alt="Company logo" className="h-10 w-10 object-contain rounded" />
             <span className="text-xs text-muted-foreground">Drop to replace</span>
           </div>
         ) : (
@@ -58,7 +58,7 @@ function BrandPreview({ primaryColor, secondaryColor, headerFont, bodyFont, logo
     <div className="border rounded-lg overflow-hidden">
       <div className="p-3" style={{ background: primaryColor }}>
         <div className="flex items-center gap-2">
-          {logoUrl && <img src={logoUrl} alt="Logo" className="h-5 w-5 object-contain rounded" />}
+          {logoUrl && <img src={logoUrl} alt="Company logo" className="h-5 w-5 object-contain rounded" />}
           <span className="text-white text-xs font-semibold" style={{ fontFamily: headerFont }}>Proposal Title</span>
         </div>
       </div>

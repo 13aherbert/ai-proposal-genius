@@ -200,7 +200,7 @@ export default function BlogPostEditor({ post, onSaved }: BlogPostEditorProps) {
                 <Label htmlFor="imageUrl">Cover Image URL</Label>
                 <Input id="imageUrl" value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." />
                 {imageUrl && (
-                  <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-md mt-2" />
+                  <img src={imageUrl} alt="Blog post cover preview" className="w-full h-32 object-cover rounded-md mt-2" />
                 )}
               </div>
 

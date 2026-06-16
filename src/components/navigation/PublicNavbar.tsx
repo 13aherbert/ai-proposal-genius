@@ -129,7 +129,16 @@ export function PublicNavbar() {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[380px] gap-2 p-4">
+                    <ul className="grid w-[420px] gap-2 p-4">
+                      <ListItem to="/resources/what-is-an-rfp" title="What is an RFP?" icon={<BookOpen className="h-4 w-4" />}>
+                        Plain-English guide to the RFP process
+                      </ListItem>
+                      <ListItem to="/resources/rfp-examples" title="RFP examples" icon={<FileText className="h-4 w-4" />}>
+                        Annotated samples by industry
+                      </ListItem>
+                      <ListItem to="/resources/rfp-response-template" title="RFP response template" icon={<FileText className="h-4 w-4" />}>
+                        11-section framework for winning proposals
+                      </ListItem>
                       <ListItem to="/blog" title="Blog" icon={<BookOpen className="h-4 w-4" />}>
                         Insights, tips, and product updates
                       </ListItem>
@@ -246,6 +255,9 @@ export function PublicNavbar() {
                       <Separator />
 
                       <MobileSection title="Resources">
+                        <MobileLink to="/resources/what-is-an-rfp" icon={<BookOpen className="h-4 w-4" />}>What is an RFP?</MobileLink>
+                        <MobileLink to="/resources/rfp-examples" icon={<FileText className="h-4 w-4" />}>RFP examples</MobileLink>
+                        <MobileLink to="/resources/rfp-response-template" icon={<FileText className="h-4 w-4" />}>RFP response template</MobileLink>
                         <MobileLink to="/blog" icon={<BookOpen className="h-4 w-4" />}>Blog</MobileLink>
                         <MobileLink to="/faq" icon={<HelpCircle className="h-4 w-4" />}>FAQ</MobileLink>
                         <MobileLink to="/docs" icon={<FileText className="h-4 w-4" />}>Documentation</MobileLink>

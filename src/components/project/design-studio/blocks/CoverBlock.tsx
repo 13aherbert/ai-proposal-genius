@@ -43,7 +43,7 @@ export function CoverBlock({ block, settings, onUpdate, preview, organizationId 
 
   if (preview) {
     const logo = resolvedLogoUrl ? (
-      <img src={resolvedLogoUrl} alt="Logo" className="max-h-16 max-w-[200px] object-contain" />
+      <img src={resolvedLogoUrl} alt="Company logo" className="max-h-16 max-w-[200px] object-contain" />
     ) : null;
 
     const bgImage = resolvedCoverImage;

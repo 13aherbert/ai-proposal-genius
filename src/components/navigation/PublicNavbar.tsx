@@ -129,29 +129,43 @@ export function PublicNavbar() {
                 <NavigationMenuItem>
                   <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[420px] gap-2 p-4">
-                      <ListItem to="/resources/what-is-an-rfp" title="What is an RFP?" icon={<BookOpen className="h-4 w-4" />}>
-                        Plain-English guide to the RFP process
-                      </ListItem>
-                      <ListItem to="/resources/rfp-examples" title="RFP examples" icon={<FileText className="h-4 w-4" />}>
-                        Annotated samples by industry
-                      </ListItem>
-                      <ListItem to="/resources/rfp-response-template" title="RFP response template" icon={<FileText className="h-4 w-4" />}>
-                        11-section framework for winning proposals
-                      </ListItem>
-                      <ListItem to="/blog" title="Blog" icon={<BookOpen className="h-4 w-4" />}>
-                        Insights, tips, and product updates
-                      </ListItem>
-                      <ListItem to="/faq" title="FAQ" icon={<HelpCircle className="h-4 w-4" />}>
-                        Frequently asked questions
-                      </ListItem>
-                      <ListItem to="/docs" title="Documentation" icon={<FileText className="h-4 w-4" />}>
-                        Guides and API reference
-                      </ListItem>
-                      <ListItem to="/tools" title="Free Tools" icon={<Wrench className="h-4 w-4" />}>
-                        Word counter, deadline planner, compliance matrix and more
-                      </ListItem>
-                    </ul>
+                    <div className="grid w-[560px] grid-cols-2 gap-4 p-4">
+                      <div>
+                        <h4 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Guides
+                        </h4>
+                        <ul className="grid gap-1">
+                          <ListItem to="/resources/what-is-an-rfp" title="What is an RFP?" icon={<BookOpen className="h-4 w-4" />}>
+                            Plain-English guide to the RFP process
+                          </ListItem>
+                          <ListItem to="/resources/rfp-examples" title="RFP examples" icon={<FileText className="h-4 w-4" />}>
+                            Annotated samples by industry
+                          </ListItem>
+                          <ListItem to="/resources/rfp-response-template" title="RFP response template" icon={<FileText className="h-4 w-4" />}>
+                            11-section framework for winning proposals
+                          </ListItem>
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          More
+                        </h4>
+                        <ul className="grid gap-1">
+                          <ListItem to="/blog" title="Blog" icon={<BookOpen className="h-4 w-4" />}>
+                            Insights, tips, and product updates
+                          </ListItem>
+                          <ListItem to="/faq" title="FAQ" icon={<HelpCircle className="h-4 w-4" />}>
+                            Frequently asked questions
+                          </ListItem>
+                          <ListItem to="/docs" title="Documentation" icon={<FileText className="h-4 w-4" />}>
+                            Guides and API reference
+                          </ListItem>
+                          <ListItem to="/tools" title="Free Tools" icon={<Wrench className="h-4 w-4" />}>
+                            Word counter, deadline planner, and more
+                          </ListItem>
+                        </ul>
+                      </div>
+                    </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
@@ -255,9 +269,16 @@ export function PublicNavbar() {
                       <Separator />
 
                       <MobileSection title="Resources">
+                        <p className="mb-1 mt-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                          Guides
+                        </p>
                         <MobileLink to="/resources/what-is-an-rfp" icon={<BookOpen className="h-4 w-4" />}>What is an RFP?</MobileLink>
                         <MobileLink to="/resources/rfp-examples" icon={<FileText className="h-4 w-4" />}>RFP examples</MobileLink>
                         <MobileLink to="/resources/rfp-response-template" icon={<FileText className="h-4 w-4" />}>RFP response template</MobileLink>
+                        <div className="my-2 mx-3 h-px bg-border" />
+                        <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                          More
+                        </p>
                         <MobileLink to="/blog" icon={<BookOpen className="h-4 w-4" />}>Blog</MobileLink>
                         <MobileLink to="/faq" icon={<HelpCircle className="h-4 w-4" />}>FAQ</MobileLink>
                         <MobileLink to="/docs" icon={<FileText className="h-4 w-4" />}>Documentation</MobileLink>

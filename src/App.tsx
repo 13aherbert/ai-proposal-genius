@@ -95,6 +95,9 @@ const RfpTemplateDetail = lazy(() => import("@/pages/tools/RfpTemplateDetail"));
 const HowToRespondToRfpGuide = lazy(() => import("@/pages/tools/HowToRespondToRfpGuide"));
 const RfpResponseGenerator = lazy(() => import("@/pages/tools/RfpResponseGenerator"));
 const GoNoGoDecisionTool = lazy(() => import("@/pages/tools/GoNoGoDecisionTool"));
+const WhatIsAnRFP = lazy(() => import("@/pages/resources/WhatIsAnRFP"));
+const RfpExamples = lazy(() => import("@/pages/resources/RfpExamples"));
+const RfpResponseTemplate = lazy(() => import("@/pages/resources/RfpResponseTemplate"));
 
 
 import PublicLayout from "@/layouts/PublicLayout";
@@ -238,6 +241,10 @@ function AppContent() {
           <Route path="/tools/ai-rfp-response-generator" element={<RfpResponseGenerator />} />
           <Route path="/tools/rfp-go-no-go-decision-tool" element={<GoNoGoDecisionTool />} />
 
+          {/* SEO resource pages */}
+          <Route path="/resources/what-is-an-rfp" element={<WhatIsAnRFP />} />
+          <Route path="/resources/rfp-examples" element={<RfpExamples />} />
+          <Route path="/resources/rfp-response-template" element={<RfpResponseTemplate />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

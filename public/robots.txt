@@ -8,4 +8,4 @@ Disallow: /projects
 Disallow: /upload-rfp
 Disallow: /subscription
 
-Sitemap: https://ai-proposal-genius.lovable.app/sitemap.xml
+Sitemap: https://optirfp.ai/sitemap.xml

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { BlogPostData } from "@/hooks/use-blog-posts";
+import { submitToIndexNow } from "@/utils/indexnow";
 import { useQueryClient } from "@tanstack/react-query";
 
 const CATEGORIES = ["RFP Tips", "AI", "Sales"] as const;

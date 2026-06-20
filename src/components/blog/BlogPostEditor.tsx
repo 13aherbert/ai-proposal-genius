@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { BlogPostData } from "@/hooks/use-blog-posts";
+import { submitToIndexNow } from "@/utils/indexnow";
 import { useQueryClient } from "@tanstack/react-query";
 
 const CATEGORIES = ["RFP Tips", "AI", "Sales"] as const;
@@ -96,6 +97,9 @@ export default function BlogPostEditor({ post, onSaved }: BlogPostEditorProps) {
 
       toast.success(status === "published" ? "Post published!" : "Draft saved!");
       queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
+      if (status === "published") {
+        submitToIndexNow(`https://optirfp.ai/blog/${slug.trim()}`);
+      }
       onSaved?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to save post");

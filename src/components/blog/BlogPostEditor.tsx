@@ -96,6 +96,9 @@ export default function BlogPostEditor({ post, onSaved }: BlogPostEditorProps) {
 
       toast.success(status === "published" ? "Post published!" : "Draft saved!");
       queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
+      if (status === "published") {
+        submitToIndexNow(`https://optirfp.ai/blog/${slug.trim()}`);
+      }
       onSaved?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to save post");

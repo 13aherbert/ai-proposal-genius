@@ -50,6 +50,7 @@ const SsoSetupGuide = lazy(() => import("@/pages/SsoSetupGuide"));
 const ApiDocs = lazy(() => import("@/pages/ApiDocs"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const BestRfpResponseSoftware = lazy(() => import("@/pages/BestRfpResponseSoftware"));
 const CompareLoopio = lazy(() => import("@/pages/CompareLoopio"));
 const CompareAutoRFP = lazy(() => import("@/pages/CompareAutoRFP"));
 const CompareResponsive = lazy(() => import("@/pages/CompareResponsive"));
@@ -206,6 +207,7 @@ function AppContent() {
           <Route path="/docs" element={<Documentation />} />
           <Route path="/docs/:docId" element={<Documentation />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/best-rfp-response-software-comparison" element={<BestRfpResponseSoftware />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/compare/loopio" element={<CompareLoopio />} />
           <Route path="/compare/autorfp" element={<CompareAutoRFP />} />

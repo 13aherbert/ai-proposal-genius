@@ -97,6 +97,8 @@ export function PublicNavbar() {
               <img
                 src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
                 alt="OptiRFP - AI-powered RFP Response Platform"
+                width="144"
+                height="36"
                 className="h-8 sm:h-9 w-auto"
               />
             </Link>

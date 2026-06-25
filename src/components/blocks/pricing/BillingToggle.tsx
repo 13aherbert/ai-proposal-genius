@@ -33,11 +33,13 @@ export function BillingToggle() {
   };
   return <div className="flex justify-center items-center mb-10 gap-4">
       <span className="font-semibold">Monthly</span>
-      <label className="relative inline-flex items-center cursor-pointer">
-        <Label>
-          <Switch ref={switchRef as any} checked={!isMonthly} onCheckedChange={handleToggle} className="h-7 w-14 bg-gray-600 data-[state=checked]:bg-brand-green border-2 border-white/20" />
-        </Label>
-      </label>
+      <Switch
+        ref={switchRef as any}
+        checked={!isMonthly}
+        onCheckedChange={handleToggle}
+        aria-label="Toggle annual billing"
+        className="h-7 w-14 bg-gray-600 data-[state=checked]:bg-brand-green border-2 border-white/20"
+      />
       <span className="font-semibold">
         Annual <span className="text-brand-green">(Save 10%)</span>
       </span>

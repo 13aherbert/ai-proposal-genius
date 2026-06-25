@@ -235,6 +235,8 @@ export function PublicNavbar() {
                       <img
                         src="/lovable-uploads/e3257c71-ec26-4f77-b50f-f3115dd1a320.png"
                         alt="OptiRFP"
+                        width="128"
+                        height="32"
                         className="h-8 w-auto"
                       />
                     </Link>

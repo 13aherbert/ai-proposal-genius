@@ -11,7 +11,7 @@ import { useWebVitals } from "@/hooks/use-web-vitals";
 
 // Eagerly loaded pages (critical path)
 import Index from "@/pages/Index";
-import Dashboard from "@/pages/Dashboard";
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
 import NotFound from "@/pages/NotFound";
 
 // Lazy loaded pages

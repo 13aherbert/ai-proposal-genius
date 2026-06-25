@@ -224,7 +224,7 @@ export function BrandGuidelinesCard() {
                     <div className="flex gap-1">
                       <Dialog open={editId === g.id} onOpenChange={open => setEditId(open ? g.id : null)}>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit brand guideline"><Edit className="h-3.5 w-3.5" /></Button>
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader><DialogTitle>Edit Brand Guideline</DialogTitle></DialogHeader>
@@ -240,9 +240,10 @@ export function BrandGuidelinesCard() {
                           )}
                         </DialogContent>
                       </Dialog>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteGuideline(g.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label="Delete brand guideline" onClick={() => deleteGuideline(g.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
+
                     </div>
                   </div>
                 ))}

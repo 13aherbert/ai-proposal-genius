@@ -66,7 +66,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="lg" className="bg-brand-green hover:bg-brand-green-dark text-white font-semibold">Start Forever Free Today</Button>
+                  <Button size="lg" className="bg-brand-green-dark hover:bg-brand-green-dark/90 text-white font-semibold">Start Forever Free Today</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <ErrorBoundary name="SignupModal">

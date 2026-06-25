@@ -157,7 +157,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
             "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-              ? "bg-brand-green text-white text-xl py-6"
+              ? "bg-brand-green-dark text-white text-xl py-6"
               : plan.name === "Starter"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-foreground/10 text-foreground"
@@ -177,7 +177,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
               "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-                ? "bg-brand-green text-white text-xl py-6"
+                ? "bg-brand-green-dark text-white text-xl py-6"
                 : plan.name === "Starter"
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-foreground/10 text-foreground"
@@ -226,7 +226,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       )}
     >
       {plan.isPopular && (
-        <div className="absolute top-0 right-0 bg-brand-green py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
+        <div className="absolute top-0 right-0 bg-brand-green-dark py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
           <Star className="text-white h-4 w-4 fill-current" />
           <span className="text-white ml-1 font-sans font-semibold">
             Most Popular
@@ -243,7 +243,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
       )}
       
       {plan.badge && !plan.isPopular && !isEnterprise && (
-        <div className="absolute top-0 left-0 bg-brand-green py-0.5 px-2 rounded-br-xl rounded-tl-xl">
+        <div className="absolute top-0 left-0 bg-brand-green-dark py-0.5 px-2 rounded-br-xl rounded-tl-xl">
           <span className="text-white text-xs font-semibold">
             {plan.badge}
           </span>

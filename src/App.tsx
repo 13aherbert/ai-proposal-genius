@@ -50,6 +50,7 @@ const SsoSetupGuide = lazy(() => import("@/pages/SsoSetupGuide"));
 const ApiDocs = lazy(() => import("@/pages/ApiDocs"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const BestRfpResponseSoftware = lazy(() => import("@/pages/BestRfpResponseSoftware"));
 const CompareLoopio = lazy(() => import("@/pages/CompareLoopio"));
 const CompareAutoRFP = lazy(() => import("@/pages/CompareAutoRFP"));
 const CompareResponsive = lazy(() => import("@/pages/CompareResponsive"));

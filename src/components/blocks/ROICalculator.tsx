@@ -21,8 +21,9 @@ export function ROICalculator() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div>
-          <Label className="text-gray-300 mb-1.5 block">RFPs / month</Label>
+          <Label htmlFor="roi-rfps" className="text-gray-300 mb-1.5 block">RFPs / month</Label>
           <Input
+            id="roi-rfps"
             type="number"
             min={1}
             value={rfps}
@@ -31,8 +32,9 @@ export function ROICalculator() {
           />
         </div>
         <div>
-          <Label className="text-gray-300 mb-1.5 block">Hours / RFP</Label>
+          <Label htmlFor="roi-hours" className="text-gray-300 mb-1.5 block">Hours / RFP</Label>
           <Input
+            id="roi-hours"
             type="number"
             min={1}
             value={hours}
@@ -41,8 +43,9 @@ export function ROICalculator() {
           />
         </div>
         <div>
-          <Label className="text-gray-300 mb-1.5 block">Hourly cost ($)</Label>
+          <Label htmlFor="roi-cost" className="text-gray-300 mb-1.5 block">Hourly cost ($)</Label>
           <Input
+            id="roi-cost"
             type="number"
             min={1}
             value={cost}
@@ -57,7 +60,7 @@ export function ROICalculator() {
           ${annualSavings.toLocaleString()}
         </p>
         <p className="text-sm text-gray-300 mt-1">Your estimated annual savings with OptiRFP</p>
-        <p className="text-xs text-gray-500 mt-2">Most customers save $20,000+ per year</p>
+        <p className="text-xs text-gray-300 mt-2">Most customers save $20,000+ per year</p>
       </div>
     </div>
   );

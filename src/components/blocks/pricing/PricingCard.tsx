@@ -157,7 +157,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
             "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
             "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-              ? "bg-brand-green text-white text-xl py-6"
+              ? "bg-brand-green-dark text-white text-xl py-6"
               : plan.name === "Starter"
               ? "bg-blue-500 text-white hover:bg-blue-600"
               : "bg-foreground/10 text-foreground"
@@ -177,7 +177,7 @@ export function PricingCard({ plan, index, isDesktop }: PricingCardProps) {
               "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
               "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-brand-green hover:ring-offset-1 hover:bg-brand-green hover:text-white",
               plan.isPopular
-                ? "bg-brand-green text-white text-xl py-6"
+                ? "bg-brand-green-dark text-white text-xl py-6"
                 : plan.name === "Starter"
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-foreground/10 text-foreground"

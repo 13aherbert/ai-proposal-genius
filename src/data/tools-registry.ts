@@ -244,10 +244,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-template-library",
     title: "RFP Template Library",
+    h1: "Free RFP Template Library",
     seoTitle: "Free RFP Template Library | 25+ Industry Templates | OptiRFP",
     description: "Browse and download 25+ free RFP response templates by industry — Word and PDF, no signup required.",
-    metaDescription: "Free RFP template library. Download professional RFP response templates for IT, construction, software, consulting, healthcare, government and more — in Word and PDF, 100% free.",
+    metaDescription: "Download free, professional RFP templates for IT, construction, software, consulting, healthcare, and government. Word, PDF, and Google Docs formats.",
     keywords: ["rfp template library", "free rfp templates", "rfp response templates", "industry rfp templates"],
+
     icon: Library,
     faqs: [
       { q: "Are these RFP templates really free?", a: "Yes — every template is 100% free to download. No signup, no email gate, no watermark." },

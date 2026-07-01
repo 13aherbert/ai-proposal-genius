@@ -277,6 +277,8 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "ai-rfp-response-generator",
     title: "AI RFP Response Generator",
+    h1: "Free AI RFP Response Generator",
+
     seoTitle: "Free AI RFP Response Generator | Try the Demo | OptiRFP",
     description: "Generate a professional RFP response with AI in seconds. Paste an RFP question, add your company info, see the AI draft — free demo.",
     metaDescription: "Generate professional RFP responses with AI. Try our free demo — paste an RFP question, add your company info, and see AI write a response in seconds.",

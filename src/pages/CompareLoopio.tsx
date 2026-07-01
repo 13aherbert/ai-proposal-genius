@@ -39,7 +39,8 @@ const CompareLoopio = () => {
             <span className="text-3xl md:text-4xl font-bold text-muted-foreground">Loopio</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            The Modern AI Alternative to Loopio
+            OptiRFP vs Loopio: Which RFP Software Wins?
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Stop paying enterprise prices for a content library. Get AI-powered proposal generation that actually writes your responses.

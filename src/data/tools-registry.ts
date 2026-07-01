@@ -293,6 +293,8 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-go-no-go-decision-tool",
     title: "RFP Go/No-Go Decision Tool",
+    h1: "Should You Bid on This RFP?",
+
     seoTitle: "RFP Go/No-Go Decision Tool | Should You Bid? | OptiRFP",
     description: "Answer 5 quick questions and get an objective bid / no-bid recommendation with factor-specific action items.",
     metaDescription: "Should you bid on that RFP? Answer 5 quick questions and get an objective bid/no-bid recommendation with specific action items. Free tool.",

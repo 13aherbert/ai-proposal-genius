@@ -102,7 +102,7 @@ export function ToolPageLayout({ tool, howItWorks, whyItMatters, children }: Too
 
         {/* Hero */}
         <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">{tool.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">{tool.h1 ?? tool.title}</h1>
           <p className="text-lg text-muted-foreground mb-3">{tool.description}</p>
           <p className="inline-flex items-center gap-2 text-sm text-brand-green">
             <CheckCircle2 className="h-4 w-4" /> 100% free — no signup required

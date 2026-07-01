@@ -417,10 +417,12 @@ export default function LifetimeDeal() {
           <Sparkles className="h-4 w-4" /> Limited Lifetime Offer — invitation only
         </div>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-          Win more RFPs.
-          <br />
-          <span className="text-primary">Pay once. Use forever.</span>
+          OptiRFP Lifetime Access
         </h1>
+        <p className="text-2xl md:text-3xl font-semibold tracking-tight mb-6 text-primary">
+          Win more RFPs. Pay once. Use forever.
+        </p>
+
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
           Get OptiRFP's {planName} plan — AI proposal drafting, opportunity search, and unlimited team
           members — for a single one-time payment. No subscription, no renewals.

@@ -261,10 +261,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "how-to-respond-to-an-rfp",
     title: "How to Respond to an RFP",
+    h1: "How to Respond to an RFP: The Complete Guide (2026)",
     seoTitle: "How to Respond to an RFP: Complete Guide (2026) | OptiRFP",
     description: "Step-by-step interactive guide to writing winning RFP responses — checklists, Go/No-Go tool, timeline planner and time calculator included.",
-    metaDescription: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices. Free resources included.",
+    metaDescription: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices.",
     keywords: ["how to respond to an rfp", "rfp response guide", "winning rfp response", "rfp response process"],
+
     icon: BookOpen,
     faqs: [
       { q: "How long does it take to respond to an RFP?", a: "A typical mid-size RFP response takes 40–80 hours over 2–4 weeks. Complex federal proposals can run 200+ hours. The guide includes a calculator that estimates effort from page count, sections, team size and experience." },

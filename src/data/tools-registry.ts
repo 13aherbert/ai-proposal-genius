@@ -15,7 +15,8 @@ export type ToolCategory =
 
 export interface ToolMeta {
   slug: string;
-  title: string;          // H1 / display
+  title: string;          // display name (nav, breadcrumbs, related-tool cards)
+  h1?: string;            // optional page H1 — falls back to `title` when unset
   seoTitle: string;       // <title>
   description: string;    // short hub blurb
   metaDescription: string;// meta description
@@ -23,6 +24,7 @@ export interface ToolMeta {
   icon: LucideIcon;
   faqs: ToolFAQ[];
 }
+
 
 const CATEGORY_BY_SLUG: Record<string, ToolCategory> = {
   "proposal-word-counter": "Calculators",

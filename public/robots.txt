@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
-Disallow: /admin
 Disallow: /api/
-# Disallow auth-only app routes
+Disallow: /admin/
+Disallow: /private/
 Disallow: /dashboard
 Disallow: /projects
 Disallow: /upload-rfp

@@ -227,10 +227,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-response-template-generator",
     title: "RFP Response Template Generator",
+    h1: "Free RFP Response Template Generator",
     seoTitle: "Free RFP Response Template Generator | OptiRFP",
     description: "Create professional RFP response templates in minutes. Select your industry and sections, download instantly as Word or PDF.",
     metaDescription: "Create professional RFP response templates instantly. Select your industry and sections, download free Word or PDF templates. No signup required.",
     keywords: ["rfp response template", "rfp template generator", "proposal template", "free rfp template"],
+
     icon: FileStack,
     faqs: [
       { q: "What is an RFP response template?", a: "An RFP response template is a pre-structured document containing the standard sections evaluators expect — executive summary, company overview, technical approach, pricing, team, past performance and compliance — with placeholder text and guidance you tailor for each bid." },

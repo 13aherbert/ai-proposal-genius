@@ -24,9 +24,10 @@ export default function RfpTemplateLibrary() {
   const [filter, setFilter] = useState<typeof INDUSTRY_FILTERS[number]["id"]>("all");
 
   useSEO({
-    title: `Free RFP Template Library | ${TEMPLATE_COUNT}+ Industry Templates | OptiRFP.ai`,
-    description: `Download free, professional RFP response templates for IT, construction, software, consulting, government and more. ${TEMPLATE_COUNT}+ templates in Word and PDF. No signup.`,
+    title: "Free RFP Template Library | 25+ Industry Templates | OptiRFP",
+    description: "Download free, professional RFP templates for IT, construction, software, consulting, healthcare, and government. Word, PDF, and Google Docs formats.",
     canonical: `${SITE}/tools/rfp-template-library`,
+
     structuredData: {
       "@context": "https://schema.org",
       "@graph": [

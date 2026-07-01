@@ -36,7 +36,8 @@ const CompareAutoRFP = () => {
             <span className="text-3xl md:text-4xl font-bold text-muted-foreground">AutoRFP</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            Transparent Pricing. Free to Start.
+            OptiRFP vs AutoRFP.ai: Detailed Comparison
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Why request a custom quote when you can start for free? OptiRFP gives you published pricing, a generous free tier, and AI that does the heavy lifting.

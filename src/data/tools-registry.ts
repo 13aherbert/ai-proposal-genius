@@ -15,7 +15,8 @@ export type ToolCategory =
 
 export interface ToolMeta {
   slug: string;
-  title: string;          // H1 / display
+  title: string;          // display name (nav, breadcrumbs, related-tool cards)
+  h1?: string;            // optional page H1 — falls back to `title` when unset
   seoTitle: string;       // <title>
   description: string;    // short hub blurb
   metaDescription: string;// meta description
@@ -23,6 +24,7 @@ export interface ToolMeta {
   icon: LucideIcon;
   faqs: ToolFAQ[];
 }
+
 
 const CATEGORY_BY_SLUG: Record<string, ToolCategory> = {
   "proposal-word-counter": "Calculators",
@@ -225,10 +227,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-response-template-generator",
     title: "RFP Response Template Generator",
+    h1: "Free RFP Response Template Generator",
     seoTitle: "Free RFP Response Template Generator | OptiRFP",
     description: "Create professional RFP response templates in minutes. Select your industry and sections, download instantly as Word or PDF.",
     metaDescription: "Create professional RFP response templates instantly. Select your industry and sections, download free Word or PDF templates. No signup required.",
     keywords: ["rfp response template", "rfp template generator", "proposal template", "free rfp template"],
+
     icon: FileStack,
     faqs: [
       { q: "What is an RFP response template?", a: "An RFP response template is a pre-structured document containing the standard sections evaluators expect — executive summary, company overview, technical approach, pricing, team, past performance and compliance — with placeholder text and guidance you tailor for each bid." },
@@ -240,10 +244,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-template-library",
     title: "RFP Template Library",
+    h1: "Free RFP Template Library",
     seoTitle: "Free RFP Template Library | 25+ Industry Templates | OptiRFP",
     description: "Browse and download 25+ free RFP response templates by industry — Word and PDF, no signup required.",
-    metaDescription: "Free RFP template library. Download professional RFP response templates for IT, construction, software, consulting, healthcare, government and more — in Word and PDF, 100% free.",
+    metaDescription: "Download free, professional RFP templates for IT, construction, software, consulting, healthcare, and government. Word, PDF, and Google Docs formats.",
     keywords: ["rfp template library", "free rfp templates", "rfp response templates", "industry rfp templates"],
+
     icon: Library,
     faqs: [
       { q: "Are these RFP templates really free?", a: "Yes — every template is 100% free to download. No signup, no email gate, no watermark." },
@@ -255,10 +261,12 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "how-to-respond-to-an-rfp",
     title: "How to Respond to an RFP",
+    h1: "How to Respond to an RFP: The Complete Guide (2026)",
     seoTitle: "How to Respond to an RFP: Complete Guide (2026) | OptiRFP",
     description: "Step-by-step interactive guide to writing winning RFP responses — checklists, Go/No-Go tool, timeline planner and time calculator included.",
-    metaDescription: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices. Free resources included.",
+    metaDescription: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices.",
     keywords: ["how to respond to an rfp", "rfp response guide", "winning rfp response", "rfp response process"],
+
     icon: BookOpen,
     faqs: [
       { q: "How long does it take to respond to an RFP?", a: "A typical mid-size RFP response takes 40–80 hours over 2–4 weeks. Complex federal proposals can run 200+ hours. The guide includes a calculator that estimates effort from page count, sections, team size and experience." },
@@ -269,6 +277,8 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "ai-rfp-response-generator",
     title: "AI RFP Response Generator",
+    h1: "Free AI RFP Response Generator",
+
     seoTitle: "Free AI RFP Response Generator | Try the Demo | OptiRFP",
     description: "Generate a professional RFP response with AI in seconds. Paste an RFP question, add your company info, see the AI draft — free demo.",
     metaDescription: "Generate professional RFP responses with AI. Try our free demo — paste an RFP question, add your company info, and see AI write a response in seconds.",
@@ -283,6 +293,8 @@ export const TOOLS: ToolMeta[] = [
   {
     slug: "rfp-go-no-go-decision-tool",
     title: "RFP Go/No-Go Decision Tool",
+    h1: "Should You Bid on This RFP?",
+
     seoTitle: "RFP Go/No-Go Decision Tool | Should You Bid? | OptiRFP",
     description: "Answer 5 quick questions and get an objective bid / no-bid recommendation with factor-specific action items.",
     metaDescription: "Should you bid on that RFP? Answer 5 quick questions and get an objective bid/no-bid recommendation with specific action items. Free tool.",

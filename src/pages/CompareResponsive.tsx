@@ -37,7 +37,8 @@ const CompareResponsive = () => {
             <span className="text-3xl md:text-4xl font-bold text-muted-foreground">Responsive</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            Stop Paying Per Seat for RFP Software
+            OptiRFP vs Responsive: Which is Better for Your Team?
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Responsive (formerly RFPIO) charges per seat and requires months of setup. OptiRFP gives you unlimited users, AI-powered drafting, and a free tier — no sales call required.

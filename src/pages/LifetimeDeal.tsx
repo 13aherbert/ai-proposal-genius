@@ -99,9 +99,10 @@ export default function LifetimeDeal() {
   useSEO({
     title: "OptiRFP Lifetime Deal — Pay Once, Use Forever",
     description:
-      "Limited lifetime access to OptiRFP's Growth plan: AI proposal drafting, opportunity search, unlimited team members. One payment, no renewals.",
+      "Limited-time lifetime access to OptiRFP Pro. One payment, unlimited RFP responses forever. No monthly fees.",
     canonical: "https://optirfp.ai/lifetime",
   });
+
 
   const isIneligible = useMemo(() => {
     if (!subscription) return false;
@@ -417,10 +418,12 @@ export default function LifetimeDeal() {
           <Sparkles className="h-4 w-4" /> Limited Lifetime Offer — invitation only
         </div>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-          Win more RFPs.
-          <br />
-          <span className="text-primary">Pay once. Use forever.</span>
+          OptiRFP Lifetime Access
         </h1>
+        <p className="text-2xl md:text-3xl font-semibold tracking-tight mb-6 text-primary">
+          Win more RFPs. Pay once. Use forever.
+        </p>
+
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
           Get OptiRFP's {planName} plan — AI proposal drafting, opportunity search, and unlimited team
           members — for a single one-time payment. No subscription, no renewals.

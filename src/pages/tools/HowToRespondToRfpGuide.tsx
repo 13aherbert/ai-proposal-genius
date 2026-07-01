@@ -384,8 +384,9 @@ export default function HowToRespondToRfpGuide() {
   }, []);
 
   useSEO({
-    title: "How to Respond to an RFP: Complete Guide (2026) | OptiRFP.ai",
-    description: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices. Free resources included.",
+    title: "How to Respond to an RFP: Complete Guide (2026) | OptiRFP",
+    description: "Learn how to write winning RFP responses with our step-by-step guide. Includes checklists, timelines, templates, and best practices.",
+
     canonical: `${SITE}${PATH}`,
     structuredData: {
       "@context": "https://schema.org",

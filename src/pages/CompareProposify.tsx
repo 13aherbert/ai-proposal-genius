@@ -37,7 +37,8 @@ const CompareProposify = () => {
             <span className="text-3xl md:text-4xl font-bold text-muted-foreground">Proposify</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
-            RFP Specialist vs General Proposal Tool
+            OptiRFP vs Proposify: Different Tools for Different Needs
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Proposify is great for sales proposals and contracts — but it wasn't built for RFPs. OptiRFP's AI analyzes requirements, drafts responses, and evaluates proposals automatically.

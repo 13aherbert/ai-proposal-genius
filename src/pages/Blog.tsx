@@ -70,7 +70,8 @@ const Blog = () => {
       <section className="border-b bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            RFP Insights &amp; Best Practices
+            RFP &amp; Proposal Writing Blog
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Expert advice on winning proposals, leveraging AI, and growing your

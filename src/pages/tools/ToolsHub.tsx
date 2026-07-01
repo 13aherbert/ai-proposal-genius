@@ -95,7 +95,8 @@ export default function ToolsHub() {
             <Sparkles className="h-4 w-4" /> Free forever — no signup
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Free RFP & Proposal Tools
+            Free RFP Tools & Resources
+
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {TOOLS.length}+ practical, browser-based tools to help proposal managers, federal

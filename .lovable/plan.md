@@ -1,38 +1,64 @@
-# Make optirfp.ai discoverable on Google, Bing, and Yahoo
 
-Yahoo Search is powered by Bing, so "Yahoo" coverage = Bing coverage. The work below covers both major crawlers plus a few hygiene items specific to this codebase.
+## Plan: Unique per-page SEO across all listed routes
 
-## What's already in place
-- `public/robots.txt` allows crawling and points to `https://optirfp.ai/sitemap.xml`.
-- `public/sitemap.xml` exists.
-- `src/components/SEO.tsx` + `src/hooks/use-seo.ts` set per-page title, description, canonical, OG, Twitter, and JSON-LD.
-- `SEO_CONFIG` covers home, pricing, blog, tools, and 6 compare pages.
-- An admin Google Search Console panel (`/admin` → SEO) is already wired up via the `gsc-analytics` edge function and can verify the domain.
+Uses the project's existing `SEO` component (`src/components/SEO.tsx`) + `SEO_CONFIG` (`src/config/seo-config.ts`) + `useSEO` hook. No new dependency — react-helmet-async would duplicate every tag on top of `useSEO`.
 
-## Gaps to fix
+The `useSEO` hook already emits: `<title>`, `meta description`, `link canonical`, `og:title`, `og:description`, `og:url`, `og:image`, `og:type`, `twitter:card`, `twitter:title`, `twitter:description`, and optional JSON-LD — exactly the set requested.
 
-1. **Audit `public/sitemap.xml`** — confirm every public route is listed: home, pricing, blog, tools, FAQ, docs, about, contact, security, integrations, white-label, lifetime deal, all 6 compare pages, and the 3 new guides (`/resources/what-is-an-rfp`, `/resources/rfp-examples`, `/resources/rfp-response-template`). Add any missing URLs and bump `<lastmod>`.
+### 1. Extend `src/config/seo-config.ts`
 
-2. **Add SEO config + `<SEO />` to the 3 new resource pages** if they're not already using it, so each has a unique title, description, canonical, and Article/HowTo JSON-LD. Without this they share generic head tags and won't rank.
+Add missing entries (keep existing ones untouched):
 
-3. **Verify Google Search Console** via the existing `/admin` → SEO panel (already published, meta tag method). After verification, submit `https://optirfp.ai/sitemap.xml` from the GSC UI.
+- `templateGenerator` → `/tools/rfp-response-template-generator`
+- `templateLibrary` → `/tools/rfp-template-library`
+- `aiResponseGenerator` → `/tools/ai-rfp-response-generator`
+- `howToRespond` → `/tools/how-to-respond-to-an-rfp`
+- `goNoGo` → `/tools/rfp-go-no-go-decision-tool`
+- `lifetime` → `/lifetime`
 
-4. **Verify Bing Webmaster Tools** (covers Yahoo). Two options — pick one:
-   - **Recommended:** "Import from Google Search Console" inside Bing Webmaster Tools — one click, no code change.
-   - Or add a `<meta name="msvalidate.01" content="..." />` tag to `index.html` and submit the sitemap manually.
+Each with the exact title/description/canonical from the request.
 
-5. **Add IndexNow** (optional but high-leverage for Bing/Yahoo) — drop a key file at `public/<key>.txt` and ping `https://api.indexnow.org/indexnow` when blog posts or guides publish. Gets new URLs indexed in minutes instead of weeks.
+### 2. Add `<SEO {...SEO_CONFIG.x} />` to each page
 
-6. **Confirm `noindex` is not set anywhere globally.** Spot-check `index.html` and `useSEO` to make sure no route accidentally emits `<meta name="robots" content="noindex">`.
+Files touched (mount `<SEO />` at top of component tree, replacing any inline `useSEO` call to avoid double-emission):
 
-7. **Sanity-check canonicals** — every page's canonical should self-reference `https://optirfp.ai/<path>`, not the homepage. `SEO_CONFIG` looks correct; just confirm the 3 new resource pages follow the same pattern.
+| Route | File |
+|---|---|
+| `/` | `src/pages/Index.tsx` |
+| `/pricing` | `src/pages/Pricing.tsx` (currently a redirect — add SEO before redirect fires, or skip since it redirects to `/`) |
+| `/blog` | `src/pages/Blog.tsx` |
+| `/tools` | `src/pages/tools/ToolsHub.tsx` |
+| `/tools/rfp-response-template-generator` | `src/pages/tools/RfpResponseTemplateGenerator.tsx` |
+| `/tools/rfp-template-library` | `src/pages/tools/RfpTemplateLibrary.tsx` |
+| `/tools/ai-rfp-response-generator` | (verify route — may need to locate/confirm file) |
+| `/tools/how-to-respond-to-an-rfp` | (verify route) |
+| `/tools/rfp-go-no-go-decision-tool` | `src/pages/tools/GoNoGoDecisionTool.tsx` |
+| `/compare/loopio` | `src/pages/CompareLoopio.tsx` |
+| `/compare/autorfp` | `src/pages/CompareAutoRFP.tsx` |
+| `/compare/responsive` | `src/pages/CompareResponsive.tsx` |
+| `/compare/proposify` | `src/pages/CompareProposify.tsx` |
+| `/lifetime` | `src/pages/LifetimeDeal.tsx` |
 
-## Out of scope (until you ask)
-- Switching to SSR/prerender for social crawlers (LinkedIn/Slack) — separate effort.
-- Schema markup beyond what `SEO_CONFIG` already emits.
-- Paid indexing services.
+Note: `/pricing` currently redirects to `/#pricing`, so it never renders SEO. I'll flag this — options are (a) leave as-is (redirect wins, no separate pricing SEO), or (b) render `<SEO />` before the redirect (title flashes but crawlers see it). Recommend (a) and delete `/pricing` from `sitemap.xml` if present, since the URL doesn't exist as its own page.
 
-## Clarifying questions before I build
-- **Bing verification:** OK to use "Import from Google Search Console" (zero code), or do you want the `msvalidate.01` meta tag route?
-- **IndexNow:** Want me to wire this up now, or skip until the blog publishes more often?
-- **Resource pages:** Should I audit and add `<SEO />` to the 3 new `/resources/*` pages as part of this, or is that already done?
+### 3. Enforce unique H1 per page
+
+Audit each page and ensure exactly one `<h1>` with the exact text specified in the request. Change extras to `<h2>` where duplicates exist. No visual/design changes — only tag swaps where required.
+
+### 4. Verification
+
+- Grep every touched file: exactly one `<h1>` and one `<SEO />`.
+- Run `tsgo` (typecheck) — no runtime changes to logic.
+- Report back: which files were edited, which routes needed H1 demotion, and the `/pricing` decision.
+
+### Technical notes
+
+- `useSEO` already handles cleanup on unmount and updates on prop change, so navigating between pages replaces (not appends) the meta tags. This is functionally equivalent to `react-helmet-async` for JS-executing crawlers.
+- Social crawlers (LinkedIn, Slack) that don't run JS still see only `index.html` head — this is a hard limitation of any CSR SPA without SSR. Same trade-off would apply to react-helmet-async.
+- Not adding og:image per page — the sitewide default in `SEO.tsx` covers all pages.
+
+### Out of scope
+
+- No `react-helmet-async` install.
+- No design or copy changes beyond the specified H1 strings.
+- No sitemap changes unless `/pricing` decision requires it.

@@ -138,8 +138,9 @@ export default function RfpResponseGenerator() {
   const blocked = remaining === 0;
 
   useSEO({
-    title: "Free AI RFP Response Generator | Try the Demo | OptiRFP.ai",
+    title: "Free AI RFP Response Generator | Try the Demo | OptiRFP",
     description: "Generate professional RFP responses with AI. Try our free demo — paste an RFP question, add your company info, and see AI write a response in seconds.",
+
     canonical: `${SITE}${PATH}`,
     structuredData: {
       "@context": "https://schema.org",

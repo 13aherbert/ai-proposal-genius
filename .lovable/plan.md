@@ -1,42 +1,50 @@
-## Fix: send GA4 pageviews after the page's real title is set
+# Build-time prerender for per-page SEO metadata
 
-### Root cause
-`useAnalytics` fires `trackPageView` on `location` change from `AppContent`. Because every route is `React.lazy` behind `<Suspense>`, the target page hasn't mounted yet — so `document.title` is still the previous page's (or the static `index.html` default). GA4 receives every hit with the same title.
+## Why the tags all look identical in View Source
 
-### Change
+The SPA ships one `index.html` with a fallback title and description. `useSEO` rewrites `<title>` / `<meta description>` / `<link rel=canonical>` / `og:*` **client-side** after React mounts. JS-executing crawlers (Googlebot, GA4, browser tabs) see the correct per-route values. View Source and non-JS crawlers (LinkedIn, Slack, older Facebook fetches) only ever see the static defaults — which is why every page currently looks the same to them.
 
-**1. Move pageview tracking out of `useAnalytics` route effect**
+The fix: **bake a per-route HTML file at build time** so `dist/tools/rfp-deadline-calculator/index.html` already contains the right `<title>` and metadata before it's ever served, with zero runtime middleware and no monthly service.
 
-In `src/hooks/use-analytics.ts`, remove the `useEffect` that calls `analytics.trackPageView` on `location` change. Keep the exported wrappers (they're used elsewhere for events).
+## Approach
 
-**2. Fire the pageview from `useSEO` after title/canonical are written**
+Add a Node prerender script that runs after `vite build`, spins up `vite preview` locally, uses Playwright to visit every URL in `public/sitemap.xml`, waits for `useSEO` to run, then writes the fully-rendered HTML back to `dist/<route>/index.html`. Netlify's static-file-first behavior serves the prerendered HTML to every crawler, and the SPA still hydrates normally for real users. The existing SPA fallback (`/* → /index.html 200`) keeps handling dynamic routes not in the sitemap (blog posts by slug, auth pages, dashboard).
 
-In `src/hooks/use-seo.ts`, at the end of the effect (after `document.title = title` and canonical/OG tags are set), call `analytics.trackPageView(window.location.pathname + window.location.search, title)`.
+## Files to add / change
 
-This guarantees:
-- `page_title` sent to GA4 matches the SEO config for that route
-- `page_location` reflects the canonical URL currently in the DOM
-- Each SEO'd route fires exactly one pageview per navigation
+1. **`scripts/prerender.mjs`** (new)
+   - Parse `public/sitemap.xml`, extract each `<loc>` and strip the domain to get the path.
+   - Also include an explicit list of blog slugs and template slugs (read from `src/data/blog-posts.ts` and `src/data/rfp-templates.ts`) so those pages get prerendered too.
+   - Launch `vite preview --port 4173` as a child process, wait for the port to be listening.
+   - For each route: `page.goto('http://localhost:4173' + route, { waitUntil: 'networkidle' })`, then `page.waitForFunction(() => document.title && document.title !== 'OptiRFP — AI-Powered RFP Response Platform')` with a fallback timeout for routes that legitimately keep the default (home).
+   - Grab `document.documentElement.outerHTML`, prepend `<!DOCTYPE html>`, write to `dist/<route>/index.html`. For `/` overwrite `dist/index.html`.
+   - Kill preview server, exit.
 
-**3. Handle routes without `useSEO`**
+2. **`package.json`**
+   - Add `"postbuild": "node scripts/prerender.mjs"` so it runs automatically after `vite build` in Netlify.
+   - Add dev dependency `playwright` (Chromium only).
 
-A few authenticated routes (Dashboard, ProjectDetails, admin pages) don't call `useSEO`, so they'd stop reporting pageviews. Add a lightweight fallback in `AppContent`: a `useEffect` on `location.pathname` that schedules `analytics.trackPageView` on the *next* frame via `requestAnimationFrame` (or `setTimeout(0)`) AND only fires if no `useSEO`-driven pageview happened for this path in the last tick. Simplest implementation: keep a ref of the last path that fired via `useSEO`; the fallback compares before firing.
+3. **`netlify.toml`**
+   - Add `PLAYWRIGHT_BROWSERS_PATH = "0"` and prepend `npx playwright install --with-deps chromium && ` to the build command so Netlify's build image has a browser.
+   - Keep the existing SPA `/* → /index.html 200` fallback — it still applies to anything not prerendered.
 
-Alternative (simpler, acceptable): don't dedupe — accept that SEO'd pages fire from `useSEO` and non-SEO'd internal app pages fire from the fallback after a `requestAnimationFrame` delay (which is enough for the mounted page's own `document.title` writes, if any, to land first). Duplicate risk is low because non-SEO'd pages don't call `useSEO`.
+4. **`src/hooks/use-seo.ts`** (tiny addition)
+   - After writing tags, set `document.documentElement.dataset.seoReady = "1"` so the prerender script has a reliable signal to wait on instead of a title heuristic.
 
-I'll implement the simpler alternative: `useAnalytics` uses `requestAnimationFrame` before reading `document.title`, and `useSEO` fires an immediate pageview with the explicit title. To avoid double-counting on SEO'd pages, `useSEO` sets a module-level `lastTrackedPath` and the `useAnalytics` fallback skips when it matches.
+## Technical notes
 
-### Files touched
-- `src/hooks/use-analytics.ts` — replace route effect with rAF-delayed tracker that dedupes against `useSEO`'s last-tracked path.
-- `src/hooks/use-seo.ts` — after writing head tags, call `analytics.trackPageView(path, title)` and record the path in the shared dedupe ref.
-- (No changes to `SEO.tsx`, `seo-config.ts`, or any page — they already pass correct titles.)
+- `og:image` per route: `useSEO` already accepts `ogImage`. Prerender captures whatever the DOM ends up with, so any per-page image set via `useSEO` is baked in. Pages that don't set one keep the sitewide banner from `index.html`.
+- Canonical duplication: `useSEO` updates the existing `<link rel="canonical">` in place rather than appending, so prerendered HTML ships exactly one canonical per page.
+- Hydration mismatch risk: React 18 tolerates head differences; body content is rendered from the same code path so no visible flash. If a specific page shows a mismatch warning we suppress by clearing the `<div id="root">` server HTML before writing (leave the shell empty) — the prerender is head-only SEO, not full SSR.
+- Build time: ~30 sitemap URLs × ~1s each ≈ 30–45s added to Netlify build.
+- Lovable preview / dev (`npm run dev`) is unaffected — prerender only runs on `npm run build`.
 
-### Verification
-- Open the site, navigate between `/`, `/pricing`, `/tools`, `/compare/loopio`.
-- In DevTools console, confirm `[Analytics] Page view:` logs show the correct per-route title on each navigation.
-- In GA4 DebugView (or Realtime → Events), confirm `page_view` events carry distinct `page_title` values matching `SEO_CONFIG`.
+## Verification
 
-### Out of scope
-- No changes to `index.html` static title (that's still correct for the initial `/` hit and social crawlers).
-- No changes to sitemap, robots, or per-page SEO copy.
-- No new analytics provider or GA config changes.
+After deploy, `curl -A "Mozilla" https://optirfp.ai/tools/rfp-deadline-calculator` should return HTML whose `<title>` is the tool's SEO title, not the sitewide default. Same for `/blog`, `/compare/loopio`, etc. View Source in a browser will show the correct per-page tags.
+
+## Out of scope
+
+- No changes to routing, GA4, analytics, `useSEO` semantics (beyond the ready flag), or any page component's content.
+- No runtime prerender service, no Netlify edge functions, no Prerender.io.
+- Authenticated routes (Dashboard, /admin/*, /account) are not prerendered — they should not be indexed anyway.

@@ -85,6 +85,10 @@ export function useSEO({
     seoTracking.lastTrackedPath = path;
     analytics.trackPageView(path, title);
 
+    // Signal for the build-time prerender script (scripts/prerender.mjs)
+    // that the per-route SEO tags have been written into the DOM.
+    document.documentElement.dataset.seoReady = "1";
+
     return () => {
       document.title = prevTitle;
       if (scriptEl) scriptEl.remove();

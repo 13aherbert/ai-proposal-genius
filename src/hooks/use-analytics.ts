@@ -1,17 +1,27 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { analytics } from '@/services/analytics';
+import { seoTracking } from '@/lib/analytics-dedupe';
 import { CustomEvent, UserProperties } from '@/types/analytics';
 
 export const useAnalytics = () => {
   const location = useLocation();
 
-  // Track page views on route changes
+  // Fallback pageview tracker for routes that DON'T call useSEO
+  // (Dashboard, admin pages, etc.). SEO'd pages fire their own pageview
+  // from useSEO with the correct title — we dedupe against that here.
+  //
+  // We wait one animation frame so the target lazy-loaded page has a
+  // chance to mount and (if applicable) call useSEO first.
   useEffect(() => {
     const path = location.pathname + location.search;
-    const title = document.title;
-    analytics.trackPageView(path, title);
+    const raf = requestAnimationFrame(() => {
+      if (seoTracking.lastTrackedPath === path) return;
+      analytics.trackPageView(path, document.title);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [location]);
+
 
   return {
     // Page tracking

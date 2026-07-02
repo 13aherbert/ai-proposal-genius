@@ -1,4 +1,7 @@
 import { useEffect } from "react";
+import { analytics } from "@/services/analytics";
+import { seoTracking } from "@/lib/analytics-dedupe";
+
 
 const CANONICAL_BASE = "https://optirfp.ai";
 const DEFAULT_OG_IMAGE =
@@ -75,9 +78,17 @@ export function useSEO({
       document.head.appendChild(scriptEl);
     }
 
+    // Fire GA4 pageview NOW that <title> and canonical are correct.
+    // This replaces the route-change tracker in useAnalytics, which fired
+    // before lazy-loaded pages had mounted and set their real title.
+    const path = window.location.pathname + window.location.search;
+    seoTracking.lastTrackedPath = path;
+    analytics.trackPageView(path, title);
+
     return () => {
       document.title = prevTitle;
       if (scriptEl) scriptEl.remove();
     };
+
   }, [title, description, canonical, ogImage, ogType, structuredData]);
 }

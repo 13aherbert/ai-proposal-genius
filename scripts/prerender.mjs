@@ -39,9 +39,9 @@ let chromium;
 try {
   ({ chromium } = await import("playwright"));
 } catch (err) {
-  console.warn("[prerender] playwright not installed — skipping prerender.");
+  console.warn("[prerender] playwright not installed — prerender is REQUIRED for SEO — failing build.");
   console.warn("[prerender]", err?.message ?? err);
-  process.exit(0);
+  process.exit(1); // prerender is required for SEO — fail the build instead of shipping silently
 }
 
 // ── Collect routes ───────────────────────────────────────────────────────────
@@ -135,13 +135,13 @@ for (const route of routeList) {
       .waitForFunction(() => document.documentElement.dataset.seoReady === "1", { timeout: 5_000 })
       .catch(() => { /* leave whatever's in the DOM */ });
 
-    // Empty out #root in the live DOM (using the parser, not regex) so React
-    // mounts cleanly with no duplicated/orphan content in <body>.
-    const html = await page.evaluate(() => {
-      const root = document.getElementById("root");
-      if (root) root.innerHTML = "";
-      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-    });
+    // Keep the rendered body content: non-JS crawlers (GPTBot, ClaudeBot,
+    // LinkedIn, etc.) index the body, not just <head>. React 18's
+    // createRoot().render() replaces #root's children on mount, so the
+    // pre-rendered markup is swapped out cleanly for real users.
+    const html = await page.evaluate(
+      () => "<!DOCTYPE html>\n" + document.documentElement.outerHTML,
+    );
 
     const outDir = route === "/" ? DIST : join(DIST, route);
     mkdirSync(outDir, { recursive: true });
@@ -160,4 +160,5 @@ await browser.close();
 shutdown();
 
 console.log(`[prerender] done. ${ok} written, ${failed} failed.`);
-process.exit(0);
+// Prerender is required for SEO: fail the build if any route failed to snapshot.
+process.exit(failed > 0 ? 1 : 0);

@@ -6,7 +6,8 @@ import { BillingHistory } from '@/components/account/BillingHistory';
 import { useSEO } from '@/hooks/use-seo';
 
 export default function Billing() {
-  useSEO({ title: "Billing & Subscription — OptiRFP", description: "Manage your OptiRFP plan, payment methods, and invoices." });
+  useSEO({
+    noindex: true, title: "Billing & Subscription — OptiRFP", description: "Manage your OptiRFP plan, payment methods, and invoices." });
   return (
     <div className="space-y-8">
       <div>

@@ -15,7 +15,8 @@ import { useProjectLimits } from "@/hooks/use-project-limits";
 import { useSEO } from "@/hooks/use-seo";
 
 export default function RecentProjects() {
-  useSEO({ title: "Projects — OptiRFP", description: "View and manage all your RFP projects in one place." });
+  useSEO({
+    noindex: true, title: "Projects — OptiRFP", description: "View and manage all your RFP projects in one place." });
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const [authReady, setAuthReady] = useState(false);

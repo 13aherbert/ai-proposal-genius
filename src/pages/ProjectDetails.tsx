@@ -18,7 +18,8 @@ const ProjectDetails = () => {
   const seoDescription = project
     ? `Work on the ${project.title} RFP${project.client_name ? ` for ${project.client_name}` : ""} in OptiRFP — analysis, outline, AI drafting, compliance tracking, and export.`
     : "Work on your RFP project in OptiRFP: analysis, outline, AI drafting, compliance tracking, and export.";
-  useSEO({ title: seoTitle, description: seoDescription });
+  useSEO({
+    noindex: true, title: seoTitle, description: seoDescription });
 
   if (isLoading) {
     return <ProjectLoading />;

@@ -13,6 +13,7 @@ export default function Auth() {
   const mode = params.get("mode") === "signup" ? "sign_up" : "sign_in";
 
   useSEO({
+    noindex: true,
     title: mode === "sign_up" ? "Sign Up — Start Winning RFPs | OptiRFP" : "Sign In — OptiRFP",
     description: mode === "sign_up"
       ? "Create your free OptiRFP account and generate your first AI-powered proposal in minutes."

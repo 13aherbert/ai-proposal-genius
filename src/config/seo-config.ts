@@ -201,6 +201,120 @@ export const SEO_CONFIG = {
       `${SITE_URL}/compare/pandadoc`,
     ),
   },
+
+  // ─── Core marketing (added) ──────────────────────────────────────
+  about: {
+    title: "About OptiRFP — Why We Built AI RFP Software",
+    description:
+      "Meet the team behind OptiRFP and why we built an AI platform that helps proposal teams respond to RFPs in hours instead of weeks. Our story and mission.",
+    canonical: `${SITE_URL}/about`,
+    schema: { "@type": "AboutPage", name: "About OptiRFP", url: `${SITE_URL}/about` },
+  },
+
+  contact: {
+    title: "Contact OptiRFP — Sales, Support & Partnerships",
+    description:
+      "Get in touch with the OptiRFP team. Questions about pricing, enterprise plans, white-label partnerships, or product support — we respond within one business day.",
+    canonical: `${SITE_URL}/contact`,
+    schema: { "@type": "ContactPage", name: "Contact OptiRFP", url: `${SITE_URL}/contact` },
+  },
+
+  faq: {
+    title: "OptiRFP FAQ — AI RFP Software Questions Answered",
+    description:
+      "Answers to common questions about OptiRFP: how the AI drafts proposals, data security, the free plan, supported file types, team features, and billing.",
+    canonical: `${SITE_URL}/faq`,
+    schema: { "@type": "FAQPage", name: "OptiRFP FAQ", url: `${SITE_URL}/faq` },
+  },
+
+  securityPage: {
+    title: "Security at OptiRFP — Encryption, SOC 2 & Data Privacy",
+    description:
+      "How OptiRFP protects your proposal data: encryption in transit and at rest, access controls, SOC 2 practices, and clear data-handling policies for AI features.",
+    canonical: `${SITE_URL}/security`,
+    schema: { "@type": "WebPage", name: "Security at OptiRFP", url: `${SITE_URL}/security` },
+  },
+
+  demo: {
+    title: "OptiRFP Demo — See AI RFP Response Software in Action",
+    description:
+      "Watch OptiRFP analyze a real RFP and draft a compliant response in minutes. See the compliance matrix, knowledge base, and AI drafting workflow live.",
+    canonical: `${SITE_URL}/demo`,
+    schema: sa({ url: `${SITE_URL}/demo` }),
+  },
+
+  integrations: {
+    title: "OptiRFP Integrations — HubSpot, Slack, Teams & Webhooks",
+    description:
+      "Connect OptiRFP to your stack. Sync deals from HubSpot, get proposal updates in Slack and Microsoft Teams, and automate workflows with webhooks and our API.",
+    canonical: `${SITE_URL}/integrations`,
+    schema: { "@type": "WebPage", name: "OptiRFP Integrations", url: `${SITE_URL}/integrations` },
+  },
+
+  whiteLabel: {
+    title: "White-Label RFP Software for Agencies | OptiRFP",
+    description:
+      "Offer AI-powered RFP responses under your own brand. OptiRFP's white-label and embedded options let agencies and consultants deliver proposals at scale.",
+    canonical: `${SITE_URL}/white-label`,
+    schema: sa({ url: `${SITE_URL}/white-label` }),
+  },
+
+  lifetime: {
+    title: "OptiRFP Lifetime Deal — Pay Once, Win RFPs Forever",
+    description:
+      "Get lifetime access to OptiRFP's AI RFP response platform for a one-time payment. All core features included with no monthly fees. Limited availability.",
+    canonical: `${SITE_URL}/lifetime`,
+    schema: sa({ url: `${SITE_URL}/lifetime` }),
+  },
+
+  apiDocs: {
+    title: "OptiRFP API Documentation — Build RFP Integrations",
+    description:
+      "Public API reference for OptiRFP. Authenticate with API keys, manage projects, trigger AI proposal generation, and receive webhooks from your own tools.",
+    canonical: `${SITE_URL}/api-docs`,
+    schema: { "@type": "WebPage", name: "OptiRFP API Docs", url: `${SITE_URL}/api-docs` },
+  },
+
+  docs: {
+    title: "OptiRFP Documentation — Guides & How-Tos",
+    description:
+      "Step-by-step documentation for every OptiRFP feature: uploading RFPs, building your knowledge base, compliance matrices, team collaboration, and exports.",
+    canonical: `${SITE_URL}/docs`,
+    schema: { "@type": "WebPage", name: "OptiRFP Documentation", url: `${SITE_URL}/docs` },
+  },
+
+  help: {
+    title: "OptiRFP Help Center — Support & Troubleshooting",
+    description:
+      "Self-serve help for OptiRFP users. Troubleshooting, account and billing questions, feature walkthroughs, and how to contact support when you need a human.",
+    canonical: `${SITE_URL}/help`,
+    schema: { "@type": "WebPage", name: "OptiRFP Help Center", url: `${SITE_URL}/help` },
+  },
+
+  // ─── Resource pages (added) ──────────────────────────────────────
+  whatIsAnRfp: {
+    title: "What Is an RFP? Definition, Process & Examples (2026)",
+    description:
+      "A plain-English guide to Requests for Proposal: what an RFP is, how the process works, RFP vs RFI vs RFQ, and how vendors write responses that win.",
+    canonical: `${SITE_URL}/resources/what-is-an-rfp`,
+    schema: { "@type": "Article", headline: "What Is an RFP?", url: `${SITE_URL}/resources/what-is-an-rfp` },
+  },
+
+  rfpExamples: {
+    title: "RFP Response Examples That Won — Samples & Analysis",
+    description:
+      "Study real RFP response examples with section-by-section analysis. See what winning executive summaries, technical approaches, and pricing sections look like.",
+    canonical: `${SITE_URL}/resources/rfp-examples`,
+    schema: { "@type": "Article", headline: "RFP Response Examples", url: `${SITE_URL}/resources/rfp-examples` },
+  },
+
+  rfpResponseTemplate: {
+    title: "Free RFP Response Template — Download & Customize",
+    description:
+      "A proven RFP response template with every section buyers expect: cover letter, executive summary, compliance matrix, technical approach, and pricing tables.",
+    canonical: `${SITE_URL}/resources/rfp-response-template`,
+    schema: { "@type": "Article", headline: "RFP Response Template", url: `${SITE_URL}/resources/rfp-response-template` },
+  },
 } satisfies Record<string, SEOProps>;
 
 export type SeoKey = keyof typeof SEO_CONFIG;

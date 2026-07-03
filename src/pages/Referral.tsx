@@ -23,6 +23,7 @@ export default function Referral() {
   const referralLink = `${REFERRAL_BASE}${session?.user?.id?.slice(0, 8) || "demo"}`;
 
   useSEO({
+    noindex: true,
     title: "Referral Program | OptiRFP",
     description: "Give $50, Get 1 Month Free. Share OptiRFP with your network and earn rewards.",
   });

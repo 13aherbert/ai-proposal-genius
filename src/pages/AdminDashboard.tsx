@@ -10,6 +10,7 @@ import { useSEO } from "@/hooks/use-seo";
 
 export default function AdminDashboard() {
   useSEO({
+    noindex: true,
     title: "Admin Dashboard — OptiRFP",
     description: "Administrator overview for OptiRFP organizations: monitor users, active projects, storage usage, and recent team activity in one place.",
   });

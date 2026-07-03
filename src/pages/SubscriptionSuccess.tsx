@@ -15,7 +15,8 @@ import { useSEO } from "@/hooks/use-seo";
  * Shows purchase confirmation with plan details and next billing date
  */
 export default function SubscriptionSuccess() {
-  useSEO({ title: "Subscription Confirmed — OptiRFP", description: "Your OptiRFP subscription is active. Start drafting your next winning proposal." });
+  useSEO({
+    noindex: true, title: "Subscription Confirmed — OptiRFP", description: "Your OptiRFP subscription is active. Start drafting your next winning proposal." });
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { session } = useAuth();

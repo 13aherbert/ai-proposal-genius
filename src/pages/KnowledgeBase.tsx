@@ -28,7 +28,8 @@ import { ReviewCycleManager } from "@/components/knowledge-base/governance/Revie
 import { QAPairManager } from "@/components/knowledge-base/governance/QAPairManager";
 
 const KnowledgeBase = () => {
-  useSEO({ title: "Knowledge Base — OptiRFP", description: "Manage the company facts, case studies, and capabilities OptiRFP uses to draft proposals." });
+  useSEO({
+    noindex: true, title: "Knowledge Base — OptiRFP", description: "Manage the company facts, case studies, and capabilities OptiRFP uses to draft proposals." });
   const navigate = useNavigate();
   const { session } = useAuth();
   const { 

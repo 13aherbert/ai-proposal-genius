@@ -135,13 +135,13 @@ for (const route of routeList) {
       .waitForFunction(() => document.documentElement.dataset.seoReady === "1", { timeout: 5_000 })
       .catch(() => { /* leave whatever's in the DOM */ });
 
-    let html = await page.evaluate(() => "<!DOCTYPE html>\n" + document.documentElement.outerHTML);
-
-    // Empty out #root so React hydration starts clean (no SSR content mismatch).
-    html = html.replace(
-      /<div id="root">[\s\S]*?<\/div>/,
-      '<div id="root"></div>',
-    );
+    // Empty out #root in the live DOM (using the parser, not regex) so React
+    // mounts cleanly with no duplicated/orphan content in <body>.
+    const html = await page.evaluate(() => {
+      const root = document.getElementById("root");
+      if (root) root.innerHTML = "";
+      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+    });
 
     const outDir = route === "/" ? DIST : join(DIST, route);
     mkdirSync(outDir, { recursive: true });

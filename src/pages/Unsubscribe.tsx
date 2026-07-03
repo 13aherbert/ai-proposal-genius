@@ -10,7 +10,8 @@ const FN_URL = `https://bmopbbkfxkgzlbmhhgox.supabase.co/functions/v1/email-unsu
 type Status = "idle" | "verifying" | "ready" | "submitting" | "done" | "error";
 
 export default function Unsubscribe() {
-  useSEO({ title: "Unsubscribe — OptiRFP", description: "Manage your OptiRFP email preferences." });
+  useSEO({
+    noindex: true, title: "Unsubscribe — OptiRFP", description: "Manage your OptiRFP email preferences." });
   const [params] = useSearchParams();
   const email = params.get("email") ?? "";
   const token = params.get("token") ?? "";

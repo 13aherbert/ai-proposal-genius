@@ -12,9 +12,8 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.gpteng.co https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://images.pexels.com; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://ai.gateway.lovable.dev https://api.pexels.com; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://images.pexels.com; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://ai.gateway.lovable.dev https://api.pexels.com; frame-ancestors 'none'"
 
 [[redirects]]
   from = "/*"

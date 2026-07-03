@@ -2,6 +2,7 @@ import { OrganizationDashboard } from "@/components/organization/OrganizationDas
 import { useSEO } from "@/hooks/use-seo";
 
 export default function Organization() {
-  useSEO({ title: "Organization — OptiRFP", description: "Manage your OptiRFP organization, members, and settings." });
+  useSEO({
+    noindex: true, title: "Organization — OptiRFP", description: "Manage your OptiRFP organization, members, and settings." });
   return <OrganizationDashboard />;
 }

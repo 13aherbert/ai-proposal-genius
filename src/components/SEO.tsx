@@ -1,6 +1,6 @@
 import { useSEO } from "@/hooks/use-seo";
 
-const DEFAULT_OG_IMAGE = "https://optirfp.ai/images/og-default.png";
+const DEFAULT_OG_IMAGE = "https://optirfp.ai/og-image.png";
 
 export interface SEOProps {
   /** <title> */
@@ -15,6 +15,8 @@ export interface SEOProps {
   ogImage?: string;
   /** JSON-LD object or array of objects */
   schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+  /** Set true on authenticated/app pages to keep them out of search indexes. */
+  noindex?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function SEO({
   ogType = "website",
   ogImage = DEFAULT_OG_IMAGE,
   schema,
+  noindex,
 }: SEOProps) {
   useSEO({
     title,
@@ -39,9 +42,12 @@ export function SEO({
     canonical,
     ogType,
     ogImage,
-    structuredData: Array.isArray(schema)
-      ? { "@context": "https://schema.org", "@graph": schema }
-      : schema,
+    structuredData: schema
+      ? Array.isArray(schema)
+        ? { "@context": "https://schema.org", "@graph": schema }
+        : { "@context": "https://schema.org", ...schema }
+      : undefined,
+    noindex,
   });
   return null;
 }

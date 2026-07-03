@@ -11,7 +11,8 @@ import { emailService } from "@/services/EmailService";
 import { useSEO } from "@/hooks/use-seo";
 
 export default function ResetPassword() {
-  useSEO({ title: "Reset Password — OptiRFP", description: "Set a new password for your OptiRFP account." });
+  useSEO({
+    noindex: true, title: "Reset Password — OptiRFP", description: "Set a new password for your OptiRFP account." });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);

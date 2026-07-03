@@ -13,7 +13,8 @@ import { BarChart3, TrendingUp, Calendar, DollarSign, Target } from "lucide-reac
 import { useSEO } from "@/hooks/use-seo";
 
 export default function Analytics() {
-  useSEO({ title: "Analytics — OptiRFP", description: "Track win rate, pipeline value, and proposal performance across your RFPs." });
+  useSEO({
+    noindex: true, title: "Analytics — OptiRFP", description: "Track win rate, pipeline value, and proposal performance across your RFPs." });
   const { overview, monthlyData, pipeline, roiData, roiSettings, projects, isLoading, updateROI, recordOutcome } = useAnalyticsDashboard();
   
 

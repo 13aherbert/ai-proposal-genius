@@ -8,6 +8,7 @@ export default function NotFound() {
   const navigate = useNavigate();
   const { session } = useAuth();
   useSEO({
+    noindex: true,
     title: "Page Not Found (404) — OptiRFP",
     description: "The page you're looking for doesn't exist. Return to OptiRFP to continue.",
   });

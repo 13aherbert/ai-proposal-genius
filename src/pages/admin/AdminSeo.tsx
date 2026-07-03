@@ -21,7 +21,8 @@ interface Overview {
 const SITE = "https://optirfp.ai/";
 
 export default function AdminSeo() {
-  useSEO({ title: "SEO Analytics | OptiRFP Admin", description: "Google Search Console analytics for optirfp.ai" });
+  useSEO({
+    noindex: true, title: "SEO Analytics | OptiRFP Admin", description: "Google Search Console analytics for optirfp.ai" });
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);

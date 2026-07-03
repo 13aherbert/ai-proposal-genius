@@ -1,11 +1,35 @@
+# OptiRFP robots.txt
+# Note: robots.txt blocks crawling, not indexing. Private app routes below
+# also carry <meta name="robots" content="noindex"> via useSEO (see fix pack).
+
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /admin/
-Disallow: /private/
+
+# App / authenticated routes
+Disallow: /admin
 Disallow: /dashboard
 Disallow: /projects
+Disallow: /project/
+Disallow: /recent-projects
 Disallow: /upload-rfp
 Disallow: /subscription
+Disallow: /billing
+Disallow: /account
+Disallow: /account-settings
+Disallow: /settings
+Disallow: /analytics
+Disallow: /knowledge-base
+Disallow: /organization
+Disallow: /team
+Disallow: /opportunities
+Disallow: /referral
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /sso/
+Disallow: /accept-invitation
+Disallow: /unsubscribe
+Disallow: /onboarding/
+Disallow: /enterprise-support
+Disallow: /api/
 
 Sitemap: https://optirfp.ai/sitemap.xml

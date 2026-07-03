@@ -4,8 +4,7 @@ import { seoTracking } from "@/lib/analytics-dedupe";
 
 
 const CANONICAL_BASE = "https://optirfp.ai";
-const DEFAULT_OG_IMAGE =
-  "https://storage.googleapis.com/gpt-engineer-file-uploads/EEi50R8moiUG0uifrWsjL6kXShF2/social-images/social-1778758209222-OptiRFP_Social_Banner.webp";
+const DEFAULT_OG_IMAGE = "https://optirfp.ai/og-image.png";
 
 interface SEOProps {
   title: string;
@@ -14,6 +13,8 @@ interface SEOProps {
   ogImage?: string;
   ogType?: string;
   structuredData?: Record<string, unknown>;
+  /** Set true on authenticated/app pages to keep them out of search indexes. */
+  noindex?: boolean;
 }
 
 function setMetaTag(name: string, content: string, attribute = "name") {
@@ -47,6 +48,7 @@ export function useSEO({
   ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   structuredData,
+  noindex = false,
 }: SEOProps) {
   useEffect(() => {
     const prevTitle = document.title;
@@ -57,17 +59,23 @@ export function useSEO({
     const canonicalUrl = canonical || `${CANONICAL_BASE}${window.location.pathname}`;
     setLinkTag("canonical", canonicalUrl);
 
+    // Robots directive (private/app pages set noindex)
+    setMetaTag("robots", noindex ? "noindex, nofollow" : "index, follow");
+
     // OG tags
+    const resolvedImage = ogImage.startsWith("http") ? ogImage : `${CANONICAL_BASE}${ogImage}`;
     setMetaTag("og:title", title, "property");
     setMetaTag("og:description", description, "property");
     setMetaTag("og:url", canonicalUrl, "property");
-    setMetaTag("og:image", ogImage.startsWith("http") ? ogImage : `${CANONICAL_BASE}${ogImage}`, "property");
+    setMetaTag("og:image", resolvedImage, "property");
     setMetaTag("og:type", ogType, "property");
+    setMetaTag("og:site_name", "OptiRFP", "property");
 
     // Twitter card
     setMetaTag("twitter:card", "summary_large_image", "name");
     setMetaTag("twitter:title", title, "name");
     setMetaTag("twitter:description", description, "name");
+    setMetaTag("twitter:image", resolvedImage, "name");
 
     // Structured data
     let scriptEl: HTMLScriptElement | null = null;
@@ -94,5 +102,5 @@ export function useSEO({
       if (scriptEl) scriptEl.remove();
     };
 
-  }, [title, description, canonical, ogImage, ogType, structuredData]);
+  }, [title, description, canonical, ogImage, ogType, structuredData, noindex]);
 }

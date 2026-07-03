@@ -17,7 +17,8 @@ type State =
   | { kind: "error"; message: string };
 
 export default function AcceptInvitation() {
-  useSEO({ title: "Accept Invitation — OptiRFP", description: "Accept your team invitation to join an OptiRFP workspace." });
+  useSEO({
+    noindex: true, title: "Accept Invitation — OptiRFP", description: "Accept your team invitation to join an OptiRFP workspace." });
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const { session, loading: authLoading } = useAuth();

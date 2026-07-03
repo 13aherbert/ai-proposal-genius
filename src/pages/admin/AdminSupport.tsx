@@ -26,7 +26,8 @@ type Submission = {
 const STATUSES = ["open", "in_progress", "resolved"] as const;
 
 export default function AdminSupport() {
-  useSEO({ title: "Support Inbox — Admin", description: "Triage user feedback and support tickets." });
+  useSEO({
+    noindex: true, title: "Support Inbox — Admin", description: "Triage user feedback and support tickets." });
   const [items, setItems] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUSES)[number]>("open");

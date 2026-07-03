@@ -26,6 +26,7 @@ export default function Subscription() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useSEO({
+    noindex: true,
     title: "Plans & Pricing — OptiRFP",
     description: "Choose the right OptiRFP plan. Start free with 6 projects. Scale to Growth ($199), Business ($499), or Enterprise ($1,499+).",
   });

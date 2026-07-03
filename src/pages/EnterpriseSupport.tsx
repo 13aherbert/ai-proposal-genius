@@ -23,7 +23,8 @@ const resources = [
 ];
 
 export default function EnterpriseSupport() {
-  useSEO({ title: "Enterprise Support | OptiRFP", description: "Priority support for Enterprise customers." });
+  useSEO({
+    noindex: true, title: "Enterprise Support | OptiRFP", description: "Priority support for Enterprise customers." });
   const { csm, isEnterprise, loading } = useCSMContact();
 
   if (loading) {

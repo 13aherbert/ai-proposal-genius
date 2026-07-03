@@ -24,7 +24,8 @@ import { useSEO } from "@/hooks/use-seo";
 const PAGE_SIZE = 25;
 
 export default function Opportunities() {
-  useSEO({ title: "Opportunities — Find Government RFPs | OptiRFP", description: "Search SAM.gov, Grants.gov, and state procurement portals to find your next RFP opportunity." });
+  useSEO({
+    noindex: true, title: "Opportunities — Find Government RFPs | OptiRFP", description: "Search SAM.gov, Grants.gov, and state procurement portals to find your next RFP opportunity." });
   const { hasFeature, isLoading, plan } = useSubscriptionFeatures();
   const hasAccess = hasFeature("opportunity_search");
 

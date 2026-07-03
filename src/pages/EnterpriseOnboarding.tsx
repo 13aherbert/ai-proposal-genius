@@ -35,7 +35,8 @@ const ALL_STEPS: Step[] = [
 ];
 
 export default function EnterpriseOnboarding() {
-  useSEO({ title: "Enterprise Onboarding — OptiRFP", description: "Set up branding, custom domains, team, and API for your OptiRFP enterprise workspace." });
+  useSEO({
+    noindex: true, title: "Enterprise Onboarding — OptiRFP", description: "Set up branding, custom domains, team, and API for your OptiRFP enterprise workspace." });
   const { organization, loading, refreshOrganization } = useCurrentOrganization();
   const { csm } = useCSMContact();
   const [activeId, setActiveId] = useState<StepId>("welcome");

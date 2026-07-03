@@ -133,15 +133,19 @@ for (const route of routeList) {
     // Wait for useSEO to run. Home may not call useSEO — fall back to timeout.
     await page
       .waitForFunction(() => document.documentElement.dataset.seoReady === "1", { timeout: 5_000 })
-      .catch(() => { /* leave whatever's in the DOM */ });
+      .catch(() => console.warn(`  ⚠ ${route} — useSEO never signaled ready; head tags may be stale`));
 
     // Keep the rendered body content: non-JS crawlers (GPTBot, ClaudeBot,
     // LinkedIn, etc.) index the body, not just <head>. React 18's
     // createRoot().render() replaces #root's children on mount, so the
     // pre-rendered markup is swapped out cleanly for real users.
-    const html = await page.evaluate(
-      () => "<!DOCTYPE html>\n" + document.documentElement.outerHTML,
-    );
+    const html = await page.evaluate(() => {
+      // Strip the seo-ready flag before saving: this snapshot becomes the SPA
+      // fallback (dist/index.html) for later routes, and a baked-in flag makes
+      // the waitForFunction below resolve before useSEO has updated the head.
+      document.documentElement.removeAttribute("data-seo-ready");
+      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+    });
 
     const outDir = route === "/" ? DIST : join(DIST, route);
     mkdirSync(outDir, { recursive: true });
